@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { RecommendationPanel } from '@/components/RecommendationPanel'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -12,11 +13,9 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8 space-y-6">
       <h1 className="text-2xl font-bold">Welcome back, {user.email}</h1>
-      <p className="mt-2 text-gray-600">
-        Your training overview and charts will go here.
-      </p>
+      <RecommendationPanel userId={user.id} />
     </div>
   )
 }
