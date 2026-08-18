@@ -17,32 +17,38 @@ export type Database = {
       ai_recommendations: {
         Row: {
           completed_at: string | null
+          context_summary: string | null
           created_at: string
           error_message: string | null
           id: string
           recommendation: Json | null
           status: string
           user_id: string
+          user_note: string | null
           week_start: string
         }
         Insert: {
           completed_at?: string | null
+          context_summary?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
           recommendation?: Json | null
           status?: string
           user_id: string
+          user_note?: string | null
           week_start: string
         }
         Update: {
           completed_at?: string | null
+          context_summary?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
           recommendation?: Json | null
           status?: string
           user_id?: string
+          user_note?: string | null
           week_start?: string
         }
         Relationships: []
@@ -107,6 +113,102 @@ export type Database = {
         }
         Relationships: []
       }
+      routine_exercises: {
+        Row: {
+          created_at: string
+          exercise_id: string
+          id: string
+          order_index: number
+          routine_id: string
+          target_reps: number | null
+          target_sets: number | null
+        }
+        Insert: {
+          created_at?: string
+          exercise_id: string
+          id?: string
+          order_index: number
+          routine_id: string
+          target_reps?: number | null
+          target_sets?: number | null
+        }
+        Update: {
+          created_at?: string
+          exercise_id?: string
+          id?: string
+          order_index?: number
+          routine_id?: string
+          target_reps?: number | null
+          target_sets?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_exercises_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_exercises_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routines: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          created_at: string
+          date_of_birth: string | null
+          height_cm: number | null
+          sex: string | null
+          training_goal: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date_of_birth?: string | null
+          height_cm?: number | null
+          sex?: string | null
+          training_goal?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date_of_birth?: string | null
+          height_cm?: number | null
+          sex?: string | null
+          training_goal?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       workout_sets: {
         Row: {
           created_at: string
@@ -167,6 +269,7 @@ export type Database = {
           id: string
           notes: string | null
           performed_at: string
+          routine_id: string | null
           title: string | null
           user_id: string
         }
@@ -175,6 +278,7 @@ export type Database = {
           id?: string
           notes?: string | null
           performed_at?: string
+          routine_id?: string | null
           title?: string | null
           user_id: string
         }
@@ -183,17 +287,29 @@ export type Database = {
           id?: string
           notes?: string | null
           performed_at?: string
+          routine_id?: string | null
           title?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workouts_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_weekly_training_summary: {
+        Args: { p_user_id: string; p_week_start: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
