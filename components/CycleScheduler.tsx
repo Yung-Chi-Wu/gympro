@@ -118,6 +118,8 @@ export function CycleScheduler({
 
             if (deleteError) throw new Error(deleteError.message)
 
+            await clearEmptyTodayWorkout(userId)
+
             setCycleId(null)
             setDays([])
             setLengthInput('7')
@@ -126,6 +128,36 @@ export function CycleScheduler({
             setError(err instanceof Error ? err.message : 'Something went wrong.')
         } finally {
             setIsSaving(false)
+        }
+    }
+
+    async function clearEmptyTodayWorkout(userId: string): Promise<void> {
+        const now = new Date()
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+
+        const { data: todayWorkout } = await supabase
+            .from('workouts')
+            .select('id')
+            .eq('user_id', userId)
+            .gte('performed_at', startOfDay.toISOString())
+            .lte('performed_at', endOfDay.toISOString())
+            .order('performed_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+        if (!todayWorkout) return
+
+        const { count } = await supabase
+            .from('workout_sets')
+            .select('id', { count: 'exact', head: true })
+            .eq('workout_id', todayWorkout.id)
+
+        // Only clear it if nothing real has been logged yet — a workout
+        // with actual sets is real training history and must never be
+        // silently deleted just because the cycle setup changed.
+        if (!count || count === 0) {
+            await supabase.from('workouts').delete().eq('id', todayWorkout.id)
         }
     }
 
