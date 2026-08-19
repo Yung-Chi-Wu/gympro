@@ -25,15 +25,11 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Important: always call getUser(), never rely on getSession() alone.
-  // getSession() just reads whatever the cookie claims, without verifying
-  // it against Supabase. getUser() makes an actual API call to Supabase
-  // Auth to confirm the token is still valid.
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const protectedPaths = ['/dashboard', '/log', '/metrics', '/settings', '/history', '/routines']
+  const protectedPaths = ['/dashboard', '/metrics', '/settings', '/history', '/routines']
   const isProtected = protectedPaths.some(
     (path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`)
   )

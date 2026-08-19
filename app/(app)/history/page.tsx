@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { WeekSelector } from '@/components/WeekSelector'
+import { PeriodSelector, type PeriodOption } from '@/components/PeriodSelector'
 
 interface WorkoutSetRow {
     id: string
@@ -21,7 +21,7 @@ interface WorkoutRow {
 export default async function HistoryPage({
     searchParams,
 }: {
-    searchParams: Promise<{ week?: string }>
+    searchParams: Promise<{ period?: string }>
 }) {
     const supabase = await createClient()
     const {
@@ -32,13 +32,25 @@ export default async function HistoryPage({
         redirect('/login')
     }
 
-    const params = await searchParams
-    const availableWeeks = getPastWeeks(13)
-    const selectedWeek = params.week ?? (await pickDefaultWeek(supabase, user.id, availableWeeks))
+    const { data: cycle } = await supabase
+        .from('training_cycles')
+        .select('cycle_length, start_date')
+        .eq('user_id', user.id)
+        .maybeSingle()
 
-    const weekStartDate = new Date(selectedWeek)
-    const weekEndDate = new Date(weekStartDate)
-    weekEndDate.setDate(weekEndDate.getDate() + 6)
+    const availablePeriods = cycle
+        ? computeCyclePeriods(cycle.start_date, cycle.cycle_length, 13)
+        : computeCalendarWeekPeriods(13)
+
+    const params = await searchParams
+    const selectedPeriodStart =
+        params.period ?? (await pickDefaultPeriodStart(supabase, user.id, availablePeriods))
+
+    const selectedPeriod =
+        availablePeriods.find((p) => p.start === selectedPeriodStart) ?? availablePeriods[0]
+
+    const periodStartDate = new Date(selectedPeriod.start)
+    const periodEndDate = new Date(selectedPeriod.end)
 
     const { data: workouts } = await supabase
         .from('workouts')
@@ -52,48 +64,25 @@ export default async function HistoryPage({
     `
         )
         .eq('user_id', user.id)
-        .gte('performed_at', weekStartDate.toISOString())
-        .lte('performed_at', weekEndDate.toISOString())
+        .gte('performed_at', periodStartDate.toISOString())
+        .lte('performed_at', periodEndDate.toISOString())
         .order('performed_at', { ascending: true })
-
-    const { data: recommendation } = await supabase
-        .from('period_reports')
-        .select('status, recommendation, user_note')
-        .eq('user_id', user.id)
-        .eq('period_start', selectedWeek)
-        .maybeSingle()
 
     return (
         <div className="p-8 space-y-6 max-w-2xl">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">Training History</h1>
-                <WeekSelector weeks={availableWeeks} selectedWeek={selectedWeek} />
+                <PeriodSelector periods={availablePeriods} selectedPeriodStart={selectedPeriod.start} />
             </div>
 
             <WorkoutsByDay workouts={(workouts as WorkoutRow[]) ?? []} />
-
-            {recommendation?.status === 'completed' && recommendation.recommendation && (
-                <div className="rounded-lg border p-4 space-y-2">
-                    <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-                        AI Recommendation That Week
-                    </h2>
-                    <p className="text-sm">
-                        {(recommendation.recommendation as { summary: string }).summary}
-                    </p>
-                    {recommendation.user_note && (
-                        <p className="text-sm text-gray-500 italic">
-                            Your note: "{recommendation.user_note}"
-                        </p>
-                    )}
-                </div>
-            )}
         </div>
     )
 }
 
 function WorkoutsByDay({ workouts }: { workouts: WorkoutRow[] }) {
     if (workouts.length === 0) {
-        return <p className="text-gray-500">No workouts logged this week.</p>
+        return <p className="text-gray-500">No workouts logged this period.</p>
     }
 
     return (
@@ -139,36 +128,74 @@ function ExercisesInWorkout({ sets }: { sets: WorkoutSetRow[] }) {
     )
 }
 
-function getPastWeeks(count: number): string[] {
+// ---------- Period computation: calendar weeks for regular users, ----------
+// ---------- the user's own cycle length for Pro users. ----------
+
+function computeCalendarWeekPeriods(count: number): PeriodOption[] {
     const now = new Date()
     const day = now.getDay()
     const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1)
     const thisMonday = new Date(now.setDate(diffToMonday))
 
-    const weeks: string[] = []
+    const periods: PeriodOption[] = []
     for (let i = 0; i < count; i++) {
-        const week = new Date(thisMonday)
-        week.setDate(week.getDate() - i * 7)
-        weeks.push(week.toISOString().split('T')[0])
+        const start = new Date(thisMonday)
+        start.setDate(start.getDate() - i * 7)
+        const end = new Date(start)
+        end.setDate(end.getDate() + 6)
+        periods.push({
+            start: start.toISOString().split('T')[0],
+            end: end.toISOString().split('T')[0],
+        })
     }
-    return weeks
+    return periods
 }
 
-async function pickDefaultWeek(
+function computeCyclePeriods(
+    startDate: string,
+    cycleLength: number,
+    count: number
+): PeriodOption[] {
+    const start = new Date(`${startDate}T00:00:00Z`)
+    const today = new Date()
+    const daysSinceStart = Math.floor((today.getTime() - start.getTime()) / 86_400_000)
+    const currentIndex = Math.max(0, Math.floor(daysSinceStart / cycleLength))
+
+    const periods: PeriodOption[] = []
+    for (let i = 0; i < count && currentIndex - i >= 0; i++) {
+        const index = currentIndex - i
+        const periodStart = addDays(startDate, index * cycleLength)
+        const periodEnd = addDays(periodStart, cycleLength - 1)
+        periods.push({ start: periodStart, end: periodEnd })
+    }
+    return periods
+}
+
+function addDays(dateIso: string, days: number): string {
+    const date = new Date(`${dateIso}T00:00:00Z`)
+    date.setUTCDate(date.getUTCDate() + days)
+    return date.toISOString().split('T')[0]
+}
+
+// ---------- Default selection: current period if it has data, otherwise the previous one ----------
+
+async function pickDefaultPeriodStart(
     supabase: Awaited<ReturnType<typeof createClient>>,
     userId: string,
-    availableWeeks: string[]
+    periods: PeriodOption[]
 ): Promise<string> {
-    const currentWeekStart = availableWeeks[0]
-    const currentWeekEnd = new Date(currentWeekStart)
-    currentWeekEnd.setDate(currentWeekEnd.getDate() + 6)
+    const current = periods[0]
+    if (!current) {
+        // Shouldn't happen, but guards against an empty periods array.
+        return new Date().toISOString().split('T')[0]
+    }
 
     const { count } = await supabase
         .from('workouts')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
-        .gte('performed_at', new Date(currentWeekStart).toISOString())
-        .lte('performed_at', currentWeekEnd.toISOString())
+        .gte('performed_at', new Date(current.start).toISOString())
+        .lte('performed_at', new Date(current.end).toISOString())
 
-    return count && count > 0 ? currentWeekStart : availableWeeks[1]
+    return count && count > 0 ? current.start : (periods[1]?.start ?? current.start)
 }

@@ -11,6 +11,7 @@ interface TodayWorkoutCardProps {
     initialWorkoutId: string | null
     routineIdForToday: string | null
     isRestDay: boolean
+    hasCycle: boolean
     dayIndex: number
     cycleLength: number
     initialExercises: TodayExercise[]
@@ -22,6 +23,7 @@ export function TodayWorkoutCard({
     initialWorkoutId,
     routineIdForToday,
     isRestDay,
+    hasCycle,
     dayIndex,
     cycleLength,
     initialExercises,
@@ -197,9 +199,11 @@ export function TodayWorkoutCard({
         <div className="relative rounded-2xl border border-ink/10 bg-white p-6 space-y-4 shadow-sm">
             <div className="flex items-baseline justify-between">
                 <h2 className="text-lg font-semibold uppercase tracking-wide">Today</h2>
-                <span className="text-sm text-ink/40">
-                    Day {dayIndex} of {cycleLength}
-                </span>
+                {hasCycle && (
+                    <span className="text-sm text-ink/40">
+                        Day {dayIndex} of {cycleLength}
+                    </span>
+                )}
             </div>
 
             {error && (
@@ -208,17 +212,23 @@ export function TodayWorkoutCard({
                 </p>
             )}
 
-            {isRestDay && exercises.length === 0 && (
+            {hasCycle && isRestDay && exercises.length === 0 && (
                 <p className="text-sm text-ink/60">Today is a rest day.</p>
             )}
 
-            {!isRestDay && exercises.length === 0 && (
+            {hasCycle && !isRestDay && exercises.length === 0 && (
                 <p className="text-sm text-ink/60">
                     Today's routine doesn't have any exercises yet — add some in{' '}
                     <a href="/routines" className="underline">
                         Routines
                     </a>
                     , or add one below.
+                </p>
+            )}
+
+            {!hasCycle && exercises.length === 0 && (
+                <p className="text-sm text-ink/60">
+                    Add whatever you're training today using the button below.
                 </p>
             )}
 

@@ -65,57 +65,38 @@ export default async function DashboardPage() {
   const greetingName = profile?.display_name || user.email
   const timezone = profile?.timezone || 'UTC'
 
-  // ---------- Does this user even have a training cycle? ----------
+  const todayParts = getLocalDateParts(timezone)
+  const { startOfDay, endOfDay } = getTodayRangeUtc(todayParts, timezone)
+
+  // ---------- Does this user have a training cycle? ----------
   const { data: cycle } = await supabase
     .from('training_cycles')
     .select('id, cycle_length, start_date')
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (!cycle) {
-    // Regular (non-Pro) user: unchanged experience.
-    return (
-      <div className="p-8 space-y-6">
-        <h1 className="text-3xl font-bold uppercase tracking-wide">
-          Welcome back, {greetingName}
-        </h1>
-        <div className="flex gap-4">
-          <a href="/log" className="text-sm underline">
-            Log today's workout
-          </a>
-          <a href="/history" className="text-sm underline">
-            View training history
-          </a>
-        </div>
-        <ReminderBanner
-          userId={user.id}
-          needsWeightLog={needsWeightLog}
-          needsHeightConfirm={needsHeightConfirm}
-        />
-        <PeriodCheckInCard />
-        <RecommendationPanel userId={user.id} />
-      </div>
-    )
+  const hasCycle = !!cycle
+  let dayIndex = 0
+  let routineIdForToday: string | null = null
+  let isRestDay = false
+
+  if (cycle) {
+    const daysSinceStart = daysBetween(cycle.start_date, todayParts)
+    dayIndex =
+      (((daysSinceStart % cycle.cycle_length) + cycle.cycle_length) % cycle.cycle_length) + 1
+
+    const { data: cycleDay } = await supabase
+      .from('cycle_days')
+      .select('routine_id')
+      .eq('training_cycle_id', cycle.id)
+      .eq('day_index', dayIndex)
+      .maybeSingle()
+
+    routineIdForToday = cycleDay?.routine_id ?? null
+    isRestDay = routineIdForToday === null
   }
 
-  // ---------- Which day of the cycle is "today", in the user's own timezone ----------
-  const todayParts = getLocalDateParts(timezone)
-  const daysSinceStart = daysBetween(cycle.start_date, todayParts)
-  const dayIndex = (((daysSinceStart % cycle.cycle_length) + cycle.cycle_length) % cycle.cycle_length) + 1
-
-  const { data: cycleDay } = await supabase
-    .from('cycle_days')
-    .select('routine_id')
-    .eq('training_cycle_id', cycle.id)
-    .eq('day_index', dayIndex)
-    .maybeSingle()
-
-  const routineIdForToday = cycleDay?.routine_id ?? null
-  const isRestDay = routineIdForToday === null
-
   // ---------- Does today's workout already exist (i.e. did we already interact today)? ----------
-  const { startOfDay, endOfDay } = getTodayRangeUtc(todayParts, timezone)
-
   const { data: existingWorkout } = await supabase
     .from('workouts')
     .select('id')
@@ -129,8 +110,6 @@ export default async function DashboardPage() {
   let todayExercises: TodayExercise[] = []
 
   if (existingWorkout) {
-    // Already interacted today — use the real, persisted planned list,
-    // which already reflects any removals/additions made earlier today.
     const { data: planned } = await supabase
       .from('workout_planned_exercises')
       .select('id, exercise_id, exercises ( name, muscle_group )')
@@ -151,7 +130,6 @@ export default async function DashboardPage() {
         .map((s) => ({ id: s.id, reps: s.reps, weightKg: s.weight_kg })),
     }))
   } else if (routineIdForToday) {
-    // Nothing written yet — derive the suggestion straight from the routine template.
     const { data: routineExercises } = await supabase
       .from('routine_exercises')
       .select('exercise_id, order_index, exercises ( name, muscle_group )')
@@ -194,8 +172,9 @@ export default async function DashboardPage() {
         initialWorkoutId={existingWorkout?.id ?? null}
         routineIdForToday={routineIdForToday}
         isRestDay={isRestDay}
+        hasCycle={hasCycle}
         dayIndex={dayIndex}
-        cycleLength={cycle.cycle_length}
+        cycleLength={cycle?.cycle_length ?? 0}
         initialExercises={todayExercises}
         allExercises={(allExercises ?? []) as ExerciseOption[]}
       />
@@ -212,11 +191,6 @@ function isOlderThanDays(dateString: string | null, days: number): boolean {
   const diffDays = (now - recorded) / (1000 * 60 * 60 * 24)
   return diffDays >= days
 }
-
-// ---------- Timezone-aware date helpers ----------
-// Mirrors the technique used in lambda/weekly-scheduler/src/date.ts: the
-// server's own clock is not the user's clock, so "today" has to be derived
-// from the user's configured timezone, not the runtime's system time.
 
 interface DateParts {
   year: number

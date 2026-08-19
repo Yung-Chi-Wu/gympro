@@ -36,6 +36,7 @@ export function CycleScheduler({
     const [cycleId, setCycleId] = useState<string | null>(initialCycle?.id ?? null)
     const [cycleLength, setCycleLength] = useState<number>(initialCycle?.cycleLength ?? 7)
     const [lengthInput, setLengthInput] = useState(String(initialCycle?.cycleLength ?? 7))
+    const [todayDayInput, setTodayDayInput] = useState('1')
     const [days, setDays] = useState<CycleDayState[]>(
         initialCycleDays.length > 0
             ? initialCycleDays
@@ -48,6 +49,7 @@ export function CycleScheduler({
     const [error, setError] = useState<string | null>(null)
     const [isSaving, setIsSaving] = useState(false)
 
+    // ---------- First-time setup: no cycle exists yet ----------
     async function handleCreateCycle(e: React.FormEvent) {
         e.preventDefault()
         setError(null)
@@ -57,12 +59,19 @@ export function CycleScheduler({
             return
         }
 
+        const todayDay = Number(todayDayInput)
+        if (!todayDay || todayDay < 1 || todayDay > length) {
+            setError(`"Today is day..." must be between 1 and ${length}.`)
+            return
+        }
+
         setIsSaving(true)
         try {
-            const todayIso = new Date().toISOString().split('T')[0]
+            const startDate = addDaysToDate(new Date(), -(todayDay - 1))
+            const startDateIso = startDate.toISOString().split('T')[0]
             const { data: cycle, error: cycleError } = await supabase
                 .from('training_cycles')
-                .insert({ user_id: userId, cycle_length: length, start_date: todayIso })
+                .insert({ user_id: userId, cycle_length: length, start_date: startDateIso })
                 .select('id')
                 .single()
 
@@ -88,6 +97,39 @@ export function CycleScheduler({
         }
     }
 
+    // ---------- Deleting the cycle entirely ----------
+    async function handleDeleteCycle() {
+        if (!cycleId) return
+        if (
+            !confirm(
+                'Delete your training cycle? Your routines will stay, but the day-by-day schedule will be cleared.'
+            )
+        ) {
+            return
+        }
+
+        setError(null)
+        setIsSaving(true)
+        try {
+            const { error: deleteError } = await supabase
+                .from('training_cycles')
+                .delete()
+                .eq('id', cycleId)
+
+            if (deleteError) throw new Error(deleteError.message)
+
+            setCycleId(null)
+            setDays([])
+            setLengthInput('7')
+            setTodayDayInput('1')
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Something went wrong.')
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+    // ---------- Editing an existing cycle's length ----------
     function handleRequestLengthChange(e: React.FormEvent) {
         e.preventDefault()
         setError(null)
@@ -157,6 +199,7 @@ export function CycleScheduler({
         }
     }
 
+    // ---------- Assigning a routine to a specific day ----------
     async function handleDayChange(dayIndex: number, routineId: string) {
         if (!cycleId) return
         setError(null)
@@ -207,6 +250,24 @@ export function CycleScheduler({
                             className="w-24 rounded-md border px-3 py-2 text-sm"
                         />
                     </div>
+                    <div className="space-y-1">
+                        <label htmlFor="todayDay" className="text-sm font-medium">
+                            Which day of your cycle is today?
+                        </label>
+                        <input
+                            id="todayDay"
+                            type="number"
+                            min={1}
+                            max={Number(lengthInput) || undefined}
+                            value={todayDayInput}
+                            onChange={(e) => setTodayDayInput(e.target.value)}
+                            className="w-24 rounded-md border px-3 py-2 text-sm"
+                        />
+                        <p className="text-xs text-ink/40">
+                            If you're already partway through your routine in your head, set this
+                            so today lines up with the right day.
+                        </p>
+                    </div>
                     <button
                         type="submit"
                         disabled={isSaving}
@@ -221,26 +282,36 @@ export function CycleScheduler({
                         onSubmit={handleRequestLengthChange}
                         className="rounded-2xl border border-ink/10 bg-white p-6 space-y-3 shadow-sm"
                     >
-                        <div className="flex items-end gap-3">
-                            <div className="space-y-1">
-                                <label htmlFor="cycleLength" className="text-sm font-medium">
-                                    Cycle length (days)
-                                </label>
-                                <input
-                                    id="cycleLength"
-                                    type="number"
-                                    min={1}
-                                    value={lengthInput}
-                                    onChange={(e) => setLengthInput(e.target.value)}
-                                    className="w-24 rounded-md border px-3 py-2 text-sm"
-                                />
+                        <div className="flex items-end justify-between gap-3">
+                            <div className="flex items-end gap-3">
+                                <div className="space-y-1">
+                                    <label htmlFor="cycleLength" className="text-sm font-medium">
+                                        Cycle length (days)
+                                    </label>
+                                    <input
+                                        id="cycleLength"
+                                        type="number"
+                                        min={1}
+                                        value={lengthInput}
+                                        onChange={(e) => setLengthInput(e.target.value)}
+                                        className="w-24 rounded-md border px-3 py-2 text-sm"
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className="rounded-md border px-4 py-2 text-sm disabled:opacity-50"
+                                >
+                                    Update Length
+                                </button>
                             </div>
                             <button
-                                type="submit"
+                                type="button"
+                                onClick={handleDeleteCycle}
                                 disabled={isSaving}
-                                className="rounded-md border px-4 py-2 text-sm disabled:opacity-50"
+                                className="text-sm text-ink/40 hover:text-red-600 disabled:opacity-50"
                             >
-                                Update Length
+                                Delete cycle
                             </button>
                         </div>
                     </form>
@@ -310,4 +381,10 @@ export function CycleScheduler({
             )}
         </section>
     )
+}
+
+function addDaysToDate(date: Date, days: number): Date {
+    const result = new Date(date)
+    result.setDate(result.getDate() + days)
+    return result
 }

@@ -1,7 +1,6 @@
 import Link from 'next/link'
 
 const NAV_LINKS = [
-    { href: '/log', label: 'Log Workout' },
     { href: '/routines', label: 'Routines' },
     { href: '/metrics', label: 'Metrics' },
     { href: '/history', label: 'History' },
