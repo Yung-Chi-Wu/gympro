@@ -1,10 +1,19 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #FAFAF8;
+  --color-ink: #2B2B28;
+  --color-chalk: #F5F3EC;
+  --color-plate: #26241F;
+  --color-plate-light: #3E3B34;
+
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+}
 
 body {
-  background-color: #FAFAF8;
-  color: #2B2B28;
+  background-color: var(--color-background);
+  color: var(--color-ink);
   font-family: var(--font-body);
 }
 

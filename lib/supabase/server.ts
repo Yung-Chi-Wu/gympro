@@ -19,9 +19,10 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // 在 Server Component 裡呼叫 setAll 本來就會失敗,
-            // 這是預期行為,因為 Server Component 不能直接寫 cookie。
-            // 等一下寫的 middleware 會負責刷新 session,這裡安全地忽略即可。
+            // Calling setAll() from a Server Component is expected to fail.
+            // That's fine — a Server Component can't write cookies directly,
+            // and the middleware handles refreshing the session, so we can
+            // safely ignore this here.
           }
         },
       },

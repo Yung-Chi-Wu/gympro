@@ -1,0 +1,30 @@
+export interface ExerciseOption {
+    id: string
+    name: string
+    muscle_group: string
+    equipment: string | null
+}
+
+export interface LoggedSet {
+    id: string
+    exerciseId: string
+    exerciseName: string
+    setNumber: number
+    reps: number
+    weightKg: number
+    rpe: number | null
+    isWarmup: boolean
+}
+
+export const MUSCLE_GROUPS = [
+    'chest',
+    'back',
+    'shoulders',
+    'biceps',
+    'triceps',
+    'legs',
+    'glutes',
+    'core',
+    'cardio',
+    'other',
+] as const

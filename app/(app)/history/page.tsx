@@ -33,8 +33,8 @@ export default async function HistoryPage({
     }
 
     const params = await searchParams
-    const availableWeeks = getPastWeeks(13) // last ~3 months
-    const selectedWeek = params.week ?? availableWeeks[1] // default to last week, not current
+    const availableWeeks = getPastWeeks(13)
+    const selectedWeek = params.week ?? (await pickDefaultWeek(supabase, user.id, availableWeeks))
 
     const weekStartDate = new Date(selectedWeek)
     const weekEndDate = new Date(weekStartDate)
@@ -57,10 +57,10 @@ export default async function HistoryPage({
         .order('performed_at', { ascending: true })
 
     const { data: recommendation } = await supabase
-        .from('ai_recommendations')
+        .from('period_reports')
         .select('status, recommendation, user_note')
         .eq('user_id', user.id)
-        .eq('week_start', selectedWeek)
+        .eq('period_start', selectedWeek)
         .maybeSingle()
 
     return (
@@ -116,7 +116,6 @@ function WorkoutsByDay({ workouts }: { workouts: WorkoutRow[] }) {
 }
 
 function ExercisesInWorkout({ sets }: { sets: WorkoutSetRow[] }) {
-    // Group individual sets by exercise name, preserving set order.
     const byExercise = new Map<string, WorkoutSetRow[]>()
     for (const set of sets) {
         const name = set.exercises?.name ?? 'Unknown exercise'
@@ -153,4 +152,23 @@ function getPastWeeks(count: number): string[] {
         weeks.push(week.toISOString().split('T')[0])
     }
     return weeks
+}
+
+async function pickDefaultWeek(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    userId: string,
+    availableWeeks: string[]
+): Promise<string> {
+    const currentWeekStart = availableWeeks[0]
+    const currentWeekEnd = new Date(currentWeekStart)
+    currentWeekEnd.setDate(currentWeekEnd.getDate() + 6)
+
+    const { count } = await supabase
+        .from('workouts')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .gte('performed_at', new Date(currentWeekStart).toISOString())
+        .lte('performed_at', currentWeekEnd.toISOString())
+
+    return count && count > 0 ? currentWeekStart : availableWeeks[1]
 }

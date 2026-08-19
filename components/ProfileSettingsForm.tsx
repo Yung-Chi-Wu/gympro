@@ -5,29 +5,53 @@ import { createClient } from '@/lib/supabase/client'
 
 interface ProfileSettingsFormProps {
     userId: string
-    initialDisplayName: string | null
     initialHeightCm: number | null
+    initialDisplayName: string | null
+    initialTrainingGoal: string | null
     initialDateOfBirth: string | null
     initialSex: string | null
-    initialTrainingGoal: string | null
+    initialTimezone: string
 }
+
+const COMMON_TIMEZONES = [
+    'UTC',
+    'America/New_York',
+    'America/Chicago',
+    'America/Denver',
+    'America/Los_Angeles',
+    'Asia/Taipei',
+    'Asia/Tokyo',
+    'Asia/Shanghai',
+    'Europe/London',
+    'Europe/Paris',
+    'Australia/Sydney',
+]
 
 export function ProfileSettingsForm({
     userId,
-    initialDisplayName,
     initialHeightCm,
+    initialDisplayName,
+    initialTrainingGoal,
     initialDateOfBirth,
     initialSex,
-    initialTrainingGoal,
+    initialTimezone,
 }: ProfileSettingsFormProps) {
     const supabase = createClient()
-    const [displayName, setDisplayName] = useState(initialDisplayName ?? '')
     const [heightCm, setHeightCm] = useState(initialHeightCm?.toString() ?? '')
+    const [displayName, setDisplayName] = useState(initialDisplayName ?? '')
+    const [trainingGoal, setTrainingGoal] = useState(initialTrainingGoal ?? '')
     const [dateOfBirth, setDateOfBirth] = useState(initialDateOfBirth ?? '')
     const [sex, setSex] = useState(initialSex ?? '')
-    const [trainingGoal, setTrainingGoal] = useState(initialTrainingGoal ?? '')
+    const [timezone, setTimezone] = useState(initialTimezone)
     const [isSaving, setIsSaving] = useState(false)
     const [saveMessage, setSaveMessage] = useState<string | null>(null)
+
+    // Browser timezones not in our curated list still need to show up
+    // (e.g. someone whose system timezone is Asia/Taipei but who picked
+    // something else before) — always keep the current value selectable.
+    const timezoneOptions = COMMON_TIMEZONES.includes(timezone)
+        ? COMMON_TIMEZONES
+        : [timezone, ...COMMON_TIMEZONES]
 
     async function handleSave(e: React.FormEvent) {
         e.preventDefault()
@@ -37,12 +61,13 @@ export function ProfileSettingsForm({
         const { error } = await supabase.from('user_profiles').upsert(
             {
                 user_id: userId,
-                display_name: displayName.trim() || null,
                 height_cm: heightCm ? Number(heightCm) : null,
+                display_name: displayName.trim() || null,
                 height_updated_at: heightCm ? new Date().toISOString() : null,
                 date_of_birth: dateOfBirth || null,
                 sex: sex || null,
                 training_goal: trainingGoal.trim() || null,
+                timezone,
                 updated_at: new Date().toISOString(),
             },
             { onConflict: 'user_id' }
@@ -96,6 +121,20 @@ export function ProfileSettingsForm({
                 </select>
             </Field>
 
+            <Field label="Timezone">
+                <select
+                    value={timezone}
+                    onChange={(e) => setTimezone(e.target.value)}
+                    className="w-full rounded-md border px-3 py-2"
+                >
+                    {timezoneOptions.map((tz) => (
+                        <option key={tz} value={tz}>
+                            {tz}
+                        </option>
+                    ))}
+                </select>
+            </Field>
+
             <Field label="Long-term training goal">
                 <textarea
                     value={trainingGoal}
@@ -110,16 +149,12 @@ export function ProfileSettingsForm({
                 <div className="flex items-center gap-3">
                     <p className="text-sm text-ink/60">{saveMessage}</p>
                     {saveMessage === 'Saved!' && (
-                        <a
-                            href="/dashboard"
-                            className="text-sm text-plate underline"
-                        >
+                        <a href="/dashboard" className="text-sm text-plate underline">
                             Back to dashboard
                         </a>
                     )}
                 </div>
             )}
-
 
             <button
                 type="submit"
@@ -128,7 +163,7 @@ export function ProfileSettingsForm({
             >
                 {isSaving ? 'Saving...' : 'Save'}
             </button>
-        </form >
+        </form>
     )
 }
 

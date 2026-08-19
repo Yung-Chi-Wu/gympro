@@ -54,6 +54,7 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+infra/terraform/out.json
 
 # Supabase CLI local cache
 supabase/.temp/

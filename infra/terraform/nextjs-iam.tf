@@ -1,6 +1,3 @@
-# ---------- Dedicated IAM user for the Next.js app to send SQS messages ----------
-# This runs on Vercel (outside AWS), so it needs its own credentials —
-# it cannot inherit permissions from an IAM role the way Lambda does.
 resource "aws_iam_user" "nextjs_sqs_sender" {
   name = "gympro-nextjs-sqs-sender"
 }
@@ -25,7 +22,6 @@ resource "aws_iam_user_policy" "nextjs_sqs_send_only" {
   policy = data.aws_iam_policy_document.nextjs_sqs_send_only.json
 }
 
-# Outputs so we can retrieve the access key values after apply.
 output "nextjs_sqs_sender_access_key_id" {
   value     = aws_iam_access_key.nextjs_sqs_sender.id
   sensitive = true

@@ -25,14 +25,15 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // 重要:一定要呼叫 getUser(),不能只呼叫 getSession()
-  // getSession() 只是讀 cookie 裡「宣稱」的資料,沒有向 Supabase 驗證是否為真
-  // getUser() 會真的打一次 API 去問 Supabase Auth 伺服器:「這個 token 還有效嗎?」
+  // Important: always call getUser(), never rely on getSession() alone.
+  // getSession() just reads whatever the cookie claims, without verifying
+  // it against Supabase. getUser() makes an actual API call to Supabase
+  // Auth to confirm the token is still valid.
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const protectedPaths = ['/dashboard', '/log/', '/metrics', '/settings', '/history']
+  const protectedPaths = ['/dashboard', '/log', '/metrics', '/settings', '/history', '/routines']
   const isProtected = protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   )

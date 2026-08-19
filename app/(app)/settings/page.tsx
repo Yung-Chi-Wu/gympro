@@ -14,7 +14,7 @@ export default async function SettingsPage() {
 
     const { data: profile } = await supabase
         .from('user_profiles')
-        .select('display_name, height_cm, date_of_birth, sex, training_goal')
+        .select('display_name, height_cm, date_of_birth, sex, training_goal, timezone')
         .eq('user_id', user.id)
         .maybeSingle()
 
@@ -23,11 +23,12 @@ export default async function SettingsPage() {
             <h1 className="text-2xl font-bold">Profile Settings</h1>
             <ProfileSettingsForm
                 userId={user.id}
-                initialDisplayName={profile?.display_name ?? null}
                 initialHeightCm={profile?.height_cm ?? null}
+                initialDisplayName={profile?.display_name ?? null}
+                initialTrainingGoal={profile?.training_goal ?? null}
                 initialDateOfBirth={profile?.date_of_birth ?? null}
                 initialSex={profile?.sex ?? null}
-                initialTrainingGoal={profile?.training_goal ?? null}
+                initialTimezone={profile?.timezone ?? 'UTC'}
             />
         </div>
     )

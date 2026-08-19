@@ -1,14 +1,16 @@
 // ---------- Incoming SQS message shape ----------
-// This is what the Next.js API Route sends into the queue.
+// periodEnd is now required — period length varies (7 days for regular
+// users, the user's own cycle_length for Pro users), so ai-worker can no
+// longer derive the end date by assuming a fixed +6 days.
 export interface AnalysisRequestMessage {
   userId: string
-  weekStart: string // ISO date string, e.g. "2026-08-17"
-  userNote?: string // Optional ad-hoc note for this specific week
+  periodStart: string // ISO date, e.g. "2026-08-17"
+  periodEnd: string // ISO date, e.g. "2026-08-23"
+  userNote?: string
 }
 
-// ---------- What the Supabase RPC function returns ----------
-// This mirrors the JSON shape built by get_weekly_training_summary().
-export interface WeeklyTrainingSummary {
+// ---------- What the Supabase RPC + our own follow-up queries produce ----------
+export interface TrainingPeriodSummary {
   userContext: {
     heightCm: number | null
     latestWeightKg: number | null
@@ -17,30 +19,29 @@ export interface WeeklyTrainingSummary {
     sex: string | null
     bmi: number | null
   }
-  targetWeek: {
-    weekStart: string
-    weekEnd: string
+  targetPeriod: {
+    periodStart: string
+    periodEnd: string
     totalSets: number
     totalTonnageKg: number
     tonnagePerBodyweightKg: number | null
     byMuscleGroup: Record<string, { sets: number; tonnageKg: number }>
   }
-  tonnageTrend: Array<{ weekStart: string; totalTonnageKg: number }>
+  volumeSplit: Record<string, number>
+  strengthIndex: Record<string, { currentIndex: number; previousIndex: number | null }>
   routineAdherence: {
     followedRoutines: string[]
     missedRoutines: string[]
   }
 }
 
-// ---------- The structured recommendation Claude must produce ----------
-// This is the contract enforced via Claude's tool use feature.
-export interface AiRecommendation {
+// ---------- What Claude actually has to generate ----------
+// Deliberately narrative/judgment fields only. The quantitative fields
+// (weeklyVolume, volumeSplit, strengthIndex) are computed directly from
+// the database and merged in afterward in index.ts — Claude is never
+// asked to recompute or restate numbers it was only given to read.
+export interface AiNarrative {
   summary: string
-  weeklyVolume: {
-    totalSets: number
-    totalTonnageKg: number
-    byMuscleGroup: Record<string, { sets: number; tonnageKg: number }>
-  }
   progressiveOverload: {
     status: 'on_track' | 'stalling' | 'regressing' | 'insufficient_data'
     notes: string
@@ -54,4 +55,15 @@ export interface AiRecommendation {
   deloadReason: string | null
   actionItems: string[]
   contextSummary: string
+}
+
+// ---------- The full record we actually store ----------
+export interface AiRecommendation extends AiNarrative {
+  weeklyVolume: {
+    totalSets: number
+    totalTonnageKg: number
+    byMuscleGroup: Record<string, { sets: number; tonnageKg: number }>
+  }
+  volumeSplit: Record<string, number>
+  strengthIndex: Record<string, { currentIndex: number; previousIndex: number | null }>
 }

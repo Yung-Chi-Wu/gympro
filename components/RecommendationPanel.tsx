@@ -1,6 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import {
+    PieChart,
+    Pie,
+    Cell,
+    Tooltip,
+    ResponsiveContainer,
+} from 'recharts'
 import { createClient } from '@/lib/supabase/client'
 import type { AiRecommendation } from './types'
 
@@ -16,21 +23,22 @@ const SEVERITY_STYLES: Record<string, string> = {
     severe: 'bg-red-50 text-red-800 border-red-200',
 }
 
+const PIE_COLORS = ['#26241F', '#8A5A44', '#4A6B5A', '#5A6B8A', '#8A7A44', '#6B4A6B']
+
 export function RecommendationPanel({ userId }: RecommendationPanelProps) {
     const supabase = createClient()
     const [status, setStatus] = useState<Status>('idle')
     const [recommendation, setRecommendation] = useState<AiRecommendation | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [noteInput, setNoteInput] = useState('')
 
-    const weekStart = getMostRecentMonday()
 
     const checkStatus = useCallback(async () => {
         const { data } = await supabase
-            .from('ai_recommendations')
+            .from('period_reports')
             .select('status, recommendation, error_message')
             .eq('user_id', userId)
-            .eq('week_start', weekStart)
+            .order('period_start', { ascending: false })
+            .limit(1)
             .maybeSingle()
 
         if (!data) return
@@ -42,61 +50,23 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
         if (data.status === 'failed' || data.status === 'insufficient_data') {
             setErrorMessage(data.error_message)
         }
-    }, [supabase, userId, weekStart])
-
-    useEffect(() => {
-        if (status !== 'pending') return
-        const interval = setInterval(checkStatus, 3000)
-        return () => clearInterval(interval)
-    }, [status, checkStatus])
+    }, [supabase, userId])
 
     useEffect(() => {
         checkStatus()
     }, [checkStatus])
 
-    async function handleGenerate() {
-        setStatus('pending')
-        setErrorMessage(null)
-
-        const res = await fetch('/api/recommendations/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                weekStart,
-                userNote: noteInput.trim() || undefined,
-            }),
-        })
-
-        if (!res.ok) {
-            setStatus('failed')
-            setErrorMessage('Failed to submit request. Please try again.')
-        }
-    }
+    useEffect(() => {
+        window.addEventListener('period-checkin-success', checkStatus)
+        return () => window.removeEventListener('period-checkin-success', checkStatus)
+    }, [checkStatus])
 
     return (
         <div className="rounded-2xl border border-ink/10 bg-white p-6 space-y-4 shadow-sm">
             {status === 'idle' && (
-                <div className="space-y-3">
-                    <div className="space-y-1">
-                        <label htmlFor="userNote" className="text-sm font-medium">
-                            Anything specific on your mind this week? (optional)
-                        </label>
-                        <textarea
-                            id="userNote"
-                            value={noteInput}
-                            onChange={(e) => setNoteInput(e.target.value)}
-                            placeholder="e.g. Want to focus more on back this week, shoulder felt tight..."
-                            rows={2}
-                            className="w-full rounded-md border px-3 py-2 text-sm"
-                        />
-                    </div>
-                    <button
-                        onClick={handleGenerate}
-                        className="rounded-md bg-plate px-4 py-2 font-display uppercase tracking-wide text-chalk hover:bg-plate-light"
-                    >
-                        Generate This Week's Recommendation
-                    </button>
-                </div>
+                <p className="text-sm text-ink/60">
+                    Your latest report will appear here once you check in.
+                </p>
             )}
 
             {status === 'pending' && (
@@ -122,17 +92,85 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
 }
 
 function RecommendationDisplay({ recommendation }: { recommendation: AiRecommendation }) {
+    const pieData = Object.entries(recommendation.volumeSplit ?? {}).map(([name, value]) => ({
+        name,
+        value,
+    }))
+
+    const strengthEntries = Object.entries(recommendation.strengthIndex ?? {})
+
     return (
         <div className="space-y-6">
-            {/* Overall summary */}
             <p className="text-lg font-medium">{recommendation.summary}</p>
 
-            {/* Weekly volume breakdown */}
+            {strengthEntries.length > 0 && (
+                <div>
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                        Strength Index
+                    </h3>
+                    <p className="text-xs text-ink/40 mb-2">
+                        100 = your baseline when you first logged each exercise. Higher means stronger.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                        {strengthEntries.map(([muscle, data]) => {
+                            const change =
+                                data.previousIndex !== null
+                                    ? data.currentIndex - data.previousIndex
+                                    : null
+                            return (
+                                <div key={muscle} className="rounded-xl bg-plate/10 px-4 py-3 text-sm">
+                                    <span className="font-medium capitalize">{muscle}</span>
+                                    <span className="block font-mono text-ink/60 mt-1">
+                                        {data.currentIndex}
+                                        {change !== null && (
+                                            <span
+                                                className={
+                                                    change >= 0 ? 'text-green-700 ml-1' : 'text-red-600 ml-1'
+                                                }
+                                            >
+                                                {change >= 0 ? '+' : ''}
+                                                {change}
+                                            </span>
+                                        )}
+                                    </span>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {pieData.length > 0 && (
+                <div>
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                        Training Split
+                    </h3>
+                    <div className="h-56">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={pieData}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    outerRadius={80}
+                                    label={(entry) => `${entry.name} ${entry.value}%`}
+                                >
+                                    {pieData.map((entry, i) => (
+                                        <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip formatter={(value: number) => `${value}%`} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            )}
+
             <div>
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                    This Week's Volume
+                    This Period's Volume
                 </h3>
-                <p className="text-sm text-white/60 mb-2 font-mono">
+                <p className="text-sm text-ink/60 mb-2 font-mono">
                     {recommendation.weeklyVolume.totalSets} total sets · {recommendation.weeklyVolume.totalTonnageKg} kg total tonnage
                 </p>
                 <div className="grid grid-cols-2 gap-3">
@@ -149,7 +187,6 @@ function RecommendationDisplay({ recommendation }: { recommendation: AiRecommend
                 </div>
             </div>
 
-            {/* Progressive overload */}
             <div>
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
                     Progressive Overload
@@ -157,7 +194,6 @@ function RecommendationDisplay({ recommendation }: { recommendation: AiRecommend
                 <p className="text-sm text-gray-600">{recommendation.progressiveOverload.notes}</p>
             </div>
 
-            {/* Muscle imbalances */}
             {recommendation.muscleImbalances.length > 0 && (
                 <div>
                     <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
@@ -179,7 +215,6 @@ function RecommendationDisplay({ recommendation }: { recommendation: AiRecommend
                 </div>
             )}
 
-            {/* Deload warning, only shown if relevant */}
             {recommendation.deloadRecommended && (
                 <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
                     <span className="font-semibold">Deload recommended: </span>
@@ -187,10 +222,9 @@ function RecommendationDisplay({ recommendation }: { recommendation: AiRecommend
                 </div>
             )}
 
-            {/* Action items */}
             <div>
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                    What To Do Next Week
+                    What To Do Next
                 </h3>
                 <ul className="list-disc list-inside space-y-1 text-sm">
                     {recommendation.actionItems.map((item, i) => (

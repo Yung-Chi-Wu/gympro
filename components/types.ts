@@ -5,6 +5,8 @@ export interface AiRecommendation {
         totalTonnageKg: number
         byMuscleGroup: Record<string, { sets: number; tonnageKg: number }>
     }
+    volumeSplit: Record<string, number>
+    strengthIndex: Record<string, { currentIndex: number; previousIndex: number | null }>
     progressiveOverload: {
         status: 'on_track' | 'stalling' | 'regressing' | 'insufficient_data'
         notes: string
