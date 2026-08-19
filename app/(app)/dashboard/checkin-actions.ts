@@ -43,6 +43,26 @@ export async function submitPeriodCheckIn(weightKg: number): Promise<CheckInResu
         return { success: false, message: window.closedMessage ?? 'Check-in is not open yet.' }
     }
 
+    // Prevent duplicate check-ins for the same period — without this,
+    // clicking Check In multiple times in the same window would queue a
+    // fresh (paid) Claude API call every single time.
+    const { data: existingReport } = await supabase
+        .from('period_reports')
+        .select('status')
+        .eq('user_id', user.id)
+        .eq('period_start', window.periodStart)
+        .maybeSingle()
+
+    if (existingReport && existingReport.status !== 'failed') {
+        return {
+            success: false,
+            message:
+                existingReport.status === 'completed'
+                    ? 'You already checked in for this period — your report is ready below.'
+                    : 'You already checked in for this period — your report is still being generated.',
+        }
+    }
+
     const { error: metricError } = await supabase.from('body_metrics').insert({
         user_id: user.id,
         weight_kg: weightKg,
