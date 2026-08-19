@@ -37,7 +37,7 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
 
         setStatus(data.status as Status)
         if (data.status === 'completed') {
-            setRecommendation(data.recommendation as AiRecommendation)
+            setRecommendation(data.recommendation as unknown as AiRecommendation)
         }
         if (data.status === 'failed' || data.status === 'insufficient_data') {
             setErrorMessage(data.error_message)
@@ -74,7 +74,7 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
     }
 
     return (
-        <div className="rounded-lg border p-6 space-y-4">
+        <div className="rounded-2xl border border-ink/10 bg-white p-6 space-y-4 shadow-sm">
             {status === 'idle' && (
                 <div className="space-y-3">
                     <div className="space-y-1">
@@ -92,7 +92,7 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
                     </div>
                     <button
                         onClick={handleGenerate}
-                        className="rounded-md bg-black px-4 py-2 text-white"
+                        className="rounded-md bg-plate px-4 py-2 font-display uppercase tracking-wide text-chalk hover:bg-plate-light"
                     >
                         Generate This Week's Recommendation
                     </button>
@@ -132,16 +132,17 @@ function RecommendationDisplay({ recommendation }: { recommendation: AiRecommend
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
                     This Week's Volume
                 </h3>
-                <p className="text-sm text-gray-600 mb-2">
-                    {recommendation.weeklyVolume.totalSets} total sets ·{' '}
-                    {recommendation.weeklyVolume.totalTonnageKg} kg total tonnage
+                <p className="text-sm text-white/60 mb-2 font-mono">
+                    {recommendation.weeklyVolume.totalSets} total sets · {recommendation.weeklyVolume.totalTonnageKg} kg total tonnage
                 </p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                     {Object.entries(recommendation.weeklyVolume.byMuscleGroup).map(
                         ([muscle, data]) => (
-                            <div key={muscle} className="rounded border px-3 py-2 text-sm">
-                                <span className="font-medium capitalize">{muscle}</span>:{' '}
-                                {data.sets} sets, {data.tonnageKg} kg
+                            <div key={muscle} className="rounded-xl bg-plate/10 px-4 py-3 text-sm">
+                                <span className="font-medium capitalize">{muscle}</span>
+                                <span className="block font-mono text-ink/60 mt-1">
+                                    {data.sets} sets · {data.tonnageKg} kg
+                                </span>
                             </div>
                         )
                     )}

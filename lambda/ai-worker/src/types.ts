@@ -13,6 +13,9 @@ export interface WeeklyTrainingSummary {
     heightCm: number | null
     latestWeightKg: number | null
     weightRecordedAt: string | null
+    ageYears: number | null
+    sex: string | null
+    bmi: number | null
   }
   targetWeek: {
     weekStart: string

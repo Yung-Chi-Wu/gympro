@@ -27,7 +27,12 @@ async function processMessage(record: SQSRecord): Promise<void> {
       fetchPreviousContextSummary(supabase, userId, weekStart),
       fetchUserProfile(supabase, userId),
     ])
-
+    trainingSummary.userContext.ageYears = userProfile.ageYears
+    trainingSummary.userContext.sex = userProfile.sex
+    trainingSummary.userContext.bmi = calculateBmi(
+      trainingSummary.userContext.heightCm,
+      trainingSummary.userContext.latestWeightKg
+    )
     const totalSets = trainingSummary.targetWeek.totalSets
 
     if (totalSets < MINIMUM_SETS_FOR_ANALYSIS) {
@@ -68,4 +73,10 @@ export const handler: SQSHandler = async (event: SQSEvent) => {
   for (const record of event.Records) {
     await processMessage(record)
   }
+}
+
+function calculateBmi(heightCm: number | null, weightKg: number | null): number | null {
+  if (!heightCm || !weightKg) return null
+  const heightM = heightCm / 100
+  return Math.round((weightKg / (heightM * heightM)) * 10) / 10
 }

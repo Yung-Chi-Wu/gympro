@@ -131,8 +131,9 @@ ${goalSection}${contextSection}${noteSection}Here is this week's objective train
 
 ${JSON.stringify(summary, null, 2)}
 
-Analyze this data and submit a structured recommendation using the submit_training_recommendation tool. Base all quantitative judgments strictly on the numbers provided above — do not invent or assume any data not present here. Factor in the user's long-term goal and this week's note (if provided) when shaping your advice and action items — for example, if the user says they want to focus more on back, prioritize addressing that in actionItems even if the raw numbers alone wouldn't have flagged it. If totalSets is 0, note that no training was logged this week rather than speculating why.`
+Analyze this data and submit a structured recommendation using the submit_training_recommendation tool. Base all quantitative judgments strictly on the numbers provided above — do not invent or assume any data not present here. Use the user's age, sex, and BMI, if provided in userContext, to calibrate what counts as reasonable training volume and intensity for their profile. Factor in the user's long-term goal and this week's note (if provided) when shaping your advice and action items — for example, if the user says they want to focus more on back, prioritize addressing that in actionItems even if the raw numbers alone wouldn't have flagged it. If totalSets is 0, note that no training was logged this week rather than speculating why.`
 }
+
 
 export async function generateRecommendation(
     summary: WeeklyTrainingSummary,

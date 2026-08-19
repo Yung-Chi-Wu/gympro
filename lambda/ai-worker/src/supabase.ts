@@ -150,10 +150,10 @@ export async function saveInsufficientDataStatus(
 export async function fetchUserProfile(
     supabase: SupabaseClient,
     userId: string
-): Promise<{ trainingGoal: string | null }> {
+): Promise<{ trainingGoal: string | null; ageYears: number | null; sex: string | null }> {
     const { data, error } = await supabase
         .from('user_profiles')
-        .select('training_goal')
+        .select('training_goal, date_of_birth, sex')
         .eq('user_id', userId)
         .maybeSingle()
 
@@ -161,5 +161,20 @@ export async function fetchUserProfile(
         throw new Error(`Failed to fetch user profile: ${error.message}`)
     }
 
-    return { trainingGoal: data?.training_goal ?? null }
+    return {
+        trainingGoal: data?.training_goal ?? null,
+        ageYears: data?.date_of_birth ? calculateAge(data.date_of_birth) : null,
+        sex: data?.sex ?? null,
+    }
+}
+
+function calculateAge(dateOfBirth: string): number {
+    const dob = new Date(dateOfBirth)
+    const now = new Date()
+    let age = now.getFullYear() - dob.getFullYear()
+    const hasHadBirthdayThisYear =
+        now.getMonth() > dob.getMonth() ||
+        (now.getMonth() === dob.getMonth() && now.getDate() >= dob.getDate())
+    if (!hasHadBirthdayThisYear) age -= 1
+    return age
 }
