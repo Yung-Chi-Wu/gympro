@@ -11,6 +11,7 @@ import {
     ResponsiveContainer,
 } from 'recharts'
 import { createClient } from '@/lib/supabase/client'
+import { toFriendlyError } from '@/lib/friendly-error'
 
 interface WeightEntry {
     id: string
@@ -61,7 +62,7 @@ export function WeightTrendSection({ userId, entries: initialEntries }: WeightTr
                 .single()
 
             if (insertError || !data) {
-                throw new Error(insertError?.message ?? 'Failed to save weight')
+                throw new Error(toFriendlyError(insertError))
             }
 
             setEntries((prev) =>
@@ -83,7 +84,7 @@ export function WeightTrendSection({ userId, entries: initialEntries }: WeightTr
         const { error: deleteError } = await supabase.from('body_metrics').delete().eq('id', id)
 
         if (deleteError) {
-            setError(deleteError.message)
+            setError(toFriendlyError(deleteError))
             return
         }
         setEntries((prev) => prev.filter((e) => e.id !== id))

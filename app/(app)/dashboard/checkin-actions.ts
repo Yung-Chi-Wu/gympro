@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
 import { computeRegularCheckInWindow, computeProCheckInWindow } from '@/lib/checkin-window'
+import { toFriendlyError } from '@/lib/friendly-error'
 
 export interface CheckInResult {
     success: boolean
@@ -43,9 +44,6 @@ export async function submitPeriodCheckIn(weightKg: number): Promise<CheckInResu
         return { success: false, message: window.closedMessage ?? 'Check-in is not open yet.' }
     }
 
-    // Prevent duplicate check-ins for the same period — without this,
-    // clicking Check In multiple times in the same window would queue a
-    // fresh (paid) Claude API call every single time.
     const { data: existingReport } = await supabase
         .from('period_reports')
         .select('status')
@@ -69,7 +67,7 @@ export async function submitPeriodCheckIn(weightKg: number): Promise<CheckInResu
         recorded_at: new Date().toISOString(),
     })
     if (metricError) {
-        return { success: false, message: `Failed to save weight: ${metricError.message}` }
+        return { success: false, message: toFriendlyError(metricError) }
     }
 
     const { error: upsertError } = await supabase.from('period_reports').upsert(
@@ -77,7 +75,7 @@ export async function submitPeriodCheckIn(weightKg: number): Promise<CheckInResu
         { onConflict: 'user_id,period_start' }
     )
     if (upsertError) {
-        return { success: false, message: `Failed to queue report: ${upsertError.message}` }
+        return { success: false, message: toFriendlyError(upsertError) }
     }
 
     try {
@@ -92,9 +90,8 @@ export async function submitPeriodCheckIn(weightKg: number): Promise<CheckInResu
                 }),
             })
         )
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err)
-        return { success: false, message: `Failed to queue analysis: ${message}` }
+    } catch {
+        return { success: false, message: 'Failed to queue your report. Please try again.' }
     }
 
     return { success: true, message: "Check-in complete — your report is being generated." }

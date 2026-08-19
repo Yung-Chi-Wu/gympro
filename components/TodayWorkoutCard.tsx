@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { MuscleGroupExercisePicker } from './MuscleGroupExercisePicker'
+import { toFriendlyError } from '@/lib/friendly-error'
 import type { ExerciseOption } from './log-types'
 import type { TodayExercise } from '@/app/(app)/dashboard/page'
 
@@ -55,7 +56,7 @@ export function TodayWorkoutCard({
             .single()
 
         if (workoutError || !workout) {
-            throw new Error(workoutError?.message ?? "Failed to start today's workout")
+            throw new Error(toFriendlyError(workoutError))
         }
 
         if (exercises.length > 0) {
@@ -70,7 +71,7 @@ export function TodayWorkoutCard({
                 .select('id, exercise_id')
 
             if (plannedError || !plannedRows) {
-                throw new Error(plannedError?.message ?? "Failed to save today's plan")
+                throw new Error(toFriendlyError(plannedError))
             }
 
             const idByExercise = new Map(plannedRows.map((p) => [p.exercise_id, p.id]))
@@ -107,7 +108,7 @@ export function TodayWorkoutCard({
                 .single()
 
             if (insertError || !data) {
-                throw new Error(insertError?.message ?? 'Failed to save set')
+                throw new Error(toFriendlyError(insertError))
             }
 
             setExercises((prev) =>
@@ -131,7 +132,7 @@ export function TodayWorkoutCard({
         const { error: deleteError } = await supabase.from('workout_sets').delete().eq('id', setId)
 
         if (deleteError) {
-            setError(deleteError.message)
+            setError(toFriendlyError(deleteError))
             return
         }
 
@@ -156,7 +157,7 @@ export function TodayWorkoutCard({
                 .delete()
                 .eq('id', plannedRowId)
 
-            if (deleteError) throw new Error(deleteError.message)
+            if (deleteError) throw new Error(toFriendlyError(deleteError))
 
             setExercises((prev) => prev.filter((ex) => ex.exerciseId !== exerciseId))
         } catch (err) {
@@ -176,7 +177,7 @@ export function TodayWorkoutCard({
                 .single()
 
             if (insertError || !data) {
-                throw new Error(insertError?.message ?? 'Failed to add exercise')
+                throw new Error(toFriendlyError(insertError))
             }
 
             setExercises((prev) => [

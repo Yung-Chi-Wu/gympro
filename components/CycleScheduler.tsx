@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { toFriendlyError } from '@/lib/friendly-error'
 
 interface RoutineOption {
     id: string
@@ -49,7 +50,6 @@ export function CycleScheduler({
     const [error, setError] = useState<string | null>(null)
     const [isSaving, setIsSaving] = useState(false)
 
-    // ---------- First-time setup: no cycle exists yet ----------
     async function handleCreateCycle(e: React.FormEvent) {
         e.preventDefault()
         setError(null)
@@ -76,7 +76,7 @@ export function CycleScheduler({
                 .single()
 
             if (cycleError || !cycle) {
-                throw new Error(cycleError?.message ?? 'Failed to create cycle')
+                throw new Error(toFriendlyError(cycleError))
             }
 
             const newDays = Array.from({ length }, (_, i) => ({
@@ -85,7 +85,7 @@ export function CycleScheduler({
                 routine_id: null,
             }))
             const { error: daysError } = await supabase.from('cycle_days').insert(newDays)
-            if (daysError) throw new Error(daysError.message)
+            if (daysError) throw new Error(toFriendlyError(daysError))
 
             setCycleId(cycle.id)
             setCycleLength(length)
@@ -97,7 +97,6 @@ export function CycleScheduler({
         }
     }
 
-    // ---------- Deleting the cycle entirely ----------
     async function handleDeleteCycle() {
         if (!cycleId) return
         if (
@@ -116,7 +115,7 @@ export function CycleScheduler({
                 .delete()
                 .eq('id', cycleId)
 
-            if (deleteError) throw new Error(deleteError.message)
+            if (deleteError) throw new Error(toFriendlyError(deleteError))
 
             await clearEmptyTodayWorkout(userId)
 
@@ -153,15 +152,11 @@ export function CycleScheduler({
             .select('id', { count: 'exact', head: true })
             .eq('workout_id', todayWorkout.id)
 
-        // Only clear it if nothing real has been logged yet — a workout
-        // with actual sets is real training history and must never be
-        // silently deleted just because the cycle setup changed.
         if (!count || count === 0) {
             await supabase.from('workouts').delete().eq('id', todayWorkout.id)
         }
     }
 
-    // ---------- Editing an existing cycle's length ----------
     function handleRequestLengthChange(e: React.FormEvent) {
         e.preventDefault()
         setError(null)
@@ -193,7 +188,7 @@ export function CycleScheduler({
                 .from('training_cycles')
                 .update(updates)
                 .eq('id', cycleId)
-            if (updateError) throw new Error(updateError.message)
+            if (updateError) throw new Error(toFriendlyError(updateError))
 
             if (pending.newLength > cycleLength) {
                 const newRows = Array.from(
@@ -205,7 +200,7 @@ export function CycleScheduler({
                     })
                 )
                 const { error: insertError } = await supabase.from('cycle_days').insert(newRows)
-                if (insertError) throw new Error(insertError.message)
+                if (insertError) throw new Error(toFriendlyError(insertError))
 
                 setDays((prev) => [
                     ...prev,
@@ -217,7 +212,7 @@ export function CycleScheduler({
                     .delete()
                     .eq('training_cycle_id', cycleId)
                     .gt('day_index', pending.newLength)
-                if (deleteError) throw new Error(deleteError.message)
+                if (deleteError) throw new Error(toFriendlyError(deleteError))
 
                 setDays((prev) => prev.filter((d) => d.dayIndex <= pending.newLength))
             }
@@ -231,7 +226,6 @@ export function CycleScheduler({
         }
     }
 
-    // ---------- Assigning a routine to a specific day ----------
     async function handleDayChange(dayIndex: number, routineId: string) {
         if (!cycleId) return
         setError(null)
@@ -245,7 +239,7 @@ export function CycleScheduler({
             )
 
         if (upsertError) {
-            setError(upsertError.message)
+            setError(toFriendlyError(upsertError))
             return
         }
 

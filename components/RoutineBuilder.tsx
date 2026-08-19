@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { MuscleGroupExercisePicker } from './MuscleGroupExercisePicker'
+import { toFriendlyError } from '@/lib/friendly-error'
 import type { ExerciseOption } from './log-types'
 import type { RoutineWithExercises, RoutineExerciseRow } from '@/app/(app)/routines/page'
 
@@ -43,10 +44,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines }: RoutineBu
             .single()
 
         if (insertError || !data) {
-            const message = insertError?.message.includes('duplicate key')
-                ? `You already have a routine named "${trimmedName}".`
-                : insertError?.message ?? 'Failed to create routine'
-            setError(message)
+            setError(toFriendlyError(insertError))
             return
         }
 
@@ -61,7 +59,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines }: RoutineBu
         const { error: deleteError } = await supabase.from('routines').delete().eq('id', routineId)
 
         if (deleteError) {
-            setError(deleteError.message)
+            setError(toFriendlyError(deleteError))
             return
         }
         setRoutines((prev) => prev.filter((r) => r.id !== routineId))
@@ -98,7 +96,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines }: RoutineBu
             .single()
 
         if (insertError || !data) {
-            setError(insertError?.message ?? 'Failed to add exercise')
+            setError(toFriendlyError(insertError))
             return
         }
 
@@ -133,7 +131,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines }: RoutineBu
             .eq('id', routineExerciseId)
 
         if (deleteError) {
-            setError(deleteError.message)
+            setError(toFriendlyError(deleteError))
             return
         }
 
@@ -159,7 +157,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines }: RoutineBu
             .eq('id', routineExerciseId)
 
         if (updateError) {
-            setError(updateError.message)
+            setError(toFriendlyError(updateError))
             return
         }
 
