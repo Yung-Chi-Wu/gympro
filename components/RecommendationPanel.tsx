@@ -38,7 +38,7 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
             .from('period_reports')
             .select('status, recommendation, error_message, period_start')
             .eq('user_id', userId)
-            .order('period_start', { ascending: false })
+            .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle()
 

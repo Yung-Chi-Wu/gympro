@@ -119,7 +119,12 @@ function drawParagraph(
     size: number
 ): number {
     const maxWidth = PAGE_WIDTH - MARGIN * 2
-    const words = text.split(' ')
+    // pdf-lib's standard fonts (WinAnsi encoding) can't render newline
+    // characters — Claude's generated text occasionally includes them.
+    // Collapse any whitespace run (including newlines) into a single
+    // space before we ever measure or draw the text.
+    const sanitized = text.replace(/\s+/g, ' ').trim()
+    const words = sanitized.split(' ')
     let line = ''
     let cursorY = y
 
