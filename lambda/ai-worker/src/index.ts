@@ -9,6 +9,7 @@ import {
   saveRecommendation,
   saveFailedStatus,
   saveInsufficientDataStatus,
+  enqueuePdfGeneration,
 } from './supabase'
 import { generateRecommendation } from './claude'
 import type { AnalysisRequestMessage, AiRecommendation } from './types'
@@ -83,8 +84,13 @@ async function processMessage(record: SQSRecord): Promise<void> {
     }
 
     await saveRecommendation(supabase, userId, periodStart, recommendation, userNote ?? null)
-
     console.log(`Successfully saved recommendation for user ${userId}`)
+
+    const pdfQueueUrl = process.env.PDF_QUEUE_URL
+    if (pdfQueueUrl) {
+      await enqueuePdfGeneration(pdfQueueUrl, userId, periodStart)
+      console.log(`Queued PDF generation for user ${userId}`)
+    }
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err)
     console.error(`Failed to process recommendation for user ${userId}:`, errorMessage)

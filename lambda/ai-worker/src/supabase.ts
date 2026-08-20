@@ -102,6 +102,7 @@ export async function saveRecommendation(
             context_summary: contextSummary,
             user_note: userNote,
             completed_at: new Date().toISOString(),
+            pdf_status: 'pending',
         },
         { onConflict: 'user_id,period_start' }
     )
@@ -123,6 +124,7 @@ export async function saveFailedStatus(
             period_start: periodStart,
             status: 'failed',
             error_message: errorMessage,
+            pdf_status: 'not_applicable',
         },
         { onConflict: 'user_id,period_start' }
     )
@@ -145,6 +147,7 @@ export async function saveInsufficientDataStatus(
             period_start: periodStart,
             status: 'insufficient_data',
             error_message: `Only ${totalSets} sets logged this period (minimum ${minimumRequired} required for analysis).`,
+            pdf_status: 'not_applicable',
         },
         { onConflict: 'user_id,period_start' }
     )
@@ -384,4 +387,20 @@ export async function computeStrengthIndex(
     }
 
     return result
+}
+
+export async function enqueuePdfGeneration(
+    queueUrl: string,
+    userId: string,
+    periodStart: string
+): Promise<void> {
+    const { SQSClient, SendMessageCommand } = await import('@aws-sdk/client-sqs')
+    const sqsClient = new SQSClient({})
+
+    await sqsClient.send(
+        new SendMessageCommand({
+            QueueUrl: queueUrl,
+            MessageBody: JSON.stringify({ userId, periodStart }),
+        })
+    )
 }

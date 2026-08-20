@@ -9,6 +9,7 @@ import {
     ResponsiveContainer,
 } from 'recharts'
 import { createClient } from '@/lib/supabase/client'
+import { getReportPdfUrl } from '@/app/(app)/dashboard/pdf-actions'
 import type { AiRecommendation } from './types'
 
 interface RecommendationPanelProps {
@@ -30,12 +31,12 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
     const [status, setStatus] = useState<Status>('idle')
     const [recommendation, setRecommendation] = useState<AiRecommendation | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
-
+    const [latestPeriodStart, setLatestPeriodStart] = useState<string | null>(null)
 
     const checkStatus = useCallback(async () => {
         const { data } = await supabase
             .from('period_reports')
-            .select('status, recommendation, error_message')
+            .select('status, recommendation, error_message, period_start')
             .eq('user_id', userId)
             .order('period_start', { ascending: false })
             .limit(1)
@@ -44,6 +45,7 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
         if (!data) return
 
         setStatus(data.status as Status)
+        setLatestPeriodStart(data.period_start)
         if (data.status === 'completed') {
             setRecommendation(data.recommendation as unknown as AiRecommendation)
         }
@@ -76,8 +78,8 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
                 </div>
             )}
 
-            {status === 'completed' && recommendation && (
-                <RecommendationDisplay recommendation={recommendation} />
+            {status === 'completed' && recommendation && latestPeriodStart && (
+                <RecommendationDisplay recommendation={recommendation} periodStart={latestPeriodStart} />
             )}
 
             {status === 'insufficient_data' && (
@@ -91,7 +93,26 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
     )
 }
 
-function RecommendationDisplay({ recommendation }: { recommendation: AiRecommendation }) {
+function RecommendationDisplay({
+    recommendation,
+    periodStart,
+}: {
+    recommendation: AiRecommendation
+    periodStart: string
+}) {
+    const [pdfState, setPdfState] = useState<'idle' | 'loading' | 'error'>('idle')
+
+    async function handleDownloadPdf() {
+        setPdfState('loading')
+        const result = await getReportPdfUrl(periodStart)
+        if (result.success && result.url) {
+            window.location.href = result.url
+            setPdfState('idle')
+        } else {
+            setPdfState('error')
+        }
+    }
+
     const pieData = Object.entries(recommendation.volumeSplit ?? {}).map(([name, value]) => ({
         name,
         value,
@@ -232,14 +253,22 @@ function RecommendationDisplay({ recommendation }: { recommendation: AiRecommend
                     ))}
                 </ul>
             </div>
+
+            <div className="pt-2">
+                <button
+                    type="button"
+                    onClick={handleDownloadPdf}
+                    disabled={pdfState === 'loading'}
+                    className="rounded-md border px-4 py-2 text-sm disabled:opacity-50"
+                >
+                    {pdfState === 'loading' ? 'Preparing...' : 'Download PDF'}
+                </button>
+                {pdfState === 'error' && (
+                    <p className="mt-2 text-sm text-ink/60">
+                        PDF isn't ready yet — check back in a moment.
+                    </p>
+                )}
+            </div>
         </div>
     )
-}
-
-function getMostRecentMonday(): string {
-    const now = new Date()
-    const day = now.getDay()
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1)
-    const monday = new Date(now.setDate(diff))
-    return monday.toISOString().split('T')[0]
 }

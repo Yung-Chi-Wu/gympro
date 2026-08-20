@@ -14,7 +14,14 @@ data "aws_iam_policy_document" "nextjs_sqs_send_only" {
     ]
     resources = [aws_sqs_queue.ai_analysis_queue.arn]
   }
+
+  statement {
+    effect    = "Allow"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.report_pdfs.arn}/*"]
+  }
 }
+
 
 resource "aws_iam_user_policy" "nextjs_sqs_send_only" {
   name   = "gympro-nextjs-sqs-send-only"

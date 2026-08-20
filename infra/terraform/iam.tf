@@ -30,6 +30,15 @@ data "aws_iam_policy_document" "ai_worker_permissions" {
     resources = [aws_sqs_queue.ai_analysis_queue.arn]
   }
 
+  # Allow enqueueing PDF generation requests once a recommendation is done
+  statement {
+    effect = "Allow"
+    actions = [
+      "sqs:SendMessage",
+    ]
+    resources = [aws_sqs_queue.pdf_generation_queue.arn]
+  }
+
   # Allow writing logs to CloudWatch, so we can debug failures
   statement {
     effect = "Allow"

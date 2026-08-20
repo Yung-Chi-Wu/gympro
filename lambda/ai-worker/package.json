@@ -17,6 +17,7 @@
     "@supabase/supabase-js": "^2.112.3"
   },
   "devDependencies": {
+    "@aws-sdk/client-sqs": "^3.1112.0",
     "@types/aws-lambda": "^8.10.162",
     "@types/node": "^26.2.0",
     "esbuild": "^0.28.2",
