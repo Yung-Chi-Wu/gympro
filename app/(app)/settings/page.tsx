@@ -14,13 +14,13 @@ export default async function SettingsPage() {
 
     const { data: profile } = await supabase
         .from('user_profiles')
-        .select('display_name, height_cm, date_of_birth, sex, training_goal, timezone')
+        .select('display_name, height_cm, date_of_birth, sex, training_goal, timezone, language')
         .eq('user_id', user.id)
         .maybeSingle()
 
     return (
         <div className="p-8 max-w-lg space-y-6">
-            <h1 className="text-2xl font-bold">Profile Settings</h1>
+            <h1 className="text-2xl font-bold">{profile?.language === 'zh-TW' ? '個人設定' : 'Profile Settings'}</h1>
             <ProfileSettingsForm
                 userId={user.id}
                 initialHeightCm={profile?.height_cm ?? null}
@@ -29,6 +29,7 @@ export default async function SettingsPage() {
                 initialDateOfBirth={profile?.date_of_birth ?? null}
                 initialSex={profile?.sex ?? null}
                 initialTimezone={profile?.timezone ?? 'UTC'}
+                initialLanguage={profile?.language ?? 'en'}
             />
         </div>
     )

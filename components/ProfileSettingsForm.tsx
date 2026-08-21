@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { setLanguageCookie } from '@/lib/set-language-cookie'
 
 interface ProfileSettingsFormProps {
     userId: string
@@ -11,6 +12,7 @@ interface ProfileSettingsFormProps {
     initialDateOfBirth: string | null
     initialSex: string | null
     initialTimezone: string
+    initialLanguage: string
 }
 
 const COMMON_TIMEZONES = [
@@ -35,6 +37,7 @@ export function ProfileSettingsForm({
     initialDateOfBirth,
     initialSex,
     initialTimezone,
+    initialLanguage,
 }: ProfileSettingsFormProps) {
     const supabase = createClient()
     const [heightCm, setHeightCm] = useState(initialHeightCm?.toString() ?? '')
@@ -43,12 +46,12 @@ export function ProfileSettingsForm({
     const [dateOfBirth, setDateOfBirth] = useState(initialDateOfBirth ?? '')
     const [sex, setSex] = useState(initialSex ?? '')
     const [timezone, setTimezone] = useState(initialTimezone)
+    const [language, setLanguage] = useState(initialLanguage)
     const [isSaving, setIsSaving] = useState(false)
     const [saveMessage, setSaveMessage] = useState<string | null>(null)
 
-    // Browser timezones not in our curated list still need to show up
-    // (e.g. someone whose system timezone is Asia/Taipei but who picked
-    // something else before) — always keep the current value selectable.
+    const isZhTW = language === 'zh-TW'
+
     const timezoneOptions = COMMON_TIMEZONES.includes(timezone)
         ? COMMON_TIMEZONES
         : [timezone, ...COMMON_TIMEZONES]
@@ -68,28 +71,37 @@ export function ProfileSettingsForm({
                 sex: sex || null,
                 training_goal: trainingGoal.trim() || null,
                 timezone,
+                language: language as string,
                 updated_at: new Date().toISOString(),
             },
             { onConflict: 'user_id' }
         )
 
+        if (!error) {
+            await setLanguageCookie(language)
+        }
+
         setIsSaving(false)
-        setSaveMessage(error ? `Failed to save: ${error.message}` : 'Saved!')
+        setSaveMessage(
+            error
+                ? (isZhTW ? `儲存失敗：${error.message}` : `Failed to save: ${error.message}`)
+                : (isZhTW ? '已儲存！' : 'Saved!')
+        )
     }
 
     return (
         <form onSubmit={handleSave} className="space-y-4">
-            <Field label="Display name">
+            <Field label={isZhTW ? '顯示名稱' : 'Display name'}>
                 <input
                     type="text"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="What should we call you?"
+                    placeholder={isZhTW ? '你想怎麼被稱呼？' : 'What should we call you?'}
                     className="w-full rounded-md border px-3 py-2"
                 />
             </Field>
 
-            <Field label="Height (cm)">
+            <Field label={isZhTW ? '身高（公分）' : 'Height (cm)'}>
                 <input
                     type="number"
                     step="0.1"
@@ -99,7 +111,7 @@ export function ProfileSettingsForm({
                 />
             </Field>
 
-            <Field label="Date of birth">
+            <Field label={isZhTW ? '出生日期' : 'Date of birth'}>
                 <input
                     type="date"
                     value={dateOfBirth}
@@ -108,20 +120,20 @@ export function ProfileSettingsForm({
                 />
             </Field>
 
-            <Field label="Sex">
+            <Field label={isZhTW ? '性別' : 'Sex'}>
                 <select
                     value={sex}
                     onChange={(e) => setSex(e.target.value)}
                     className="w-full rounded-md border px-3 py-2"
                 >
-                    <option value="">Prefer not to say</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
+                    <option value="">{isZhTW ? '不想說' : 'Prefer not to say'}</option>
+                    <option value="male">{isZhTW ? '男性' : 'Male'}</option>
+                    <option value="female">{isZhTW ? '女性' : 'Female'}</option>
+                    <option value="other">{isZhTW ? '其他' : 'Other'}</option>
                 </select>
             </Field>
 
-            <Field label="Timezone">
+            <Field label={isZhTW ? '時區' : 'Timezone'}>
                 <select
                     value={timezone}
                     onChange={(e) => setTimezone(e.target.value)}
@@ -135,12 +147,27 @@ export function ProfileSettingsForm({
                 </select>
             </Field>
 
-            <Field label="Long-term training goal">
+            <Field label={isZhTW ? '語言' : 'Language'}>
+                <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="w-full rounded-md border px-3 py-2"
+                >
+                    <option value="en">English</option>
+                    <option value="zh-TW">繁體中文</option>
+                </select>
+            </Field>
+
+            <Field label={isZhTW ? '長期訓練目標' : 'Long-term training goal'}>
                 <textarea
                     value={trainingGoal}
                     onChange={(e) => setTrainingGoal(e.target.value)}
                     rows={3}
-                    placeholder="e.g. Focus on building back thickness and overall strength"
+                    placeholder={
+                        isZhTW
+                            ? '例如：希望加強背部厚度，提升整體力量'
+                            : 'e.g. Focus on building back thickness and overall strength'
+                    }
                     className="w-full rounded-md border px-3 py-2"
                 />
             </Field>
@@ -148,9 +175,9 @@ export function ProfileSettingsForm({
             {saveMessage && (
                 <div className="flex items-center gap-3">
                     <p className="text-sm text-ink/60">{saveMessage}</p>
-                    {saveMessage === 'Saved!' && (
+                    {(saveMessage === 'Saved!' || saveMessage === '已儲存！') && (
                         <a href="/dashboard" className="text-sm text-plate underline">
-                            Back to dashboard
+                            {isZhTW ? '回到主頁' : 'Back to dashboard'}
                         </a>
                     )}
                 </div>
@@ -161,7 +188,9 @@ export function ProfileSettingsForm({
                 disabled={isSaving}
                 className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-50"
             >
-                {isSaving ? 'Saving...' : 'Save'}
+                {isSaving
+                    ? (isZhTW ? '儲存中...' : 'Saving...')
+                    : (isZhTW ? '儲存' : 'Save')}
             </button>
         </form>
     )

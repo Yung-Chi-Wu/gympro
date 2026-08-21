@@ -5,24 +5,15 @@ import type { AiNarrative, TrainingPeriodSummary } from './types'
 let cachedClient: Anthropic | null = null
 
 async function getClaudeClient(): Promise<Anthropic> {
-    if (cachedClient) {
-        return cachedClient
-    }
-
+    if (cachedClient) return cachedClient
     const apiKey = await getSecret('gympro/anthropic-api-key')
     cachedClient = new Anthropic({ apiKey })
     return cachedClient
 }
 
-// This schema mirrors AiNarrative exactly — the quantitative fields
-// (weeklyVolume, volumeSplit, strengthIndex) are deliberately NOT part of
-// what Claude has to produce. Those are already computed from the
-// database and get merged in afterward in index.ts, so Claude is never
-// asked to recompute or restate numbers it was only given to read.
 const RECOMMENDATION_TOOL = {
     name: 'submit_training_recommendation',
-    description:
-        'Submit a structured training recommendation based on the provided data.',
+    description: 'Submit a structured training recommendation based on the provided data.',
     input_schema: {
         type: 'object' as const,
         properties: {
@@ -77,7 +68,7 @@ const RECOMMENDATION_TOOL = {
             contextSummary: {
                 type: 'string',
                 description:
-                    'One sentence summarizing this period\'s key takeaway, written for future reference next period (e.g. "Advised deload due to back overtraining; confirm if followed.").',
+                    "One sentence summarizing this period's key takeaway, written for future reference next period.",
             },
         },
         required: [
@@ -97,7 +88,8 @@ function buildPrompt(
     summary: TrainingPeriodSummary,
     previousContext: string | null,
     trainingGoal: string | null,
-    userNote: string | null
+    userNote: string | null,
+    language: string
 ): string {
     const contextSection = previousContext
         ? `Context from the last period's recommendation: ${previousContext}\n\n`
@@ -111,32 +103,40 @@ function buildPrompt(
         ? `The user's note for this specific period: "${userNote}"\n\n`
         : ``
 
+    const languageInstruction =
+        language === 'zh-TW'
+            ? 'Respond entirely in Traditional Chinese (繁體中文). All text fields including headline, summary, notes, observations, and action items must be written in Traditional Chinese.'
+            : 'Respond in English.'
+
     return `You are a knowledgeable, encouraging strength training coach analyzing a user's training data for one period (this may be a calendar week, or a custom training-cycle length the user has set up — treat the period given as the full unit of analysis regardless of its length).
 
 ${goalSection}${contextSection}${noteSection}Here is this period's objective training data (already calculated, do not recalculate any numbers):
 
 ${JSON.stringify(summary, null, 2)}
 
-Analyze this data and submit a structured recommendation using the submit_training_recommendation tool. Base all quantitative judgments strictly on the numbers provided above — do not invent or assume any data not present here. Use the user's age, sex, and BMI, if provided in userContext, to calibrate what counts as reasonable training volume and intensity for their profile. Use strengthIndex (each muscle group's current index versus its own baseline, and previousIndex if available) as your primary evidence for progressive overload — an index that rose since previousIndex means real progress even without any weight increase, since it already accounts for rep changes too. Use volumeSplit and routineAdherence together to judge balance and consistency: a muscle group with low volumeSplit combined with missedRoutines naming that muscle group's routine is a stronger signal than either alone. Factor in the user's long-term goal and this period's note (if provided) when shaping your advice and action items — for example, if the user says they want to focus more on back, prioritize addressing that in actionItems even if the raw numbers alone wouldn't have flagged it. If totalSets is 0, note that no training was logged this period rather than speculating why. Every text field you submit must be plain prose only — no XML tags, no markdown formatting, no stray closing tags of any kind.Every text field you submit must be plain prose only — no XML tags, no markdown formatting, no stray closing tags of any kind. The headline must stand completely on its own — write it as if it's the only sentence the user will ever read.`
+Analyze this data and submit a structured recommendation using the submit_training_recommendation tool. Base all quantitative judgments strictly on the numbers provided above — do not invent or assume any data not present here. Use the user's age, sex, and BMI, if provided in userContext, to calibrate what counts as reasonable training volume and intensity for their profile. Use strengthIndex as your primary evidence for progressive overload. Use volumeSplit and routineAdherence together to judge balance and consistency. Factor in the user's long-term goal and this period's note (if provided) when shaping your advice and action items. If totalSets is 0, note that no training was logged this period rather than speculating why.
+
+${languageInstruction} Every text field you submit must be plain prose only — no XML tags, no markdown formatting, no stray closing tags of any kind. The headline must stand completely on its own — write it as if it's the only sentence the user will ever read.`
 }
 
 export async function generateRecommendation(
     summary: TrainingPeriodSummary,
     previousContext: string | null,
     trainingGoal: string | null,
-    userNote: string | null
+    userNote: string | null,
+    language: string
 ): Promise<AiNarrative> {
     const client = await getClaudeClient()
 
     const response = await client.messages.create({
-        model: 'claude-sonnet-5',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2048,
         tools: [RECOMMENDATION_TOOL],
         tool_choice: { type: 'tool', name: 'submit_training_recommendation' },
         messages: [
             {
                 role: 'user',
-                content: buildPrompt(summary, previousContext, trainingGoal, userNote),
+                content: buildPrompt(summary, previousContext, trainingGoal, userNote, language),
             },
         ],
     })

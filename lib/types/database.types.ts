@@ -89,6 +89,7 @@ export type Database = {
           is_custom: boolean
           muscle_group: string
           name: string
+          name_zh_tw: string | null
         }
         Insert: {
           created_at?: string
@@ -98,6 +99,7 @@ export type Database = {
           is_custom?: boolean
           muscle_group: string
           name: string
+          name_zh_tw?: string | null
         }
         Update: {
           created_at?: string
@@ -107,6 +109,7 @@ export type Database = {
           is_custom?: boolean
           muscle_group?: string
           name?: string
+          name_zh_tw?: string | null
         }
         Relationships: []
       }
@@ -252,6 +255,7 @@ export type Database = {
           display_name: string | null
           height_cm: number | null
           height_updated_at: string | null
+          language: string
           sex: string | null
           timezone: string
           training_goal: string | null
@@ -264,6 +268,7 @@ export type Database = {
           display_name?: string | null
           height_cm?: number | null
           height_updated_at?: string | null
+          language?: string
           sex?: string | null
           timezone?: string
           training_goal?: string | null
@@ -276,6 +281,7 @@ export type Database = {
           display_name?: string | null
           height_cm?: number | null
           height_updated_at?: string | null
+          language?: string
           sex?: string | null
           timezone?: string
           training_goal?: string | null

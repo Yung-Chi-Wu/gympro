@@ -1,12 +1,11 @@
-// ---------- Incoming SQS message shape ----------
 export interface AnalysisRequestMessage {
   userId: string
   periodStart: string
   periodEnd: string
   userNote?: string
+  language?: string
 }
 
-// ---------- What the Supabase RPC + our own follow-up queries produce ----------
 export interface TrainingPeriodSummary {
   userContext: {
     heightCm: number | null
@@ -32,7 +31,6 @@ export interface TrainingPeriodSummary {
   }
 }
 
-// ---------- What Claude actually has to generate ----------
 export interface AiNarrative {
   headline: string
   summary: string
@@ -51,7 +49,6 @@ export interface AiNarrative {
   contextSummary: string
 }
 
-// ---------- The full record we actually store ----------
 export interface AiRecommendation extends AiNarrative {
   weeklyVolume: {
     totalSets: number

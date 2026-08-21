@@ -1,0 +1,150 @@
+{
+    "nav": {
+        "routines": "Routines",
+        "metrics": "Metrics",
+        "history": "History",
+        "settings": "Settings",
+        "logout": "Log out"
+    },
+    "welcome": {
+        "headline": "GymPro",
+        "tagline": "Track your training, follow your routines, and get AI-powered feedback every period — built for lifters who want to see real progress.",
+        "login": "Log In",
+        "signup": "Create an Account"
+    },
+    "dashboard": {
+        "welcome": "Welcome back,",
+        "viewHistory": "View training history"
+    },
+    "today": {
+        "title": "Today",
+        "restDay": "Today is a rest day.",
+        "emptyRoutine": "Today's routine doesn't have any exercises yet — add some in Routines, or add one below.",
+        "emptyFree": "Add whatever you're training today using the button below.",
+        "addExercise": "+ Add an exercise",
+        "addToToday": "Add to Today",
+        "cancel": "Cancel",
+        "remove": "Remove",
+        "add": "Add",
+        "reps": "Reps",
+        "kg": "kg",
+        "day": "Day",
+        "of": "of"
+    },
+    "checkin": {
+        "title": "Period Check-In",
+        "description": "Log your weight to close out this period and generate your report.",
+        "weightPlaceholder": "Weight (kg)",
+        "notePlaceholder": "e.g. My shoulder felt tight this week, or I want to focus more on legs...",
+        "noteLabel": "Anything you want to tell your AI coach this period? (optional)",
+        "submit": "Check In",
+        "submitting": "Submitting..."
+    },
+    "report": {
+        "title": "GymPro Report",
+        "trainingSplit": "Training Split",
+        "bodyMetrics": "Body Metrics",
+        "strengthTrend": "Strength Trend",
+        "strengthTrendNote": "100 = your baseline for each exercise. Higher means stronger.",
+        "thingsToWatch": "Things to Watch",
+        "readMore": "Read more",
+        "showLess": "Show less",
+        "summary": "Summary",
+        "progressiveOverload": "Progressive Overload",
+        "whatToDoNext": "What To Do Next",
+        "downloadPdf": "Download PDF",
+        "preparing": "Preparing...",
+        "pdfNotReady": "PDF isn't ready yet — check back in a moment.",
+        "idle": "Your latest report will appear here once you check in.",
+        "pending": "Analyzing your training data...",
+        "noData": "No data yet.",
+        "weight": "Weight",
+        "height": "Height",
+        "bmi": "BMI",
+        "ageSex": "Age / Sex",
+        "deloadRecommended": "Deload recommended:"
+    },
+    "routines": {
+        "title": "Routines",
+        "yourRoutines": "Your Routines",
+        "trainingCycle": "Training Cycle",
+        "newRoutine": "New Routine",
+        "newRoutinePlaceholder": "e.g. Push Day",
+        "deleteRoutine": "Delete routine",
+        "deleteCycle": "Delete cycle",
+        "createCycle": "Create Cycle",
+        "creating": "Creating...",
+        "updateLength": "Update Length",
+        "cycleLengthLabel": "How many days is your cycle?",
+        "todayDayLabel": "Which day of your cycle is today?",
+        "todayDayHint": "If you're already partway through your routine in your head, set this so today lines up with the right day.",
+        "restDay": "Rest day",
+        "add": "Add",
+        "exercises": "exercises",
+        "exercise": "exercise",
+        "noExercises": "No exercises in this group",
+        "newExercise": "+ New",
+        "cancelNew": "Cancel",
+        "saveExercise": "Save",
+        "equipmentPlaceholder": "Equipment (optional)",
+        "sets": "Sets",
+        "reps": "Reps",
+        "cycleLength": "Cycle length (days)",
+        "keepCurrentDay": "Keep my current day, just extend the cycle",
+        "restartFromDay1": "Restart from Day 1",
+        "changeCycleTitle": "Change cycle length?",
+        "changeCycleDesc": "Changing from {from} to {to} days affects where you are in the cycle.",
+        "deleteCycleConfirm": "Delete your training cycle? Your routines will stay, but the day-by-day schedule will be cleared."
+    },
+    "settings": {
+        "title": "Profile Settings",
+        "displayName": "Display name",
+        "displayNamePlaceholder": "What should we call you?",
+        "height": "Height (cm)",
+        "dateOfBirth": "Date of birth",
+        "sex": "Sex",
+        "sexOptions": {
+            "preferNot": "Prefer not to say",
+            "male": "Male",
+            "female": "Female",
+            "other": "Other"
+        },
+        "timezone": "Timezone",
+        "language": "Language",
+        "trainingGoal": "Long-term training goal",
+        "trainingGoalPlaceholder": "e.g. Focus on building back thickness and overall strength",
+        "save": "Save",
+        "saving": "Saving...",
+        "saved": "Saved!",
+        "backToDashboard": "Back to dashboard"
+    },
+    "metrics": {
+        "title": "Body Metrics",
+        "weight": "Weight",
+        "logWeight": "Log Weight",
+        "date": "Date",
+        "weightKg": "Weight (kg)",
+        "history": "History",
+        "noTrend": "Log at least two weigh-ins to see a trend line here."
+    },
+    "history": {
+        "title": "Training History",
+        "noWorkouts": "No workouts logged this period."
+    },
+    "auth": {
+        "loginTitle": "Log in to GymPro",
+        "email": "Email",
+        "password": "Password",
+        "loginButton": "Log In",
+        "loggingIn": "Logging in...",
+        "loginError": "Login failed. Please check your email and password.",
+        "noAccount": "Don't have an account?",
+        "signup": "Sign up"
+    },
+    "errors": {
+        "generic": "Something went wrong. Please try again.",
+        "alreadyExists": "That already exists — try a different name.",
+        "outOfRange": "One of the values entered is out of the allowed range.",
+        "notFound": "That item no longer exists — try refreshing the page."
+    }
+}

@@ -18,7 +18,7 @@ const MINIMUM_SETS_FOR_ANALYSIS = 10
 
 async function processMessage(record: SQSRecord): Promise<void> {
   const message = JSON.parse(record.body) as AnalysisRequestMessage
-  const { userId, periodStart, periodEnd, userNote } = message
+  const { userId, periodStart, periodEnd, userNote, language: messageLanguage } = message
 
   console.log(`Processing recommendation for user ${userId}, period ${periodStart} to ${periodEnd}`)
 
@@ -31,7 +31,7 @@ async function processMessage(record: SQSRecord): Promise<void> {
       fetchUserProfile(supabase, userId),
       fetchRoutineAdherence(supabase, userId, periodStart, periodEnd),
     ])
-
+    const language = messageLanguage ?? userProfile.language
     trainingSummary.userContext.ageYears = userProfile.ageYears
     trainingSummary.userContext.sex = userProfile.sex
     trainingSummary.userContext.bmi = calculateBmi(
@@ -69,7 +69,8 @@ async function processMessage(record: SQSRecord): Promise<void> {
       trainingSummary,
       previousPeriod.contextSummary,
       userProfile.trainingGoal,
-      userNote ?? null
+      userNote ?? null,
+      language
     )
 
     const recommendation: AiRecommendation = {

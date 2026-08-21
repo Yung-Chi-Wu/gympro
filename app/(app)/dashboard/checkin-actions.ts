@@ -25,10 +25,12 @@ export async function submitPeriodCheckIn(weightKg: number, userNote?: string): 
 
     const { data: profile } = await supabase
         .from('user_profiles')
-        .select('timezone')
+        .select('timezone, language')
         .eq('user_id', user.id)
         .maybeSingle()
+
     const timezone = profile?.timezone || 'UTC'
+    const language = profile?.language || 'en'
 
     const { data: cycle } = await supabase
         .from('training_cycles')
@@ -71,7 +73,12 @@ export async function submitPeriodCheckIn(weightKg: number, userNote?: string): 
     }
 
     const { error: upsertError } = await supabase.from('period_reports').upsert(
-        { user_id: user.id, period_start: window.periodStart, status: 'pending', user_note: userNote ?? null },
+        {
+            user_id: user.id,
+            period_start: window.periodStart,
+            status: 'pending',
+            user_note: userNote ?? null,
+        },
         { onConflict: 'user_id,period_start' }
     )
     if (upsertError) {
@@ -88,6 +95,7 @@ export async function submitPeriodCheckIn(weightKg: number, userNote?: string): 
                     periodStart: window.periodStart,
                     periodEnd: window.periodEnd,
                     userNote: userNote ?? undefined,
+                    language,
                 }),
             })
         )
@@ -95,5 +103,5 @@ export async function submitPeriodCheckIn(weightKg: number, userNote?: string): 
         return { success: false, message: 'Failed to queue your report. Please try again.' }
     }
 
-    return { success: true, message: "Check-in complete — your report is being generated." }
+    return { success: true, message: 'Check-in complete — your report is being generated.' }
 }

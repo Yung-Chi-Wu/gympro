@@ -160,10 +160,10 @@ export async function saveInsufficientDataStatus(
 export async function fetchUserProfile(
     supabase: SupabaseClient,
     userId: string
-): Promise<{ trainingGoal: string | null; ageYears: number | null; sex: string | null }> {
+): Promise<{ trainingGoal: string | null; ageYears: number | null; sex: string | null; language: string }> {
     const { data, error } = await supabase
         .from('user_profiles')
-        .select('training_goal, date_of_birth, sex')
+        .select('training_goal, date_of_birth, sex, language')
         .eq('user_id', userId)
         .maybeSingle()
 
@@ -175,6 +175,7 @@ export async function fetchUserProfile(
         trainingGoal: data?.training_goal ?? null,
         ageYears: data?.date_of_birth ? calculateAge(data.date_of_birth) : null,
         sex: data?.sex ?? null,
+        language: data?.language ?? 'en',
     }
 }
 
