@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { MuscleGroupExercisePicker } from './MuscleGroupExercisePicker'
 import { toFriendlyError } from '@/lib/friendly-error'
+import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import type { ExerciseOption } from './log-types'
 import type { RoutineWithExercises, RoutineExerciseRow } from '@/app/(app)/routines/page'
 
@@ -20,6 +21,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
     const supabase = createClient()
     const router = useRouter()
     const t = useTranslations('routines')
+    const zh = language === 'zh-TW'
     const [routines, setRoutines] = useState<RoutineWithExercises[]>(initialRoutines)
     const [newRoutineName, setNewRoutineName] = useState('')
     const [error, setError] = useState<string | null>(null)
@@ -37,7 +39,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
         )
         if (isDuplicate) {
             setError(
-                language === 'zh-TW'
+                zh
                     ? `你已經有一個叫「${trimmedName}」的課表了。`
                     : `You already have a routine named "${trimmedName}".`
             )
@@ -51,7 +53,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
             .single()
 
         if (insertError || !data) {
-            setError(toFriendlyError(insertError))
+            setError(toFriendlyError(insertError, language))
             return
         }
 
@@ -64,8 +66,9 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
     async function handleDeleteRoutine(routineId: string) {
         setError(null)
         const { error: deleteError } = await supabase.from('routines').delete().eq('id', routineId)
-        if (deleteError) { setError(toFriendlyError(deleteError)); return }
+        if (deleteError) { setError(toFriendlyError(deleteError, language)); return }
         setRoutines((prev) => prev.filter((r) => r.id !== routineId))
+        if (expandedRoutineId === routineId) setExpandedRoutineId(null)
         router.refresh()
     }
 
@@ -79,7 +82,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
         )
         if (isDuplicate) {
             setError(
-                language === 'zh-TW'
+                zh
                     ? `你已經有一個叫「${trimmedName}」的課表了。`
                     : `You already have a routine named "${trimmedName}".`
             )
@@ -91,7 +94,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
             .update({ name: trimmedName })
             .eq('id', routineId)
 
-        if (updateError) { setError(toFriendlyError(updateError)); return }
+        if (updateError) { setError(toFriendlyError(updateError, language)); return }
 
         setRoutines((prev) =>
             prev.map((r) => (r.id === routineId ? { ...r, name: trimmedName } : r))
@@ -109,10 +112,12 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
         const routine = routines.find((r) => r.id === routineId)
         if (!routine) return
 
+        // 前端防重複：用 exercise_id 比對，不管名字
         if (routine.exercises.some((ex) => ex.exercise_id === exercise.id)) {
+            const name = zh && exercise.name_zh_tw ? exercise.name_zh_tw : exercise.name
             setError(
-                language === 'zh-TW'
-                    ? `「${exercise.name}」已經在這份課表裡了。`
+                zh
+                    ? `「${name}」已經在這份課表裡了。`
                     : `${exercise.name} is already in this routine.`
             )
             return
@@ -132,7 +137,20 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
             .select('id, exercise_id, order_index, target_sets, target_reps')
             .single()
 
-        if (insertError || !data) { setError(toFriendlyError(insertError)); return }
+        if (insertError || !data) {
+            // 23505 = unique violation，代表這個動作已經在課表裡（資料庫層攔截）
+            if (insertError?.code === '23505') {
+                const name = zh && exercise.name_zh_tw ? exercise.name_zh_tw : exercise.name
+                setError(
+                    zh
+                        ? `「${name}」已經在這份課表裡了。`
+                        : `${exercise.name} is already in this routine.`
+                )
+            } else {
+                setError(toFriendlyError(insertError, language))
+            }
+            return
+        }
 
         setRoutines((prev) =>
             prev.map((r) =>
@@ -163,7 +181,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
             .from('routine_exercises')
             .delete()
             .eq('id', routineExerciseId)
-        if (deleteError) { setError(toFriendlyError(deleteError)); return }
+        if (deleteError) { setError(toFriendlyError(deleteError, language)); return }
         setRoutines((prev) =>
             prev.map((r) =>
                 r.id !== routineId
@@ -184,7 +202,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
             .from('routine_exercises')
             .update({ target_sets: targetSets, target_reps: targetReps })
             .eq('id', routineExerciseId)
-        if (updateError) { setError(toFriendlyError(updateError)); return }
+        if (updateError) { setError(toFriendlyError(updateError, language)); return }
         setRoutines((prev) =>
             prev.map((r) =>
                 r.id !== routineId
@@ -205,7 +223,9 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
         <section className="space-y-4">
             <h2 className="text-lg font-semibold uppercase tracking-wide">{t('yourRoutines')}</h2>
 
-            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+            {error && (
+                <p role="alert" className="text-sm text-red-600">{error}</p>
+            )}
 
             <form onSubmit={handleCreateRoutine} className="flex gap-2">
                 <input
@@ -295,6 +315,7 @@ interface RoutineNameEditorProps {
 }
 
 function RoutineNameEditor({ currentName, language, onSave, onDelete }: RoutineNameEditorProps) {
+    const zh = language === 'zh-TW'
     const [isEditing, setIsEditing] = useState(false)
     const [name, setName] = useState(currentName)
 
@@ -327,7 +348,7 @@ function RoutineNameEditor({ currentName, language, onSave, onDelete }: RoutineN
                     onClick={onDelete}
                     className="text-sm text-ink/40 hover:text-red-600 sm:shrink-0"
                 >
-                    {language === 'zh-TW' ? '刪除課表' : 'Delete routine'}
+                    {zh ? '刪除課表' : 'Delete routine'}
                 </button>
             </div>
         )
@@ -349,7 +370,7 @@ function RoutineNameEditor({ currentName, language, onSave, onDelete }: RoutineN
                 onClick={onDelete}
                 className="text-sm text-ink/40 hover:text-red-600"
             >
-                {language === 'zh-TW' ? '刪除課表' : 'Delete routine'}
+                {zh ? '刪除課表' : 'Delete routine'}
             </button>
         </div>
     )
@@ -371,7 +392,7 @@ function ExistingExerciseRow({ exercise, language, exercises, onUpdateTarget, on
     const displayName = (() => {
         if (language !== 'zh-TW') return exercise.exercise_name
         const found = exercises.find((ex) => ex.id === exercise.exercise_id)
-        return (found?.name_zh_tw) ? found.name_zh_tw : exercise.exercise_name
+        return found?.name_zh_tw ? found.name_zh_tw : exercise.exercise_name
     })()
 
     function commitIfChanged() {
@@ -386,7 +407,9 @@ function ExistingExerciseRow({ exercise, language, exercises, onUpdateTarget, on
     return (
         <div className="flex items-center justify-between gap-3 text-sm">
             <span className="min-w-0 truncate">
-                <span className="text-ink/40 capitalize">{exercise.muscle_group}</span>
+                <span className="text-ink/40">
+                    {getMuscleGroupLabel(exercise.muscle_group, language)}
+                </span>
                 {' — '}
                 {displayName}
             </span>
@@ -447,7 +470,7 @@ function AddExerciseToRoutine({ exercises, language, onAdd }: AddExerciseToRouti
                 onChange={setSelectedId}
                 language={language}
             />
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-end">
                 <div className="flex flex-col items-center">
                     <span className="text-xs text-ink/40">{t('sets')}</span>
                     <input
@@ -458,7 +481,7 @@ function AddExerciseToRoutine({ exercises, language, onAdd }: AddExerciseToRouti
                         className="w-16 rounded-md border px-2 py-1 text-sm text-center"
                     />
                 </div>
-                <span className="self-end pb-1 text-sm text-ink/40">×</span>
+                <span className="pb-1 text-sm text-ink/40">×</span>
                 <div className="flex flex-col items-center">
                     <span className="text-xs text-ink/40">{t('reps')}</span>
                     <input
@@ -480,7 +503,7 @@ function AddExerciseToRoutine({ exercises, language, onAdd }: AddExerciseToRouti
                             onAdd(exercise, setsNum, repsNum)
                         }
                     }}
-                    className="self-end rounded-md border px-3 py-1 text-sm disabled:opacity-50"
+                    className="rounded-md border px-3 py-1 text-sm disabled:opacity-50"
                 >
                     {t('add')}
                 </button>

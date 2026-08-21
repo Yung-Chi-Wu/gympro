@@ -1,22 +1,20 @@
-// Supabase/Postgres error messages often leak internal details (table
-// names, constraint names, SQL keywords). Never show error.message
-// directly to the user — map known cases to plain language, and fall
-// back to a generic message for everything else.
-export function toFriendlyError(error: { message: string; code?: string } | null | undefined): string {
-    if (!error) return 'Something went wrong. Please try again.'
+export function toFriendlyError(
+    error: { message: string; code?: string } | null | undefined,
+    language = 'en'
+): string {
+    const zh = language === 'zh-TW'
 
-    // Postgres unique-violation code
+    if (!error) return zh ? '發生錯誤，請再試一次。' : 'Something went wrong. Please try again.'
+
     if (error.code === '23505') {
-        return 'That already exists — try a different name.'
+        return zh ? '已經存在——請換一個名稱。' : 'That already exists — try a different name.'
     }
-    // Postgres check-constraint-violation code
     if (error.code === '23514') {
-        return 'One of the values entered is out of the allowed range.'
+        return zh ? '輸入的數值超出允許範圍。' : 'One of the values entered is out of the allowed range.'
     }
-    // Postgres foreign-key-violation code
     if (error.code === '23503') {
-        return 'That item no longer exists — try refreshing the page.'
+        return zh ? '找不到這個項目，請重新整理頁面。' : 'That item no longer exists — try refreshing the page.'
     }
 
-    return 'Something went wrong. Please try again.'
+    return zh ? '發生錯誤，請再試一次。' : 'Something went wrong. Please try again.'
 }
