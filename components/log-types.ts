@@ -1,6 +1,7 @@
 export interface ExerciseOption {
     id: string
     name: string
+    name_zh_tw?: string | null
     muscle_group: string
     equipment: string | null
 }

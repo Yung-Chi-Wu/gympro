@@ -102,50 +102,52 @@ export function MuscleGroupExercisePicker({
                 </p>
             )}
 
-            <div className="flex gap-2">
-                <select
-                    value={muscleGroup}
-                    onChange={(e) => handleMuscleGroupChange(e.target.value)}
-                    className="rounded-md border px-3 py-2 text-sm capitalize"
-                >
-                    {MUSCLE_GROUPS.map((mg) => (
-                        <option key={mg} value={mg}>
-                            {getMuscleGroupLabel(mg, language)}
-                        </option>
-                    ))}
-                </select>
-
-                {!showNewExercise && (
+            <div className="space-y-2">
+                <div className="flex gap-2">
                     <select
-                        value={value}
-                        onChange={(e) => onChange(e.target.value)}
-                        className="flex-1 rounded-md border px-3 py-2 text-sm"
+                        value={muscleGroup}
+                        onChange={(e) => handleMuscleGroupChange(e.target.value)}
+                        className="w-24 shrink-0 rounded-md border px-3 py-2 text-sm"
                     >
-                        {exercisesInGroup.length === 0 && (
-                            <option value="">{noExercisesLabel}</option>
-                        )}
-                        {exercisesInGroup.map((ex) => {
-                            const exWithTranslation = ex as ExerciseOption & { name_zh_tw?: string | null }
-                            const displayName =
-                                language === 'zh-TW' && exWithTranslation.name_zh_tw
-                                    ? exWithTranslation.name_zh_tw
-                                    : ex.name
-                            return (
-                                <option key={ex.id} value={ex.id}>
-                                    {displayName}
-                                </option>
-                            )
-                        })}
+                        {MUSCLE_GROUPS.map((mg) => (
+                            <option key={mg} value={mg}>
+                                {getMuscleGroupLabel(mg, language)}
+                            </option>
+                        ))}
                     </select>
-                )}
 
-                <button
-                    type="button"
-                    onClick={() => setShowNewExercise((v) => !v)}
-                    className="whitespace-nowrap rounded-md border px-3 py-2 text-sm"
-                >
-                    {showNewExercise ? cancelLabel : newLabel}
-                </button>
+                    {!showNewExercise && (
+                        <select
+                            value={value}
+                            onChange={(e) => onChange(e.target.value)}
+                            className="min-w-0 flex-1 rounded-md border px-3 py-2 text-sm"
+                        >
+                            {exercisesInGroup.length === 0 && (
+                                <option value="">{noExercisesLabel}</option>
+                            )}
+                            {exercisesInGroup.map((ex) => {
+                                const exWithTranslation = ex as ExerciseOption & { name_zh_tw?: string | null }
+                                const displayName =
+                                    language === 'zh-TW' && exWithTranslation.name_zh_tw
+                                        ? exWithTranslation.name_zh_tw
+                                        : ex.name
+                                return (
+                                    <option key={ex.id} value={ex.id}>
+                                        {displayName}
+                                    </option>
+                                )
+                            })}
+                        </select>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={() => setShowNewExercise((v) => !v)}
+                        className="shrink-0 whitespace-nowrap rounded-md border px-3 py-2 text-sm"
+                    >
+                        {showNewExercise ? cancelLabel : newLabel}
+                    </button>
+                </div>
             </div>
 
             {showNewExercise && (
