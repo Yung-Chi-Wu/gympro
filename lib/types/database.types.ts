@@ -256,6 +256,7 @@ export type Database = {
           height_cm: number | null
           height_updated_at: string | null
           language: string
+          onboarding_completed: boolean
           sex: string | null
           timezone: string
           training_goal: string | null
@@ -269,6 +270,7 @@ export type Database = {
           height_cm?: number | null
           height_updated_at?: string | null
           language?: string
+          onboarding_completed?: boolean
           sex?: string | null
           timezone?: string
           training_goal?: string | null
@@ -282,6 +284,7 @@ export type Database = {
           height_cm?: number | null
           height_updated_at?: string | null
           language?: string
+          onboarding_completed?: boolean
           sex?: string | null
           timezone?: string
           training_goal?: string | null
@@ -334,9 +337,7 @@ export type Database = {
           created_at: string
           exercise_id: string
           id: string
-          is_warmup: boolean
           reps: number
-          rpe: number | null
           set_number: number
           user_id: string
           weight_kg: number
@@ -346,9 +347,7 @@ export type Database = {
           created_at?: string
           exercise_id: string
           id?: string
-          is_warmup?: boolean
           reps: number
-          rpe?: number | null
           set_number: number
           user_id: string
           weight_kg: number
@@ -358,9 +357,7 @@ export type Database = {
           created_at?: string
           exercise_id?: string
           id?: string
-          is_warmup?: boolean
           reps?: number
-          rpe?: number | null
           set_number?: number
           user_id?: string
           weight_kg?: number
@@ -432,10 +429,6 @@ export type Database = {
           p_period_start: string
           p_user_id: string
         }
-        Returns: Json
-      }
-      get_weekly_training_summary: {
-        Args: { p_user_id: string; p_week_start: string }
         Returns: Json
       }
     }

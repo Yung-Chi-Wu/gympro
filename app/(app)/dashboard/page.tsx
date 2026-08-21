@@ -2,13 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { RecommendationPanel } from '@/components/RecommendationPanel'
-import { ReminderBanner } from '@/components/ReminderBanner'
 import { TodayWorkoutCard } from '@/components/TodayWorkoutCard'
 import { PeriodCheckInCard } from '@/components/PeriodCheckInCard'
+import { OnboardingModal } from '@/components/OnboardingModal'
+import { PwaInstallBanner } from '@/components/PwaInstallBanner'
 import type { ExerciseOption } from '@/components/log-types'
-
-const WEIGHT_REMINDER_DAYS = 7
-const HEIGHT_REMINDER_DAYS = 30
 
 export interface TodayExercise {
   exerciseId: string
@@ -50,24 +48,23 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('display_name, height_updated_at, timezone, language')
+    .select('display_name, timezone, language, onboarding_completed')
     .eq('user_id', user.id)
     .maybeSingle()
 
   const { data: latestMetricData } = await supabase
     .from('body_metrics')
-    .select('recorded_at, weight_kg')
+    .select('weight_kg')
     .eq('user_id', user.id)
     .order('recorded_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
-  const needsWeightLog = isOlderThanDays(latestMetricData?.recorded_at ?? null, WEIGHT_REMINDER_DAYS)
-  const needsHeightConfirm = isOlderThanDays(profile?.height_updated_at ?? null, HEIGHT_REMINDER_DAYS)
   const greetingName = profile?.display_name || user.email
   const timezone = profile?.timezone || 'UTC'
   const language = profile?.language || 'en'
   const latestWeightKg = latestMetricData?.weight_kg ?? null
+  const onboardingCompleted = profile?.onboarding_completed ?? false
 
   const todayParts = getLocalDateParts(timezone)
   const { startOfDay, endOfDay } = getTodayRangeUtc(todayParts, timezone)
@@ -158,6 +155,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="py-8 space-y-6">
+      {!onboardingCompleted && (
+        <OnboardingModal userId={user.id} language={language} />
+      )}
+      <PwaInstallBanner language={language} />
+
       <h1 className="text-3xl font-bold uppercase tracking-wide">
         {t('welcome')}{greetingName}
       </h1>
@@ -175,12 +177,6 @@ export default async function DashboardPage() {
         language={language}
       />
 
-      <ReminderBanner
-        userId={user.id}
-        needsWeightLog={needsWeightLog}
-        needsHeightConfirm={needsHeightConfirm}
-      />
-
       <PeriodCheckInCard
         language={language}
         latestWeightKg={latestWeightKg}
@@ -194,14 +190,6 @@ export default async function DashboardPage() {
       </div>
     </div>
   )
-}
-
-function isOlderThanDays(dateString: string | null, days: number): boolean {
-  if (!dateString) return true
-  const recorded = new Date(dateString).getTime()
-  const now = Date.now()
-  const diffDays = (now - recorded) / (1000 * 60 * 60 * 24)
-  return diffDays >= days
 }
 
 interface DateParts {
