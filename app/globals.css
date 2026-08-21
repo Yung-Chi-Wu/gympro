@@ -22,3 +22,12 @@ h2,
 h3 {
   font-family: var(--font-display);
 }
+
+/* iOS safe area support */
+.bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.main-content {
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+}

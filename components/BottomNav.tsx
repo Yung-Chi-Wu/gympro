@@ -19,7 +19,7 @@ export function BottomNav({ links }: { links: NavLink[] }) {
     const pathname = usePathname()
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-ink/10 bg-white sm:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <nav className="bottom-nav fixed bottom-0 left-0 right-0 z-40 flex border-t border-ink/10 bg-white sm:hidden">
             {links.map((link) => {
                 const isActive =
                     link.href === '/dashboard'
