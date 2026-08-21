@@ -216,7 +216,7 @@ export function WeightTrendSection({ userId, entries: initialEntries }: WeightTr
 }
 
 function formatShortDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString(undefined, {
+    return new Date(dateString).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
     })

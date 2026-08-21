@@ -10,7 +10,7 @@ export interface CheckInResult {
     message: string
 }
 
-export async function submitPeriodCheckIn(weightKg: number): Promise<CheckInResult> {
+export async function submitPeriodCheckIn(weightKg: number, userNote?: string): Promise<CheckInResult> {
     const supabase = await createClient()
     const {
         data: { user },
@@ -71,7 +71,7 @@ export async function submitPeriodCheckIn(weightKg: number): Promise<CheckInResu
     }
 
     const { error: upsertError } = await supabase.from('period_reports').upsert(
-        { user_id: user.id, period_start: window.periodStart, status: 'pending' },
+        { user_id: user.id, period_start: window.periodStart, status: 'pending', user_note: userNote ?? null },
         { onConflict: 'user_id,period_start' }
     )
     if (upsertError) {
@@ -87,6 +87,7 @@ export async function submitPeriodCheckIn(weightKg: number): Promise<CheckInResu
                     userId: user.id,
                     periodStart: window.periodStart,
                     periodEnd: window.periodEnd,
+                    userNote: userNote ?? undefined,
                 }),
             })
         )

@@ -14,10 +14,11 @@ interface RoutineBuilderProps {
     initialRoutines: RoutineWithExercises[]
 }
 
-export function RoutineBuilder({ userId, exercises, initialRoutines }: RoutineBuilderProps) {
+export function RoutineBuilder({ userId, exercises: initialExercises, initialRoutines }: RoutineBuilderProps) {
     const supabase = createClient()
     const router = useRouter()
     const [routines, setRoutines] = useState<RoutineWithExercises[]>(initialRoutines)
+    const [exercises, setExercises] = useState<ExerciseOption[]>(initialExercises)
     const [newRoutineName, setNewRoutineName] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null)
@@ -266,6 +267,9 @@ export function RoutineBuilder({ userId, exercises, initialRoutines }: RoutineBu
                                                 targetReps
                                             )
                                         }
+                                        onExerciseCreated={(exercise) =>
+                                            setExercises((prev) => [...prev, exercise])
+                                        }
                                     />
                                 </div>
                             )}
@@ -338,9 +342,10 @@ function ExistingExerciseRow({ exercise, onUpdateTarget, onRemove }: ExistingExe
 interface AddExerciseToRoutineProps {
     exercises: ExerciseOption[]
     onAdd: (exercise: ExerciseOption, targetSets: number, targetReps: number) => void
+    onExerciseCreated: (exercise: ExerciseOption) => void
 }
 
-function AddExerciseToRoutine({ exercises, onAdd }: AddExerciseToRoutineProps) {
+function AddExerciseToRoutine({ exercises, onAdd, onExerciseCreated }: AddExerciseToRoutineProps) {
     const [selectedId, setSelectedId] = useState(exercises[0]?.id ?? '')
     const [targetSets, setTargetSets] = useState('3')
     const [targetReps, setTargetReps] = useState('10')
@@ -351,6 +356,7 @@ function AddExerciseToRoutine({ exercises, onAdd }: AddExerciseToRoutineProps) {
                 exercises={exercises}
                 value={selectedId}
                 onChange={setSelectedId}
+                onExerciseCreated={onExerciseCreated}
             />
             <div className="flex gap-2">
                 <input

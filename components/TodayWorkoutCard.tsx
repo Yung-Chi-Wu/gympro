@@ -28,11 +28,12 @@ export function TodayWorkoutCard({
     dayIndex,
     cycleLength,
     initialExercises,
-    allExercises,
+    allExercises: initialAllExercises,
 }: TodayWorkoutCardProps) {
     const supabase = createClient()
     const [workoutId, setWorkoutId] = useState<string | null>(initialWorkoutId)
     const [exercises, setExercises] = useState<TodayExercise[]>(initialExercises)
+    const [allExercises, setAllExercises] = useState<ExerciseOption[]>(initialAllExercises)
     const [showAddPicker, setShowAddPicker] = useState(false)
     const [toast, setToast] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -250,6 +251,7 @@ export function TodayWorkoutCard({
                     exercises={allExercises}
                     onAdd={handleAddAdHocExercise}
                     onCancel={() => setShowAddPicker(false)}
+                    onExerciseCreated={(exercise) => setAllExercises((prev) => [...prev, exercise])}
                 />
             ) : (
                 <button
@@ -276,12 +278,24 @@ interface AddExercisePanelProps {
     onCancel: () => void
 }
 
-function AddExercisePanel({ exercises, onAdd, onCancel }: AddExercisePanelProps) {
+interface AddExercisePanelProps {
+    exercises: ExerciseOption[]
+    onAdd: (exercise: ExerciseOption) => void
+    onCancel: () => void
+    onExerciseCreated: (exercise: ExerciseOption) => void
+}
+
+function AddExercisePanel({ exercises, onAdd, onCancel, onExerciseCreated }: AddExercisePanelProps) {
     const [selectedId, setSelectedId] = useState(exercises[0]?.id ?? '')
 
     return (
         <div className="rounded-md border border-dashed p-3 space-y-2">
-            <MuscleGroupExercisePicker exercises={exercises} value={selectedId} onChange={setSelectedId} />
+            <MuscleGroupExercisePicker
+                exercises={exercises}
+                value={selectedId}
+                onChange={setSelectedId}
+                onExerciseCreated={onExerciseCreated}
+            />
             <div className="flex gap-2">
                 <button
                     type="button"

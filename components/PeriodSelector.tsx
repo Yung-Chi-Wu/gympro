@@ -32,6 +32,6 @@ export function PeriodSelector({ periods, selectedPeriodStart }: PeriodSelectorP
 
 function formatRange(start: string, end: string): string {
     const format = (d: string) =>
-        new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     return `${format(start)} – ${format(end)}`
 }

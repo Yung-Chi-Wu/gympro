@@ -90,7 +90,7 @@ function WorkoutsByDay({ workouts }: { workouts: WorkoutRow[] }) {
             {workouts.map((workout) => (
                 <div key={workout.id} className="rounded-lg border p-4">
                     <p className="font-medium mb-2">
-                        {new Date(workout.performed_at).toLocaleDateString(undefined, {
+                        {new Date(workout.performed_at).toLocaleDateString('en-US', {
                             weekday: 'long',
                             month: 'short',
                             day: 'numeric',
