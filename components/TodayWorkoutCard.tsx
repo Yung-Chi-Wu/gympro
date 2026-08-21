@@ -1,9 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { MuscleGroupExercisePicker } from './MuscleGroupExercisePicker'
 import { toFriendlyError } from '@/lib/friendly-error'
+import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import type { ExerciseOption } from './log-types'
 import type { TodayExercise } from '@/app/(app)/dashboard/page'
 
@@ -17,6 +19,7 @@ interface TodayWorkoutCardProps {
     cycleLength: number
     initialExercises: TodayExercise[]
     allExercises: ExerciseOption[]
+    language: string
 }
 
 export function TodayWorkoutCard({
@@ -29,7 +32,9 @@ export function TodayWorkoutCard({
     cycleLength,
     initialExercises,
     allExercises: initialAllExercises,
+    language,
 }: TodayWorkoutCardProps) {
+    const t = useTranslations('today')
     const supabase = createClient()
     const [workoutId, setWorkoutId] = useState<string | null>(initialWorkoutId)
     const [exercises, setExercises] = useState<TodayExercise[]>(initialExercises)
@@ -116,13 +121,10 @@ export function TodayWorkoutCard({
                 prev.map((ex) =>
                     ex.exerciseId !== exerciseId
                         ? ex
-                        : {
-                            ...ex,
-                            loggedSets: [...ex.loggedSets, { id: data.id, reps, weightKg }],
-                        }
+                        : { ...ex, loggedSets: [...ex.loggedSets, { id: data.id, reps, weightKg }] }
                 )
             )
-            showToast('✓ Recorded')
+            showToast('✓')
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong.')
         }
@@ -131,12 +133,7 @@ export function TodayWorkoutCard({
     async function handleDeleteSet(exerciseId: string, setId: string) {
         setError(null)
         const { error: deleteError } = await supabase.from('workout_sets').delete().eq('id', setId)
-
-        if (deleteError) {
-            setError(toFriendlyError(deleteError))
-            return
-        }
-
+        if (deleteError) { setError(toFriendlyError(deleteError)); return }
         setExercises((prev) =>
             prev.map((ex) =>
                 ex.exerciseId !== exerciseId
@@ -152,14 +149,11 @@ export function TodayWorkoutCard({
             await ensureWorkout()
             const plannedRowId = exercises.find((ex) => ex.exerciseId === exerciseId)?.plannedRowId
             if (!plannedRowId) return
-
             const { error: deleteError } = await supabase
                 .from('workout_planned_exercises')
                 .delete()
                 .eq('id', plannedRowId)
-
             if (deleteError) throw new Error(toFriendlyError(deleteError))
-
             setExercises((prev) => prev.filter((ex) => ex.exerciseId !== exerciseId))
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong.')
@@ -170,17 +164,12 @@ export function TodayWorkoutCard({
         setError(null)
         try {
             const wId = await ensureWorkout()
-
             const { data, error: insertError } = await supabase
                 .from('workout_planned_exercises')
                 .insert({ workout_id: wId, exercise_id: exercise.id, user_id: userId })
                 .select('id')
                 .single()
-
-            if (insertError || !data) {
-                throw new Error(toFriendlyError(insertError))
-            }
-
+            if (insertError || !data) throw new Error(toFriendlyError(insertError))
             setExercises((prev) => [
                 ...prev,
                 {
@@ -200,38 +189,26 @@ export function TodayWorkoutCard({
     return (
         <div className="relative rounded-2xl border border-ink/10 bg-white p-6 space-y-4 shadow-sm">
             <div className="flex items-baseline justify-between">
-                <h2 className="text-lg font-semibold uppercase tracking-wide">Today</h2>
+                <h2 className="text-lg font-semibold uppercase tracking-wide">{t('title')}</h2>
                 {hasCycle && (
                     <span className="text-sm text-ink/40">
-                        Day {dayIndex} of {cycleLength}
+                        {language === 'zh-TW'
+                            ? `第 ${dayIndex} 天 / 共 ${cycleLength} 天`
+                            : `Day ${dayIndex} of ${cycleLength}`}
                     </span>
                 )}
             </div>
 
-            {error && (
-                <p role="alert" className="text-sm text-red-600">
-                    {error}
-                </p>
-            )}
+            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
             {hasCycle && isRestDay && exercises.length === 0 && (
-                <p className="text-sm text-ink/60">Today is a rest day.</p>
+                <p className="text-sm text-ink/60">{t('restDay')}</p>
             )}
-
             {hasCycle && !isRestDay && exercises.length === 0 && (
-                <p className="text-sm text-ink/60">
-                    Today's routine doesn't have any exercises yet — add some in{' '}
-                    <a href="/routines" className="underline">
-                        Routines
-                    </a>
-                    , or add one below.
-                </p>
+                <p className="text-sm text-ink/60">{t('emptyRoutine')}</p>
             )}
-
             {!hasCycle && exercises.length === 0 && (
-                <p className="text-sm text-ink/60">
-                    Add whatever you're training today using the button below.
-                </p>
+                <p className="text-sm text-ink/60">{t('emptyFree')}</p>
             )}
 
             <div className="space-y-4">
@@ -239,6 +216,7 @@ export function TodayWorkoutCard({
                     <TodayExerciseRow
                         key={exercise.exerciseId}
                         exercise={exercise}
+                        language={language}
                         onAddSet={handleAddSet}
                         onDeleteSet={handleDeleteSet}
                         onRemove={handleRemoveExercise}
@@ -249,6 +227,7 @@ export function TodayWorkoutCard({
             {showAddPicker ? (
                 <AddExercisePanel
                     exercises={allExercises}
+                    language={language}
                     onAdd={handleAddAdHocExercise}
                     onCancel={() => setShowAddPicker(false)}
                     onExerciseCreated={(exercise) => setAllExercises((prev) => [...prev, exercise])}
@@ -259,7 +238,7 @@ export function TodayWorkoutCard({
                     onClick={() => setShowAddPicker(true)}
                     className="w-full rounded-md border border-dashed px-4 py-2 text-sm text-ink/60 hover:border-ink/30 hover:text-ink"
                 >
-                    + Add an exercise
+                    {t('addExercise')}
                 </button>
             )}
 
@@ -274,18 +253,14 @@ export function TodayWorkoutCard({
 
 interface AddExercisePanelProps {
     exercises: ExerciseOption[]
-    onAdd: (exercise: ExerciseOption) => void
-    onCancel: () => void
-}
-
-interface AddExercisePanelProps {
-    exercises: ExerciseOption[]
+    language: string
     onAdd: (exercise: ExerciseOption) => void
     onCancel: () => void
     onExerciseCreated: (exercise: ExerciseOption) => void
 }
 
-function AddExercisePanel({ exercises, onAdd, onCancel, onExerciseCreated }: AddExercisePanelProps) {
+function AddExercisePanel({ exercises, language, onAdd, onCancel, onExerciseCreated }: AddExercisePanelProps) {
+    const t = useTranslations('today')
     const [selectedId, setSelectedId] = useState(exercises[0]?.id ?? '')
 
     return (
@@ -294,6 +269,7 @@ function AddExercisePanel({ exercises, onAdd, onCancel, onExerciseCreated }: Add
                 exercises={exercises}
                 value={selectedId}
                 onChange={setSelectedId}
+                language={language}
                 onExerciseCreated={onExerciseCreated}
             />
             <div className="flex gap-2">
@@ -306,14 +282,14 @@ function AddExercisePanel({ exercises, onAdd, onCancel, onExerciseCreated }: Add
                     }}
                     className="flex-1 rounded-md border px-3 py-2 text-sm disabled:opacity-50"
                 >
-                    Add to Today
+                    {t('addToToday')}
                 </button>
                 <button
                     type="button"
                     onClick={onCancel}
                     className="rounded-md px-3 py-2 text-sm text-ink/40"
                 >
-                    Cancel
+                    {t('cancel')}
                 </button>
             </div>
         </div>
@@ -322,12 +298,14 @@ function AddExercisePanel({ exercises, onAdd, onCancel, onExerciseCreated }: Add
 
 interface TodayExerciseRowProps {
     exercise: TodayExercise
+    language: string
     onAddSet: (exerciseId: string, reps: number, weightKg: number) => void
     onDeleteSet: (exerciseId: string, setId: string) => void
     onRemove: (exerciseId: string) => void
 }
 
-function TodayExerciseRow({ exercise, onAddSet, onDeleteSet, onRemove }: TodayExerciseRowProps) {
+function TodayExerciseRow({ exercise, language, onAddSet, onDeleteSet, onRemove }: TodayExerciseRowProps) {
+    const t = useTranslations('today')
     const [reps, setReps] = useState('')
     const [weightKg, setWeightKg] = useState('')
 
@@ -336,7 +314,6 @@ function TodayExerciseRow({ exercise, onAddSet, onDeleteSet, onRemove }: TodayEx
         const repsNum = Number(reps)
         const weightNum = Number(weightKg)
         if (!reps || repsNum <= 0 || weightKg === '' || weightNum < 0) return
-
         onAddSet(exercise.exerciseId, repsNum, weightNum)
     }
 
@@ -345,7 +322,7 @@ function TodayExerciseRow({ exercise, onAddSet, onDeleteSet, onRemove }: TodayEx
             <div className="flex items-start justify-between">
                 <div>
                     <p className="text-xs uppercase tracking-wide text-ink/40">
-                        {exercise.muscleGroup}
+                        {getMuscleGroupLabel(exercise.muscleGroup, language)}
                     </p>
                     <p className="font-medium">{exercise.name}</p>
                 </div>
@@ -354,7 +331,7 @@ function TodayExerciseRow({ exercise, onAddSet, onDeleteSet, onRemove }: TodayEx
                     onClick={() => onRemove(exercise.exerciseId)}
                     className="text-sm text-ink/40 hover:text-red-600"
                 >
-                    Remove
+                    {t('remove')}
                 </button>
             </div>
 
@@ -383,7 +360,7 @@ function TodayExerciseRow({ exercise, onAddSet, onDeleteSet, onRemove }: TodayEx
                 <input
                     type="number"
                     min={1}
-                    placeholder="Reps"
+                    placeholder={t('reps')}
                     value={reps}
                     onChange={(e) => setReps(e.target.value)}
                     className="w-20 rounded-md border px-2 py-1 text-sm"
@@ -392,13 +369,13 @@ function TodayExerciseRow({ exercise, onAddSet, onDeleteSet, onRemove }: TodayEx
                     type="number"
                     step="0.5"
                     min={0}
-                    placeholder="kg"
+                    placeholder={t('kg')}
                     value={weightKg}
                     onChange={(e) => setWeightKg(e.target.value)}
                     className="w-20 rounded-md border px-2 py-1 text-sm"
                 />
                 <button type="submit" className="rounded-md border px-3 py-1 text-sm">
-                    Add
+                    {t('add')}
                 </button>
             </form>
         </div>

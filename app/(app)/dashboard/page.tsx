@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { RecommendationPanel } from '@/components/RecommendationPanel'
 import { ReminderBanner } from '@/components/ReminderBanner'
 import { TodayWorkoutCard } from '@/components/TodayWorkoutCard'
@@ -20,13 +21,13 @@ export interface TodayExercise {
 interface RoutineExerciseRow {
   exercise_id: string
   order_index: number
-  exercises: { name: string; muscle_group: string } | null
+  exercises: { name: string; name_zh_tw: string | null; muscle_group: string } | null
 }
 
 interface PlannedExerciseRow {
   id: string
   exercise_id: string
-  exercises: { name: string; muscle_group: string } | null
+  exercises: { name: string; name_zh_tw: string | null; muscle_group: string } | null
 }
 
 interface WorkoutSetRow {
@@ -46,9 +47,11 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
+  const t = await getTranslations('dashboard')
+
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('display_name, height_updated_at, timezone')
+    .select('display_name, height_updated_at, timezone, language')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -64,11 +67,11 @@ export default async function DashboardPage() {
   const needsHeightConfirm = isOlderThanDays(profile?.height_updated_at ?? null, HEIGHT_REMINDER_DAYS)
   const greetingName = profile?.display_name || user.email
   const timezone = profile?.timezone || 'UTC'
+  const language = profile?.language || 'en'
 
   const todayParts = getLocalDateParts(timezone)
   const { startOfDay, endOfDay } = getTodayRangeUtc(todayParts, timezone)
 
-  // ---------- Does this user have a training cycle? ----------
   const { data: cycle } = await supabase
     .from('training_cycles')
     .select('id, cycle_length, start_date')
@@ -96,7 +99,6 @@ export default async function DashboardPage() {
     isRestDay = routineIdForToday === null
   }
 
-  // ---------- Does today's workout already exist (i.e. did we already interact today)? ----------
   const { data: existingWorkout } = await supabase
     .from('workouts')
     .select('id')
@@ -112,7 +114,7 @@ export default async function DashboardPage() {
   if (existingWorkout) {
     const { data: planned } = await supabase
       .from('workout_planned_exercises')
-      .select('id, exercise_id, exercises ( name, muscle_group )')
+      .select('id, exercise_id, exercises ( name, name_zh_tw, muscle_group )')
       .eq('workout_id', existingWorkout.id)
 
     const { data: sets } = await supabase
@@ -122,7 +124,9 @@ export default async function DashboardPage() {
 
     todayExercises = ((planned as PlannedExerciseRow[]) ?? []).map((p) => ({
       exerciseId: p.exercise_id,
-      name: p.exercises?.name ?? 'Unknown exercise',
+      name: language === 'zh-TW' && p.exercises?.name_zh_tw
+        ? p.exercises.name_zh_tw
+        : p.exercises?.name ?? 'Unknown exercise',
       muscleGroup: p.exercises?.muscle_group ?? 'other',
       plannedRowId: p.id,
       loggedSets: ((sets as WorkoutSetRow[]) ?? [])
@@ -132,13 +136,15 @@ export default async function DashboardPage() {
   } else if (routineIdForToday) {
     const { data: routineExercises } = await supabase
       .from('routine_exercises')
-      .select('exercise_id, order_index, exercises ( name, muscle_group )')
+      .select('exercise_id, order_index, exercises ( name, name_zh_tw, muscle_group )')
       .eq('routine_id', routineIdForToday)
       .order('order_index')
 
     todayExercises = ((routineExercises as RoutineExerciseRow[]) ?? []).map((re) => ({
       exerciseId: re.exercise_id,
-      name: re.exercises?.name ?? 'Unknown exercise',
+      name: language === 'zh-TW' && re.exercises?.name_zh_tw
+        ? re.exercises.name_zh_tw
+        : re.exercises?.name ?? 'Unknown exercise',
       muscleGroup: re.exercises?.muscle_group ?? 'other',
       plannedRowId: null,
       loggedSets: [],
@@ -147,16 +153,16 @@ export default async function DashboardPage() {
 
   const { data: allExercises } = await supabase
     .from('exercises')
-    .select('id, name, muscle_group, equipment')
+    .select('id, name, name_zh_tw, muscle_group, equipment')
     .order('name')
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="mx-auto max-w-2xl p-8 space-y-6">
       <h1 className="text-3xl font-bold uppercase tracking-wide">
-        Welcome back, {greetingName}
+        {t('welcome')}{greetingName}
       </h1>
       <a href="/history" className="text-sm underline">
-        View training history
+        {t('viewHistory')}
       </a>
 
       <ReminderBanner
@@ -165,7 +171,7 @@ export default async function DashboardPage() {
         needsHeightConfirm={needsHeightConfirm}
       />
 
-      <PeriodCheckInCard />
+      <PeriodCheckInCard language={language} />
 
       <TodayWorkoutCard
         userId={user.id}
@@ -177,9 +183,10 @@ export default async function DashboardPage() {
         cycleLength={cycle?.cycle_length ?? 0}
         initialExercises={todayExercises}
         allExercises={(allExercises ?? []) as ExerciseOption[]}
+        language={language}
       />
 
-      <RecommendationPanel userId={user.id} />
+      <RecommendationPanel userId={user.id} language={language} />
     </div>
   )
 }
@@ -218,10 +225,7 @@ function daysBetween(startDateIso: string, today: DateParts): number {
   return Math.floor((todayUtc.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function getTodayRangeUtc(
-  today: DateParts,
-  timeZone: string
-): { startOfDay: string; endOfDay: string } {
+function getTodayRangeUtc(today: DateParts, timeZone: string): { startOfDay: string; endOfDay: string } {
   const reference = new Date(Date.UTC(today.year, today.month - 1, today.day, 12, 0, 0))
   const tzFormatter = new Intl.DateTimeFormat('en-US', {
     timeZone,
@@ -231,14 +235,12 @@ function getTodayRangeUtc(
   })
   const offsetPart = tzFormatter.formatToParts(reference).find((p) => p.type === 'timeZoneName')
   const offsetMinutes = parseUtcOffsetMinutes(offsetPart?.value ?? 'GMT+0')
-
   const startOfDayUtc = new Date(
     Date.UTC(today.year, today.month - 1, today.day, 0, 0, 0) - offsetMinutes * 60_000
   )
   const endOfDayUtc = new Date(
     Date.UTC(today.year, today.month - 1, today.day, 23, 59, 59, 999) - offsetMinutes * 60_000
   )
-
   return { startOfDay: startOfDayUtc.toISOString(), endOfDay: endOfDayUtc.toISOString() }
 }
 

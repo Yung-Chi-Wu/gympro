@@ -14,12 +14,14 @@ import {
     Legend,
     ResponsiveContainer,
 } from 'recharts'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { getReportPdfUrl } from '@/app/(app)/dashboard/pdf-actions'
 import type { AiRecommendation } from './types'
 
 interface RecommendationPanelProps {
     userId: string
+    language: string
 }
 
 type Status = 'idle' | 'pending' | 'completed' | 'insufficient_data' | 'failed'
@@ -37,8 +39,9 @@ interface StrengthHistoryPoint {
     [muscleGroup: string]: string | number
 }
 
-export function RecommendationPanel({ userId }: RecommendationPanelProps) {
+export function RecommendationPanel({ userId, language }: RecommendationPanelProps) {
     const supabase = createClient()
+    const t = useTranslations('report')
     const [status, setStatus] = useState<Status>('idle')
     const [recommendation, setRecommendation] = useState<AiRecommendation | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -111,15 +114,13 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
     return (
         <div className="rounded-2xl border border-ink/10 bg-white p-6 space-y-4 shadow-sm">
             {status === 'idle' && (
-                <p className="text-sm text-ink/60">
-                    Your latest report will appear here once you check in.
-                </p>
+                <p className="text-sm text-ink/60">{t('idle')}</p>
             )}
 
             {status === 'pending' && (
                 <div className="flex items-center gap-3 text-gray-600">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
-                    <span>Analyzing your training data...</span>
+                    <span>{t('pending')}</span>
                 </div>
             )}
 
@@ -129,6 +130,7 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
                     periodStart={latestPeriodStart}
                     strengthHistory={strengthHistory}
                     muscleGroups={muscleGroupsInHistory}
+                    language={language}
                 />
             )}
 
@@ -148,12 +150,15 @@ function RecommendationDisplay({
     periodStart,
     strengthHistory,
     muscleGroups,
+    language,
 }: {
     recommendation: AiRecommendation
     periodStart: string
     strengthHistory: StrengthHistoryPoint[]
     muscleGroups: string[]
+    language: string
 }) {
+    const t = useTranslations('report')
     const [pdfState, setPdfState] = useState<'idle' | 'loading' | 'error'>('idle')
     const [showMore, setShowMore] = useState(false)
 
@@ -182,7 +187,7 @@ function RecommendationDisplay({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="rounded-xl border border-ink/10 p-4">
                     <h3 className="text-xs font-semibold text-ink/40 uppercase tracking-wide mb-2">
-                        Training Split
+                        {t('trainingSplit')}
                     </h3>
                     {pieData.length > 0 ? (
                         <div className="h-40">
@@ -198,7 +203,7 @@ function RecommendationDisplay({
                             </ResponsiveContainer>
                         </div>
                     ) : (
-                        <p className="text-sm text-ink/40">No data yet.</p>
+                        <p className="text-sm text-ink/40">{t('noData')}</p>
                     )}
                     <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink/60">
                         {pieData.map((entry, i) => (
@@ -215,14 +220,14 @@ function RecommendationDisplay({
 
                 <div className="rounded-xl border border-ink/10 p-4">
                     <h3 className="text-xs font-semibold text-ink/40 uppercase tracking-wide mb-2">
-                        Body Metrics
+                        {t('bodyMetrics')}
                     </h3>
                     <div className="grid grid-cols-2 gap-y-2 text-sm">
-                        <MetricCell label="Weight" value={bodyMetrics?.weightKg ? `${bodyMetrics.weightKg} kg` : '—'} />
-                        <MetricCell label="Height" value={bodyMetrics?.heightCm ? `${bodyMetrics.heightCm} cm` : '—'} />
-                        <MetricCell label="BMI" value={bodyMetrics?.bmi ? `${bodyMetrics.bmi}` : '—'} />
+                        <MetricCell label={t('weight')} value={bodyMetrics?.weightKg ? `${bodyMetrics.weightKg} kg` : '—'} />
+                        <MetricCell label={t('height')} value={bodyMetrics?.heightCm ? `${bodyMetrics.heightCm} cm` : '—'} />
+                        <MetricCell label={t('bmi')} value={bodyMetrics?.bmi ? `${bodyMetrics.bmi}` : '—'} />
                         <MetricCell
-                            label="Age / Sex"
+                            label={t('ageSex')}
                             value={
                                 bodyMetrics?.ageYears || bodyMetrics?.sex
                                     ? `${bodyMetrics?.ageYears ?? '—'} / ${bodyMetrics?.sex ?? '—'}`
@@ -233,15 +238,13 @@ function RecommendationDisplay({
                 </div>
             </div>
 
-            {/* ---------- Strength trend, full width ---------- */}
+            {/* ---------- Strength trend ---------- */}
             {strengthHistory.length >= 2 && muscleGroups.length > 0 && (
                 <div className="rounded-xl border border-ink/10 p-4">
                     <h3 className="text-xs font-semibold text-ink/40 uppercase tracking-wide mb-1">
-                        Strength Trend
+                        {t('strengthTrend')}
                     </h3>
-                    <p className="text-xs text-ink/40 mb-2">
-                        100 = your baseline for each exercise. Higher means stronger.
-                    </p>
+                    <p className="text-xs text-ink/40 mb-2">{t('strengthTrendNote')}</p>
                     <div className="h-48">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={strengthHistory} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
@@ -293,20 +296,20 @@ function RecommendationDisplay({
                         onClick={() => setShowMore(true)}
                         className="text-sm text-plate underline"
                     >
-                        Read more
+                        {t('readMore')}
                     </button>
                 ) : (
                     <div className="space-y-5 pt-2">
                         <div>
                             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                                Summary
+                                {t('summary')}
                             </h3>
                             <p className="text-sm text-gray-700">{recommendation.summary}</p>
                         </div>
 
                         <div>
                             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                                Progressive Overload
+                                {t('progressiveOverload')}
                             </h3>
                             <p className="text-sm text-gray-600">{recommendation.progressiveOverload.notes}</p>
                         </div>
@@ -314,14 +317,13 @@ function RecommendationDisplay({
                         {recommendation.muscleImbalances.length > 0 && (
                             <div>
                                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                                    Things to Watch
+                                    {t('thingsToWatch')}
                                 </h3>
                                 <div className="space-y-2">
                                     {recommendation.muscleImbalances.map((imbalance, i) => (
                                         <div
                                             key={i}
-                                            className={`rounded border px-3 py-2 text-sm ${SEVERITY_STYLES[imbalance.severity] ?? ''
-                                                }`}
+                                            className={`rounded border px-3 py-2 text-sm ${SEVERITY_STYLES[imbalance.severity] ?? ''}`}
                                         >
                                             <span className="font-semibold capitalize">{imbalance.muscleGroup}</span>
                                             {' — '}
@@ -334,14 +336,14 @@ function RecommendationDisplay({
 
                         {recommendation.deloadRecommended && (
                             <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                                <span className="font-semibold">Deload recommended: </span>
+                                <span className="font-semibold">{t('deloadRecommended')} </span>
                                 {recommendation.deloadReason}
                             </div>
                         )}
 
                         <div>
                             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                                What To Do Next
+                                {t('whatToDoNext')}
                             </h3>
                             <ul className="list-disc list-inside space-y-1 text-sm">
                                 {recommendation.actionItems.map((item, i) => (
@@ -355,12 +357,13 @@ function RecommendationDisplay({
                             onClick={() => setShowMore(false)}
                             className="text-sm text-ink/40 underline"
                         >
-                            Show less
+                            {t('showLess')}
                         </button>
                     </div>
                 )}
             </div>
 
+            {/* ---------- Download PDF ---------- */}
             <div className="pt-2">
                 <button
                     type="button"
@@ -368,12 +371,10 @@ function RecommendationDisplay({
                     disabled={pdfState === 'loading'}
                     className="rounded-md border px-4 py-2 text-sm disabled:opacity-50"
                 >
-                    {pdfState === 'loading' ? 'Preparing...' : 'Download PDF'}
+                    {pdfState === 'loading' ? t('preparing') : t('downloadPdf')}
                 </button>
                 {pdfState === 'error' && (
-                    <p className="mt-2 text-sm text-ink/60">
-                        PDF isn't ready yet — check back in a moment.
-                    </p>
+                    <p className="mt-2 text-sm text-ink/60">{t('pdfNotReady')}</p>
                 )}
             </div>
         </div>

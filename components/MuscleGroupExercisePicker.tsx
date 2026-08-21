@@ -10,6 +10,7 @@ interface MuscleGroupExercisePickerProps {
     value: string
     onChange: (exerciseId: string) => void
     onExerciseCreated?: (exercise: ExerciseOption) => void
+    language?: string
 }
 
 export function MuscleGroupExercisePicker({
@@ -17,6 +18,7 @@ export function MuscleGroupExercisePicker({
     value,
     onChange,
     onExerciseCreated,
+    language = 'en',
 }: MuscleGroupExercisePickerProps) {
     const supabase = createClient()
     const [muscleGroup, setMuscleGroup] = useState<string>(() => {
@@ -50,7 +52,7 @@ export function MuscleGroupExercisePicker({
         setError(null)
         const trimmedName = newExerciseName.trim()
         if (!trimmedName) {
-            setError('Give the exercise a name.')
+            setError(language === 'zh-TW' ? '請填入動作名稱。' : 'Give the exercise a name.')
             return
         }
 
@@ -83,6 +85,14 @@ export function MuscleGroupExercisePicker({
         }
     }
 
+    const noExercisesLabel = language === 'zh-TW' ? '這個肌群還沒有動作' : 'No exercises in this group'
+    const newLabel = language === 'zh-TW' ? '+ 新增' : '+ New'
+    const cancelLabel = language === 'zh-TW' ? '取消' : 'Cancel'
+    const saveLabel = language === 'zh-TW' ? '儲存' : 'Save'
+    const savingLabel = language === 'zh-TW' ? '儲存中...' : 'Saving...'
+    const namePlaceholder = language === 'zh-TW' ? `新增${muscleGroup}動作名稱` : `New ${muscleGroup} exercise name`
+    const equipmentPlaceholder = language === 'zh-TW' ? '器材（選填）' : 'Equipment (optional)'
+
     return (
         <div className="space-y-2">
             {error && (
@@ -111,13 +121,20 @@ export function MuscleGroupExercisePicker({
                         className="flex-1 rounded-md border px-3 py-2 text-sm"
                     >
                         {exercisesInGroup.length === 0 && (
-                            <option value="">No exercises in this group</option>
+                            <option value="">{noExercisesLabel}</option>
                         )}
-                        {exercisesInGroup.map((ex) => (
-                            <option key={ex.id} value={ex.id}>
-                                {ex.name}
-                            </option>
-                        ))}
+                        {exercisesInGroup.map((ex) => {
+                            const exWithTranslation = ex as ExerciseOption & { name_zh_tw?: string | null }
+                            const displayName =
+                                language === 'zh-TW' && exWithTranslation.name_zh_tw
+                                    ? exWithTranslation.name_zh_tw
+                                    : ex.name
+                            return (
+                                <option key={ex.id} value={ex.id}>
+                                    {displayName}
+                                </option>
+                            )
+                        })}
                     </select>
                 )}
 
@@ -126,7 +143,7 @@ export function MuscleGroupExercisePicker({
                     onClick={() => setShowNewExercise((v) => !v)}
                     className="whitespace-nowrap rounded-md border px-3 py-2 text-sm"
                 >
-                    {showNewExercise ? 'Cancel' : '+ New'}
+                    {showNewExercise ? cancelLabel : newLabel}
                 </button>
             </div>
 
@@ -136,15 +153,15 @@ export function MuscleGroupExercisePicker({
                         type="text"
                         value={newExerciseName}
                         onChange={(e) => setNewExerciseName(e.target.value)}
-                        placeholder={`New ${muscleGroup} exercise name`}
+                        placeholder={namePlaceholder}
                         className="flex-1 rounded-md border px-3 py-2 text-sm"
                     />
                     <input
                         type="text"
                         value={newExerciseEquipment}
                         onChange={(e) => setNewExerciseEquipment(e.target.value)}
-                        placeholder="Equipment (optional)"
-                        className="w-40 rounded-md border px-3 py-2 text-sm"
+                        placeholder={equipmentPlaceholder}
+                        className="w-36 rounded-md border px-3 py-2 text-sm"
                     />
                     <button
                         type="button"
@@ -152,7 +169,7 @@ export function MuscleGroupExercisePicker({
                         disabled={isSaving}
                         className="whitespace-nowrap rounded-md border px-3 py-2 text-sm disabled:opacity-50"
                     >
-                        {isSaving ? 'Saving...' : 'Save'}
+                        {isSaving ? savingLabel : saveLabel}
                     </button>
                 </div>
             )}

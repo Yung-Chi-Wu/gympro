@@ -1,23 +1,27 @@
 import Link from 'next/link'
 import { LogoutButton } from '@/components/LogoutButton'
+import { BottomNav } from '@/components/BottomNav'
+import { getTranslations } from 'next-intl/server'
 
-const NAV_LINKS = [
-    { href: '/routines', label: 'Routines' },
-    { href: '/metrics', label: 'Metrics' },
-    { href: '/history', label: 'History' },
-    { href: '/settings', label: 'Settings' },
-]
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+    const t = await getTranslations('nav')
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+    const NAV_LINKS = [
+        { href: '/routines', label: t('routines') },
+        { href: '/metrics', label: t('metrics') },
+        { href: '/history', label: t('history') },
+        { href: '/settings', label: t('settings') },
+    ]
+
     return (
         <div className="min-h-screen flex flex-col">
             <header className="border-b border-ink/10 bg-white">
-                <nav className="mx-auto flex max-w-2xl items-center justify-between px-8 py-4">
+                <nav className="mx-auto flex max-w-2xl items-center justify-between px-4 py-4 sm:px-8">
                     <div className="flex items-center gap-6">
                         <Link href="/dashboard" className="font-display text-lg uppercase tracking-wide">
                             GymPro
                         </Link>
-                        <div className="flex gap-4 text-sm">
+                        <div className="hidden sm:flex gap-4 text-sm">
                             {NAV_LINKS.map((item) => (
                                 <Link
                                     key={item.href}
@@ -32,7 +36,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <LogoutButton />
                 </nav>
             </header>
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 pb-20 sm:pb-0">{children}</main>
+            <BottomNav links={NAV_LINKS} />
         </div>
     )
 }

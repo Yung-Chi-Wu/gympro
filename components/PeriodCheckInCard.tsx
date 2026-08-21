@@ -1,9 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { submitPeriodCheckIn } from '@/app/(app)/dashboard/checkin-actions'
 
-export function PeriodCheckInCard() {
+interface PeriodCheckInCardProps {
+    language: string
+}
+
+export function PeriodCheckInCard({ language }: PeriodCheckInCardProps) {
+    const t = useTranslations('checkin')
     const [weightKg, setWeightKg] = useState('')
     const [note, setNote] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -13,7 +19,7 @@ export function PeriodCheckInCard() {
         e.preventDefault()
         const weightNum = Number(weightKg)
         if (!weightKg || weightNum <= 0) {
-            setResult({ success: false, message: 'Enter a valid weight.' })
+            setResult({ success: false, message: t('submit') })
             return
         }
 
@@ -25,22 +31,21 @@ export function PeriodCheckInCard() {
         if (response.success) {
             setWeightKg('')
             setNote('')
+            window.dispatchEvent(new Event('period-checkin-success'))
         }
     }
 
     return (
         <div className="rounded-2xl border border-ink/10 bg-white p-6 space-y-3 shadow-sm">
-            <h2 className="text-lg font-semibold uppercase tracking-wide">Period Check-In</h2>
-            <p className="text-sm text-ink/60">
-                Log your weight to close out this period and generate your report.
-            </p>
+            <h2 className="text-lg font-semibold uppercase tracking-wide">{t('title')}</h2>
+            <p className="text-sm text-ink/60">{t('description')}</p>
 
             <form onSubmit={handleSubmit} className="space-y-3">
                 <div className="flex gap-2">
                     <input
                         type="number"
                         step="0.1"
-                        placeholder="Weight (kg)"
+                        placeholder={t('weightPlaceholder')}
                         value={weightKg}
                         onChange={(e) => setWeightKg(e.target.value)}
                         className="flex-1 rounded-md border px-3 py-2 text-sm"
@@ -50,20 +55,17 @@ export function PeriodCheckInCard() {
                         disabled={isSubmitting}
                         className="rounded-md bg-plate px-4 py-2 font-display uppercase tracking-wide text-chalk hover:bg-plate-light disabled:opacity-50"
                     >
-                        {isSubmitting ? 'Submitting...' : 'Check In'}
+                        {isSubmitting ? t('submitting') : t('submit')}
                     </button>
                 </div>
 
                 <div className="space-y-1">
-                    <label htmlFor="periodNote" className="text-sm font-medium">
-                        Anything you want to tell your AI coach this period? (optional)
-                    </label>
+                    <label className="text-sm font-medium">{t('noteLabel')}</label>
                     <textarea
-                        id="periodNote"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
                         rows={2}
-                        placeholder="e.g. My shoulder felt tight this week, or I want to focus more on legs..."
+                        placeholder={t('notePlaceholder')}
                         className="w-full rounded-md border px-3 py-2 text-sm"
                     />
                 </div>
