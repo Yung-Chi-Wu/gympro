@@ -1,4 +1,5 @@
 export interface AiRecommendation {
+    headline: string
     summary: string
     weeklyVolume: {
         totalSets: number
@@ -7,6 +8,13 @@ export interface AiRecommendation {
     }
     volumeSplit: Record<string, number>
     strengthIndex: Record<string, { currentIndex: number; previousIndex: number | null }>
+    bodyMetrics: {
+        weightKg: number | null
+        heightCm: number | null
+        bmi: number | null
+        ageYears: number | null
+        sex: string | null
+    }
     progressiveOverload: {
         status: 'on_track' | 'stalling' | 'regressing' | 'insufficient_data'
         notes: string

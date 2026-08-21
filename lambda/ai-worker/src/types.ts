@@ -1,11 +1,8 @@
 // ---------- Incoming SQS message shape ----------
-// periodEnd is now required — period length varies (7 days for regular
-// users, the user's own cycle_length for Pro users), so ai-worker can no
-// longer derive the end date by assuming a fixed +6 days.
 export interface AnalysisRequestMessage {
   userId: string
-  periodStart: string // ISO date, e.g. "2026-08-17"
-  periodEnd: string // ISO date, e.g. "2026-08-23"
+  periodStart: string
+  periodEnd: string
   userNote?: string
 }
 
@@ -36,11 +33,8 @@ export interface TrainingPeriodSummary {
 }
 
 // ---------- What Claude actually has to generate ----------
-// Deliberately narrative/judgment fields only. The quantitative fields
-// (weeklyVolume, volumeSplit, strengthIndex) are computed directly from
-// the database and merged in afterward in index.ts — Claude is never
-// asked to recompute or restate numbers it was only given to read.
 export interface AiNarrative {
+  headline: string
   summary: string
   progressiveOverload: {
     status: 'on_track' | 'stalling' | 'regressing' | 'insufficient_data'
@@ -66,4 +60,11 @@ export interface AiRecommendation extends AiNarrative {
   }
   volumeSplit: Record<string, number>
   strengthIndex: Record<string, { currentIndex: number; previousIndex: number | null }>
+  bodyMetrics: {
+    weightKg: number | null
+    heightCm: number | null
+    bmi: number | null
+    ageYears: number | null
+    sex: string | null
+  }
 }

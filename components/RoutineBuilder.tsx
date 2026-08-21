@@ -67,6 +67,35 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
         router.refresh()
     }
 
+    async function handleRenameRoutine(routineId: string, newName: string) {
+        setError(null)
+        const trimmedName = newName.trim()
+        if (!trimmedName) return
+
+        const isDuplicate = routines.some(
+            (r) => r.id !== routineId && r.name.trim().toLowerCase() === trimmedName.toLowerCase()
+        )
+        if (isDuplicate) {
+            setError(`You already have a routine named "${trimmedName}".`)
+            return
+        }
+
+        const { error: updateError } = await supabase
+            .from('routines')
+            .update({ name: trimmedName })
+            .eq('id', routineId)
+
+        if (updateError) {
+            setError(toFriendlyError(updateError))
+            return
+        }
+
+        setRoutines((prev) =>
+            prev.map((r) => (r.id === routineId ? { ...r, name: trimmedName } : r))
+        )
+        router.refresh()
+    }
+
     async function handleAddExercise(
         routineId: string,
         exercise: ExerciseOption,
@@ -220,25 +249,20 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
                                 className="flex w-full items-center justify-between p-4 text-left"
                             >
                                 <span className="font-medium">{routine.name}</span>
-                                <span className="text-sm text-ink/40">
+                                <span className="flex items-center gap-2 text-sm text-ink/40 shrink-0">
                                     {routine.exercises.length}{' '}
                                     {routine.exercises.length === 1 ? 'exercise' : 'exercises'}
-                                    {' '}
                                     <span className="ml-1">{isExpanded ? '▲' : '▼'}</span>
                                 </span>
                             </button>
 
                             {isExpanded && (
                                 <div className="border-t border-ink/10 p-6 space-y-3">
-                                    <div className="flex justify-end">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDeleteRoutine(routine.id)}
-                                            className="text-sm text-ink/40 hover:text-red-600"
-                                        >
-                                            Delete routine
-                                        </button>
-                                    </div>
+                                    <RoutineNameEditor
+                                        currentName={routine.name}
+                                        onSave={(newName) => handleRenameRoutine(routine.id, newName)}
+                                        onDelete={() => handleDeleteRoutine(routine.id)}
+                                    />
 
                                     {routine.exercises.length > 0 && (
                                         <div className="space-y-2">
@@ -392,6 +416,76 @@ function AddExerciseToRoutine({ exercises, onAdd, onExerciseCreated }: AddExerci
                     Add
                 </button>
             </div>
+        </div>
+    )
+}
+
+interface RoutineNameEditorProps {
+    currentName: string
+    onSave: (newName: string) => void
+    onDelete: () => void
+}
+
+function RoutineNameEditor({ currentName, onSave, onDelete }: RoutineNameEditorProps) {
+    const [isEditing, setIsEditing] = useState(false)
+    const [name, setName] = useState(currentName)
+
+    function commit() {
+        if (name.trim() && name.trim() !== currentName) {
+            onSave(name)
+        } else {
+            setName(currentName)
+        }
+        setIsEditing(false)
+    }
+
+    if (isEditing) {
+        return (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <input
+                    type="text"
+                    autoFocus
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onBlur={commit}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') commit()
+                        if (e.key === 'Escape') {
+                            setName(currentName)
+                            setIsEditing(false)
+                        }
+                    }}
+                    className="flex-1 rounded-md border px-3 py-2 text-sm font-medium"
+                />
+                <button
+                    type="button"
+                    onClick={onDelete}
+                    className="text-sm text-ink/40 hover:text-red-600 sm:shrink-0"
+                >
+                    Delete routine
+                </button>
+            </div>
+        )
+    }
+
+    return (
+        <div className="flex items-center justify-between">
+            <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="flex items-center gap-2 text-left"
+                aria-label="Edit routine name"
+            >
+                <span className="font-medium">{currentName}</span>
+                <span className="text-ink/40">✎</span>
+            </button>
+            <button
+                type="button"
+                onClick={onDelete}
+                className="text-sm text-ink/40 hover:text-red-600"
+            >
+                Delete routine
+            </button>
         </div>
     )
 }

@@ -81,8 +81,14 @@ async function processMessage(record: SQSRecord): Promise<void> {
       },
       volumeSplit: trainingSummary.volumeSplit,
       strengthIndex: trainingSummary.strengthIndex,
+      bodyMetrics: {
+        weightKg: trainingSummary.userContext.latestWeightKg,
+        heightCm: trainingSummary.userContext.heightCm,
+        bmi: trainingSummary.userContext.bmi,
+        ageYears: trainingSummary.userContext.ageYears,
+        sex: trainingSummary.userContext.sex,
+      },
     }
-
     await saveRecommendation(supabase, userId, periodStart, recommendation, userNote ?? null)
     console.log(`Successfully saved recommendation for user ${userId}`)
 

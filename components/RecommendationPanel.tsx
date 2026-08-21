@@ -5,7 +5,13 @@ import {
     PieChart,
     Pie,
     Cell,
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
     Tooltip,
+    Legend,
     ResponsiveContainer,
 } from 'recharts'
 import { createClient } from '@/lib/supabase/client'
@@ -24,7 +30,12 @@ const SEVERITY_STYLES: Record<string, string> = {
     severe: 'bg-red-50 text-red-800 border-red-200',
 }
 
-const PIE_COLORS = ['#26241F', '#8A5A44', '#4A6B5A', '#5A6B8A', '#8A7A44', '#6B4A6B']
+const CHART_COLORS = ['#26241F', '#8A5A44', '#4A6B5A', '#5A6B8A', '#8A7A44', '#6B4A6B']
+
+interface StrengthHistoryPoint {
+    label: string
+    [muscleGroup: string]: string | number
+}
 
 export function RecommendationPanel({ userId }: RecommendationPanelProps) {
     const supabase = createClient()
@@ -32,6 +43,8 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
     const [recommendation, setRecommendation] = useState<AiRecommendation | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [latestPeriodStart, setLatestPeriodStart] = useState<string | null>(null)
+    const [strengthHistory, setStrengthHistory] = useState<StrengthHistoryPoint[]>([])
+    const [muscleGroupsInHistory, setMuscleGroupsInHistory] = useState<string[]>([])
 
     const checkStatus = useCallback(async () => {
         const { data } = await supabase
@@ -54,9 +67,41 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
         }
     }, [supabase, userId])
 
+    const loadStrengthHistory = useCallback(async () => {
+        const { data } = await supabase
+            .from('period_reports')
+            .select('period_start, recommendation')
+            .eq('user_id', userId)
+            .eq('status', 'completed')
+            .order('period_start', { ascending: false })
+            .limit(6)
+
+        const chronological = (data ?? []).slice().reverse()
+        const groups = new Set<string>()
+
+        const points: StrengthHistoryPoint[] = chronological.map((row) => {
+            const rec = row.recommendation as unknown as AiRecommendation
+            const point: StrengthHistoryPoint = { label: formatShortDate(row.period_start) }
+            for (const [muscle, data] of Object.entries(rec.strengthIndex ?? {})) {
+                point[muscle] = data.currentIndex
+                groups.add(muscle)
+            }
+            return point
+        })
+
+        setStrengthHistory(points)
+        setMuscleGroupsInHistory(Array.from(groups).sort())
+    }, [supabase, userId])
+
     useEffect(() => {
         checkStatus()
     }, [checkStatus])
+
+    useEffect(() => {
+        if (status === 'completed') {
+            loadStrengthHistory()
+        }
+    }, [status, loadStrengthHistory])
 
     useEffect(() => {
         window.addEventListener('period-checkin-success', checkStatus)
@@ -79,7 +124,12 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
             )}
 
             {status === 'completed' && recommendation && latestPeriodStart && (
-                <RecommendationDisplay recommendation={recommendation} periodStart={latestPeriodStart} />
+                <RecommendationDisplay
+                    recommendation={recommendation}
+                    periodStart={latestPeriodStart}
+                    strengthHistory={strengthHistory}
+                    muscleGroups={muscleGroupsInHistory}
+                />
             )}
 
             {status === 'insufficient_data' && (
@@ -96,17 +146,22 @@ export function RecommendationPanel({ userId }: RecommendationPanelProps) {
 function RecommendationDisplay({
     recommendation,
     periodStart,
+    strengthHistory,
+    muscleGroups,
 }: {
     recommendation: AiRecommendation
     periodStart: string
+    strengthHistory: StrengthHistoryPoint[]
+    muscleGroups: string[]
 }) {
     const [pdfState, setPdfState] = useState<'idle' | 'loading' | 'error'>('idle')
+    const [showMore, setShowMore] = useState(false)
 
     async function handleDownloadPdf() {
         setPdfState('loading')
         const result = await getReportPdfUrl(periodStart)
         if (result.success && result.url) {
-            window.location.href = result.url
+            window.open(result.url, '_blank', 'noopener,noreferrer')
             setPdfState('idle')
         } else {
             setPdfState('error')
@@ -118,140 +173,192 @@ function RecommendationDisplay({
         value,
     }))
 
-    const strengthEntries = Object.entries(recommendation.strengthIndex ?? {})
+    const severeImbalances = recommendation.muscleImbalances.filter((i) => i.severity === 'severe')
+    const { bodyMetrics } = recommendation
 
     return (
-        <div className="space-y-6">
-            <p className="text-lg font-medium">{recommendation.summary}</p>
-
-            {strengthEntries.length > 0 && (
-                <div>
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                        Strength Index
-                    </h3>
-                    <p className="text-xs text-ink/40 mb-2">
-                        100 = your baseline when you first logged each exercise. Higher means stronger.
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                        {strengthEntries.map(([muscle, data]) => {
-                            const change =
-                                data.previousIndex !== null
-                                    ? data.currentIndex - data.previousIndex
-                                    : null
-                            return (
-                                <div key={muscle} className="rounded-xl bg-plate/10 px-4 py-3 text-sm">
-                                    <span className="font-medium capitalize">{muscle}</span>
-                                    <span className="block font-mono text-ink/60 mt-1">
-                                        {data.currentIndex}
-                                        {change !== null && (
-                                            <span
-                                                className={
-                                                    change >= 0 ? 'text-green-700 ml-1' : 'text-red-600 ml-1'
-                                                }
-                                            >
-                                                {change >= 0 ? '+' : ''}
-                                                {change}
-                                            </span>
-                                        )}
-                                    </span>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {pieData.length > 0 && (
-                <div>
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+        <div className="space-y-5">
+            {/* ---------- Top row: Training Split + Body Metrics ---------- */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="rounded-xl border border-ink/10 p-4">
+                    <h3 className="text-xs font-semibold text-ink/40 uppercase tracking-wide mb-2">
                         Training Split
                     </h3>
-                    <div className="h-56">
+                    {pieData.length > 0 ? (
+                        <div className="h-40">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie data={pieData} dataKey="value" nameKey="name" outerRadius={55}>
+                                        {pieData.map((entry, i) => (
+                                            <Cell key={entry.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip formatter={(value: number) => `${value}%`} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-ink/40">No data yet.</p>
+                    )}
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink/60">
+                        {pieData.map((entry, i) => (
+                            <span key={entry.name} className="flex items-center gap-1 capitalize">
+                                <span
+                                    className="inline-block h-2 w-2 rounded-full"
+                                    style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+                                />
+                                {entry.name} {entry.value}%
+                            </span>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="rounded-xl border border-ink/10 p-4">
+                    <h3 className="text-xs font-semibold text-ink/40 uppercase tracking-wide mb-2">
+                        Body Metrics
+                    </h3>
+                    <div className="grid grid-cols-2 gap-y-2 text-sm">
+                        <MetricCell label="Weight" value={bodyMetrics?.weightKg ? `${bodyMetrics.weightKg} kg` : '—'} />
+                        <MetricCell label="Height" value={bodyMetrics?.heightCm ? `${bodyMetrics.heightCm} cm` : '—'} />
+                        <MetricCell label="BMI" value={bodyMetrics?.bmi ? `${bodyMetrics.bmi}` : '—'} />
+                        <MetricCell
+                            label="Age / Sex"
+                            value={
+                                bodyMetrics?.ageYears || bodyMetrics?.sex
+                                    ? `${bodyMetrics?.ageYears ?? '—'} / ${bodyMetrics?.sex ?? '—'}`
+                                    : '—'
+                            }
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* ---------- Strength trend, full width ---------- */}
+            {strengthHistory.length >= 2 && muscleGroups.length > 0 && (
+                <div className="rounded-xl border border-ink/10 p-4">
+                    <h3 className="text-xs font-semibold text-ink/40 uppercase tracking-wide mb-1">
+                        Strength Trend
+                    </h3>
+                    <p className="text-xs text-ink/40 mb-2">
+                        100 = your baseline for each exercise. Higher means stronger.
+                    </p>
+                    <div className="h-48">
                         <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={pieData}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    outerRadius={80}
-                                    label={(entry) => `${entry.name} ${entry.value}%`}
-                                >
-                                    {pieData.map((entry, i) => (
-                                        <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip formatter={(value: number) => `${value}%`} />
-                            </PieChart>
+                            <LineChart data={strengthHistory} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                                <CartesianGrid stroke="#2B2B2814" vertical={false} />
+                                <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#2B2B2899' }} />
+                                <YAxis tick={{ fontSize: 11, fill: '#2B2B2899' }} width={36} />
+                                <Tooltip />
+                                <Legend wrapperStyle={{ fontSize: 11 }} />
+                                {muscleGroups.map((muscle, i) => (
+                                    <Line
+                                        key={muscle}
+                                        type="monotone"
+                                        dataKey={muscle}
+                                        stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                                        strokeWidth={2}
+                                        dot={{ r: 3 }}
+                                        connectNulls
+                                    />
+                                ))}
+                            </LineChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
             )}
 
-            <div>
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                    This Period's Volume
-                </h3>
-                <p className="text-sm text-ink/60 mb-2 font-mono">
-                    {recommendation.weeklyVolume.totalSets} total sets · {recommendation.weeklyVolume.totalTonnageKg} kg total tonnage
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                    {Object.entries(recommendation.weeklyVolume.byMuscleGroup).map(
-                        ([muscle, data]) => (
-                            <div key={muscle} className="rounded-xl bg-plate/10 px-4 py-3 text-sm">
-                                <span className="font-medium capitalize">{muscle}</span>
-                                <span className="block font-mono text-ink/60 mt-1">
-                                    {data.sets} sets · {data.tonnageKg} kg
-                                </span>
-                            </div>
-                        )
-                    )}
-                </div>
-            </div>
-
-            <div>
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                    Progressive Overload
-                </h3>
-                <p className="text-sm text-gray-600">{recommendation.progressiveOverload.notes}</p>
-            </div>
-
-            {recommendation.muscleImbalances.length > 0 && (
-                <div>
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                        Things to Watch
-                    </h3>
-                    <div className="space-y-2">
-                        {recommendation.muscleImbalances.map((imbalance, i) => (
-                            <div
-                                key={i}
-                                className={`rounded border px-3 py-2 text-sm ${SEVERITY_STYLES[imbalance.severity] ?? ''
-                                    }`}
-                            >
-                                <span className="font-semibold capitalize">{imbalance.muscleGroup}</span>
-                                {' — '}
-                                {imbalance.observation}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {recommendation.deloadRecommended && (
-                <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                    <span className="font-semibold">Deload recommended: </span>
-                    {recommendation.deloadReason}
-                </div>
-            )}
-
-            <div>
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                    What To Do Next
-                </h3>
-                <ul className="list-disc list-inside space-y-1 text-sm">
-                    {recommendation.actionItems.map((item, i) => (
-                        <li key={i}>{item}</li>
+            {/* ---------- Warnings ---------- */}
+            {severeImbalances.length > 0 && (
+                <div className="space-y-2">
+                    {severeImbalances.map((item, i) => (
+                        <div
+                            key={i}
+                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                        >
+                            <span className="font-semibold capitalize">⚠ {item.muscleGroup}</span>
+                            {' — '}
+                            {item.observation}
+                        </div>
                     ))}
-                </ul>
+                </div>
+            )}
+
+            {/* ---------- Headline + Read more ---------- */}
+            <div className="space-y-2">
+                <p className="text-base font-medium">{recommendation.headline}</p>
+
+                {!showMore ? (
+                    <button
+                        type="button"
+                        onClick={() => setShowMore(true)}
+                        className="text-sm text-plate underline"
+                    >
+                        Read more
+                    </button>
+                ) : (
+                    <div className="space-y-5 pt-2">
+                        <div>
+                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                                Summary
+                            </h3>
+                            <p className="text-sm text-gray-700">{recommendation.summary}</p>
+                        </div>
+
+                        <div>
+                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                                Progressive Overload
+                            </h3>
+                            <p className="text-sm text-gray-600">{recommendation.progressiveOverload.notes}</p>
+                        </div>
+
+                        {recommendation.muscleImbalances.length > 0 && (
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                                    Things to Watch
+                                </h3>
+                                <div className="space-y-2">
+                                    {recommendation.muscleImbalances.map((imbalance, i) => (
+                                        <div
+                                            key={i}
+                                            className={`rounded border px-3 py-2 text-sm ${SEVERITY_STYLES[imbalance.severity] ?? ''
+                                                }`}
+                                        >
+                                            <span className="font-semibold capitalize">{imbalance.muscleGroup}</span>
+                                            {' — '}
+                                            {imbalance.observation}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {recommendation.deloadRecommended && (
+                            <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                                <span className="font-semibold">Deload recommended: </span>
+                                {recommendation.deloadReason}
+                            </div>
+                        )}
+
+                        <div>
+                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                                What To Do Next
+                            </h3>
+                            <ul className="list-disc list-inside space-y-1 text-sm">
+                                {recommendation.actionItems.map((item, i) => (
+                                    <li key={i}>{item}</li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowMore(false)}
+                            className="text-sm text-ink/40 underline"
+                        >
+                            Show less
+                        </button>
+                    </div>
+                )}
             </div>
 
             <div className="pt-2">
@@ -271,4 +378,17 @@ function RecommendationDisplay({
             </div>
         </div>
     )
+}
+
+function MetricCell({ label, value }: { label: string; value: string }) {
+    return (
+        <div>
+            <span className="block text-xs text-ink/40">{label}</span>
+            <span className="font-mono">{value}</span>
+        </div>
+    )
+}
+
+function formatShortDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
