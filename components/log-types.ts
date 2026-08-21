@@ -13,8 +13,6 @@ export interface LoggedSet {
     setNumber: number
     reps: number
     weightKg: number
-    rpe: number | null
-    isWarmup: boolean
 }
 
 export const MUSCLE_GROUPS = [

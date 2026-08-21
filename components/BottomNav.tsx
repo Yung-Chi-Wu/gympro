@@ -12,7 +12,6 @@ const ICONS: Record<string, string> = {
     '/dashboard': '🏠',
     '/routines': '📋',
     '/history': '📅',
-    '/metrics': '📊',
     '/settings': '⚙',
 }
 

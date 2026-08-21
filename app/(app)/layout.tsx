@@ -8,7 +8,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
     const NAV_LINKS = [
         { href: '/routines', label: t('routines') },
-        { href: '/metrics', label: t('metrics') },
         { href: '/history', label: t('history') },
         { href: '/settings', label: t('settings') },
     ]
@@ -17,10 +16,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         { href: '/dashboard', label: t('dashboard') },
         { href: '/routines', label: t('routines') },
         { href: '/history', label: t('history') },
-        { href: '/metrics', label: t('metrics') },
         { href: '/settings', label: t('settings') },
     ]
-
     return (
         <div className="min-h-screen flex flex-col">
             <header className="border-b border-ink/10 bg-white">

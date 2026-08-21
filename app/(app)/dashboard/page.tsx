@@ -5,6 +5,7 @@ import { RecommendationPanel } from '@/components/RecommendationPanel'
 import { ReminderBanner } from '@/components/ReminderBanner'
 import { TodayWorkoutCard } from '@/components/TodayWorkoutCard'
 import { PeriodCheckInCard } from '@/components/PeriodCheckInCard'
+import { WeightSection } from '@/components/WeightSection'
 import type { ExerciseOption } from '@/components/log-types'
 
 const WEIGHT_REMINDER_DAYS = 7
@@ -156,8 +157,15 @@ export default async function DashboardPage() {
     .select('id, name, name_zh_tw, muscle_group, equipment')
     .order('name')
 
+  const { data: weightEntries } = await supabase
+    .from('body_metrics')
+    .select('id, recorded_at, weight_kg')
+    .eq('user_id', user.id)
+    .order('recorded_at', { ascending: true })
+    .limit(30)
+
   return (
-    <div className="mx-auto max-w-2xl p-8 space-y-6">
+    <div className="py-8 space-y-6">
       <h1 className="text-3xl font-bold uppercase tracking-wide">
         {t('welcome')}{greetingName}
       </h1>
@@ -187,6 +195,16 @@ export default async function DashboardPage() {
       />
 
       <RecommendationPanel userId={user.id} language={language} />
+
+      <WeightSection
+        userId={user.id}
+        entries={(weightEntries ?? []).map((e) => ({
+          id: e.id,
+          recordedAt: e.recorded_at,
+          weightKg: e.weight_kg,
+        }))}
+        language={language}
+      />
     </div>
   )
 }
@@ -225,7 +243,10 @@ function daysBetween(startDateIso: string, today: DateParts): number {
   return Math.floor((todayUtc.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function getTodayRangeUtc(today: DateParts, timeZone: string): { startOfDay: string; endOfDay: string } {
+function getTodayRangeUtc(
+  today: DateParts,
+  timeZone: string
+): { startOfDay: string; endOfDay: string } {
   const reference = new Date(Date.UTC(today.year, today.month - 1, today.day, 12, 0, 0))
   const tzFormatter = new Intl.DateTimeFormat('en-US', {
     timeZone,
