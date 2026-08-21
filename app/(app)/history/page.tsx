@@ -44,6 +44,13 @@ export default async function HistoryPage() {
         .gte('period_start', getOneYearAgo())
         .order('period_start', { ascending: false })
 
+    const { data: weightEntries } = await supabase
+        .from('body_metrics')
+        .select('id, recorded_at, weight_kg')
+        .eq('user_id', user.id)
+        .gte('recorded_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString())
+        .order('recorded_at', { ascending: true })
+
     return (
         <div className="py-8 space-y-6">
             <h1 className="text-3xl font-bold uppercase tracking-wide">{t('title')}</h1>
@@ -52,6 +59,11 @@ export default async function HistoryPage() {
                 periods={periods}
                 reports={reports ?? []}
                 language={language}
+                weightEntries={(weightEntries ?? []).map((e) => ({
+                    id: e.id,
+                    recordedAt: e.recorded_at,
+                    weightKg: e.weight_kg,
+                }))}
             />
         </div>
     )
@@ -89,10 +101,7 @@ function computeCalendarWeekPeriods(count: number, timezone: string): PeriodOpti
         end.setUTCDate(end.getUTCDate() + 6)
         const startStr = start.toISOString().split('T')[0]
         if (startStr < getOneYearAgo()) break
-        periods.push({
-            start: startStr,
-            end: end.toISOString().split('T')[0],
-        })
+        periods.push({ start: startStr, end: end.toISOString().split('T')[0] })
     }
     return periods
 }

@@ -5,7 +5,6 @@ import { RecommendationPanel } from '@/components/RecommendationPanel'
 import { ReminderBanner } from '@/components/ReminderBanner'
 import { TodayWorkoutCard } from '@/components/TodayWorkoutCard'
 import { PeriodCheckInCard } from '@/components/PeriodCheckInCard'
-import { WeightSection } from '@/components/WeightSection'
 import type { ExerciseOption } from '@/components/log-types'
 
 const WEIGHT_REMINDER_DAYS = 7
@@ -44,11 +43,10 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/login')
-  }
+  if (!user) redirect('/login')
 
   const t = await getTranslations('dashboard')
+  const tReport = await getTranslations('report')
 
   const { data: profile } = await supabase
     .from('user_profiles')
@@ -56,19 +54,20 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .maybeSingle()
 
-  const { data: latestMetric } = await supabase
+  const { data: latestMetricData } = await supabase
     .from('body_metrics')
-    .select('recorded_at')
+    .select('recorded_at, weight_kg')
     .eq('user_id', user.id)
     .order('recorded_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
-  const needsWeightLog = isOlderThanDays(latestMetric?.recorded_at ?? null, WEIGHT_REMINDER_DAYS)
+  const needsWeightLog = isOlderThanDays(latestMetricData?.recorded_at ?? null, WEIGHT_REMINDER_DAYS)
   const needsHeightConfirm = isOlderThanDays(profile?.height_updated_at ?? null, HEIGHT_REMINDER_DAYS)
   const greetingName = profile?.display_name || user.email
   const timezone = profile?.timezone || 'UTC'
   const language = profile?.language || 'en'
+  const latestWeightKg = latestMetricData?.weight_kg ?? null
 
   const todayParts = getLocalDateParts(timezone)
   const { startOfDay, endOfDay } = getTodayRangeUtc(todayParts, timezone)
@@ -157,29 +156,11 @@ export default async function DashboardPage() {
     .select('id, name, name_zh_tw, muscle_group, equipment')
     .order('name')
 
-  const { data: weightEntries } = await supabase
-    .from('body_metrics')
-    .select('id, recorded_at, weight_kg')
-    .eq('user_id', user.id)
-    .order('recorded_at', { ascending: true })
-    .limit(30)
-
   return (
     <div className="py-8 space-y-6">
       <h1 className="text-3xl font-bold uppercase tracking-wide">
         {t('welcome')}{greetingName}
       </h1>
-      <a href="/history" className="text-sm underline">
-        {t('viewHistory')}
-      </a>
-
-      <ReminderBanner
-        userId={user.id}
-        needsWeightLog={needsWeightLog}
-        needsHeightConfirm={needsHeightConfirm}
-      />
-
-      <PeriodCheckInCard language={language} />
 
       <TodayWorkoutCard
         userId={user.id}
@@ -194,17 +175,23 @@ export default async function DashboardPage() {
         language={language}
       />
 
-      <RecommendationPanel userId={user.id} language={language} />
-
-      <WeightSection
+      <ReminderBanner
         userId={user.id}
-        entries={(weightEntries ?? []).map((e) => ({
-          id: e.id,
-          recordedAt: e.recorded_at,
-          weightKg: e.weight_kg,
-        }))}
-        language={language}
+        needsWeightLog={needsWeightLog}
+        needsHeightConfirm={needsHeightConfirm}
       />
+
+      <PeriodCheckInCard
+        language={language}
+        latestWeightKg={latestWeightKg}
+      />
+
+      <div className="space-y-3">
+        <h2 className="text-xl font-bold uppercase tracking-wide border-b border-ink/10 pb-3">
+          {tReport('sectionTitle')}
+        </h2>
+        <RecommendationPanel userId={user.id} language={language} />
+      </div>
     </div>
   )
 }

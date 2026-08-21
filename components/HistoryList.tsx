@@ -4,11 +4,18 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
     PieChart, Pie, Cell,
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+    Tooltip, ResponsiveContainer,
 } from 'recharts'
 import { getReportPdfUrl } from '@/app/(app)/dashboard/pdf-actions'
+import { WeightTrendCard } from '@/components/WeightTrendCard'
 import type { PeriodOption } from '@/app/(app)/history/page'
 import type { AiRecommendation } from './types'
+
+interface WeightEntry {
+    id: string
+    recordedAt: string
+    weightKg: number | null
+}
 
 interface ReportRow {
     period_start: string
@@ -24,6 +31,7 @@ interface HistoryListProps {
     periods: PeriodOption[]
     reports: ReportRow[]
     language: string
+    weightEntries: WeightEntry[]
 }
 
 const CHART_COLORS = ['#26241F', '#8A5A44', '#4A6B5A', '#5A6B8A', '#8A7A44', '#6B4A6B']
@@ -33,26 +41,31 @@ const SEVERITY_STYLES: Record<string, string> = {
     severe: 'bg-red-50 text-red-800 border-red-200',
 }
 
-export function HistoryList({ userId, periods, reports, language }: HistoryListProps) {
+export function HistoryList({ userId, periods, reports, language, weightEntries }: HistoryListProps) {
     const zh = language === 'zh-TW'
-
     const reportByPeriodStart = new Map(reports.map((r) => [r.period_start, r]))
 
-    if (periods.length === 0) {
-        return <p className="text-sm text-ink/60">{zh ? '沒有訓練紀錄。' : 'No training history yet.'}</p>
-    }
-
     return (
-        <div className="space-y-3">
-            {periods.map((period) => (
-                <PeriodRow
-                    key={period.start}
-                    period={period}
-                    report={reportByPeriodStart.get(period.start) ?? null}
-                    userId={userId}
-                    language={language}
-                />
-            ))}
+        <div className="space-y-6">
+            <WeightTrendCard entries={weightEntries} language={language} />
+
+            {periods.length === 0 ? (
+                <p className="text-sm text-ink/60">
+                    {zh ? '沒有訓練紀錄。' : 'No training history yet.'}
+                </p>
+            ) : (
+                <div className="space-y-3">
+                    {periods.map((period) => (
+                        <PeriodRow
+                            key={period.start}
+                            period={period}
+                            report={reportByPeriodStart.get(period.start) ?? null}
+                            userId={userId}
+                            language={language}
+                        />
+                    ))}
+                </div>
+            )}
         </div>
     )
 }
@@ -65,12 +78,10 @@ interface PeriodRowProps {
 }
 
 function PeriodRow({ period, report, userId, language }: PeriodRowProps) {
-    const zh = language === 'zh-TW'
-
     return (
         <div className="rounded-2xl border border-ink/10 bg-white shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-ink/10">
-                <p className="font-medium text-sm">
+            <div className="px-4 py-3 border-b border-ink/10 bg-ink/[0.02]">
+                <p className="font-semibold text-sm">
                     {formatDateRange(period.start, period.end, language)}
                 </p>
             </div>
@@ -82,10 +93,7 @@ function PeriodRow({ period, report, userId, language }: PeriodRowProps) {
                 language={language}
             />
 
-            <ReportSection
-                report={report}
-                language={language}
-            />
+            <ReportSection report={report} language={language} />
         </div>
     )
 }
@@ -136,7 +144,7 @@ function TrainingLogSection({
                 <span className="font-medium text-ink/70">
                     {zh ? '訓練日誌' : 'Training Log'}
                 </span>
-                <span className="text-ink/40">{isOpen ? '▲' : '▼'}</span>
+                <span className="text-ink/40 text-xs">{isOpen ? '▲' : '▼'}</span>
             </button>
 
             {isOpen && (
@@ -158,8 +166,12 @@ function TrainingLogSection({
                             {workout.exercises.map((ex) => (
                                 <div key={ex.exerciseId} className="text-xs text-ink/60 pl-2">
                                     <span className="font-medium">{ex.name}</span>
-                                    {': '}
-                                    {ex.sets.map((s) => `${s.weightKg}kg×${s.reps}`).join(', ')}
+                                    {ex.sets.length > 0 && (
+                                        <>
+                                            {': '}
+                                            {ex.sets.map((s) => `${s.weightKg}kg×${s.reps}`).join(', ')}
+                                        </>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -189,8 +201,6 @@ function ReportSection({ report, language }: { report: ReportRow | null; languag
         }
     }
 
-    const noReport = !report || report.status === 'insufficient_data' || report.status === 'failed'
-    const isPending = report?.status === 'pending'
     const isCompleted = report?.status === 'completed'
     const rec = isCompleted ? (report.recommendation as unknown as AiRecommendation) : null
 
@@ -203,8 +213,13 @@ function ReportSection({ report, language }: { report: ReportRow | null; languag
             >
                 <span className="font-medium text-ink/70">
                     {zh ? '訓練報告' : 'Report'}
+                    {isCompleted && (
+                        <span className="ml-2 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
+                            {zh ? '已完成' : 'Ready'}
+                        </span>
+                    )}
                 </span>
-                <span className="text-ink/40">{isOpen ? '▲' : '▼'}</span>
+                <span className="text-ink/40 text-xs">{isOpen ? '▲' : '▼'}</span>
             </button>
 
             {isOpen && (
@@ -215,10 +230,11 @@ function ReportSection({ report, language }: { report: ReportRow | null; languag
                         </p>
                     )}
 
-                    {isPending && (
-                        <p className="text-sm text-ink/60">
+                    {report?.status === 'pending' && (
+                        <div className="flex items-center gap-2 text-sm text-ink/60">
+                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
                             {zh ? '報告生成中...' : 'Report is being generated...'}
-                        </p>
+                        </div>
                     )}
 
                     {report?.status === 'insufficient_data' && (
@@ -226,12 +242,14 @@ function ReportSection({ report, language }: { report: ReportRow | null; languag
                     )}
 
                     {report?.status === 'failed' && (
-                        <p className="text-sm text-red-600">{zh ? '報告生成失敗。' : 'Report generation failed.'}</p>
+                        <p className="text-sm text-red-600">
+                            {zh ? '報告生成失敗。' : 'Report generation failed.'}
+                        </p>
                     )}
 
                     {isCompleted && rec && (
                         <div className="space-y-4">
-                            <p className="font-medium">{rec.headline}</p>
+                            <p className="font-medium text-sm">{rec.headline}</p>
 
                             {!showMore ? (
                                 <button
@@ -243,7 +261,6 @@ function ReportSection({ report, language }: { report: ReportRow | null; languag
                                 </button>
                             ) : (
                                 <div className="space-y-4">
-                                    {/* Training Split */}
                                     {Object.keys(rec.volumeSplit ?? {}).length > 0 && (
                                         <div>
                                             <p className="text-xs font-semibold uppercase tracking-wide text-ink/40 mb-2">

@@ -2,7 +2,6 @@
     "nav": {
         "dashboard": "Home",
         "routines": "Routines",
-        "metrics": "Metrics",
         "history": "History",
         "settings": "Settings",
         "logout": "Log out"
@@ -15,7 +14,7 @@
     },
     "dashboard": {
         "welcome": "Welcome back,",
-        "viewHistory": "View training history"
+        "aiReportTitle": "AI Coach Report"
     },
     "today": {
         "title": "Today",
@@ -29,20 +28,23 @@
         "add": "Add",
         "reps": "Reps",
         "kg": "kg",
-        "day": "Day",
-        "of": "of"
+        "dayOf": "Day {day} of {total}"
     },
     "checkin": {
         "title": "Period Check-In",
-        "description": "Log your weight to close out this period and generate your report.",
+        "description": "Confirm your weight to close out this period and generate your AI report.",
         "weightPlaceholder": "Weight (kg)",
+        "weightHint": "Pre-filled from your last check-in — update if needed.",
         "notePlaceholder": "e.g. My shoulder felt tight this week, or I want to focus more on legs...",
         "noteLabel": "Anything you want to tell your AI coach this period? (optional)",
         "submit": "Check In",
-        "submitting": "Submitting..."
+        "submitting": "Submitting...",
+        "weightError": "Enter a valid weight."
     },
     "report": {
-        "title": "GymPro Report",
+        "sectionTitle": "AI Coach Report",
+        "idle": "Your latest report will appear here once you check in.",
+        "pending": "Analyzing your training data...",
         "trainingSplit": "Training Split",
         "bodyMetrics": "Body Metrics",
         "strengthTrend": "Strength Trend",
@@ -56,8 +58,6 @@
         "downloadPdf": "Download PDF",
         "preparing": "Preparing...",
         "pdfNotReady": "PDF isn't ready yet — check back in a moment.",
-        "idle": "Your latest report will appear here once you check in.",
-        "pending": "Analyzing your training data...",
         "noData": "No data yet.",
         "weight": "Weight",
         "height": "Height",
@@ -84,10 +84,6 @@
         "exercises": "exercises",
         "exercise": "exercise",
         "noExercises": "No exercises in this group",
-        "newExercise": "+ New",
-        "cancelNew": "Cancel",
-        "saveExercise": "Save",
-        "equipmentPlaceholder": "Equipment (optional)",
         "sets": "Sets",
         "reps": "Reps",
         "cycleLength": "Cycle length (days)",
@@ -104,12 +100,10 @@
         "height": "Height (cm)",
         "dateOfBirth": "Date of birth",
         "sex": "Sex",
-        "sexOptions": {
-            "preferNot": "Prefer not to say",
-            "male": "Male",
-            "female": "Female",
-            "other": "Other"
-        },
+        "sexPreferNot": "Prefer not to say",
+        "sexMale": "Male",
+        "sexFemale": "Female",
+        "sexOther": "Other",
         "timezone": "Timezone",
         "language": "Language",
         "trainingGoal": "Long-term training goal",
@@ -119,18 +113,11 @@
         "saved": "Saved!",
         "backToDashboard": "Back to dashboard"
     },
-    "metrics": {
-        "title": "Body Metrics",
-        "weight": "Weight",
-        "logWeight": "Log Weight",
-        "date": "Date",
-        "weightKg": "Weight (kg)",
-        "history": "History",
-        "noTrend": "Log at least two weigh-ins to see a trend line here."
-    },
     "history": {
         "title": "Training History",
-        "noWorkouts": "No workouts logged this period."
+        "noWorkouts": "No workouts logged this period.",
+        "weightTrend": "Weight Trend",
+        "noWeightData": "No weight data yet — your weight is recorded at each check-in."
     },
     "auth": {
         "loginTitle": "Log in to GymPro",
@@ -141,11 +128,5 @@
         "loginError": "Login failed. Please check your email and password.",
         "noAccount": "Don't have an account?",
         "signup": "Sign up"
-    },
-    "errors": {
-        "generic": "Something went wrong. Please try again.",
-        "alreadyExists": "That already exists — try a different name.",
-        "outOfRange": "One of the values entered is out of the allowed range.",
-        "notFound": "That item no longer exists — try refreshing the page."
     }
 }
