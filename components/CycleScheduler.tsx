@@ -19,6 +19,7 @@ interface CycleSchedulerProps {
     routines: RoutineOption[]
     initialCycle: { id: string; cycleLength: number } | null
     initialCycleDays: CycleDayState[]
+    language: string
 }
 
 type PendingLengthChange = {
@@ -31,8 +32,10 @@ export function CycleScheduler({
     routines,
     initialCycle,
     initialCycleDays,
+    language,
 }: CycleSchedulerProps) {
     const supabase = createClient()
+    const zh = language === 'zh-TW'
 
     const [cycleId, setCycleId] = useState<string | null>(initialCycle?.id ?? null)
     const [cycleLength, setCycleLength] = useState<number>(initialCycle?.cycleLength ?? 7)
@@ -55,13 +58,13 @@ export function CycleScheduler({
         setError(null)
         const length = Number(lengthInput)
         if (!length || length < 1) {
-            setError('Enter a cycle length of at least 1 day.')
+            setError(zh ? '請輸入至少 1 天的循環長度。' : 'Enter a cycle length of at least 1 day.')
             return
         }
 
         const todayDay = Number(todayDayInput)
         if (!todayDay || todayDay < 1 || todayDay > length) {
-            setError(`"Today is day..." must be between 1 and ${length}.`)
+            setError(zh ? `「今天是第幾天」必須在 1 到 ${length} 之間。` : `"Today is day..." must be between 1 and ${length}.`)
             return
         }
 
@@ -75,9 +78,7 @@ export function CycleScheduler({
                 .select('id')
                 .single()
 
-            if (cycleError || !cycle) {
-                throw new Error(toFriendlyError(cycleError))
-            }
+            if (cycleError || !cycle) throw new Error(toFriendlyError(cycleError))
 
             const newDays = Array.from({ length }, (_, i) => ({
                 training_cycle_id: cycle.id,
@@ -91,7 +92,7 @@ export function CycleScheduler({
             setCycleLength(length)
             setDays(newDays.map((d) => ({ dayIndex: d.day_index, routineId: null })))
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Something went wrong.')
+            setError(err instanceof Error ? err.message : (zh ? '發生錯誤，請再試一次。' : 'Something went wrong.'))
         } finally {
             setIsSaving(false)
         }
@@ -99,13 +100,10 @@ export function CycleScheduler({
 
     async function handleDeleteCycle() {
         if (!cycleId) return
-        if (
-            !confirm(
-                'Delete your training cycle? Your routines will stay, but the day-by-day schedule will be cleared.'
-            )
-        ) {
-            return
-        }
+        const confirmMsg = zh
+            ? '確定刪除訓練循環？你的課表內容會保留，但每天的排程安排會被清除。'
+            : 'Delete your training cycle? Your routines will stay, but the day-by-day schedule will be cleared.'
+        if (!confirm(confirmMsg)) return
 
         setError(null)
         setIsSaving(true)
@@ -114,17 +112,15 @@ export function CycleScheduler({
                 .from('training_cycles')
                 .delete()
                 .eq('id', cycleId)
-
             if (deleteError) throw new Error(toFriendlyError(deleteError))
 
             await clearEmptyTodayWorkout(userId)
-
             setCycleId(null)
             setDays([])
             setLengthInput('7')
             setTodayDayInput('1')
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Something went wrong.')
+            setError(err instanceof Error ? err.message : (zh ? '發生錯誤，請再試一次。' : 'Something went wrong.'))
         } finally {
             setIsSaving(false)
         }
@@ -161,13 +157,11 @@ export function CycleScheduler({
         e.preventDefault()
         setError(null)
         const newLength = Number(lengthInput)
-
         if (!newLength || newLength < 1) {
-            setError('Enter a cycle length of at least 1 day.')
+            setError(zh ? '請輸入至少 1 天的循環長度。' : 'Enter a cycle length of at least 1 day.')
             return
         }
         if (newLength === cycleLength) return
-
         setPending({ newLength, canContinue: newLength > cycleLength })
     }
 
@@ -201,7 +195,6 @@ export function CycleScheduler({
                 )
                 const { error: insertError } = await supabase.from('cycle_days').insert(newRows)
                 if (insertError) throw new Error(toFriendlyError(insertError))
-
                 setDays((prev) => [
                     ...prev,
                     ...newRows.map((r) => ({ dayIndex: r.day_index, routineId: null })),
@@ -213,14 +206,13 @@ export function CycleScheduler({
                     .eq('training_cycle_id', cycleId)
                     .gt('day_index', pending.newLength)
                 if (deleteError) throw new Error(toFriendlyError(deleteError))
-
                 setDays((prev) => prev.filter((d) => d.dayIndex <= pending.newLength))
             }
 
             setCycleLength(pending.newLength)
             setPending(null)
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Something went wrong.')
+            setError(err instanceof Error ? err.message : (zh ? '發生錯誤，請再試一次。' : 'Something went wrong.'))
         } finally {
             setIsSaving(false)
         }
@@ -229,7 +221,6 @@ export function CycleScheduler({
     async function handleDayChange(dayIndex: number, routineId: string) {
         if (!cycleId) return
         setError(null)
-
         const value = routineId === '' ? null : routineId
         const { error: upsertError } = await supabase
             .from('cycle_days')
@@ -237,12 +228,7 @@ export function CycleScheduler({
                 { training_cycle_id: cycleId, day_index: dayIndex, routine_id: value },
                 { onConflict: 'training_cycle_id,day_index' }
             )
-
-        if (upsertError) {
-            setError(toFriendlyError(upsertError))
-            return
-        }
-
+        if (upsertError) { setError(toFriendlyError(upsertError)); return }
         setDays((prev) =>
             prev.map((d) => (d.dayIndex === dayIndex ? { ...d, routineId: value } : d))
         )
@@ -250,13 +236,11 @@ export function CycleScheduler({
 
     return (
         <section className="space-y-4">
-            <h2 className="text-lg font-semibold uppercase tracking-wide">Training Cycle</h2>
+            <h2 className="text-lg font-semibold uppercase tracking-wide">
+                {zh ? '訓練循環' : 'Training Cycle'}
+            </h2>
 
-            {error && (
-                <p role="alert" className="text-sm text-red-600">
-                    {error}
-                </p>
-            )}
+            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
             {!cycleId ? (
                 <form
@@ -264,11 +248,10 @@ export function CycleScheduler({
                     className="rounded-2xl border border-ink/10 bg-white p-6 space-y-3 shadow-sm"
                 >
                     <div className="space-y-1">
-                        <label htmlFor="cycleLength" className="text-sm font-medium">
-                            How many days is your cycle?
+                        <label className="text-sm font-medium">
+                            {zh ? '你的訓練循環幾天一輪？' : 'How many days is your cycle?'}
                         </label>
                         <input
-                            id="cycleLength"
                             type="number"
                             min={1}
                             value={lengthInput}
@@ -277,11 +260,10 @@ export function CycleScheduler({
                         />
                     </div>
                     <div className="space-y-1">
-                        <label htmlFor="todayDay" className="text-sm font-medium">
-                            Which day of your cycle is today?
+                        <label className="text-sm font-medium">
+                            {zh ? '今天是循環的第幾天？' : 'Which day of your cycle is today?'}
                         </label>
                         <input
-                            id="todayDay"
                             type="number"
                             min={1}
                             max={Number(lengthInput) || undefined}
@@ -290,8 +272,9 @@ export function CycleScheduler({
                             className="w-24 rounded-md border px-3 py-2 text-sm"
                         />
                         <p className="text-xs text-ink/40">
-                            If you're already partway through your routine in your head, set this
-                            so today lines up with the right day.
+                            {zh
+                                ? '如果你的訓練循環已經進行到一半，在這裡設定好讓系統對齊你現在的位置。'
+                                : "If you're already partway through your routine in your head, set this so today lines up with the right day."}
                         </p>
                     </div>
                     <button
@@ -299,7 +282,7 @@ export function CycleScheduler({
                         disabled={isSaving}
                         className="rounded-md bg-plate px-4 py-2 font-display uppercase tracking-wide text-chalk hover:bg-plate-light disabled:opacity-50"
                     >
-                        {isSaving ? 'Creating...' : 'Create Cycle'}
+                        {isSaving ? (zh ? '建立中...' : 'Creating...') : (zh ? '建立循環' : 'Create Cycle')}
                     </button>
                 </form>
             ) : (
@@ -311,11 +294,10 @@ export function CycleScheduler({
                         <div className="flex items-end justify-between gap-3">
                             <div className="flex items-end gap-3">
                                 <div className="space-y-1">
-                                    <label htmlFor="cycleLength" className="text-sm font-medium">
-                                        Cycle length (days)
+                                    <label className="text-sm font-medium">
+                                        {zh ? '循環天數' : 'Cycle length (days)'}
                                     </label>
                                     <input
-                                        id="cycleLength"
                                         type="number"
                                         min={1}
                                         value={lengthInput}
@@ -328,7 +310,7 @@ export function CycleScheduler({
                                     disabled={isSaving}
                                     className="rounded-md border px-4 py-2 text-sm disabled:opacity-50"
                                 >
-                                    Update Length
+                                    {zh ? '更新天數' : 'Update Length'}
                                 </button>
                             </div>
                             <button
@@ -337,7 +319,7 @@ export function CycleScheduler({
                                 disabled={isSaving}
                                 className="text-sm text-ink/40 hover:text-red-600 disabled:opacity-50"
                             >
-                                Delete cycle
+                                {zh ? '刪除循環' : 'Delete cycle'}
                             </button>
                         </div>
                     </form>
@@ -345,19 +327,17 @@ export function CycleScheduler({
                     <div className="rounded-2xl border border-ink/10 bg-white p-6 space-y-2 shadow-sm">
                         {days.map((day) => (
                             <div key={day.dayIndex} className="flex items-center justify-between gap-3">
-                                <span className="text-sm font-medium w-16 shrink-0">
-                                    Day {day.dayIndex}
+                                <span className="text-sm font-medium w-20 shrink-0">
+                                    {zh ? `第 ${day.dayIndex} 天` : `Day ${day.dayIndex}`}
                                 </span>
                                 <select
                                     value={day.routineId ?? ''}
                                     onChange={(e) => handleDayChange(day.dayIndex, e.target.value)}
                                     className="flex-1 rounded-md border px-3 py-2 text-sm"
                                 >
-                                    <option value="">Rest day</option>
+                                    <option value="">{zh ? '休息日' : 'Rest day'}</option>
                                     {routines.map((r) => (
-                                        <option key={r.id} value={r.id}>
-                                            {r.name}
-                                        </option>
+                                        <option key={r.id} value={r.id}>{r.name}</option>
                                     ))}
                                 </select>
                             </div>
@@ -369,10 +349,13 @@ export function CycleScheduler({
             {pending && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
                     <div className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-sm">
-                        <h3 className="font-semibold">Change cycle length?</h3>
+                        <h3 className="font-semibold">
+                            {zh ? '變更循環天數？' : 'Change cycle length?'}
+                        </h3>
                         <p className="text-sm text-ink/60">
-                            Changing from {cycleLength} to {pending.newLength} days affects where
-                            you are in the cycle.
+                            {zh
+                                ? `從 ${cycleLength} 天改成 ${pending.newLength} 天會影響你目前在循環中的位置。`
+                                : `Changing from ${cycleLength} to ${pending.newLength} days affects where you are in the cycle.`}
                         </p>
                         <div className="flex flex-col gap-2">
                             {pending.canContinue && (
@@ -382,7 +365,7 @@ export function CycleScheduler({
                                     disabled={isSaving}
                                     className="rounded-md border px-4 py-2 text-sm disabled:opacity-50"
                                 >
-                                    Keep my current day, just extend the cycle
+                                    {zh ? '保留目前的進度，只延長循環天數' : 'Keep my current day, just extend the cycle'}
                                 </button>
                             )}
                             <button
@@ -391,7 +374,7 @@ export function CycleScheduler({
                                 disabled={isSaving}
                                 className="rounded-md bg-plate px-4 py-2 font-display uppercase tracking-wide text-chalk hover:bg-plate-light disabled:opacity-50"
                             >
-                                Restart from Day 1
+                                {zh ? '從第一天重新開始' : 'Restart from Day 1'}
                             </button>
                             <button
                                 type="button"
@@ -399,7 +382,7 @@ export function CycleScheduler({
                                 disabled={isSaving}
                                 className="rounded-md px-4 py-2 text-sm text-ink/60 disabled:opacity-50"
                             >
-                                Cancel
+                                {zh ? '取消' : 'Cancel'}
                             </button>
                         </div>
                     </div>

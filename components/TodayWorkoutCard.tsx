@@ -38,7 +38,7 @@ export function TodayWorkoutCard({
     const supabase = createClient()
     const [workoutId, setWorkoutId] = useState<string | null>(initialWorkoutId)
     const [exercises, setExercises] = useState<TodayExercise[]>(initialExercises)
-    const [allExercises, setAllExercises] = useState<ExerciseOption[]>(initialAllExercises)
+    const allExercises = initialAllExercises
     const [showAddPicker, setShowAddPicker] = useState(false)
     const [toast, setToast] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -230,7 +230,6 @@ export function TodayWorkoutCard({
                     language={language}
                     onAdd={handleAddAdHocExercise}
                     onCancel={() => setShowAddPicker(false)}
-                    onExerciseCreated={(exercise) => setAllExercises((prev) => [...prev, exercise])}
                 />
             ) : (
                 <button
@@ -256,10 +255,9 @@ interface AddExercisePanelProps {
     language: string
     onAdd: (exercise: ExerciseOption) => void
     onCancel: () => void
-    onExerciseCreated: (exercise: ExerciseOption) => void
 }
 
-function AddExercisePanel({ exercises, language, onAdd, onCancel, onExerciseCreated }: AddExercisePanelProps) {
+function AddExercisePanel({ exercises, language, onAdd, onCancel }: AddExercisePanelProps) {
     const t = useTranslations('today')
     const [selectedId, setSelectedId] = useState(exercises[0]?.id ?? '')
 
@@ -270,7 +268,6 @@ function AddExercisePanel({ exercises, language, onAdd, onCancel, onExerciseCrea
                 value={selectedId}
                 onChange={setSelectedId}
                 language={language}
-                onExerciseCreated={onExerciseCreated}
             />
             <div className="flex gap-2">
                 <button

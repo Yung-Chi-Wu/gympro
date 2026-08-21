@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { RoutineBuilder } from '@/components/RoutineBuilder'
 import { CycleScheduler } from '@/components/CycleScheduler'
 import type { ExerciseOption } from '@/components/log-types'
@@ -50,22 +51,30 @@ export default async function RoutinesPage() {
         redirect('/login')
     }
 
+    const t = await getTranslations('routines')
+
+    const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('language')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+    const language = profile?.language ?? 'en'
+
     const { data: exercises } = await supabase
         .from('exercises')
-        .select('id, name, muscle_group, equipment')
+        .select('id, name, name_zh_tw, muscle_group, equipment')
         .order('name')
 
     const { data: routines } = await supabase
         .from('routines')
-        .select(
-            `
-      id, name,
-      routine_exercises (
-        id, exercise_id, order_index, target_sets, target_reps,
-        exercises ( name, muscle_group )
-      )
-    `
-        )
+        .select(`
+            id, name,
+            routine_exercises (
+                id, exercise_id, order_index, target_sets, target_reps,
+                exercises ( name, muscle_group )
+            )
+        `)
         .eq('user_id', user.id)
         .order('created_at')
 
@@ -103,20 +112,22 @@ export default async function RoutinesPage() {
     }
 
     return (
-        <div className="p-8 max-w-2xl space-y-10">
-            <h1 className="text-3xl font-bold uppercase tracking-wide">Routines</h1>
+        <div className="py-8 space-y-10">
+            <h1 className="text-3xl font-bold uppercase tracking-wide">{t('title')}</h1>
 
             <CycleScheduler
                 userId={user.id}
                 routines={routineList.map((r) => ({ id: r.id, name: r.name }))}
                 initialCycle={cycle ? { id: cycle.id, cycleLength: cycle.cycle_length } : null}
                 initialCycleDays={cycleDays}
+                language={language}
             />
 
             <RoutineBuilder
                 userId={user.id}
                 exercises={(exercises ?? []) as ExerciseOption[]}
                 initialRoutines={routineList}
+                language={language}
             />
         </div>
     )

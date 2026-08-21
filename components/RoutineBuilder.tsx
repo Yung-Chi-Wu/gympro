@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { MuscleGroupExercisePicker } from './MuscleGroupExercisePicker'
 import { toFriendlyError } from '@/lib/friendly-error'
@@ -12,13 +13,14 @@ interface RoutineBuilderProps {
     userId: string
     exercises: ExerciseOption[]
     initialRoutines: RoutineWithExercises[]
+    language: string
 }
 
-export function RoutineBuilder({ userId, exercises: initialExercises, initialRoutines }: RoutineBuilderProps) {
+export function RoutineBuilder({ userId, exercises, initialRoutines, language }: RoutineBuilderProps) {
     const supabase = createClient()
     const router = useRouter()
+    const t = useTranslations('routines')
     const [routines, setRoutines] = useState<RoutineWithExercises[]>(initialRoutines)
-    const [exercises, setExercises] = useState<ExerciseOption[]>(initialExercises)
     const [newRoutineName, setNewRoutineName] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null)
@@ -34,7 +36,11 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
             (r) => r.name.trim().toLowerCase() === trimmedName.toLowerCase()
         )
         if (isDuplicate) {
-            setError(`You already have a routine named "${trimmedName}".`)
+            setError(
+                language === 'zh-TW'
+                    ? `你已經有一個叫「${trimmedName}」的課表了。`
+                    : `You already have a routine named "${trimmedName}".`
+            )
             return
         }
 
@@ -58,11 +64,7 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
     async function handleDeleteRoutine(routineId: string) {
         setError(null)
         const { error: deleteError } = await supabase.from('routines').delete().eq('id', routineId)
-
-        if (deleteError) {
-            setError(toFriendlyError(deleteError))
-            return
-        }
+        if (deleteError) { setError(toFriendlyError(deleteError)); return }
         setRoutines((prev) => prev.filter((r) => r.id !== routineId))
         router.refresh()
     }
@@ -76,7 +78,11 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
             (r) => r.id !== routineId && r.name.trim().toLowerCase() === trimmedName.toLowerCase()
         )
         if (isDuplicate) {
-            setError(`You already have a routine named "${trimmedName}".`)
+            setError(
+                language === 'zh-TW'
+                    ? `你已經有一個叫「${trimmedName}」的課表了。`
+                    : `You already have a routine named "${trimmedName}".`
+            )
             return
         }
 
@@ -85,10 +91,7 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
             .update({ name: trimmedName })
             .eq('id', routineId)
 
-        if (updateError) {
-            setError(toFriendlyError(updateError))
-            return
-        }
+        if (updateError) { setError(toFriendlyError(updateError)); return }
 
         setRoutines((prev) =>
             prev.map((r) => (r.id === routineId ? { ...r, name: trimmedName } : r))
@@ -107,7 +110,11 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
         if (!routine) return
 
         if (routine.exercises.some((ex) => ex.exercise_id === exercise.id)) {
-            setError(`${exercise.name} is already in this routine.`)
+            setError(
+                language === 'zh-TW'
+                    ? `「${exercise.name}」已經在這份課表裡了。`
+                    : `${exercise.name} is already in this routine.`
+            )
             return
         }
 
@@ -125,10 +132,7 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
             .select('id, exercise_id, order_index, target_sets, target_reps')
             .single()
 
-        if (insertError || !data) {
-            setError(toFriendlyError(insertError))
-            return
-        }
+        if (insertError || !data) { setError(toFriendlyError(insertError)); return }
 
         setRoutines((prev) =>
             prev.map((r) =>
@@ -159,12 +163,7 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
             .from('routine_exercises')
             .delete()
             .eq('id', routineExerciseId)
-
-        if (deleteError) {
-            setError(toFriendlyError(deleteError))
-            return
-        }
-
+        if (deleteError) { setError(toFriendlyError(deleteError)); return }
         setRoutines((prev) =>
             prev.map((r) =>
                 r.id !== routineId
@@ -185,12 +184,7 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
             .from('routine_exercises')
             .update({ target_sets: targetSets, target_reps: targetReps })
             .eq('id', routineExerciseId)
-
-        if (updateError) {
-            setError(toFriendlyError(updateError))
-            return
-        }
-
+        if (updateError) { setError(toFriendlyError(updateError)); return }
         setRoutines((prev) =>
             prev.map((r) =>
                 r.id !== routineId
@@ -209,27 +203,23 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
 
     return (
         <section className="space-y-4">
-            <h2 className="text-lg font-semibold uppercase tracking-wide">Your Routines</h2>
+            <h2 className="text-lg font-semibold uppercase tracking-wide">{t('yourRoutines')}</h2>
 
-            {error && (
-                <p role="alert" className="text-sm text-red-600">
-                    {error}
-                </p>
-            )}
+            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
             <form onSubmit={handleCreateRoutine} className="flex gap-2">
                 <input
                     type="text"
                     value={newRoutineName}
                     onChange={(e) => setNewRoutineName(e.target.value)}
-                    placeholder="e.g. Push Day"
+                    placeholder={t('newRoutinePlaceholder')}
                     className="flex-1 rounded-md border px-3 py-2 text-sm"
                 />
                 <button
                     type="submit"
                     className="rounded-md bg-plate px-4 py-2 font-display uppercase tracking-wide text-chalk hover:bg-plate-light"
                 >
-                    New Routine
+                    {t('newRoutine')}
                 </button>
             </form>
 
@@ -237,29 +227,26 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
                 {routines.map((routine) => {
                     const isExpanded = expandedRoutineId === routine.id
                     return (
-                        <div
-                            key={routine.id}
-                            className="rounded-2xl border border-ink/10 bg-white shadow-sm"
-                        >
+                        <div key={routine.id} className="rounded-2xl border border-ink/10 bg-white shadow-sm">
                             <button
                                 type="button"
-                                onClick={() =>
-                                    setExpandedRoutineId(isExpanded ? null : routine.id)
-                                }
+                                onClick={() => setExpandedRoutineId(isExpanded ? null : routine.id)}
                                 className="flex w-full items-center justify-between p-4 text-left"
                             >
                                 <span className="font-medium">{routine.name}</span>
                                 <span className="flex items-center gap-2 text-sm text-ink/40 shrink-0">
                                     {routine.exercises.length}{' '}
-                                    {routine.exercises.length === 1 ? 'exercise' : 'exercises'}
+                                    {routine.exercises.length === 1 ? t('exercise') : t('exercises')}
+                                    {' '}
                                     <span className="ml-1">{isExpanded ? '▲' : '▼'}</span>
                                 </span>
                             </button>
 
                             {isExpanded && (
-                                <div className="border-t border-ink/10 p-6 space-y-3">
+                                <div className="border-t border-ink/10 p-4 space-y-3">
                                     <RoutineNameEditor
                                         currentName={routine.name}
+                                        language={language}
                                         onSave={(newName) => handleRenameRoutine(routine.id, newName)}
                                         onDelete={() => handleDeleteRoutine(routine.id)}
                                     />
@@ -270,6 +257,8 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
                                                 <ExistingExerciseRow
                                                     key={ex.id}
                                                     exercise={ex}
+                                                    language={language}
+                                                    exercises={exercises}
                                                     onUpdateTarget={(sets, reps) =>
                                                         handleUpdateTarget(routine.id, ex.id, sets, reps)
                                                     }
@@ -283,16 +272,9 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
 
                                     <AddExerciseToRoutine
                                         exercises={exercises}
+                                        language={language}
                                         onAdd={(exercise, targetSets, targetReps) =>
-                                            handleAddExercise(
-                                                routine.id,
-                                                exercise,
-                                                targetSets,
-                                                targetReps
-                                            )
-                                        }
-                                        onExerciseCreated={(exercise) =>
-                                            setExercises((prev) => [...prev, exercise])
+                                            handleAddExercise(routine.id, exercise, targetSets, targetReps)
                                         }
                                     />
                                 </div>
@@ -305,128 +287,14 @@ export function RoutineBuilder({ userId, exercises: initialExercises, initialRou
     )
 }
 
-interface ExistingExerciseRowProps {
-    exercise: RoutineExerciseRow
-    onUpdateTarget: (targetSets: number, targetReps: number) => void
-    onRemove: () => void
-}
-
-function ExistingExerciseRow({ exercise, onUpdateTarget, onRemove }: ExistingExerciseRowProps) {
-    const [targetSets, setTargetSets] = useState(String(exercise.target_sets ?? ''))
-    const [targetReps, setTargetReps] = useState(String(exercise.target_reps ?? ''))
-
-    function commitIfChanged() {
-        const setsNum = Number(targetSets)
-        const repsNum = Number(targetReps)
-        if (!setsNum || !repsNum || setsNum <= 0 || repsNum <= 0) return
-
-        if (setsNum !== exercise.target_sets || repsNum !== exercise.target_reps) {
-            onUpdateTarget(setsNum, repsNum)
-        }
-    }
-
-    return (
-        <div className="flex items-center justify-between gap-3 text-sm">
-            <span>
-                <span className="text-ink/40 capitalize">{exercise.muscle_group}</span>
-                {' — '}
-                {exercise.exercise_name}
-            </span>
-            <div className="flex items-center gap-1 shrink-0">
-                <input
-                    type="number"
-                    min={1}
-                    value={targetSets}
-                    onChange={(e) => setTargetSets(e.target.value)}
-                    onBlur={commitIfChanged}
-                    className="w-14 rounded-md border px-2 py-1 text-sm"
-                />
-                <span className="text-ink/40">×</span>
-                <input
-                    type="number"
-                    min={1}
-                    value={targetReps}
-                    onChange={(e) => setTargetReps(e.target.value)}
-                    onBlur={commitIfChanged}
-                    className="w-14 rounded-md border px-2 py-1 text-sm"
-                />
-                <button
-                    type="button"
-                    onClick={onRemove}
-                    aria-label="Remove from routine"
-                    className="ml-2 rounded-md border border-transparent px-1.5 py-0.5 text-ink/40 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                >
-                    ✕
-                </button>
-            </div>
-        </div>
-    )
-}
-
-interface AddExerciseToRoutineProps {
-    exercises: ExerciseOption[]
-    onAdd: (exercise: ExerciseOption, targetSets: number, targetReps: number) => void
-    onExerciseCreated: (exercise: ExerciseOption) => void
-}
-
-function AddExerciseToRoutine({ exercises, onAdd, onExerciseCreated }: AddExerciseToRoutineProps) {
-    const [selectedId, setSelectedId] = useState(exercises[0]?.id ?? '')
-    const [targetSets, setTargetSets] = useState('3')
-    const [targetReps, setTargetReps] = useState('10')
-
-    return (
-        <div className="space-y-2 border-t border-ink/10 pt-3">
-            <MuscleGroupExercisePicker
-                exercises={exercises}
-                value={selectedId}
-                onChange={setSelectedId}
-                onExerciseCreated={onExerciseCreated}
-            />
-            <div className="flex gap-2">
-                <input
-                    type="number"
-                    min={1}
-                    value={targetSets}
-                    onChange={(e) => setTargetSets(e.target.value)}
-                    placeholder="Sets"
-                    className="w-20 rounded-md border px-2 py-1 text-sm"
-                />
-                <span className="self-center text-sm text-ink/40">×</span>
-                <input
-                    type="number"
-                    min={1}
-                    value={targetReps}
-                    onChange={(e) => setTargetReps(e.target.value)}
-                    placeholder="Reps"
-                    className="w-20 rounded-md border px-2 py-1 text-sm"
-                />
-                <button
-                    type="button"
-                    disabled={!selectedId}
-                    onClick={() => {
-                        const exercise = exercises.find((ex) => ex.id === selectedId)
-                        const setsNum = Number(targetSets)
-                        const repsNum = Number(targetReps)
-                        if (exercise && setsNum > 0 && repsNum > 0) {
-                            onAdd(exercise, setsNum, repsNum)
-                        }
-                    }}
-                    className="flex-1 rounded-md border px-3 py-2 text-sm disabled:opacity-50"
-                >
-                    Add
-                </button>
-            </div>
-        </div>
-    )
-}
-
 interface RoutineNameEditorProps {
     currentName: string
+    language: string
     onSave: (newName: string) => void
     onDelete: () => void
 }
 
-function RoutineNameEditor({ currentName, onSave, onDelete }: RoutineNameEditorProps) {
+function RoutineNameEditor({ currentName, language, onSave, onDelete }: RoutineNameEditorProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [name, setName] = useState(currentName)
 
@@ -450,10 +318,7 @@ function RoutineNameEditor({ currentName, onSave, onDelete }: RoutineNameEditorP
                     onBlur={commit}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') commit()
-                        if (e.key === 'Escape') {
-                            setName(currentName)
-                            setIsEditing(false)
-                        }
+                        if (e.key === 'Escape') { setName(currentName); setIsEditing(false) }
                     }}
                     className="flex-1 rounded-md border px-3 py-2 text-sm font-medium"
                 />
@@ -462,7 +327,7 @@ function RoutineNameEditor({ currentName, onSave, onDelete }: RoutineNameEditorP
                     onClick={onDelete}
                     className="text-sm text-ink/40 hover:text-red-600 sm:shrink-0"
                 >
-                    Delete routine
+                    {language === 'zh-TW' ? '刪除課表' : 'Delete routine'}
                 </button>
             </div>
         )
@@ -484,8 +349,142 @@ function RoutineNameEditor({ currentName, onSave, onDelete }: RoutineNameEditorP
                 onClick={onDelete}
                 className="text-sm text-ink/40 hover:text-red-600"
             >
-                Delete routine
+                {language === 'zh-TW' ? '刪除課表' : 'Delete routine'}
             </button>
+        </div>
+    )
+}
+
+interface ExistingExerciseRowProps {
+    exercise: RoutineExerciseRow
+    language: string
+    exercises: ExerciseOption[]
+    onUpdateTarget: (targetSets: number, targetReps: number) => void
+    onRemove: () => void
+}
+
+function ExistingExerciseRow({ exercise, language, exercises, onUpdateTarget, onRemove }: ExistingExerciseRowProps) {
+    const t = useTranslations('routines')
+    const [targetSets, setTargetSets] = useState(String(exercise.target_sets ?? ''))
+    const [targetReps, setTargetReps] = useState(String(exercise.target_reps ?? ''))
+
+    const displayName = (() => {
+        if (language !== 'zh-TW') return exercise.exercise_name
+        const found = exercises.find((ex) => ex.id === exercise.exercise_id)
+        return (found?.name_zh_tw) ? found.name_zh_tw : exercise.exercise_name
+    })()
+
+    function commitIfChanged() {
+        const setsNum = Number(targetSets)
+        const repsNum = Number(targetReps)
+        if (!setsNum || !repsNum || setsNum <= 0 || repsNum <= 0) return
+        if (setsNum !== exercise.target_sets || repsNum !== exercise.target_reps) {
+            onUpdateTarget(setsNum, repsNum)
+        }
+    }
+
+    return (
+        <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="min-w-0 truncate">
+                <span className="text-ink/40 capitalize">{exercise.muscle_group}</span>
+                {' — '}
+                {displayName}
+            </span>
+            <div className="flex items-center gap-1 shrink-0">
+                <div className="flex flex-col items-center">
+                    <span className="text-xs text-ink/40">{t('sets')}</span>
+                    <input
+                        type="number"
+                        min={1}
+                        value={targetSets}
+                        onChange={(e) => setTargetSets(e.target.value)}
+                        onBlur={commitIfChanged}
+                        className="w-14 rounded-md border px-2 py-1 text-sm text-center"
+                    />
+                </div>
+                <span className="text-ink/40 mt-4">×</span>
+                <div className="flex flex-col items-center">
+                    <span className="text-xs text-ink/40">{t('reps')}</span>
+                    <input
+                        type="number"
+                        min={1}
+                        value={targetReps}
+                        onChange={(e) => setTargetReps(e.target.value)}
+                        onBlur={commitIfChanged}
+                        className="w-14 rounded-md border px-2 py-1 text-sm text-center"
+                    />
+                </div>
+                <button
+                    type="button"
+                    onClick={onRemove}
+                    aria-label="Remove from routine"
+                    className="ml-2 mt-4 rounded-md border border-transparent px-1.5 py-0.5 text-ink/40 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                >
+                    ✕
+                </button>
+            </div>
+        </div>
+    )
+}
+
+interface AddExerciseToRoutineProps {
+    exercises: ExerciseOption[]
+    language: string
+    onAdd: (exercise: ExerciseOption, targetSets: number, targetReps: number) => void
+}
+
+function AddExerciseToRoutine({ exercises, language, onAdd }: AddExerciseToRoutineProps) {
+    const t = useTranslations('routines')
+    const [selectedId, setSelectedId] = useState(exercises[0]?.id ?? '')
+    const [targetSets, setTargetSets] = useState('3')
+    const [targetReps, setTargetReps] = useState('10')
+
+    return (
+        <div className="space-y-2 border-t border-ink/10 pt-3">
+            <MuscleGroupExercisePicker
+                exercises={exercises}
+                value={selectedId}
+                onChange={setSelectedId}
+                language={language}
+            />
+            <div className="flex gap-2">
+                <div className="flex flex-col items-center">
+                    <span className="text-xs text-ink/40">{t('sets')}</span>
+                    <input
+                        type="number"
+                        min={1}
+                        value={targetSets}
+                        onChange={(e) => setTargetSets(e.target.value)}
+                        className="w-16 rounded-md border px-2 py-1 text-sm text-center"
+                    />
+                </div>
+                <span className="self-end pb-1 text-sm text-ink/40">×</span>
+                <div className="flex flex-col items-center">
+                    <span className="text-xs text-ink/40">{t('reps')}</span>
+                    <input
+                        type="number"
+                        min={1}
+                        value={targetReps}
+                        onChange={(e) => setTargetReps(e.target.value)}
+                        className="w-16 rounded-md border px-2 py-1 text-sm text-center"
+                    />
+                </div>
+                <button
+                    type="button"
+                    disabled={!selectedId}
+                    onClick={() => {
+                        const exercise = exercises.find((ex) => ex.id === selectedId)
+                        const setsNum = Number(targetSets)
+                        const repsNum = Number(targetReps)
+                        if (exercise && setsNum > 0 && repsNum > 0) {
+                            onAdd(exercise, setsNum, repsNum)
+                        }
+                    }}
+                    className="self-end rounded-md border px-3 py-1 text-sm disabled:opacity-50"
+                >
+                    {t('add')}
+                </button>
+            </div>
         </div>
     )
 }

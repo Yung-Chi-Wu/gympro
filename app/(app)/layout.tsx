@@ -44,7 +44,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                     <LogoutButton />
                 </nav>
             </header>
-            <main className="flex-1 pb-20 sm:pb-0">{children}</main>
+            <main className="flex-1 pb-20 sm:pb-0">
+                <div className="mx-auto max-w-2xl px-4 sm:px-8">
+                    {children}
+                </div>
+            </main>
             <BottomNav links={BOTTOM_NAV_LINKS} />
         </div>
     )
