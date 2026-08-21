@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { toFriendlyError } from '@/lib/friendly-error'
 import { MUSCLE_GROUPS, type ExerciseOption } from './log-types'
+import { getMuscleGroupLabel } from '@/lib/exercise-display'
 
 interface MuscleGroupExercisePickerProps {
     exercises: ExerciseOption[]
@@ -109,7 +110,7 @@ export function MuscleGroupExercisePicker({
                 >
                     {MUSCLE_GROUPS.map((mg) => (
                         <option key={mg} value={mg}>
-                            {mg}
+                            {getMuscleGroupLabel(mg, language)}
                         </option>
                     ))}
                 </select>

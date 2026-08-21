@@ -1,5 +1,6 @@
 {
     "nav": {
+        "dashboard": "主頁",
         "routines": "訓練課表",
         "metrics": "身體數據",
         "history": "訓練紀錄",

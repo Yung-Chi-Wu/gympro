@@ -9,9 +9,10 @@ interface NavLink {
 }
 
 const ICONS: Record<string, string> = {
+    '/dashboard': '🏠',
     '/routines': '📋',
-    '/metrics': '📊',
     '/history': '📅',
+    '/metrics': '📊',
     '/settings': '⚙',
 }
 
@@ -21,7 +22,10 @@ export function BottomNav({ links }: { links: NavLink[] }) {
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-ink/10 bg-white sm:hidden">
             {links.map((link) => {
-                const isActive = pathname.startsWith(link.href)
+                const isActive =
+                    link.href === '/dashboard'
+                        ? pathname === '/dashboard'
+                        : pathname.startsWith(link.href)
                 return (
                     <Link
                         key={link.href}

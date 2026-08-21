@@ -13,6 +13,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         { href: '/settings', label: t('settings') },
     ]
 
+    const BOTTOM_NAV_LINKS = [
+        { href: '/dashboard', label: t('dashboard') },
+        { href: '/routines', label: t('routines') },
+        { href: '/history', label: t('history') },
+        { href: '/metrics', label: t('metrics') },
+        { href: '/settings', label: t('settings') },
+    ]
+
     return (
         <div className="min-h-screen flex flex-col">
             <header className="border-b border-ink/10 bg-white">
@@ -37,7 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </nav>
             </header>
             <main className="flex-1 pb-20 sm:pb-0">{children}</main>
-            <BottomNav links={NAV_LINKS} />
+            <BottomNav links={BOTTOM_NAV_LINKS} />
         </div>
     )
 }
