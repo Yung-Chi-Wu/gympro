@@ -13,7 +13,9 @@ interface PwaInstallBannerProps {
 
 function isIos(): boolean {
     if (typeof navigator === 'undefined') return false
-    return /iphone|ipad|ipod/i.test(navigator.userAgent)
+    // iOS 13+ iPad 的 userAgent 跟 Mac 一樣，要用 maxTouchPoints 區分
+    return /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 }
 
 function isInStandaloneMode(): boolean {

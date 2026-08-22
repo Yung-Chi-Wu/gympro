@@ -4,7 +4,7 @@ import { getTranslations } from 'next-intl/server'
 import { RecommendationPanel } from '@/components/RecommendationPanel'
 import { TodayWorkoutCard } from '@/components/TodayWorkoutCard'
 import { PeriodCheckInCard } from '@/components/PeriodCheckInCard'
-import { OnboardingModal } from '@/components/OnboardingModal'
+import { OnboardingGuard } from '@/components/OnboardingGuard'
 import { PwaInstallBanner } from '@/components/PwaInstallBanner'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
@@ -173,13 +173,16 @@ export default async function DashboardPage() {
 
   return (
     <div className="py-8 space-y-6">
-      {!onboardingCompleted && (
-        <OnboardingModal userId={user.id} language={language} />
-      )}
+      <OnboardingGuard
+        userId={user.id}
+        language={language}
+        serverCompleted={onboardingCompleted}
+      />
       <PwaInstallBanner language={language} />
 
       <h1 className="text-3xl font-bold uppercase tracking-wide">
-        {t('welcome')}{greetingName}
+        {t('welcome')}
+        <span className="block truncate">{greetingName}</span>
       </h1>
 
       <TodayWorkoutCard

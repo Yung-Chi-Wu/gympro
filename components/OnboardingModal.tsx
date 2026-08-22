@@ -78,6 +78,8 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
                 weight_unit: selectedUnit,
             } as never)
             .eq('user_id', userId)
+        // 存 localStorage 讓 client-side 也知道教學完成了
+        localStorage.setItem('onboarding_completed', 'true')
         setVisible(false)
     }
 
@@ -115,8 +117,8 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
                             type="button"
                             onClick={() => setSelectedUnit('kg')}
                             className={`flex-1 rounded-xl border-2 py-3 text-sm font-semibold transition-colors ${selectedUnit === 'kg'
-                                    ? 'border-plate bg-plate text-chalk'
-                                    : 'border-ink/20 text-ink/60'
+                                ? 'border-plate bg-plate text-chalk'
+                                : 'border-ink/20 text-ink/60'
                                 }`}
                         >
                             kg
@@ -128,8 +130,8 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
                             type="button"
                             onClick={() => setSelectedUnit('lb')}
                             className={`flex-1 rounded-xl border-2 py-3 text-sm font-semibold transition-colors ${selectedUnit === 'lb'
-                                    ? 'border-plate bg-plate text-chalk'
-                                    : 'border-ink/20 text-ink/60'
+                                ? 'border-plate bg-plate text-chalk'
+                                : 'border-ink/20 text-ink/60'
                                 }`}
                         >
                             lb
