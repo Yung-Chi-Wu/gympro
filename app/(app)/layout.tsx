@@ -18,20 +18,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         { href: '/history', label: t('history') },
         { href: '/settings', label: t('settings') },
     ]
+
     return (
         <div className="min-h-screen flex flex-col">
-            <header className="border-b border-ink/10 bg-white">
+            <header className="border-b border-white/10 bg-plate">
                 <nav className="mx-auto flex max-w-2xl items-center justify-between px-4 py-4 sm:px-8">
-                    <div className="flex items-center gap-6">
-                        <Link href="/dashboard" className="font-display text-lg uppercase tracking-wide">
-                            GymPro
+                    <div className="flex items-center gap-8">
+                        <Link href="/dashboard" className="flex items-center shrink-0">
+                            <img
+                                src="/logo-horizontal.svg"
+                                alt="GymPro"
+                                className="h-8 w-auto"
+                            />
                         </Link>
-                        <div className="hidden sm:flex gap-4 text-sm">
+                        <div className="hidden sm:flex gap-5 text-sm">
                             {NAV_LINKS.map((item) => (
                                 <Link
                                     key={item.href}
                                     href={item.href}
-                                    className="text-ink/70 underline-offset-4 hover:text-ink hover:underline"
+                                    className="text-chalk/60 underline-offset-4 hover:text-chalk hover:underline transition-colors"
                                 >
                                     {item.label}
                                 </Link>
