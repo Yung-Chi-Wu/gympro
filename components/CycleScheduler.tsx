@@ -331,16 +331,22 @@ export function CycleScheduler({
                                 <span className="text-sm font-medium w-20 shrink-0">
                                     {zh ? `第 ${day.dayIndex} 天` : `Day ${day.dayIndex}`}
                                 </span>
-                                <select
-                                    value={day.routineId ?? ''}
-                                    onChange={(e) => handleDayChange(day.dayIndex, e.target.value)}
-                                    className="flex-1 rounded-md border px-3 py-2 text-sm"
-                                >
-                                    <option value="">{zh ? '休息日' : 'Rest day'}</option>
-                                    {routines.map((r) => (
-                                        <option key={r.id} value={r.id}>{r.name}</option>
-                                    ))}
-                                </select>
+                                {routines.length === 0 ? (
+                                    <div className="flex-1 rounded-md border border-dashed px-3 py-2 text-sm text-ink/40">
+                                        {zh ? '先建立課表再來排程' : 'Add a routine first'}
+                                    </div>
+                                ) : (
+                                    <select
+                                        value={day.routineId ?? ''}
+                                        onChange={(e) => handleDayChange(day.dayIndex, e.target.value)}
+                                        className="flex-1 rounded-md border px-3 py-2 text-sm"
+                                    >
+                                        <option value="">{zh ? '休息日' : 'Rest day'}</option>
+                                        {routines.map((r) => (
+                                            <option key={r.id} value={r.id}>{r.name}</option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                         ))}
                     </div>

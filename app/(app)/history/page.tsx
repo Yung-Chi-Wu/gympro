@@ -18,7 +18,6 @@ export default async function HistoryPage() {
 
     const t = await getTranslations('history')
 
-    // 並行撈所有資料
     const [profileResult, cycleResult] = await Promise.all([
         supabase
             .from('user_profiles')
@@ -36,12 +35,8 @@ export default async function HistoryPage() {
     const language = profileResult.data?.language ?? 'en'
     const cycle = cycleResult.data
 
-    const periods = cycle
-        ? computeCyclePeriods(cycle.start_date, cycle.cycle_length, 52)
-        : computeCalendarWeekPeriods(52, timezone)
-
-    // 並行撈報告跟體重
-    const [reportsResult, weightResult] = await Promise.all([
+    // 先撈報告跟體重、訓練紀錄，再決定顯示哪些週期
+    const [reportsResult, weightResult, workoutsResult] = await Promise.all([
         supabase
             .from('period_reports')
             .select('period_start, status, recommendation, pdf_status, error_message, created_at')
@@ -54,7 +49,49 @@ export default async function HistoryPage() {
             .eq('user_id', user.id)
             .gte('recorded_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString())
             .order('recorded_at', { ascending: true }),
+        supabase
+            .from('workouts')
+            .select('performed_at')
+            .eq('user_id', user.id)
+            .gte('performed_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString()),
     ])
+
+    // 找出哪些週期有實際資料
+    const reportPeriods = new Set(
+        (reportsResult.data ?? []).map((r) => r.period_start)
+    )
+
+    const workoutDates = (workoutsResult.data ?? []).map((w) =>
+        new Date(w.performed_at).toISOString().split('T')[0]
+    )
+
+    // 計算所有可能的週期，過濾只留有資料的 + 最近 4 週
+    const allPeriods = cycle
+        ? computeCyclePeriods(cycle.start_date, cycle.cycle_length, 52)
+        : computeCalendarWeekPeriods(52, timezone)
+
+    const recentPeriods = allPeriods.slice(0, 4)
+
+    const periodsWithData = allPeriods.filter((period) => {
+        // 有報告的
+        if (reportPeriods.has(period.start)) return true
+        // 有訓練紀錄的（任何一天的紀錄落在這個區間）
+        return workoutDates.some((d) => d >= period.start && d <= period.end)
+    })
+
+    // 合併：有資料的 + 最近 4 週（去重）
+    const periodSet = new Set<string>()
+    const periods: PeriodOption[] = []
+
+    for (const p of [...recentPeriods, ...periodsWithData]) {
+        if (!periodSet.has(p.start)) {
+            periodSet.add(p.start)
+            periods.push(p)
+        }
+    }
+
+    // 按日期降序排列
+    periods.sort((a, b) => b.start.localeCompare(a.start))
 
     return (
         <div className="py-8 space-y-6">
