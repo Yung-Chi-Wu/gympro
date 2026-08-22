@@ -4,6 +4,18 @@
     "description": "Track your training and get AI-powered feedback.",
     "start_url": "/dashboard",
     "display": "standalone",
-    "background_color": "#F5F5F0",
-    "theme_color": "#26241F"
+    "background_color": "#26241F",
+    "theme_color": "#26241F",
+    "icons": [
+        {
+            "src": "/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
 }
