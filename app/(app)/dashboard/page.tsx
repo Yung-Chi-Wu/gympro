@@ -1,11 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
+import { getEffectiveLanguage } from '@/lib/get-language'
 import { RecommendationPanel } from '@/components/RecommendationPanel'
 import { TodayWorkoutCard } from '@/components/TodayWorkoutCard'
 import { PeriodCheckInCard } from '@/components/PeriodCheckInCard'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
-import { PwaInstallBanner } from '@/components/PwaInstallBanner'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
 
@@ -49,7 +49,6 @@ export default async function DashboardPage() {
     getTranslations('report'),
   ])
 
-  // 批次 1：所有獨立查詢並行
   const [profileResult, latestMetricResult, cycleResult, allExercisesResult] = await Promise.all([
     supabase
       .from('user_profiles')
@@ -78,9 +77,9 @@ export default async function DashboardPage() {
   const latestMetricData = latestMetricResult.data
   const cycle = cycleResult.data
 
+  const language = await getEffectiveLanguage(profile?.language)
   const greetingName = profile?.display_name || user.email
   const timezone = profile?.timezone || 'UTC'
-  const language = profile?.language || 'en'
   const latestWeightKg = latestMetricData?.weight_kg ?? null
   const onboardingCompleted = profile?.onboarding_completed ?? false
   const weightUnit = (profile?.weight_unit as WeightUnit) ?? 'kg'
@@ -89,7 +88,6 @@ export default async function DashboardPage() {
   const todayParts = getLocalDateParts(timezone)
   const { startOfDay, endOfDay } = getTodayRangeUtc(todayParts, timezone)
 
-  // 批次 2：需要 cycle.id 跟 timezone 的查詢並行
   let dayIndex = 0
   let routineIdForToday: string | null = null
   let isRestDay = false
@@ -124,7 +122,6 @@ export default async function DashboardPage() {
   isRestDay = hasCycle && routineIdForToday === null
   const existingWorkout = existingWorkoutResult.data
 
-  // 批次 3：需要 workoutId 或 routineId 的查詢並行
   let todayExercises: TodayExercise[] = []
 
   if (existingWorkout) {
@@ -178,7 +175,6 @@ export default async function DashboardPage() {
         language={language}
         serverCompleted={onboardingCompleted}
       />
-      <PwaInstallBanner language={language} />
 
       <h1 className="text-3xl font-bold uppercase tracking-wide">
         {t('welcome')}

@@ -174,8 +174,8 @@ export function ProfileSettingsForm({
                             type="button"
                             onClick={() => setWeightUnit('kg')}
                             className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition-colors ${weightUnit === 'kg'
-                                    ? 'border-plate bg-plate text-chalk'
-                                    : 'border-ink/20 text-ink/60'
+                                ? 'border-plate bg-plate text-chalk'
+                                : 'border-ink/20 text-ink/60'
                                 }`}
                         >
                             kg
@@ -184,8 +184,8 @@ export function ProfileSettingsForm({
                             type="button"
                             onClick={() => setWeightUnit('lb')}
                             className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition-colors ${weightUnit === 'lb'
-                                    ? 'border-plate bg-plate text-chalk'
-                                    : 'border-ink/20 text-ink/60'
+                                ? 'border-plate bg-plate text-chalk'
+                                : 'border-ink/20 text-ink/60'
                                 }`}
                         >
                             lb
@@ -237,6 +237,34 @@ export function ProfileSettingsForm({
                 >
                     {isZhTW ? '重新查看使用教學' : 'View app tutorial again'}
                 </button>
+            </div>
+
+            <div className="rounded-xl bg-ink/5 p-4 space-y-3">
+                <p className="text-sm font-semibold">
+                    {isZhTW ? '📱 加到主畫面' : '📱 Add to Home Screen'}
+                </p>
+                <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xl">⬆️</span>
+                        <p className="text-xs text-ink/60">
+                            {isZhTW
+                                ? '點 Safari 底部工具列中間的分享按鈕（方框加箭頭）'
+                                : 'Tap the Share button in Safari\'s toolbar (box with arrow)'}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-xl">➕</span>
+                        <p className="text-xs text-ink/60">
+                            {isZhTW ? '選「加入主畫面」' : 'Select "Add to Home Screen"'}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-xl">✅</span>
+                        <p className="text-xs text-ink/60">
+                            {isZhTW ? '點右上角「新增」完成' : 'Tap "Add" to finish'}
+                        </p>
+                    </div>
+                </div>
             </div>
 
             {showOnboarding && (

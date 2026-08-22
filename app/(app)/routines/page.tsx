@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getTranslations, getLocale } from 'next-intl/server'
+import { getTranslations } from 'next-intl/server'
+import { getEffectiveLanguage } from '@/lib/get-language'
 import { RoutineBuilder } from '@/components/RoutineBuilder'
 import { CycleScheduler } from '@/components/CycleScheduler'
 import type { ExerciseOption } from '@/components/log-types'
-
 
 export interface RoutineExerciseRow {
     id: string
@@ -52,8 +52,7 @@ export default async function RoutinesPage() {
 
     const t = await getTranslations('routines')
 
-    // 並行撈所有資料
-    const [profileResult, exercisesResult, routinesResult, cycleResult, detectedLocale] = await Promise.all([
+    const [profileResult, exercisesResult, routinesResult, cycleResult] = await Promise.all([
         supabase
             .from('user_profiles')
             .select('language')
@@ -79,12 +78,9 @@ export default async function RoutinesPage() {
             .select('id, cycle_length, start_date')
             .eq('user_id', user.id)
             .maybeSingle(),
-        getLocale(),
     ])
 
-    const language = profileResult.data?.language && profileResult.data.language !== 'en'
-        ? profileResult.data.language
-        : detectedLocale
+    const language = await getEffectiveLanguage(profileResult.data?.language)
     const cycle = cycleResult.data
 
     const routineList: RoutineWithExercises[] = ((routinesResult.data as RawRoutineRow[]) ?? []).map((r) => ({
@@ -103,7 +99,6 @@ export default async function RoutinesPage() {
             .sort((a, b) => a.order_index - b.order_index),
     }))
 
-    // 只有有循環才撈 cycle_days
     const cycleDays: CycleDayInfo[] = []
     if (cycle) {
         const { data: days } = await supabase

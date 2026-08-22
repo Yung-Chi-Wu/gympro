@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { HistoryList } from '@/components/HistoryList'
+import { getEffectiveLanguage } from '@/lib/get-language'
 
 export interface PeriodOption {
     start: string
@@ -32,10 +33,13 @@ export default async function HistoryPage() {
     ])
 
     const timezone = profileResult.data?.timezone ?? 'UTC'
-    const language = profileResult.data?.language ?? 'en'
+    const language = await getEffectiveLanguage(profileResult.data?.language)
     const cycle = cycleResult.data
 
-    // 先撈報告跟體重、訓練紀錄，再決定顯示哪些週期
+    const periods = cycle
+        ? computeCyclePeriods(cycle.start_date, cycle.cycle_length, 52)
+        : computeCalendarWeekPeriods(52, timezone)
+
     const [reportsResult, weightResult, workoutsResult] = await Promise.all([
         supabase
             .from('period_reports')
@@ -56,7 +60,6 @@ export default async function HistoryPage() {
             .gte('performed_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString()),
     ])
 
-    // 找出哪些週期有實際資料
     const reportPeriods = new Set(
         (reportsResult.data ?? []).map((r) => r.period_start)
     )
@@ -65,40 +68,31 @@ export default async function HistoryPage() {
         new Date(w.performed_at).toISOString().split('T')[0]
     )
 
-    // 計算所有可能的週期，過濾只留有資料的 + 最近 4 週
-    const allPeriods = cycle
-        ? computeCyclePeriods(cycle.start_date, cycle.cycle_length, 52)
-        : computeCalendarWeekPeriods(52, timezone)
+    const recentPeriods = periods.slice(0, 4)
 
-    const recentPeriods = allPeriods.slice(0, 4)
-
-    const periodsWithData = allPeriods.filter((period) => {
-        // 有報告的
+    const periodsWithData = periods.filter((period) => {
         if (reportPeriods.has(period.start)) return true
-        // 有訓練紀錄的（任何一天的紀錄落在這個區間）
         return workoutDates.some((d) => d >= period.start && d <= period.end)
     })
 
-    // 合併：有資料的 + 最近 4 週（去重）
     const periodSet = new Set<string>()
-    const periods: PeriodOption[] = []
+    const filteredPeriods: PeriodOption[] = []
 
     for (const p of [...recentPeriods, ...periodsWithData]) {
         if (!periodSet.has(p.start)) {
             periodSet.add(p.start)
-            periods.push(p)
+            filteredPeriods.push(p)
         }
     }
 
-    // 按日期降序排列
-    periods.sort((a, b) => b.start.localeCompare(a.start))
+    filteredPeriods.sort((a, b) => b.start.localeCompare(a.start))
 
     return (
         <div className="py-8 space-y-6">
             <h1 className="text-3xl font-bold uppercase tracking-wide">{t('title')}</h1>
             <HistoryList
                 userId={user.id}
-                periods={periods}
+                periods={filteredPeriods}
                 reports={reportsResult.data ?? []}
                 language={language}
                 weightEntries={(weightResult.data ?? []).map((e) => ({
