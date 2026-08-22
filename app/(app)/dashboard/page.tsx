@@ -44,22 +44,39 @@ export default async function DashboardPage() {
 
   if (!user) redirect('/login')
 
-  const t = await getTranslations('dashboard')
-  const tReport = await getTranslations('report')
+  const [t, tReport] = await Promise.all([
+    getTranslations('dashboard'),
+    getTranslations('report'),
+  ])
 
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('display_name, timezone, language, onboarding_completed, weight_unit')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  // 批次 1：所有獨立查詢並行
+  const [profileResult, latestMetricResult, cycleResult, allExercisesResult] = await Promise.all([
+    supabase
+      .from('user_profiles')
+      .select('display_name, timezone, language, onboarding_completed, weight_unit')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('body_metrics')
+      .select('weight_kg')
+      .eq('user_id', user.id)
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('training_cycles')
+      .select('id, cycle_length, start_date')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('exercises')
+      .select('id, name, name_zh_tw, muscle_group, equipment')
+      .order('name'),
+  ])
 
-  const { data: latestMetricData } = await supabase
-    .from('body_metrics')
-    .select('weight_kg')
-    .eq('user_id', user.id)
-    .order('recorded_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const profile = profileResult.data
+  const latestMetricData = latestMetricResult.data
+  const cycle = cycleResult.data
 
   const greetingName = profile?.display_name || user.email
   const timezone = profile?.timezone || 'UTC'
@@ -68,67 +85,71 @@ export default async function DashboardPage() {
   const onboardingCompleted = profile?.onboarding_completed ?? false
   const weightUnit = (profile?.weight_unit as WeightUnit) ?? 'kg'
 
+  const hasCycle = !!cycle
   const todayParts = getLocalDateParts(timezone)
   const { startOfDay, endOfDay } = getTodayRangeUtc(todayParts, timezone)
 
-  const { data: cycle } = await supabase
-    .from('training_cycles')
-    .select('id, cycle_length, start_date')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  const hasCycle = !!cycle
+  // 批次 2：需要 cycle.id 跟 timezone 的查詢並行
   let dayIndex = 0
   let routineIdForToday: string | null = null
   let isRestDay = false
 
-  if (cycle) {
-    const daysSinceStart = daysBetween(cycle.start_date, todayParts)
-    dayIndex =
-      (((daysSinceStart % cycle.cycle_length) + cycle.cycle_length) % cycle.cycle_length) + 1
+  const [cycleDayResult, existingWorkoutResult] = await Promise.all([
+    cycle
+      ? (() => {
+        const daysSinceStart = daysBetween(cycle.start_date, todayParts)
+        const idx =
+          (((daysSinceStart % cycle.cycle_length) + cycle.cycle_length) % cycle.cycle_length) + 1
+        dayIndex = idx
+        return supabase
+          .from('cycle_days')
+          .select('routine_id')
+          .eq('training_cycle_id', cycle.id)
+          .eq('day_index', idx)
+          .maybeSingle()
+      })()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from('workouts')
+      .select('id')
+      .eq('user_id', user.id)
+      .gte('performed_at', startOfDay)
+      .lte('performed_at', endOfDay)
+      .order('performed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
 
-    const { data: cycleDay } = await supabase
-      .from('cycle_days')
-      .select('routine_id')
-      .eq('training_cycle_id', cycle.id)
-      .eq('day_index', dayIndex)
-      .maybeSingle()
+  routineIdForToday = cycleDayResult.data?.routine_id ?? null
+  isRestDay = hasCycle && routineIdForToday === null
+  const existingWorkout = existingWorkoutResult.data
 
-    routineIdForToday = cycleDay?.routine_id ?? null
-    isRestDay = routineIdForToday === null
-  }
-
-  const { data: existingWorkout } = await supabase
-    .from('workouts')
-    .select('id')
-    .eq('user_id', user.id)
-    .gte('performed_at', startOfDay)
-    .lte('performed_at', endOfDay)
-    .order('performed_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
+  // 批次 3：需要 workoutId 或 routineId 的查詢並行
   let todayExercises: TodayExercise[] = []
 
   if (existingWorkout) {
-    const { data: planned } = await supabase
-      .from('workout_planned_exercises')
-      .select('id, exercise_id, exercises ( name, name_zh_tw, muscle_group )')
-      .eq('workout_id', existingWorkout.id)
+    const [plannedResult, setsResult] = await Promise.all([
+      supabase
+        .from('workout_planned_exercises')
+        .select('id, exercise_id, exercises ( name, name_zh_tw, muscle_group )')
+        .eq('workout_id', existingWorkout.id),
+      supabase
+        .from('workout_sets')
+        .select('id, exercise_id, reps, weight_kg')
+        .eq('workout_id', existingWorkout.id),
+    ])
 
-    const { data: sets } = await supabase
-      .from('workout_sets')
-      .select('id, exercise_id, reps, weight_kg')
-      .eq('workout_id', existingWorkout.id)
+    const planned = (plannedResult.data as PlannedExerciseRow[]) ?? []
+    const sets = (setsResult.data as WorkoutSetRow[]) ?? []
 
-    todayExercises = ((planned as PlannedExerciseRow[]) ?? []).map((p) => ({
+    todayExercises = planned.map((p) => ({
       exerciseId: p.exercise_id,
       name: language === 'zh-TW' && p.exercises?.name_zh_tw
         ? p.exercises.name_zh_tw
         : p.exercises?.name ?? 'Unknown exercise',
       muscleGroup: p.exercises?.muscle_group ?? 'other',
       plannedRowId: p.id,
-      loggedSets: ((sets as WorkoutSetRow[]) ?? [])
+      loggedSets: sets
         .filter((s) => s.exercise_id === p.exercise_id)
         .map((s) => ({ id: s.id, reps: s.reps, weightKg: s.weight_kg })),
     }))
@@ -150,11 +171,6 @@ export default async function DashboardPage() {
     }))
   }
 
-  const { data: allExercises } = await supabase
-    .from('exercises')
-    .select('id, name, name_zh_tw, muscle_group, equipment')
-    .order('name')
-
   return (
     <div className="py-8 space-y-6">
       {!onboardingCompleted && (
@@ -175,7 +191,7 @@ export default async function DashboardPage() {
         dayIndex={dayIndex}
         cycleLength={cycle?.cycle_length ?? 0}
         initialExercises={todayExercises}
-        allExercises={(allExercises ?? []) as ExerciseOption[]}
+        allExercises={(allExercisesResult.data ?? []) as ExerciseOption[]}
         language={language}
         weightUnit={weightUnit}
       />
