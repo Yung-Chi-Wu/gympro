@@ -57,26 +57,36 @@ export async function GET(request: Request) {
         .lte('performed_at', endDate.toISOString())
         .order('performed_at', { ascending: true })
 
-    const result = ((workouts as WorkoutRow[]) ?? []).map((w) => {
-        const setsByExercise = new Map<string, { reps: number; weightKg: number }[]>()
-        for (const s of w.workout_sets ?? []) {
-            if (!setsByExercise.has(s.exercise_id)) setsByExercise.set(s.exercise_id, [])
-            setsByExercise.get(s.exercise_id)!.push({ reps: s.reps, weightKg: s.weight_kg })
-        }
+    const result = ((workouts as WorkoutRow[]) ?? [])
+        // 過濾掉完全沒有組數的 workout（空紀錄）
+        .filter((w) => (w.workout_sets ?? []).length > 0)
+        .map((w) => {
+            const setsByExercise = new Map<string, { reps: number; weightKg: number }[]>()
+            for (const s of w.workout_sets ?? []) {
+                if (!setsByExercise.has(s.exercise_id)) setsByExercise.set(s.exercise_id, [])
+                setsByExercise.get(s.exercise_id)!.push({ reps: s.reps, weightKg: s.weight_kg })
+            }
 
-        return {
-            id: w.id,
-            title: w.title,
-            performed_at: w.performed_at,
-            exercises: (w.workout_planned_exercises ?? []).map((p) => ({
-                exerciseId: p.exercise_id,
-                name: language === 'zh-TW' && p.exercises?.name_zh_tw
-                    ? p.exercises.name_zh_tw
-                    : p.exercises?.name ?? 'Unknown',
-                sets: setsByExercise.get(p.exercise_id) ?? [],
-            })),
-        }
-    })
+            const exercises = (w.workout_planned_exercises ?? [])
+                .map((p) => ({
+                    exerciseId: p.exercise_id,
+                    name: language === 'zh-TW' && p.exercises?.name_zh_tw
+                        ? p.exercises.name_zh_tw
+                        : p.exercises?.name ?? 'Unknown',
+                    sets: setsByExercise.get(p.exercise_id) ?? [],
+                }))
+                // 只顯示有登記組數的動作
+                .filter((ex) => ex.sets.length > 0)
+
+            return {
+                id: w.id,
+                title: w.title,
+                performed_at: w.performed_at,
+                exercises,
+            }
+        })
+        // 再次過濾：確保每個 workout 至少有一個有組數的動作
+        .filter((w) => w.exercises.length > 0)
 
     return NextResponse.json({ workouts: result })
 }

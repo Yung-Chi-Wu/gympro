@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { setLanguageCookie } from '@/lib/set-language-cookie'
-import { OnboardingModal } from '@/components/OnboardingModal'
 import type { WeightUnit } from '@/lib/weight-unit'
 
 interface ProfileSettingsFormProps {
@@ -94,6 +93,11 @@ export function ProfileSettingsForm({
                 ? (isZhTW ? `儲存失敗：${error.message}` : `Failed to save: ${error.message}`)
                 : (isZhTW ? '已儲存！' : 'Saved!')
         )
+    }
+
+    // 動態 import 避免循環引用
+    function handleShowOnboarding() {
+        setShowOnboarding(true)
     }
 
     return (
@@ -228,7 +232,7 @@ export function ProfileSettingsForm({
             <div className="pt-4 border-t border-ink/10">
                 <button
                     type="button"
-                    onClick={() => setShowOnboarding(true)}
+                    onClick={handleShowOnboarding}
                     className="text-sm text-ink/40 hover:text-ink underline"
                 >
                     {isZhTW ? '重新查看使用教學' : 'View app tutorial again'}
@@ -236,7 +240,7 @@ export function ProfileSettingsForm({
             </div>
 
             {showOnboarding && (
-                <OnboardingModal
+                <OnboardingModalLazy
                     userId={userId}
                     language={language}
                     onClose={() => setShowOnboarding(false)}
@@ -244,6 +248,20 @@ export function ProfileSettingsForm({
             )}
         </>
     )
+}
+
+// 用獨立元件避免循環引用
+function OnboardingModalLazy({
+    userId,
+    language,
+    onClose,
+}: {
+    userId: string
+    language: string
+    onClose: () => void
+}) {
+    const { OnboardingModal } = require('@/components/OnboardingModal')
+    return <OnboardingModal userId={userId} language={language} onClose={onClose} />
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
