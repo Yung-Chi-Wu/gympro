@@ -64,7 +64,9 @@ export function CycleScheduler({
 
         const todayDay = Number(todayDayInput)
         if (!todayDay || todayDay < 1 || todayDay > length) {
-            setError(zh ? `「今天是第幾天」必須在 1 到 ${length} 之間。` : `"Today is day..." must be between 1 and ${length}.`)
+            setError(zh
+                ? `「今天是第幾天」必須在 1 到 ${length} 之間。`
+                : `"Today is day..." must be between 1 and ${length}.`)
             return
         }
 
@@ -78,7 +80,7 @@ export function CycleScheduler({
                 .select('id')
                 .single()
 
-            if (cycleError || !cycle) throw new Error(toFriendlyError(cycleError))
+            if (cycleError || !cycle) throw new Error(toFriendlyError(cycleError, language))
 
             const newDays = Array.from({ length }, (_, i) => ({
                 training_cycle_id: cycle.id,
@@ -86,7 +88,7 @@ export function CycleScheduler({
                 routine_id: null,
             }))
             const { error: daysError } = await supabase.from('cycle_days').insert(newDays)
-            if (daysError) throw new Error(toFriendlyError(daysError))
+            if (daysError) throw new Error(toFriendlyError(daysError, language))
 
             setCycleId(cycle.id)
             setCycleLength(length)
@@ -112,7 +114,7 @@ export function CycleScheduler({
                 .from('training_cycles')
                 .delete()
                 .eq('id', cycleId)
-            if (deleteError) throw new Error(toFriendlyError(deleteError))
+            if (deleteError) throw new Error(toFriendlyError(deleteError, language))
 
             await clearEmptyTodayWorkout(userId)
             setCycleId(null)
@@ -182,7 +184,7 @@ export function CycleScheduler({
                 .from('training_cycles')
                 .update(updates)
                 .eq('id', cycleId)
-            if (updateError) throw new Error(toFriendlyError(updateError))
+            if (updateError) throw new Error(toFriendlyError(updateError, language))
 
             if (pending.newLength > cycleLength) {
                 const newRows = Array.from(
@@ -194,7 +196,7 @@ export function CycleScheduler({
                     })
                 )
                 const { error: insertError } = await supabase.from('cycle_days').insert(newRows)
-                if (insertError) throw new Error(toFriendlyError(insertError))
+                if (insertError) throw new Error(toFriendlyError(insertError, language))
                 setDays((prev) => [
                     ...prev,
                     ...newRows.map((r) => ({ dayIndex: r.day_index, routineId: null })),
@@ -205,7 +207,7 @@ export function CycleScheduler({
                     .delete()
                     .eq('training_cycle_id', cycleId)
                     .gt('day_index', pending.newLength)
-                if (deleteError) throw new Error(toFriendlyError(deleteError))
+                if (deleteError) throw new Error(toFriendlyError(deleteError, language))
                 setDays((prev) => prev.filter((d) => d.dayIndex <= pending.newLength))
             }
 
@@ -228,7 +230,7 @@ export function CycleScheduler({
                 { training_cycle_id: cycleId, day_index: dayIndex, routine_id: value },
                 { onConflict: 'training_cycle_id,day_index' }
             )
-        if (upsertError) { setError(toFriendlyError(upsertError)); return }
+        if (upsertError) { setError(toFriendlyError(upsertError, language)); return }
         setDays((prev) =>
             prev.map((d) => (d.dayIndex === dayIndex ? { ...d, routineId: value } : d))
         )
@@ -252,8 +254,8 @@ export function CycleScheduler({
                             {zh ? '你的訓練循環幾天一輪？' : 'How many days is your cycle?'}
                         </label>
                         <input
-                            type="number"
-                            min={1}
+                            type="text"
+                            inputMode="numeric"
                             value={lengthInput}
                             onChange={(e) => setLengthInput(e.target.value)}
                             className="w-24 rounded-md border px-3 py-2 text-sm"
@@ -264,9 +266,8 @@ export function CycleScheduler({
                             {zh ? '今天是循環的第幾天？' : 'Which day of your cycle is today?'}
                         </label>
                         <input
-                            type="number"
-                            min={1}
-                            max={Number(lengthInput) || undefined}
+                            type="text"
+                            inputMode="numeric"
                             value={todayDayInput}
                             onChange={(e) => setTodayDayInput(e.target.value)}
                             className="w-24 rounded-md border px-3 py-2 text-sm"
@@ -298,8 +299,8 @@ export function CycleScheduler({
                                         {zh ? '循環天數' : 'Cycle length (days)'}
                                     </label>
                                     <input
-                                        type="number"
-                                        min={1}
+                                        type="text"
+                                        inputMode="numeric"
                                         value={lengthInput}
                                         onChange={(e) => setLengthInput(e.target.value)}
                                         className="w-24 rounded-md border px-3 py-2 text-sm"

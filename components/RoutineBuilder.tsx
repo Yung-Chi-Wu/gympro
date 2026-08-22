@@ -66,7 +66,6 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
     async function handleDeleteRoutine(routineId: string) {
         setError(null)
 
-        // 先解除 cycle_days 跟 workouts 對這個課表的引用
         await supabase
             .from('cycle_days')
             .update({ routine_id: null })
@@ -125,7 +124,6 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
         const routine = routines.find((r) => r.id === routineId)
         if (!routine) return
 
-        // 前端防重複：用 exercise_id 比對，不管名字
         if (routine.exercises.some((ex) => ex.exercise_id === exercise.id)) {
             const name = zh && exercise.name_zh_tw ? exercise.name_zh_tw : exercise.name
             setError(
@@ -151,7 +149,6 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
             .single()
 
         if (insertError || !data) {
-            // 23505 = unique violation，代表這個動作已經在課表裡（資料庫層攔截）
             if (insertError?.code === '23505') {
                 const name = zh && exercise.name_zh_tw ? exercise.name_zh_tw : exercise.name
                 setError(
@@ -236,9 +233,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
         <section className="space-y-4">
             <h2 className="text-lg font-semibold uppercase tracking-wide">{t('yourRoutines')}</h2>
 
-            {error && (
-                <p role="alert" className="text-sm text-red-600">{error}</p>
-            )}
+            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
             <form onSubmit={handleCreateRoutine} className="flex gap-2">
                 <input
@@ -430,8 +425,8 @@ function ExistingExerciseRow({ exercise, language, exercises, onUpdateTarget, on
                 <div className="flex flex-col items-center">
                     <span className="text-xs text-ink/40">{t('sets')}</span>
                     <input
-                        type="number"
-                        min={1}
+                        type="text"
+                        inputMode="numeric"
                         value={targetSets}
                         onChange={(e) => setTargetSets(e.target.value)}
                         onBlur={commitIfChanged}
@@ -442,8 +437,8 @@ function ExistingExerciseRow({ exercise, language, exercises, onUpdateTarget, on
                 <div className="flex flex-col items-center">
                     <span className="text-xs text-ink/40">{t('reps')}</span>
                     <input
-                        type="number"
-                        min={1}
+                        type="text"
+                        inputMode="numeric"
                         value={targetReps}
                         onChange={(e) => setTargetReps(e.target.value)}
                         onBlur={commitIfChanged}
@@ -487,8 +482,8 @@ function AddExerciseToRoutine({ exercises, language, onAdd }: AddExerciseToRouti
                 <div className="flex flex-col items-center">
                     <span className="text-xs text-ink/40">{t('sets')}</span>
                     <input
-                        type="number"
-                        min={1}
+                        type="text"
+                        inputMode="numeric"
                         value={targetSets}
                         onChange={(e) => setTargetSets(e.target.value)}
                         className="w-16 rounded-md border px-2 py-1 text-sm text-center"
@@ -498,8 +493,8 @@ function AddExerciseToRoutine({ exercises, language, onAdd }: AddExerciseToRouti
                 <div className="flex flex-col items-center">
                     <span className="text-xs text-ink/40">{t('reps')}</span>
                     <input
-                        type="number"
-                        min={1}
+                        type="text"
+                        inputMode="numeric"
                         value={targetReps}
                         onChange={(e) => setTargetReps(e.target.value)}
                         className="w-16 rounded-md border px-2 py-1 text-sm text-center"
