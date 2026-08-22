@@ -65,8 +65,21 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
 
     async function handleDeleteRoutine(routineId: string) {
         setError(null)
+
+        // 先解除 cycle_days 跟 workouts 對這個課表的引用
+        await supabase
+            .from('cycle_days')
+            .update({ routine_id: null })
+            .eq('routine_id', routineId)
+
+        await supabase
+            .from('workouts')
+            .update({ routine_id: null })
+            .eq('routine_id', routineId)
+
         const { error: deleteError } = await supabase.from('routines').delete().eq('id', routineId)
         if (deleteError) { setError(toFriendlyError(deleteError, language)); return }
+
         setRoutines((prev) => prev.filter((r) => r.id !== routineId))
         if (expandedRoutineId === routineId) setExpandedRoutineId(null)
         router.refresh()
