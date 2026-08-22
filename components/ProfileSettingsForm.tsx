@@ -127,7 +127,7 @@ export function ProfileSettingsForm({
                     />
                 </Field>
 
-                <Field label={isZhTW ? '性別' : 'Sex'}>
+                <Field label={isZhTW ? '性別' : 'Gender'}>
                     <select
                         value={sex}
                         onChange={(e) => setSex(e.target.value)}
