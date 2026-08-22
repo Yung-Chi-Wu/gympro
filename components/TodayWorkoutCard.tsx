@@ -340,15 +340,23 @@ function TodayExerciseRow({ exercise, language, weightUnit, onAddSet, onDeleteSe
     const t = useTranslations('today')
     const [reps, setReps] = useState('')
     const [weight, setWeight] = useState('')
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
-    function handleSubmit(e: React.FormEvent) {
+    async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
+        if (isSubmitting) return
         const repsNum = Number(reps)
         const weightNum = Number(weight)
         if (!reps || repsNum <= 0 || weight === '' || weightNum < 0) return
-        onAddSet(exercise.exerciseId, repsNum, weightNum)
-        setReps('')
-        setWeight('')
+
+        setIsSubmitting(true)
+        try {
+            await onAddSet(exercise.exerciseId, repsNum, weightNum)
+            setReps('')
+            setWeight('')
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     return (
@@ -363,7 +371,7 @@ function TodayExerciseRow({ exercise, language, weightUnit, onAddSet, onDeleteSe
                 <button
                     type="button"
                     onClick={() => onRemove(exercise.exerciseId)}
-                    className="text-sm text-ink/40 hover:text-red-600"
+                    className="text-sm text-ink/40 hover:text-red-600 active:opacity-50"
                 >
                     {t('remove')}
                 </button>
@@ -381,7 +389,7 @@ function TodayExerciseRow({ exercise, language, weightUnit, onAddSet, onDeleteSe
                                 type="button"
                                 onClick={() => onDeleteSet(exercise.exerciseId, s.id)}
                                 aria-label="Remove set"
-                                className="text-ink/40 hover:text-red-600"
+                                className="text-ink/40 hover:text-red-600 active:opacity-50"
                             >
                                 ×
                             </button>
@@ -407,8 +415,12 @@ function TodayExerciseRow({ exercise, language, weightUnit, onAddSet, onDeleteSe
                     onChange={(e) => setWeight(e.target.value)}
                     className="w-20 rounded-md border px-2 py-1 text-sm"
                 />
-                <button type="submit" className="rounded-md border px-3 py-1 text-sm">
-                    {t('add')}
+                <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="rounded-md border px-3 py-1 text-sm disabled:opacity-50 active:scale-95 transition-transform"
+                >
+                    {isSubmitting ? '...' : t('add')}
                 </button>
             </form>
         </div>

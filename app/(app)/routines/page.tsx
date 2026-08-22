@@ -47,38 +47,43 @@ export default async function RoutinesPage() {
         data: { user },
     } = await supabase.auth.getUser()
 
-    if (!user) {
-        redirect('/login')
-    }
+    if (!user) redirect('/login')
 
     const t = await getTranslations('routines')
 
-    const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('language')
-        .eq('user_id', user.id)
-        .maybeSingle()
+    // 並行撈所有資料
+    const [profileResult, exercisesResult, routinesResult, cycleResult] = await Promise.all([
+        supabase
+            .from('user_profiles')
+            .select('language')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+        supabase
+            .from('exercises')
+            .select('id, name, name_zh_tw, muscle_group, equipment')
+            .order('name'),
+        supabase
+            .from('routines')
+            .select(`
+                id, name,
+                routine_exercises (
+                    id, exercise_id, order_index, target_sets, target_reps,
+                    exercises ( name, muscle_group )
+                )
+            `)
+            .eq('user_id', user.id)
+            .order('created_at'),
+        supabase
+            .from('training_cycles')
+            .select('id, cycle_length, start_date')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+    ])
 
-    const language = profile?.language ?? 'en'
+    const language = profileResult.data?.language ?? 'en'
+    const cycle = cycleResult.data
 
-    const { data: exercises } = await supabase
-        .from('exercises')
-        .select('id, name, name_zh_tw, muscle_group, equipment')
-        .order('name')
-
-    const { data: routines } = await supabase
-        .from('routines')
-        .select(`
-            id, name,
-            routine_exercises (
-                id, exercise_id, order_index, target_sets, target_reps,
-                exercises ( name, muscle_group )
-            )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at')
-
-    const routineList: RoutineWithExercises[] = ((routines as RawRoutineRow[]) ?? []).map((r) => ({
+    const routineList: RoutineWithExercises[] = ((routinesResult.data as RawRoutineRow[]) ?? []).map((r) => ({
         id: r.id,
         name: r.name,
         exercises: (r.routine_exercises ?? [])
@@ -94,21 +99,15 @@ export default async function RoutinesPage() {
             .sort((a, b) => a.order_index - b.order_index),
     }))
 
-    const { data: cycle } = await supabase
-        .from('training_cycles')
-        .select('id, cycle_length, start_date')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-    let cycleDays: CycleDayInfo[] = []
+    // 只有有循環才撈 cycle_days
+    const cycleDays: CycleDayInfo[] = []
     if (cycle) {
         const { data: days } = await supabase
             .from('cycle_days')
             .select('day_index, routine_id')
             .eq('training_cycle_id', cycle.id)
             .order('day_index')
-
-        cycleDays = (days ?? []).map((d) => ({ dayIndex: d.day_index, routineId: d.routine_id }))
+        cycleDays.push(...(days ?? []).map((d) => ({ dayIndex: d.day_index, routineId: d.routine_id })))
     }
 
     return (
@@ -125,7 +124,7 @@ export default async function RoutinesPage() {
 
             <RoutineBuilder
                 userId={user.id}
-                exercises={(exercises ?? []) as ExerciseOption[]}
+                exercises={(exercisesResult.data ?? []) as ExerciseOption[]}
                 initialRoutines={routineList}
                 language={language}
             />

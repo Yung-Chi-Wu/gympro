@@ -18,38 +18,43 @@ export default async function HistoryPage() {
 
     const t = await getTranslations('history')
 
-    const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('timezone, language')
-        .eq('user_id', user.id)
-        .maybeSingle()
+    // 並行撈所有資料
+    const [profileResult, cycleResult] = await Promise.all([
+        supabase
+            .from('user_profiles')
+            .select('timezone, language')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+        supabase
+            .from('training_cycles')
+            .select('cycle_length, start_date')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+    ])
 
-    const timezone = profile?.timezone ?? 'UTC'
-    const language = profile?.language ?? 'en'
-
-    const { data: cycle } = await supabase
-        .from('training_cycles')
-        .select('cycle_length, start_date')
-        .eq('user_id', user.id)
-        .maybeSingle()
+    const timezone = profileResult.data?.timezone ?? 'UTC'
+    const language = profileResult.data?.language ?? 'en'
+    const cycle = cycleResult.data
 
     const periods = cycle
         ? computeCyclePeriods(cycle.start_date, cycle.cycle_length, 52)
         : computeCalendarWeekPeriods(52, timezone)
 
-    const { data: reports } = await supabase
-        .from('period_reports')
-        .select('period_start, status, recommendation, pdf_status, error_message, created_at')
-        .eq('user_id', user.id)
-        .gte('period_start', getOneYearAgo())
-        .order('period_start', { ascending: false })
-
-    const { data: weightEntries } = await supabase
-        .from('body_metrics')
-        .select('id, recorded_at, weight_kg')
-        .eq('user_id', user.id)
-        .gte('recorded_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString())
-        .order('recorded_at', { ascending: true })
+    // 並行撈報告跟體重
+    const [reportsResult, weightResult] = await Promise.all([
+        supabase
+            .from('period_reports')
+            .select('period_start, status, recommendation, pdf_status, error_message, created_at')
+            .eq('user_id', user.id)
+            .gte('period_start', getOneYearAgo())
+            .order('period_start', { ascending: false }),
+        supabase
+            .from('body_metrics')
+            .select('id, recorded_at, weight_kg')
+            .eq('user_id', user.id)
+            .gte('recorded_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString())
+            .order('recorded_at', { ascending: true }),
+    ])
 
     return (
         <div className="py-8 space-y-6">
@@ -57,9 +62,9 @@ export default async function HistoryPage() {
             <HistoryList
                 userId={user.id}
                 periods={periods}
-                reports={reports ?? []}
+                reports={reportsResult.data ?? []}
                 language={language}
-                weightEntries={(weightEntries ?? []).map((e) => ({
+                weightEntries={(weightResult.data ?? []).map((e) => ({
                     id: e.id,
                     recordedAt: e.recorded_at,
                     weightKg: e.weight_kg,

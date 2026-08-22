@@ -25,7 +25,6 @@ export function BottomNav({ links }: { links: NavLink[] }) {
 
         function handleResize() {
             const currentHeight = window.visualViewport?.height ?? window.innerHeight
-            // 如果 viewport 高度縮小超過 150px，判定為鍵盤彈出
             setKeyboardOpen(initialHeight - currentHeight > 150)
         }
 
@@ -39,9 +38,7 @@ export function BottomNav({ links }: { links: NavLink[] }) {
     if (keyboardOpen) return null
 
     return (
-        <nav
-            className="bottom-nav fixed bottom-0 left-0 right-0 z-40 flex border-t border-ink/10 bg-white sm:hidden"
-        >
+        <nav className="bottom-nav fixed bottom-0 left-0 right-0 z-40 flex border-t border-ink/10 bg-white sm:hidden">
             {links.map((link) => {
                 const isActive =
                     link.href === '/dashboard'
@@ -51,7 +48,7 @@ export function BottomNav({ links }: { links: NavLink[] }) {
                     <Link
                         key={link.href}
                         href={link.href}
-                        className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs ${isActive ? 'text-ink' : 'text-ink/40'
+                        className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs transition-all active:scale-90 active:opacity-60 ${isActive ? 'text-ink' : 'text-ink/40'
                             }`}
                     >
                         <span className="text-lg leading-none">{ICONS[link.href]}</span>
