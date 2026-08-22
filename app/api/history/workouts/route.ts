@@ -27,6 +27,7 @@ export async function GET(request: Request) {
     const userId = searchParams.get('userId')
     const start = searchParams.get('start')
     const end = searchParams.get('end')
+    const language = searchParams.get('language') ?? 'en'
 
     if (!userId || !start || !end) {
         return NextResponse.json({ error: 'Missing params' }, { status: 400 })
@@ -69,7 +70,9 @@ export async function GET(request: Request) {
             performed_at: w.performed_at,
             exercises: (w.workout_planned_exercises ?? []).map((p) => ({
                 exerciseId: p.exercise_id,
-                name: p.exercises?.name ?? 'Unknown',
+                name: language === 'zh-TW' && p.exercises?.name_zh_tw
+                    ? p.exercises.name_zh_tw
+                    : p.exercises?.name ?? 'Unknown',
                 sets: setsByExercise.get(p.exercise_id) ?? [],
             })),
         }

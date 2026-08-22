@@ -122,7 +122,7 @@ function TrainingLogSection({
         setLoading(true)
         try {
             const res = await fetch(
-                `/api/history/workouts?userId=${userId}&start=${periodStart}&end=${periodEnd}`
+                `/api/history/workouts?userId=${userId}&start=${periodStart}&end=${periodEnd}&language=${language}`
             )
             const data = await res.json()
             setWorkouts(data.workouts ?? [])

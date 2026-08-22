@@ -355,17 +355,16 @@ function TodayExerciseRow({ exercise, language, onAddSet, onDeleteSet, onRemove 
 
             <form onSubmit={handleSubmit} className="flex gap-2">
                 <input
-                    type="number"
-                    min={1}
+                    type="text"
+                    inputMode="numeric"
                     placeholder={t('reps')}
                     value={reps}
                     onChange={(e) => setReps(e.target.value)}
                     className="w-20 rounded-md border px-2 py-1 text-sm"
                 />
                 <input
-                    type="number"
-                    step="0.5"
-                    min={0}
+                    type="text"
+                    inputMode="decimal"
                     placeholder={t('kg')}
                     value={weightKg}
                     onChange={(e) => setWeightKg(e.target.value)}
