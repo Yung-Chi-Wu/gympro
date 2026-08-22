@@ -24,7 +24,7 @@ export default async function SettingsPage() {
     const effectiveLanguage = await getEffectiveLanguage(profile?.language)
 
     return (
-        <div className="py-8 max-w-lg space-y-6">
+        <div className="py-8 max-w-lg space-y-6 overflow-x-hidden">
             <h1 className="text-2xl font-bold">{t('title')}</h1>
             <ProfileSettingsForm
                 userId={user.id}

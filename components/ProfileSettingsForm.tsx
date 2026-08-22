@@ -95,11 +95,6 @@ export function ProfileSettingsForm({
         )
     }
 
-    // 動態 import 避免循環引用
-    function handleShowOnboarding() {
-        setShowOnboarding(true)
-    }
-
     return (
         <>
             <form onSubmit={handleSave} className="space-y-4">
@@ -174,8 +169,8 @@ export function ProfileSettingsForm({
                             type="button"
                             onClick={() => setWeightUnit('kg')}
                             className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition-colors ${weightUnit === 'kg'
-                                ? 'border-plate bg-plate text-chalk'
-                                : 'border-ink/20 text-ink/60'
+                                    ? 'border-plate bg-plate text-chalk'
+                                    : 'border-ink/20 text-ink/60'
                                 }`}
                         >
                             kg
@@ -184,8 +179,8 @@ export function ProfileSettingsForm({
                             type="button"
                             onClick={() => setWeightUnit('lb')}
                             className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition-colors ${weightUnit === 'lb'
-                                ? 'border-plate bg-plate text-chalk'
-                                : 'border-ink/20 text-ink/60'
+                                    ? 'border-plate bg-plate text-chalk'
+                                    : 'border-ink/20 text-ink/60'
                                 }`}
                         >
                             lb
@@ -205,6 +200,11 @@ export function ProfileSettingsForm({
                         }
                         className="w-full rounded-md border px-3 py-2"
                     />
+                    <p className="text-xs text-plate font-medium mt-1">
+                        {isZhTW
+                            ? '💡 設定目標後，AI 教練會根據你的目標給出更精準的建議。'
+                            : '💡 Setting a goal helps your AI coach give more targeted advice.'}
+                    </p>
                 </Field>
 
                 {saveMessage && (
@@ -229,46 +229,46 @@ export function ProfileSettingsForm({
                 </button>
             </form>
 
-            <div className="pt-4 border-t border-ink/10">
+            <div className="pt-4 border-t border-ink/10 space-y-4">
                 <button
                     type="button"
-                    onClick={handleShowOnboarding}
+                    onClick={() => setShowOnboarding(true)}
                     className="text-sm text-ink/40 hover:text-ink underline"
                 >
                     {isZhTW ? '重新查看使用教學' : 'View app tutorial again'}
                 </button>
-            </div>
 
-            <div className="rounded-xl bg-ink/5 p-4 space-y-3">
-                <p className="text-sm font-semibold">
-                    {isZhTW ? '📱 加到主畫面' : '📱 Add to Home Screen'}
-                </p>
-                <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                        <span className="text-xl">⬆️</span>
-                        <p className="text-xs text-ink/60">
-                            {isZhTW
-                                ? '點 Safari 底部工具列中間的分享按鈕（方框加箭頭）'
-                                : 'Tap the Share button in Safari\'s toolbar (box with arrow)'}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <span className="text-xl">➕</span>
-                        <p className="text-xs text-ink/60">
-                            {isZhTW ? '選「加入主畫面」' : 'Select "Add to Home Screen"'}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <span className="text-xl">✅</span>
-                        <p className="text-xs text-ink/60">
-                            {isZhTW ? '點右上角「新增」完成' : 'Tap "Add" to finish'}
-                        </p>
+                <div className="rounded-xl bg-ink/5 p-4 space-y-3">
+                    <p className="text-sm font-semibold">
+                        {isZhTW ? '📱 加到主畫面' : '📱 Add to Home Screen'}
+                    </p>
+                    <div className="space-y-2">
+                        <div className="flex items-start gap-3">
+                            <span className="text-lg shrink-0">⬆️</span>
+                            <p className="text-xs text-ink/60">
+                                {isZhTW
+                                    ? '點 Safari 底部工具列中間的分享按鈕（方框加箭頭）'
+                                    : "Tap the Share button in Safari's toolbar (box with arrow)"}
+                            </p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <span className="text-lg shrink-0">➕</span>
+                            <p className="text-xs text-ink/60">
+                                {isZhTW ? '選「加入主畫面」' : 'Select "Add to Home Screen"'}
+                            </p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <span className="text-lg shrink-0">✅</span>
+                            <p className="text-xs text-ink/60">
+                                {isZhTW ? '點右上角「新增」完成' : 'Tap "Add" to finish'}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {showOnboarding && (
-                <OnboardingModalLazy
+                <OnboardingModalWrapper
                     userId={userId}
                     language={language}
                     onClose={() => setShowOnboarding(false)}
@@ -278,8 +278,7 @@ export function ProfileSettingsForm({
     )
 }
 
-// 用獨立元件避免循環引用
-function OnboardingModalLazy({
+function OnboardingModalWrapper({
     userId,
     language,
     onClose,
@@ -288,6 +287,7 @@ function OnboardingModalLazy({
     language: string
     onClose: () => void
 }) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { OnboardingModal } = require('@/components/OnboardingModal')
     return <OnboardingModal userId={userId} language={language} onClose={onClose} />
 }
