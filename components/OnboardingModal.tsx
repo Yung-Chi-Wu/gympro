@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import type { WeightUnit } from '@/lib/weight-unit'
 
 interface Step {
     icon: string
@@ -9,9 +10,18 @@ interface Step {
     titleZh: string
     descEn: string
     descZh: string
+    isUnitStep?: boolean
 }
 
 const STEPS: Step[] = [
+    {
+        icon: '⚖️',
+        titleEn: 'Choose Your Weight Unit',
+        titleZh: '選擇你的重量單位',
+        descEn: 'You can change this anytime in Settings.',
+        descZh: '之後可以在設定裡隨時更改。',
+        isUnitStep: true,
+    },
     {
         icon: '📋',
         titleEn: 'Build Your Routines',
@@ -53,6 +63,7 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
     const supabase = createClient()
     const [step, setStep] = useState(0)
     const [visible, setVisible] = useState(true)
+    const [selectedUnit, setSelectedUnit] = useState<WeightUnit>('kg')
 
     async function handleFinish() {
         if (onClose) {
@@ -62,7 +73,10 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
         }
         await supabase
             .from('user_profiles')
-            .update({ onboarding_completed: true } as never)
+            .update({
+                onboarding_completed: true,
+                weight_unit: selectedUnit,
+            } as never)
             .eq('user_id', userId)
         setVisible(false)
     }
@@ -94,6 +108,37 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
                         {zh ? current.descZh : current.descEn}
                     </p>
                 </div>
+
+                {current.isUnitStep && (
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setSelectedUnit('kg')}
+                            className={`flex-1 rounded-xl border-2 py-3 text-sm font-semibold transition-colors ${selectedUnit === 'kg'
+                                    ? 'border-plate bg-plate text-chalk'
+                                    : 'border-ink/20 text-ink/60'
+                                }`}
+                        >
+                            kg
+                            <span className="block text-xs font-normal mt-0.5">
+                                {zh ? '公斤' : 'Kilogram'}
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedUnit('lb')}
+                            className={`flex-1 rounded-xl border-2 py-3 text-sm font-semibold transition-colors ${selectedUnit === 'lb'
+                                    ? 'border-plate bg-plate text-chalk'
+                                    : 'border-ink/20 text-ink/60'
+                                }`}
+                        >
+                            lb
+                            <span className="block text-xs font-normal mt-0.5">
+                                {zh ? '磅' : 'Pound'}
+                            </span>
+                        </button>
+                    </div>
+                )}
 
                 <p className="text-center text-xs text-ink/30">
                     {step + 1} / {STEPS.length}

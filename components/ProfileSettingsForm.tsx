@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { setLanguageCookie } from '@/lib/set-language-cookie'
 import { OnboardingModal } from '@/components/OnboardingModal'
+import type { WeightUnit } from '@/lib/weight-unit'
 
 interface ProfileSettingsFormProps {
     userId: string
@@ -14,6 +15,7 @@ interface ProfileSettingsFormProps {
     initialSex: string | null
     initialTimezone: string
     initialLanguage: string
+    initialWeightUnit: WeightUnit
 }
 
 const COMMON_TIMEZONES = [
@@ -39,6 +41,7 @@ export function ProfileSettingsForm({
     initialSex,
     initialTimezone,
     initialLanguage,
+    initialWeightUnit,
 }: ProfileSettingsFormProps) {
     const supabase = createClient()
     const [heightCm, setHeightCm] = useState(initialHeightCm?.toString() ?? '')
@@ -48,6 +51,7 @@ export function ProfileSettingsForm({
     const [sex, setSex] = useState(initialSex ?? '')
     const [timezone, setTimezone] = useState(initialTimezone)
     const [language, setLanguage] = useState(initialLanguage)
+    const [weightUnit, setWeightUnit] = useState<WeightUnit>(initialWeightUnit)
     const [isSaving, setIsSaving] = useState(false)
     const [saveMessage, setSaveMessage] = useState<string | null>(null)
     const [showOnboarding, setShowOnboarding] = useState(false)
@@ -74,6 +78,7 @@ export function ProfileSettingsForm({
                 training_goal: trainingGoal.trim() || null,
                 timezone,
                 language: language as string,
+                weight_unit: weightUnit,
                 updated_at: new Date().toISOString(),
             },
             { onConflict: 'user_id' }
@@ -106,8 +111,8 @@ export function ProfileSettingsForm({
 
                 <Field label={isZhTW ? '身高（公分）' : 'Height (cm)'}>
                     <input
-                        type="number"
-                        step="0.1"
+                        type="text"
+                        inputMode="decimal"
                         value={heightCm}
                         onChange={(e) => setHeightCm(e.target.value)}
                         className="w-full rounded-md border px-3 py-2"
@@ -157,6 +162,31 @@ export function ProfileSettingsForm({
                         <option value="en">English</option>
                         <option value="zh-TW">繁體中文</option>
                     </select>
+                </Field>
+
+                <Field label={isZhTW ? '重量單位' : 'Weight Unit'}>
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setWeightUnit('kg')}
+                            className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition-colors ${weightUnit === 'kg'
+                                    ? 'border-plate bg-plate text-chalk'
+                                    : 'border-ink/20 text-ink/60'
+                                }`}
+                        >
+                            kg
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setWeightUnit('lb')}
+                            className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition-colors ${weightUnit === 'lb'
+                                    ? 'border-plate bg-plate text-chalk'
+                                    : 'border-ink/20 text-ink/60'
+                                }`}
+                        >
+                            lb
+                        </button>
+                    </div>
                 </Field>
 
                 <Field label={isZhTW ? '長期訓練目標' : 'Long-term training goal'}>

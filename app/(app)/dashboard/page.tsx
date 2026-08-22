@@ -7,6 +7,7 @@ import { PeriodCheckInCard } from '@/components/PeriodCheckInCard'
 import { OnboardingModal } from '@/components/OnboardingModal'
 import { PwaInstallBanner } from '@/components/PwaInstallBanner'
 import type { ExerciseOption } from '@/components/log-types'
+import type { WeightUnit } from '@/lib/weight-unit'
 
 export interface TodayExercise {
   exerciseId: string
@@ -48,7 +49,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('display_name, timezone, language, onboarding_completed')
+    .select('display_name, timezone, language, onboarding_completed, weight_unit')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -65,6 +66,7 @@ export default async function DashboardPage() {
   const language = profile?.language || 'en'
   const latestWeightKg = latestMetricData?.weight_kg ?? null
   const onboardingCompleted = profile?.onboarding_completed ?? false
+  const weightUnit = (profile?.weight_unit as WeightUnit) ?? 'kg'
 
   const todayParts = getLocalDateParts(timezone)
   const { startOfDay, endOfDay } = getTodayRangeUtc(todayParts, timezone)
@@ -175,11 +177,13 @@ export default async function DashboardPage() {
         initialExercises={todayExercises}
         allExercises={(allExercises ?? []) as ExerciseOption[]}
         language={language}
+        weightUnit={weightUnit}
       />
 
       <PeriodCheckInCard
         language={language}
         latestWeightKg={latestWeightKg}
+        weightUnit={weightUnit}
       />
 
       <div className="space-y-3">
