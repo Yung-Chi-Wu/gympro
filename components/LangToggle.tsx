@@ -7,12 +7,10 @@ interface LangToggleProps {
 }
 
 export function LangToggle({ currentLocale }: LangToggleProps) {
-    const router = useRouter()
-
     function toggle() {
         const next = currentLocale === 'zh-TW' ? 'en' : 'zh-TW'
         document.cookie = `language=${next}; path=/; max-age=${60 * 60 * 24 * 365}`
-        router.refresh()
+        window.location.reload()
     }
 
     return (

@@ -38,11 +38,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
             (r) => r.name.trim().toLowerCase() === trimmedName.toLowerCase()
         )
         if (isDuplicate) {
-            setError(
-                zh
-                    ? `你已經有一個叫「${trimmedName}」的課表了。`
-                    : `You already have a routine named "${trimmedName}".`
-            )
+            setError(zh ? `你已經有一個叫「${trimmedName}」的課表了。` : `You already have a routine named "${trimmedName}".`)
             return
         }
 
@@ -66,15 +62,8 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
     async function handleDeleteRoutine(routineId: string) {
         setError(null)
 
-        await supabase
-            .from('cycle_days')
-            .update({ routine_id: null })
-            .eq('routine_id', routineId)
-
-        await supabase
-            .from('workouts')
-            .update({ routine_id: null })
-            .eq('routine_id', routineId)
+        await supabase.from('cycle_days').update({ routine_id: null }).eq('routine_id', routineId)
+        await supabase.from('workouts').update({ routine_id: null }).eq('routine_id', routineId)
 
         const { error: deleteError } = await supabase.from('routines').delete().eq('id', routineId)
         if (deleteError) { setError(toFriendlyError(deleteError, language)); return }
@@ -93,24 +82,16 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
             (r) => r.id !== routineId && r.name.trim().toLowerCase() === trimmedName.toLowerCase()
         )
         if (isDuplicate) {
-            setError(
-                zh
-                    ? `你已經有一個叫「${trimmedName}」的課表了。`
-                    : `You already have a routine named "${trimmedName}".`
-            )
+            setError(zh ? `你已經有一個叫「${trimmedName}」的課表了。` : `You already have a routine named "${trimmedName}".`)
             return
         }
 
         const { error: updateError } = await supabase
-            .from('routines')
-            .update({ name: trimmedName })
-            .eq('id', routineId)
+            .from('routines').update({ name: trimmedName }).eq('id', routineId)
 
         if (updateError) { setError(toFriendlyError(updateError, language)); return }
 
-        setRoutines((prev) =>
-            prev.map((r) => (r.id === routineId ? { ...r, name: trimmedName } : r))
-        )
+        setRoutines((prev) => prev.map((r) => (r.id === routineId ? { ...r, name: trimmedName } : r)))
         router.refresh()
     }
 
@@ -126,22 +107,16 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
 
         if (routine.exercises.some((ex) => ex.exercise_id === exercise.id)) {
             const name = zh && exercise.name_zh_tw ? exercise.name_zh_tw : exercise.name
-            setError(
-                zh
-                    ? `「${name}」已經在這份課表裡了。`
-                    : `${exercise.name} is already in this routine.`
-            )
+            setError(zh ? `「${name}」已經在這份課表裡了。` : `${exercise.name} is already in this routine.`)
             return
         }
-
-        const nextOrderIndex = routine.exercises.length
 
         const { data, error: insertError } = await supabase
             .from('routine_exercises')
             .insert({
                 routine_id: routineId,
                 exercise_id: exercise.id,
-                order_index: nextOrderIndex,
+                order_index: routine.exercises.length,
                 target_sets: targetSets,
                 target_reps: targetReps,
             })
@@ -151,11 +126,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
         if (insertError || !data) {
             if (insertError?.code === '23505') {
                 const name = zh && exercise.name_zh_tw ? exercise.name_zh_tw : exercise.name
-                setError(
-                    zh
-                        ? `「${name}」已經在這份課表裡了。`
-                        : `${exercise.name} is already in this routine.`
-                )
+                setError(zh ? `「${name}」已經在這份課表裡了。` : `${exercise.name} is already in this routine.`)
             } else {
                 setError(toFriendlyError(insertError, language))
             }
@@ -164,23 +135,18 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
 
         setRoutines((prev) =>
             prev.map((r) =>
-                r.id !== routineId
-                    ? r
-                    : {
-                        ...r,
-                        exercises: [
-                            ...r.exercises,
-                            {
-                                id: data.id,
-                                exercise_id: data.exercise_id,
-                                exercise_name: exercise.name,
-                                muscle_group: exercise.muscle_group,
-                                order_index: data.order_index,
-                                target_sets: data.target_sets,
-                                target_reps: data.target_reps,
-                            },
-                        ],
-                    }
+                r.id !== routineId ? r : {
+                    ...r,
+                    exercises: [...r.exercises, {
+                        id: data.id,
+                        exercise_id: data.exercise_id,
+                        exercise_name: exercise.name,
+                        muscle_group: exercise.muscle_group,
+                        order_index: data.order_index,
+                        target_sets: data.target_sets,
+                        target_reps: data.target_reps,
+                    }],
+                }
             )
         )
     }
@@ -188,15 +154,11 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
     async function handleRemoveExercise(routineId: string, routineExerciseId: string) {
         setError(null)
         const { error: deleteError } = await supabase
-            .from('routine_exercises')
-            .delete()
-            .eq('id', routineExerciseId)
+            .from('routine_exercises').delete().eq('id', routineExerciseId)
         if (deleteError) { setError(toFriendlyError(deleteError, language)); return }
         setRoutines((prev) =>
             prev.map((r) =>
-                r.id !== routineId
-                    ? r
-                    : { ...r, exercises: r.exercises.filter((ex) => ex.id !== routineExerciseId) }
+                r.id !== routineId ? r : { ...r, exercises: r.exercises.filter((ex) => ex.id !== routineExerciseId) }
             )
         )
     }
@@ -215,16 +177,12 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
         if (updateError) { setError(toFriendlyError(updateError, language)); return }
         setRoutines((prev) =>
             prev.map((r) =>
-                r.id !== routineId
-                    ? r
-                    : {
-                        ...r,
-                        exercises: r.exercises.map((ex) =>
-                            ex.id !== routineExerciseId
-                                ? ex
-                                : { ...ex, target_sets: targetSets, target_reps: targetReps }
-                        ),
-                    }
+                r.id !== routineId ? r : {
+                    ...r,
+                    exercises: r.exercises.map((ex) =>
+                        ex.id !== routineExerciseId ? ex : { ...ex, target_sets: targetSets, target_reps: targetReps }
+                    ),
+                }
             )
         )
     }
@@ -245,7 +203,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
                 />
                 <button
                     type="submit"
-                    className="rounded-md bg-plate dark:bg-white dark:text-[#1A1814] px-4 py-2 font-display uppercase tracking-wide text-chalk dark:font-bold hover:opacity-90 transition-opacity"
+                    className="rounded-md bg-plate px-4 py-2 font-display uppercase tracking-wide text-chalk hover:bg-plate-light transition-colors"
                 >
                     {t('newRoutine')}
                 </button>
@@ -290,9 +248,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
                                                     onUpdateTarget={(sets, reps) =>
                                                         handleUpdateTarget(routine.id, ex.id, sets, reps)
                                                     }
-                                                    onRemove={() =>
-                                                        handleRemoveExercise(routine.id, ex.id)
-                                                    }
+                                                    onRemove={() => handleRemoveExercise(routine.id, ex.id)}
                                                 />
                                             ))}
                                         </div>
@@ -351,11 +307,8 @@ function RoutineNameEditor({ currentName, language, onSave, onDelete }: RoutineN
                     }}
                     className="flex-1 rounded-md border px-3 py-2 text-sm font-medium"
                 />
-                <button
-                    type="button"
-                    onClick={onDelete}
-                    className="text-sm text-ink/40 hover:text-red-600 sm:shrink-0"
-                >
+                <button type="button" onClick={onDelete}
+                    className="text-sm text-ink/40 hover:text-red-600 sm:shrink-0">
                     {zh ? '刪除課表' : 'Delete routine'}
                 </button>
             </div>
@@ -364,20 +317,13 @@ function RoutineNameEditor({ currentName, language, onSave, onDelete }: RoutineN
 
     return (
         <div className="flex items-center justify-between">
-            <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 text-left"
-                aria-label="Edit routine name"
-            >
+            <button type="button" onClick={() => setIsEditing(true)}
+                className="flex items-center gap-2 text-left" aria-label="Edit routine name">
                 <span className="font-medium">{currentName}</span>
                 <span className="text-ink/40">✎</span>
             </button>
-            <button
-                type="button"
-                onClick={onDelete}
-                className="text-sm text-ink/40 hover:text-red-600"
-            >
+            <button type="button" onClick={onDelete}
+                className="text-sm text-ink/40 hover:text-red-600">
                 {zh ? '刪除課表' : 'Delete routine'}
             </button>
         </div>

@@ -1,18 +1,15 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-
 interface InAppLangToggleProps {
     currentLocale: string
 }
 
 export function InAppLangToggle({ currentLocale }: InAppLangToggleProps) {
-    const router = useRouter()
-
     function toggle() {
         const next = currentLocale === 'zh-TW' ? 'en' : 'zh-TW'
         document.cookie = `language=${next}; path=/; max-age=${60 * 60 * 24 * 365}`
-        router.refresh()
+        // 完整重載確保所有 server component 重新讀取 cookie
+        window.location.reload()
     }
 
     return (

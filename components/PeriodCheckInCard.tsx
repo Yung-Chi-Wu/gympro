@@ -73,7 +73,7 @@ export function PeriodCheckInCard({ language, latestWeightKg, weightUnit }: Peri
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="rounded-md bg-plate dark:bg-white dark:text-[#1A1814] px-4 py-2 font-display uppercase tracking-wide text-chalk dark:font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+                            className="rounded-md bg-plate px-4 py-2 font-display uppercase tracking-wide text-chalk hover:bg-plate-light disabled:opacity-50"
                         >
                             {isSubmitting ? t('submitting') : t('submit')}
                         </button>

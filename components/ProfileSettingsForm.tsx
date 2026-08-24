@@ -169,8 +169,8 @@ export function ProfileSettingsForm({
                             type="button"
                             onClick={() => setWeightUnit('kg')}
                             className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition-colors ${weightUnit === 'kg'
-                                ? 'border-plate bg-plate text-chalk'
-                                : 'border-ink/20 text-ink/60'
+                                    ? 'border-plate bg-plate text-chalk'
+                                    : 'border-ink/20 text-ink/60'
                                 }`}
                         >
                             kg
@@ -179,8 +179,8 @@ export function ProfileSettingsForm({
                             type="button"
                             onClick={() => setWeightUnit('lb')}
                             className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition-colors ${weightUnit === 'lb'
-                                ? 'border-plate bg-plate text-chalk'
-                                : 'border-ink/20 text-ink/60'
+                                    ? 'border-plate bg-plate text-chalk'
+                                    : 'border-ink/20 text-ink/60'
                                 }`}
                         >
                             lb
@@ -224,7 +224,7 @@ export function ProfileSettingsForm({
                 <button
                     type="submit"
                     disabled={isSaving}
-                    className="rounded-md bg-plate dark:bg-white dark:text-[#1A1814] px-4 py-2 text-white font-medium disabled:opacity-50 hover:opacity-90 transition-opacity"
+                    className="rounded-md bg-plate px-4 py-2 text-chalk font-medium disabled:opacity-50 hover:bg-plate-light transition-colors"
                 >
                     {isSaving
                         ? (isZhTW ? '儲存中...' : 'Saving...')

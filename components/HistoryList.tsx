@@ -254,7 +254,7 @@ function ReportSection({ report, language }: { report: ReportRow | null; languag
                                 <button
                                     type="button"
                                     onClick={() => setShowMore(true)}
-                                    className="text-sm text-plate underline"
+                                    className="text-sm text-plate dark:text-[#C8955A] underline hover:opacity-70 transition-opacity"
                                 >
                                     {t('readMore')}
                                 </button>
