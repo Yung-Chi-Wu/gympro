@@ -1,19 +1,12 @@
 'use client'
 
-import { useTheme } from 'next-themes'
-import { useEffect, useState } from 'react'
-
 interface ThemeSelectorProps {
     isZhTW: boolean
+    value: string
+    onChange: (theme: string) => void
 }
 
-export function ThemeSelector({ isZhTW }: ThemeSelectorProps) {
-    const { theme, setTheme } = useTheme()
-    const [mounted, setMounted] = useState(false)
-
-    useEffect(() => setMounted(true), [])
-    if (!mounted) return null
-
+export function ThemeSelector({ isZhTW, value, onChange }: ThemeSelectorProps) {
     const options = [
         { value: 'system', labelZh: '跟系統走', labelEn: 'System' },
         { value: 'light', labelZh: '日間', labelEn: 'Light' },
@@ -26,8 +19,8 @@ export function ThemeSelector({ isZhTW }: ThemeSelectorProps) {
                 <button
                     key={opt.value}
                     type="button"
-                    onClick={() => setTheme(opt.value)}
-                    className={`flex-1 rounded-xl border-2 py-2 text-sm font-medium transition-colors ${theme === opt.value
+                    onClick={() => onChange(opt.value)}
+                    className={`flex-1 rounded-xl border-2 py-2 text-sm font-medium transition-colors ${value === opt.value
                             ? 'border-plate bg-plate text-chalk'
                             : 'border-ink/20 text-ink/60 hover:border-ink/40'
                         }`}

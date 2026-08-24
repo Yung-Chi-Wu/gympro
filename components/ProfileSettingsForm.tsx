@@ -6,6 +6,8 @@ import { setLanguageCookie } from '@/lib/set-language-cookie'
 import type { WeightUnit } from '@/lib/weight-unit'
 import { DeleteAccountButton } from '@/components/DeleteAccountButton'
 import { ThemeSelector } from '@/components/ThemeSelector'
+import { useTheme } from 'next-themes'
+
 
 interface ProfileSettingsFormProps {
     userId: string
@@ -56,6 +58,8 @@ export function ProfileSettingsForm({
     const [isSaving, setIsSaving] = useState(false)
     const [saveMessage, setSaveMessage] = useState<string | null>(null)
     const [showOnboarding, setShowOnboarding] = useState(false)
+    const { theme, setTheme } = useTheme()
+    const [selectedTheme, setSelectedTheme] = useState(theme ?? 'system')
 
     const isZhTW = language === 'zh-TW'
 
@@ -87,6 +91,7 @@ export function ProfileSettingsForm({
 
         if (!error) {
             await setLanguageCookie(language)
+            setTheme(selectedTheme)
         }
 
         setIsSaving(false)
@@ -165,7 +170,11 @@ export function ProfileSettingsForm({
                     </select>
                 </Field>
                 <Field label={isZhTW ? '顯示模式' : 'Display Mode'}>
-                    <ThemeSelector isZhTW={isZhTW} />
+                    <ThemeSelector
+                        isZhTW={isZhTW}
+                        value={selectedTheme}
+                        onChange={setSelectedTheme}
+                    />
                 </Field>
 
                 <Field label={isZhTW ? '重量單位' : 'Weight Unit'}>
@@ -303,7 +312,7 @@ function OnboardingModalWrapper({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="space-y-1">
-            <label className="text-sm font-medium">{label}</label>
+            <label className="text-sm font-medium text-ink">{label}</label>
             {children}
         </div>
     )
