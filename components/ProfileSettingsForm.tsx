@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { setLanguageCookie } from '@/lib/set-language-cookie'
 import type { WeightUnit } from '@/lib/weight-unit'
 import { DeleteAccountButton } from '@/components/DeleteAccountButton'
+import { ThemeSelector } from '@/components/ThemeSelector'
 
 interface ProfileSettingsFormProps {
     userId: string
@@ -162,6 +163,9 @@ export function ProfileSettingsForm({
                         <option value="en">English</option>
                         <option value="zh-TW">繁體中文</option>
                     </select>
+                </Field>
+                <Field label={isZhTW ? '顯示模式' : 'Display Mode'}>
+                    <ThemeSelector isZhTW={isZhTW} />
                 </Field>
 
                 <Field label={isZhTW ? '重量單位' : 'Weight Unit'}>
