@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* 告訴 Tailwind v4 用 .dark class 而不是 media query */
+@variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --color-background: #FAFAF8;
   --color-ink: #2B2B28;
@@ -8,12 +11,16 @@
   --color-plate-light: #3E3B34;
 }
 
-/* ── Light mode ── */
 body {
   background-color: #FAFAF8;
   color: #2B2B28;
   font-family: var(--font-body);
   overflow-x: hidden;
+}
+
+html.dark body {
+  background-color: #1A1814;
+  color: #EAE7E0;
 }
 
 h1,
@@ -30,66 +37,9 @@ h3 {
   padding-bottom: calc(5rem + env(safe-area-inset-bottom));
 }
 
-/* ══════════════════════════════════
-   DARK MODE
-══════════════════════════════════ */
-
-/* CSS 變數覆蓋——所有 text-ink/* 自動正確 */
-html.dark {
-  --color-ink: #EAE7E0;
-  --color-background: #1A1814;
-  color-scheme: dark;
-}
-
-html.dark body {
-  background-color: #1A1814;
-  color: #EAE7E0;
-}
-
 /* Cards */
 html.dark .bg-white {
   background-color: #2C2923 !important;
-}
-
-/* 繼承文字顏色 */
-html.dark h1,
-html.dark h2,
-html.dark h3,
-html.dark p,
-html.dark span,
-html.dark label,
-html.dark li {
-  color: inherit;
-}
-
-/* Tailwind 固定顏色覆蓋 */
-html.dark .text-gray-700 {
-  color: #DDD9D0 !important;
-}
-
-html.dark .text-gray-600 {
-  color: #C0BCB4 !important;
-}
-
-html.dark .text-gray-500 {
-  color: #A09C95 !important;
-}
-
-/* 淺色背景區塊 */
-html.dark .bg-ink\/\[0\.02\] {
-  background-color: rgba(255, 255, 255, 0.04) !important;
-}
-
-html.dark .bg-ink\/5 {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-}
-
-html.dark .bg-ink\/10 {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-html.dark .bg-plate\/10 {
-  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Borders */
@@ -113,6 +63,35 @@ html.dark .border-dashed {
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
+/* Tailwind 固定顏色 */
+html.dark .text-gray-700 {
+  color: #DDD9D0 !important;
+}
+
+html.dark .text-gray-600 {
+  color: #C0BCB4 !important;
+}
+
+html.dark .text-gray-500 {
+  color: #A09C95 !important;
+}
+
+html.dark .text-ink\/60 {
+  color: rgba(234, 231, 224, 0.6) !important;
+}
+
+html.dark .text-ink\/40 {
+  color: rgba(234, 231, 224, 0.4) !important;
+}
+
+html.dark .text-ink\/30 {
+  color: rgba(234, 231, 224, 0.3) !important;
+}
+
+html.dark .text-ink {
+  color: #EAE7E0 !important;
+}
+
 /* Inputs */
 html.dark input:not([type="checkbox"]),
 html.dark textarea,
@@ -127,8 +106,7 @@ html.dark textarea::placeholder {
   color: rgba(234, 231, 224, 0.35) !important;
 }
 
-
-/* Badge colors */
+/* Badge */
 html.dark .bg-yellow-50 {
   background-color: #3D300A !important;
 }
@@ -149,16 +127,16 @@ html.dark .text-red-800 {
   color: #F08080 !important;
 }
 
+html.dark .text-red-600 {
+  color: #F08080 !important;
+}
+
 html.dark .bg-green-100 {
   background-color: #0A3D0A !important;
 }
 
 html.dark .text-green-700 {
   color: #80F080 !important;
-}
-
-html.dark .text-red-600 {
-  color: #F08080 !important;
 }
 
 /* Recharts */
@@ -175,16 +153,8 @@ html.dark .animate-pulse {
   background-color: rgba(255, 255, 255, 0.06) !important;
 }
 
-/* 底部導覽 */
+/* Bottom nav */
 html.dark .bottom-nav {
   background-color: #2C2923 !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-html.dark .bottom-nav a {
-  color: rgba(234, 231, 224, 0.4);
-}
-
-html.dark .bottom-nav a.text-ink {
-  color: #EAE7E0 !important;
 }
