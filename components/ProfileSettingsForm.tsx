@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { setLanguageCookie } from '@/lib/set-language-cookie'
 import type { WeightUnit } from '@/lib/weight-unit'
+import { DeleteAccountButton } from '@/components/DeleteAccountButton'
 
 interface ProfileSettingsFormProps {
     userId: string
@@ -169,8 +170,8 @@ export function ProfileSettingsForm({
                             type="button"
                             onClick={() => setWeightUnit('kg')}
                             className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition-colors ${weightUnit === 'kg'
-                                    ? 'border-plate bg-plate text-chalk'
-                                    : 'border-ink/20 text-ink/60'
+                                ? 'border-plate bg-plate text-chalk'
+                                : 'border-ink/20 text-ink/60'
                                 }`}
                         >
                             kg
@@ -179,8 +180,8 @@ export function ProfileSettingsForm({
                             type="button"
                             onClick={() => setWeightUnit('lb')}
                             className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition-colors ${weightUnit === 'lb'
-                                    ? 'border-plate bg-plate text-chalk'
-                                    : 'border-ink/20 text-ink/60'
+                                ? 'border-plate bg-plate text-chalk'
+                                : 'border-ink/20 text-ink/60'
                                 }`}
                         >
                             lb
@@ -269,7 +270,7 @@ export function ProfileSettingsForm({
                     </div>
                 </div>
             </div>
-
+            <DeleteAccountButton isZhTW={isZhTW} />
             {showOnboarding && (
                 <OnboardingModalWrapper
                     userId={userId}
