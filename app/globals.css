@@ -1,8 +1,5 @@
 @import "tailwindcss";
 
-@variant dark (&:where(.dark, .dark *));
-
-/* 拿掉 inline——這樣 text-ink 會是 var(--color-ink)，runtime 可以改 */
 @theme {
   --color-background: #FAFAF8;
   --color-ink: #1A1814;
@@ -33,164 +30,154 @@ h3 {
 }
 
 /* ══════════════════════════════════
-   DARK MODE
+   DARK MODE — 跟系統走
 ══════════════════════════════════ */
 
-html.dark {
-  /* 改這兩個變數，所有 text-ink/* bg-background 自動跟著變 */
-  --color-ink: #EAE7E0;
-  --color-background: #1A1814;
-  color-scheme: dark;
-}
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #1A1814;
+    color: #EAE7E0;
+  }
 
-html.dark body {
-  background-color: #1A1814;
-  color: #EAE7E0;
-}
+  .bg-white {
+    background-color: #2C2923 !important;
+  }
 
-/* Cards */
-html.dark .bg-white {
-  background-color: #2C2923 !important;
-}
+  .bg-\[\#FAFAF8\],
+  .bg-\[\#F5F5F3\] {
+    background-color: #1A1814 !important;
+  }
 
-/* 淺色背景區塊 */
-html.dark .bg-ink\/\[0\.02\] {
-  background-color: rgba(255, 255, 255, 0.04) !important;
-}
+  .bg-ink\/\[0\.02\] {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+  }
 
-html.dark .bg-ink\/5 {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-}
+  .bg-ink\/5 {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+  }
 
-html.dark .bg-ink\/10 {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-}
+  .bg-ink\/10 {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+  }
 
-html.dark .bg-plate\/10 {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-}
+  .bg-plate\/10 {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+  }
 
-/* Borders */
-html.dark .border {
-  border-color: rgba(255, 255, 255, 0.12) !important;
-}
+  .border,
+  .border-ink\/10,
+  .border-t,
+  .border-b {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
 
-html.dark .border-ink\/10 {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
+  .border-dashed {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+  }
 
-html.dark .border-t {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
+  .border-gray-200 {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
 
-html.dark .border-b {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
+  .text-gray-700 {
+    color: #DDD9D0 !important;
+  }
 
-html.dark .border-dashed {
-  border-color: rgba(255, 255, 255, 0.2) !important;
-}
+  .text-gray-600 {
+    color: #C0BCB4 !important;
+  }
 
-html.dark .border-gray-200 {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
+  .text-gray-500 {
+    color: #A09C95 !important;
+  }
 
-/* Tailwind 固定顏色（不走變數的） */
-html.dark .text-gray-700 {
-  color: #DDD9D0 !important;
-}
+  .text-ink\/60 {
+    color: rgba(234, 231, 224, 0.6) !important;
+  }
 
-html.dark .text-gray-600 {
-  color: #C0BCB4 !important;
-}
+  .text-ink\/40 {
+    color: rgba(234, 231, 224, 0.4) !important;
+  }
 
-html.dark .text-gray-500 {
-  color: #A09C95 !important;
-}
+  .text-ink\/30 {
+    color: rgba(234, 231, 224, 0.3) !important;
+  }
 
-/* Inputs */
-html.dark input:not([type="checkbox"]),
-html.dark textarea,
-html.dark select {
-  background-color: #3A3733 !important;
-  color: #EAE7E0 !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-}
+  .text-ink {
+    color: #EAE7E0 !important;
+  }
 
-html.dark input::placeholder,
-html.dark textarea::placeholder {
-  color: rgba(234, 231, 224, 0.35) !important;
-}
+  input:not([type="checkbox"]),
+  textarea,
+  select {
+    background-color: #3A3733 !important;
+    color: #EAE7E0 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+  }
 
-/* Badge colors */
-html.dark .bg-yellow-50 {
-  background-color: #3D300A !important;
-}
+  input::placeholder,
+  textarea::placeholder {
+    color: rgba(234, 231, 224, 0.35) !important;
+  }
 
-html.dark .text-yellow-800 {
-  color: #F0C040 !important;
-}
+  .bg-yellow-50 {
+    background-color: #3D300A !important;
+  }
 
-html.dark .border-yellow-200 {
-  border-color: #6B5210 !important;
-}
+  .text-yellow-800 {
+    color: #F0C040 !important;
+  }
 
-html.dark .bg-orange-50 {
-  background-color: #3D200A !important;
-}
+  .border-yellow-200 {
+    border-color: #6B5210 !important;
+  }
 
-html.dark .text-orange-800 {
-  color: #F09040 !important;
-}
+  .bg-orange-50 {
+    background-color: #3D200A !important;
+  }
 
-html.dark .bg-red-50 {
-  background-color: #3D0A0A !important;
-}
+  .text-orange-800 {
+    color: #F09040 !important;
+  }
 
-html.dark .text-red-800 {
-  color: #F08080 !important;
-}
+  .bg-red-50 {
+    background-color: #3D0A0A !important;
+  }
 
-html.dark .text-red-600 {
-  color: #F08080 !important;
-}
+  .text-red-800 {
+    color: #F08080 !important;
+  }
 
-html.dark .border-red-200 {
-  border-color: #6B1010 !important;
-}
+  .text-red-600 {
+    color: #F08080 !important;
+  }
 
-html.dark .bg-green-100 {
-  background-color: #0A3D0A !important;
-}
+  .border-red-200 {
+    border-color: #6B1010 !important;
+  }
 
-html.dark .text-green-700 {
-  color: #80F080 !important;
-}
+  .bg-green-100 {
+    background-color: #0A3D0A !important;
+  }
 
-/* Recharts */
-html.dark .recharts-text {
-  fill: rgba(234, 231, 224, 0.6) !important;
-}
+  .text-green-700 {
+    color: #80F080 !important;
+  }
 
-html.dark .recharts-cartesian-grid line {
-  stroke: rgba(255, 255, 255, 0.06) !important;
-}
+  .recharts-text {
+    fill: rgba(234, 231, 224, 0.6) !important;
+  }
 
-/* Skeleton */
-html.dark .animate-pulse {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-}
+  .recharts-cartesian-grid line {
+    stroke: rgba(255, 255, 255, 0.06) !important;
+  }
 
-/* Bottom nav */
-html.dark .bottom-nav {
-  background-color: #2C2923 !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
+  .animate-pulse {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+  }
 
-html.dark .bg-plate {
-  opacity: 0.95;
-}
-
-html.dark .text-chalk {
-  color: #FFFFFF !important;
+  .bottom-nav {
+    background-color: #2C2923 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
 }

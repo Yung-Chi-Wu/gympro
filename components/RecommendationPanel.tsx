@@ -32,7 +32,7 @@ const SEVERITY_STYLES: Record<string, string> = {
     severe: 'bg-red-50 text-red-800 border-red-200',
 }
 
-const CHART_COLORS = ['#26241F', '#8A5A44', '#4A6B5A', '#5A6B8A', '#8A7A44', '#6B4A6B']
+const CHART_COLORS = ['#4A9EFF', '#FF6B6B', '#51CF66', '#FFD43B', '#CC5DE8', '#FF922B']
 
 interface StrengthHistoryPoint {
     label: string
