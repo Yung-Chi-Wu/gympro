@@ -16,12 +16,15 @@ export async function deleteAccount(): Promise<{ success: boolean; error?: strin
         process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
+    // 先刪除 auth user（會 cascade 清掉所有資料）
     const { error } = await adminClient.auth.admin.deleteUser(user.id)
 
     if (error) {
         return { success: false, error: error.message }
     }
 
+    // 刪完再登出
     await supabase.auth.signOut()
+
     return { success: true }
 }

@@ -16,6 +16,7 @@ export function DeleteAccountButton({ isZhTW }: DeleteAccountButtonProps) {
         setIsDeleting(true)
         setError(null)
 
+        // 直接呼叫 server action，裡面會自己處理登出
         const result = await deleteAccount()
 
         if (!result.success) {
@@ -24,7 +25,10 @@ export function DeleteAccountButton({ isZhTW }: DeleteAccountButtonProps) {
             return
         }
 
-        // 成功——client 自己導向
+        // 清掉 localStorage
+        localStorage.clear()
+
+        // 導向歡迎頁
         window.location.href = '/'
     }
 
