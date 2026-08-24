@@ -8,17 +8,6 @@
   --color-plate-light: #3E3B34;
 }
 
-/* Dark mode overrides */
-.dark {
-  --color-background: #1A1814;
-  --color-ink: #F0EEE7;
-}
-
-/* Dark mode card backgrounds - 一行解決所有 bg-white 的 card */
-.dark .bg-white {
-  background-color: #26241F;
-}
-
 body {
   background-color: var(--color-background);
   color: var(--color-ink);
@@ -32,11 +21,162 @@ h3 {
   font-family: var(--font-display);
 }
 
-/* iOS safe area support */
+/* ── iOS safe area ── */
 .bottom-nav {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
 .main-content {
   padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+}
+
+/* ══════════════════════════════
+   DARK MODE
+══════════════════════════════ */
+
+.dark {
+  --color-background: #1E1C19;
+  --color-ink: #EAE7E0;
+  color-scheme: dark;
+}
+
+/* Background */
+.dark body {
+  background-color: #1E1C19;
+  color: #EAE7E0;
+}
+
+/* Cards — 明顯比背景亮 */
+.dark .bg-white {
+  background-color: #2F2C27 !important;
+}
+
+/* 淺色背景區塊 */
+.dark .bg-ink\/\[0\.02\] {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+.dark .bg-ink\/5 {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.dark .bg-ink\/10 {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .bg-plate\/10 {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Borders */
+.dark .border {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark .border-ink\/10 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .border-t {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .border-b {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .border-dashed {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Text — 固定 Tailwind 顏色覆蓋 */
+.dark .text-gray-700 {
+  color: #E0DDD6 !important;
+}
+
+.dark .text-gray-600 {
+  color: #C4C1BA !important;
+}
+
+.dark .text-gray-500 {
+  color: #A8A59E !important;
+}
+
+.dark .text-gray-400 {
+  color: #8C8982 !important;
+}
+
+.dark .text-ink\/60 {
+  color: rgba(234, 231, 224, 0.6) !important;
+}
+
+.dark .text-ink\/40 {
+  color: rgba(234, 231, 224, 0.4) !important;
+}
+
+.dark .text-ink\/30 {
+  color: rgba(234, 231, 224, 0.3) !important;
+}
+
+/* Inputs */
+.dark input:not([type="checkbox"]),
+.dark textarea,
+.dark select {
+  background-color: #3A3733;
+  color: #EAE7E0;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: rgba(234, 231, 224, 0.4);
+}
+
+/* Severity badges */
+.dark .bg-yellow-50 {
+  background-color: #3D300A !important;
+  color: #F0C040 !important;
+  border-color: #6B5210 !important;
+}
+
+.dark .bg-orange-50 {
+  background-color: #3D200A !important;
+  color: #F09040 !important;
+  border-color: #6B3A10 !important;
+}
+
+.dark .bg-red-50 {
+  background-color: #3D0A0A !important;
+  color: #F08080 !important;
+  border-color: #6B1010 !important;
+}
+
+.dark .bg-green-100 {
+  background-color: #0A3D0A !important;
+  color: #80F080 !important;
+}
+
+/* Login/Signup form 背景 */
+.dark .rounded-lg.border {
+  background-color: #2F2C27;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Animate pulse skeleton */
+.dark .bg-ink\/10.animate-pulse {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Recharts 圖表文字 */
+.dark .recharts-text {
+  fill: rgba(234, 231, 224, 0.6) !important;
+}
+
+.dark .recharts-cartesian-grid line {
+  stroke: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* 白底區域分隔線 */
+.dark .divide-ink\/10>*+* {
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
