@@ -9,8 +9,8 @@
 }
 
 body {
-  background-color: var(--color-background);
-  color: var(--color-ink);
+  background-color: #FAFAF8;
+  color: #2B2B28;
   font-family: var(--font-body);
   overflow-x: hidden;
 }
@@ -21,7 +21,7 @@ h3 {
   font-family: var(--font-display);
 }
 
-/* ── iOS safe area ── */
+/* iOS safe area */
 .bottom-nav {
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -30,57 +30,38 @@ h3 {
   padding-bottom: calc(5rem + env(safe-area-inset-bottom));
 }
 
-/* ══════════════════════════════
+/* ══════════════════════
    DARK MODE
-══════════════════════════════ */
+══════════════════════ */
 
+/* 背景完全變暗 */
+.dark body,
 .dark {
-  --color-background: #1E1C19;
-  --color-ink: #EAE7E0;
-  color-scheme: dark;
-}
-
-/* Background */
-.dark body {
-  background-color: #1E1C19;
+  background-color: #1A1814;
   color: #EAE7E0;
 }
 
-/* Cards — 明顯比背景亮 */
+/* 主內容區 */
+.dark .bg-background,
+.dark [class*="bg-background"] {
+  background-color: #1A1814 !important;
+}
+
+/* Cards */
 .dark .bg-white {
-  background-color: #2F2C27 !important;
+  background-color: #2C2923 !important;
 }
 
-/* 淺色背景區塊 */
-.dark .bg-ink\/\[0\.02\] {
-  background-color: rgba(255, 255, 255, 0.04) !important;
-}
-
+/* 淺色背景 */
+.dark .bg-ink\/\[0\.02\],
 .dark .bg-ink\/5 {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-}
-
-.dark .bg-ink\/10 {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-.dark .bg-plate\/10 {
-  background-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
 /* Borders */
-.dark .border {
-  border-color: rgba(255, 255, 255, 0.12) !important;
-}
-
-.dark .border-ink\/10 {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-.dark .border-t {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
+.dark .border,
+.dark .border-ink\/10,
+.dark .border-t,
 .dark .border-b {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
@@ -89,21 +70,17 @@ h3 {
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
-/* Text — 固定 Tailwind 顏色覆蓋 */
+/* Text */
 .dark .text-gray-700 {
-  color: #E0DDD6 !important;
+  color: #DDD9D0 !important;
 }
 
 .dark .text-gray-600 {
-  color: #C4C1BA !important;
+  color: #C0BCB4 !important;
 }
 
 .dark .text-gray-500 {
-  color: #A8A59E !important;
-}
-
-.dark .text-gray-400 {
-  color: #8C8982 !important;
+  color: #A09C95 !important;
 }
 
 .dark .text-ink\/60 {
@@ -122,61 +99,58 @@ h3 {
 .dark input:not([type="checkbox"]),
 .dark textarea,
 .dark select {
-  background-color: #3A3733;
-  color: #EAE7E0;
-  border-color: rgba(255, 255, 255, 0.15);
+  background-color: #3A3733 !important;
+  color: #EAE7E0 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 .dark input::placeholder,
 .dark textarea::placeholder {
-  color: rgba(234, 231, 224, 0.4);
+  color: rgba(234, 231, 224, 0.35) !important;
 }
 
-/* Severity badges */
+/* Rounded cards with border */
+.dark .rounded-2xl,
+.dark .rounded-xl,
+.dark .rounded-lg {
+  background-color: #2C2923;
+}
+
+/* Override for elements that should stay dark */
+.dark .bg-plate,
+.dark .bg-plate-light,
+.dark header,
+.dark aside {
+  background-color: #26241F !important;
+}
+
+/* Badge colors */
 .dark .bg-yellow-50 {
   background-color: #3D300A !important;
-  color: #F0C040 !important;
-  border-color: #6B5210 !important;
 }
 
 .dark .bg-orange-50 {
   background-color: #3D200A !important;
-  color: #F09040 !important;
-  border-color: #6B3A10 !important;
 }
 
 .dark .bg-red-50 {
   background-color: #3D0A0A !important;
-  color: #F08080 !important;
-  border-color: #6B1010 !important;
 }
 
 .dark .bg-green-100 {
   background-color: #0A3D0A !important;
-  color: #80F080 !important;
 }
 
-/* Login/Signup form 背景 */
-.dark .rounded-lg.border {
-  background-color: #2F2C27;
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-/* Animate pulse skeleton */
-.dark .bg-ink\/10.animate-pulse {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-/* Recharts 圖表文字 */
+/* Recharts */
 .dark .recharts-text {
   fill: rgba(234, 231, 224, 0.6) !important;
 }
 
 .dark .recharts-cartesian-grid line {
-  stroke: rgba(255, 255, 255, 0.08) !important;
+  stroke: rgba(255, 255, 255, 0.06) !important;
 }
 
-/* 白底區域分隔線 */
-.dark .divide-ink\/10>*+* {
-  border-color: rgba(255, 255, 255, 0.1) !important;
+/* Skeleton */
+.dark .animate-pulse {
+  background-color: rgba(255, 255, 255, 0.06) !important;
 }

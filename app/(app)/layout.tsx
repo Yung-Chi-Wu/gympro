@@ -52,7 +52,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </aside>
 
                 {/* Main content */}
-                <main className="flex-1 overflow-y-auto bg-background">
+                <main className="flex-1 overflow-y-auto bg-[#FAFAF8] dark:bg-[#1A1814]">
                     <div className="max-w-3xl mx-auto px-8 py-8">
                         {children}
                     </div>
@@ -60,7 +60,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
 
             {/* ── Mobile: Top header + bottom nav ── */}
-            <div className="sm:hidden flex flex-col min-h-screen">
+            <div className="min-h-screen bg-[#FAFAF8] dark:bg-[#1A1814] text-ink">
                 <header className="bg-plate text-chalk px-4 py-3 flex items-center justify-between shrink-0">
                     <Link href="/dashboard">
                         <img src="/logo-horizontal.svg" alt="GymPro" className="h-7 w-auto" />
@@ -72,7 +72,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                     </div>
                 </header>
 
-                <main className="main-content flex-1 bg-background">
+                <main className="main-content flex-1 bg-[#FAFAF8] dark:bg-[#1A1814]">
                     <div className="px-4 py-6">
                         {children}
                     </div>
