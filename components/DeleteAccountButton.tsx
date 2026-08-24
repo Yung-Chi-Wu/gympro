@@ -15,12 +15,17 @@ export function DeleteAccountButton({ isZhTW }: DeleteAccountButtonProps) {
     async function handleDelete() {
         setIsDeleting(true)
         setError(null)
+
         const result = await deleteAccount()
-        if (result?.error) {
-            setError(result.error)
+
+        if (!result.success) {
+            setError(result.error ?? 'Something went wrong.')
             setIsDeleting(false)
+            return
         }
-        // 成功會被 redirect，不需要處理
+
+        // 成功——client 自己導向
+        window.location.href = '/'
     }
 
     return (
@@ -47,9 +52,7 @@ export function DeleteAccountButton({ isZhTW }: DeleteAccountButtonProps) {
                                 : 'This cannot be undone. All your workouts, routines, and AI reports will be permanently deleted.'}
                         </p>
 
-                        {error && (
-                            <p className="text-sm text-red-600">{error}</p>
-                        )}
+                        {error && <p className="text-sm text-red-600">{error}</p>}
 
                         <div className="flex gap-2">
                             <button
