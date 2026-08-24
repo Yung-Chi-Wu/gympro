@@ -9,8 +9,6 @@
 }
 
 body {
-  background-color: #FAFAF8;
-  color: #2B2B28;
   font-family: var(--font-body);
   overflow-x: hidden;
 }
@@ -34,34 +32,41 @@ h3 {
    DARK MODE
 ══════════════════════ */
 
-/* 背景完全變暗 */
-.dark body,
-.dark {
-  background-color: #1A1814;
-  color: #EAE7E0;
-}
-
-/* 主內容區 */
-.dark .bg-background,
-.dark [class*="bg-background"] {
-  background-color: #1A1814 !important;
-}
-
 /* Cards */
 .dark .bg-white {
   background-color: #2C2923 !important;
 }
 
-/* 淺色背景 */
-.dark .bg-ink\/\[0\.02\],
+/* 淺色背景區塊 */
+.dark .bg-ink\/\[0\.02\] {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
 .dark .bg-ink\/5 {
-  background-color: rgba(255, 255, 255, 0.05) !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.dark .bg-ink\/10 {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .bg-plate\/10 {
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Borders */
-.dark .border,
-.dark .border-ink\/10,
-.dark .border-t,
+.dark .border {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark .border-ink\/10 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .border-t {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
 .dark .border-b {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
@@ -70,7 +75,7 @@ h3 {
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
-/* Text */
+/* Tailwind 固定顏色覆蓋 */
 .dark .text-gray-700 {
   color: #DDD9D0 !important;
 }
@@ -95,6 +100,10 @@ h3 {
   color: rgba(234, 231, 224, 0.3) !important;
 }
 
+.dark .text-ink {
+  color: #EAE7E0 !important;
+}
+
 /* Inputs */
 .dark input:not([type="checkbox"]),
 .dark textarea,
@@ -107,21 +116,6 @@ h3 {
 .dark input::placeholder,
 .dark textarea::placeholder {
   color: rgba(234, 231, 224, 0.35) !important;
-}
-
-/* Rounded cards with border */
-.dark .rounded-2xl,
-.dark .rounded-xl,
-.dark .rounded-lg {
-  background-color: #2C2923;
-}
-
-/* Override for elements that should stay dark */
-.dark .bg-plate,
-.dark .bg-plate-light,
-.dark header,
-.dark aside {
-  background-color: #26241F !important;
 }
 
 /* Badge colors */

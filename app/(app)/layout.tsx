@@ -18,13 +18,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ]
 
     return (
-        <div className="min-h-screen bg-background text-ink">
+        <div className="min-h-screen bg-[#FAFAF8] dark:bg-[#1A1814] text-[#2B2B28] dark:text-[#EAE7E0]">
 
             {/* ── Desktop: Sidebar layout ── */}
             <div className="hidden sm:flex h-screen overflow-hidden">
 
                 {/* Sidebar */}
-                <aside className="w-56 shrink-0 flex flex-col bg-plate text-chalk h-screen sticky top-0 overflow-y-auto">
+                <aside className="w-56 shrink-0 flex flex-col bg-[#26241F] text-[#F5F3EC] h-screen sticky top-0 overflow-y-auto">
                     <div className="p-5 border-b border-white/10">
                         <Link href="/dashboard">
                             <img src="/logo-horizontal.svg" alt="GymPro" className="h-7 w-auto" />
@@ -60,8 +60,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
 
             {/* ── Mobile: Top header + bottom nav ── */}
-            <div className="min-h-screen bg-[#FAFAF8] dark:bg-[#1A1814] text-ink">
-                <header className="bg-plate text-chalk px-4 py-3 flex items-center justify-between shrink-0">
+            <div className="sm:hidden flex flex-col min-h-screen bg-[#FAFAF8] dark:bg-[#1A1814]">
+                <header className="bg-[#26241F] text-[#F5F3EC] px-4 py-3 flex items-center justify-between shrink-0">
                     <Link href="/dashboard">
                         <img src="/logo-horizontal.svg" alt="GymPro" className="h-7 w-auto" />
                     </Link>
@@ -80,7 +80,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
                 <BottomNav links={NAV_LINKS} />
             </div>
-
         </div>
     )
 }
