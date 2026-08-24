@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* 告訴 Tailwind v4 用 .dark class 而不是 media query */
+/* 讓 Tailwind v4 用 .dark class */
 @variant dark (&:where(.dark, .dark *));
 
 @theme inline {
@@ -11,16 +11,12 @@
   --color-plate-light: #3E3B34;
 }
 
+/* ── Light mode ── */
 body {
   background-color: #FAFAF8;
   color: #2B2B28;
   font-family: var(--font-body);
   overflow-x: hidden;
-}
-
-html.dark body {
-  background-color: #1A1814;
-  color: #EAE7E0;
 }
 
 h1,
@@ -37,9 +33,47 @@ h3 {
   padding-bottom: calc(5rem + env(safe-area-inset-bottom));
 }
 
+/* ══════════════════════════════════
+   DARK MODE
+══════════════════════════════════ */
+
+/* 覆蓋所有 CSS 變數——text-ink/* 全部自動變淺色 */
+html.dark {
+  --color-ink: #EAE7E0;
+  --color-background: #1A1814;
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #1A1814;
+  color: #EAE7E0;
+}
+
 /* Cards */
 html.dark .bg-white {
   background-color: #2C2923 !important;
+}
+
+/* 淺灰背景 */
+html.dark .bg-\[\#F5F5F3\] {
+  background-color: #26241F !important;
+}
+
+/* 淺色背景區塊 */
+html.dark .bg-ink\/\[0\.02\] {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+html.dark .bg-ink\/5 {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+html.dark .bg-ink\/10 {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark .bg-plate\/10 {
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Borders */
@@ -63,7 +97,11 @@ html.dark .border-dashed {
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
-/* Tailwind 固定顏色 */
+html.dark .border-gray-200 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Tailwind 固定顏色覆蓋 */
 html.dark .text-gray-700 {
   color: #DDD9D0 !important;
 }
@@ -76,20 +114,8 @@ html.dark .text-gray-500 {
   color: #A09C95 !important;
 }
 
-html.dark .text-ink\/60 {
-  color: rgba(234, 231, 224, 0.6) !important;
-}
-
-html.dark .text-ink\/40 {
-  color: rgba(234, 231, 224, 0.4) !important;
-}
-
-html.dark .text-ink\/30 {
-  color: rgba(234, 231, 224, 0.3) !important;
-}
-
-html.dark .text-ink {
-  color: #EAE7E0 !important;
+html.dark .text-gray-400 {
+  color: #807C76 !important;
 }
 
 /* Inputs */
@@ -106,7 +132,7 @@ html.dark textarea::placeholder {
   color: rgba(234, 231, 224, 0.35) !important;
 }
 
-/* Badge */
+/* Badge colors */
 html.dark .bg-yellow-50 {
   background-color: #3D300A !important;
 }
@@ -115,8 +141,16 @@ html.dark .text-yellow-800 {
   color: #F0C040 !important;
 }
 
+html.dark .border-yellow-200 {
+  border-color: #6B5210 !important;
+}
+
 html.dark .bg-orange-50 {
   background-color: #3D200A !important;
+}
+
+html.dark .text-orange-800 {
+  color: #F09040 !important;
 }
 
 html.dark .bg-red-50 {
@@ -129,6 +163,10 @@ html.dark .text-red-800 {
 
 html.dark .text-red-600 {
   color: #F08080 !important;
+}
+
+html.dark .border-red-200 {
+  border-color: #6B1010 !important;
 }
 
 html.dark .bg-green-100 {
@@ -150,11 +188,26 @@ html.dark .recharts-cartesian-grid line {
 
 /* Skeleton */
 html.dark .animate-pulse {
-  background-color: rgba(255, 255, 255, 0.06) !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Bottom nav */
 html.dark .bottom-nav {
   background-color: #2C2923 !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Login/Signup form */
+html.dark .rounded-lg.border {
+  background-color: #2C2923;
+}
+
+/* Sidebar gray bg */
+html.dark .bg-\[\#F5F5F3\] {
+  background-color: #26241F !important;
+}
+
+/* White bg sections in sidebar/header */
+html.dark .bg-\[#F5F5F3\] {
+  background-color: #26241F !important;
 }
