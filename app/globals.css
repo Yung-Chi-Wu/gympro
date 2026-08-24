@@ -19,7 +19,6 @@ h3 {
   font-family: var(--font-display);
 }
 
-/* iOS safe area */
 .bottom-nav {
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -28,123 +27,187 @@ h3 {
   padding-bottom: calc(5rem + env(safe-area-inset-bottom));
 }
 
-/* ══════════════════════
-   DARK MODE
-══════════════════════ */
+/* ══════════════════════════════════
+   DARK MODE — html.dark 提高優先度
+══════════════════════════════════ */
 
-/* Cards */
-.dark .bg-white {
+/* Cards — 白底變深色 */
+html.dark .bg-white {
   background-color: #2C2923 !important;
 }
 
+/* 所有文字顏色 */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  color: #EAE7E0;
+  background-color: #1A1814;
+}
+
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark p,
+html.dark span,
+html.dark label,
+html.dark li {
+  color: inherit;
+}
+
+/* 明確的 ink 顏色 class */
+html.dark .text-ink {
+  color: #EAE7E0 !important;
+}
+
+html.dark .text-ink\/60 {
+  color: rgba(234, 231, 224, 0.6) !important;
+}
+
+html.dark .text-ink\/40 {
+  color: rgba(234, 231, 224, 0.4) !important;
+}
+
+html.dark .text-ink\/30 {
+  color: rgba(234, 231, 224, 0.3) !important;
+}
+
+/* Tailwind 固定顏色 */
+html.dark .text-gray-700 {
+  color: #DDD9D0 !important;
+}
+
+html.dark .text-gray-600 {
+  color: #C0BCB4 !important;
+}
+
+html.dark .text-gray-500 {
+  color: #A09C95 !important;
+}
+
 /* 淺色背景區塊 */
-.dark .bg-ink\/\[0\.02\] {
+html.dark .bg-ink\/\[0\.02\] {
   background-color: rgba(255, 255, 255, 0.04) !important;
 }
 
-.dark .bg-ink\/5 {
+html.dark .bg-ink\/5 {
   background-color: rgba(255, 255, 255, 0.06) !important;
 }
 
-.dark .bg-ink\/10 {
+html.dark .bg-ink\/10 {
   background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-.dark .bg-plate\/10 {
+html.dark .bg-plate\/10 {
   background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Borders */
-.dark .border {
+html.dark .border {
   border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
-.dark .border-ink\/10 {
+html.dark .border-ink\/10 {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-.dark .border-t {
+html.dark .border-t {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-.dark .border-b {
+html.dark .border-b {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-.dark .border-dashed {
+html.dark .border-dashed {
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
-/* Tailwind 固定顏色覆蓋 */
-.dark .text-gray-700 {
-  color: #DDD9D0 !important;
-}
-
-.dark .text-gray-600 {
-  color: #C0BCB4 !important;
-}
-
-.dark .text-gray-500 {
-  color: #A09C95 !important;
-}
-
-.dark .text-ink\/60 {
-  color: rgba(234, 231, 224, 0.6) !important;
-}
-
-.dark .text-ink\/40 {
-  color: rgba(234, 231, 224, 0.4) !important;
-}
-
-.dark .text-ink\/30 {
-  color: rgba(234, 231, 224, 0.3) !important;
-}
-
-.dark .text-ink {
-  color: #EAE7E0 !important;
-}
-
 /* Inputs */
-.dark input:not([type="checkbox"]),
-.dark textarea,
-.dark select {
+html.dark input:not([type="checkbox"]),
+html.dark textarea,
+html.dark select {
   background-color: #3A3733 !important;
   color: #EAE7E0 !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
-.dark input::placeholder,
-.dark textarea::placeholder {
+html.dark input::placeholder,
+html.dark textarea::placeholder {
   color: rgba(234, 231, 224, 0.35) !important;
 }
 
+/* Sidebar/Header 保持深色 */
+html.dark .bg-plate {
+  background-color: #26241F !important;
+}
+
+html.dark aside {
+  background-color: #26241F !important;
+}
+
+html.dark header {
+  background-color: #26241F !important;
+}
+
 /* Badge colors */
-.dark .bg-yellow-50 {
+html.dark .bg-yellow-50 {
   background-color: #3D300A !important;
 }
 
-.dark .bg-orange-50 {
+html.dark .text-yellow-800 {
+  color: #F0C040 !important;
+}
+
+html.dark .bg-orange-50 {
   background-color: #3D200A !important;
 }
 
-.dark .bg-red-50 {
+html.dark .bg-red-50 {
   background-color: #3D0A0A !important;
 }
 
-.dark .bg-green-100 {
+html.dark .text-red-800 {
+  color: #F08080 !important;
+}
+
+html.dark .bg-green-100 {
   background-color: #0A3D0A !important;
 }
 
+html.dark .text-green-700 {
+  color: #80F080 !important;
+}
+
+html.dark .text-red-600 {
+  color: #F08080 !important;
+}
+
 /* Recharts */
-.dark .recharts-text {
+html.dark .recharts-text {
   fill: rgba(234, 231, 224, 0.6) !important;
 }
 
-.dark .recharts-cartesian-grid line {
+html.dark .recharts-cartesian-grid line {
   stroke: rgba(255, 255, 255, 0.06) !important;
 }
 
 /* Skeleton */
-.dark .animate-pulse {
+html.dark .animate-pulse {
   background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* 底部導覽 dark */
+html.dark .bottom-nav {
+  background-color: #2C2923 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.dark .bottom-nav a {
+  color: rgba(234, 231, 224, 0.4);
+}
+
+html.dark .bottom-nav a.text-ink {
+  color: #EAE7E0 !important;
 }
