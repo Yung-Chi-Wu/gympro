@@ -127,18 +127,6 @@ html.dark textarea::placeholder {
   color: rgba(234, 231, 224, 0.35) !important;
 }
 
-/* Sidebar/Header 保持深色 */
-html.dark .bg-plate {
-  background-color: #26241F !important;
-}
-
-html.dark aside {
-  background-color: #26241F !important;
-}
-
-html.dark header {
-  background-color: #26241F !important;
-}
 
 /* Badge colors */
 html.dark .bg-yellow-50 {

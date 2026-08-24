@@ -18,16 +18,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ]
 
     return (
-        <div className="min-h-screen bg-[#FAFAF8] dark:bg-[#1A1814] text-[#2B2B28] dark:text-[#EAE7E0]">
+        <div className="min-h-screen bg-white dark:bg-[#1A1814] text-[#2B2B28] dark:text-[#EAE7E0]">
 
-            {/* ── Desktop: Sidebar layout ── */}
+            {/* ── Desktop: Sidebar ── */}
             <div className="hidden sm:flex h-screen overflow-hidden">
 
-                {/* Sidebar */}
-                <aside className="w-56 shrink-0 flex flex-col bg-[#26241F] text-[#F5F3EC] h-screen sticky top-0 overflow-y-auto">
-                    <div className="p-5 border-b border-white/10">
+                <aside className="w-56 shrink-0 flex flex-col bg-[#F5F5F3] dark:bg-[#26241F] border-r border-gray-200 dark:border-white/10 h-screen sticky top-0 overflow-y-auto">
+                    <div className="p-5 border-b border-gray-200 dark:border-white/10">
                         <Link href="/dashboard">
-                            <img src="/logo-horizontal.svg" alt="GymPro" className="h-7 w-auto" />
+                            <img
+                                src="/logo-horizontal.svg"
+                                alt="GymPro"
+                                className="h-7 w-auto dark:block hidden"
+                            />
+                            <span className="font-bold text-lg tracking-wide text-[#26241F] dark:hidden">
+                                GYM<span className="font-light text-[#C8955A]">PRO</span>
+                            </span>
                         </Link>
                     </div>
 
@@ -42,7 +48,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                         ))}
                     </nav>
 
-                    <div className="p-4 border-t border-white/10 space-y-3">
+                    <div className="p-4 border-t border-gray-200 dark:border-white/10 space-y-3">
                         <div className="flex items-center gap-3">
                             <InAppLangToggle currentLocale={locale} />
                             <ThemeToggle />
@@ -51,7 +57,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                     </div>
                 </aside>
 
-                {/* Main content */}
                 <main className="flex-1 overflow-y-auto bg-[#FAFAF8] dark:bg-[#1A1814]">
                     <div className="max-w-3xl mx-auto px-8 py-8">
                         {children}
@@ -59,11 +64,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </main>
             </div>
 
-            {/* ── Mobile: Top header + bottom nav ── */}
+            {/* ── Mobile ── */}
             <div className="sm:hidden flex flex-col min-h-screen bg-[#FAFAF8] dark:bg-[#1A1814]">
-                <header className="bg-[#26241F] text-[#F5F3EC] px-4 py-3 flex items-center justify-between shrink-0">
+                <header className="bg-white dark:bg-[#26241F] border-b border-gray-200 dark:border-white/10 px-4 py-3 flex items-center justify-between shrink-0">
                     <Link href="/dashboard">
-                        <img src="/logo-horizontal.svg" alt="GymPro" className="h-7 w-auto" />
+                        <span className="font-bold text-lg tracking-wide text-[#26241F] dark:hidden">
+                            GYM<span className="font-light text-[#C8955A]">PRO</span>
+                        </span>
+                        <img
+                            src="/logo-horizontal.svg"
+                            alt="GymPro"
+                            className="h-7 w-auto hidden dark:block"
+                        />
                     </Link>
                     <div className="flex items-center gap-3">
                         <InAppLangToggle currentLocale={locale} />

@@ -19,7 +19,7 @@ export function InAppLangToggle({ currentLocale }: InAppLangToggleProps) {
         <button
             type="button"
             onClick={toggle}
-            className="text-xs font-medium text-chalk/50 hover:text-chalk transition-colors"
+            className="text-xs font-medium text-[#2B2B28]/50 dark:text-white/50 hover:text-[#2B2B28] dark:hover:text-white transition-colors"
         >
             {currentLocale === 'zh-TW' ? 'EN' : '繁中'}
         </button>
