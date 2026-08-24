@@ -81,7 +81,7 @@ function PeriodRow({ period, report, userId, language }: PeriodRowProps) {
     return (
         <div className="rounded-2xl border border-ink/10 bg-white shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-ink/10 bg-ink/[0.02]">
-                <p className="font-semibold text-sm">
+                <p className="font-semibold text-sm dark:text-white">
                     {formatDateRange(period.start, period.end, language)}
                 </p>
             </div>
@@ -141,12 +141,11 @@ function TrainingLogSection({
                 onClick={handleOpen}
                 className="flex w-full items-center justify-between px-4 py-3 text-sm text-left"
             >
-                <span className="font-medium text-ink/70">
+                <span className="font-medium text-ink/70 dark:text-white/70">
                     {zh ? '訓練日誌' : 'Training Log'}
                 </span>
-                <span className="text-ink/40 text-xs">{isOpen ? '▲' : '▼'}</span>
+                <span className="text-ink/40 dark:text-white/40 text-xs">{isOpen ? '▲' : '▼'}</span>
             </button>
-
             {isOpen && (
                 <div className="px-4 pb-4 space-y-3">
                     {loading && (
@@ -159,12 +158,12 @@ function TrainingLogSection({
                     )}
                     {!loading && workouts.map((workout) => (
                         <div key={workout.id} className="space-y-1">
-                            <p className="text-sm font-medium">
+                            <p className="text-sm font-medium dark:text-white/90">
                                 {formatDate(workout.performed_at, language)}
                                 {workout.title && ` — ${workout.title}`}
                             </p>
                             {workout.exercises.map((ex) => (
-                                <div key={ex.exerciseId} className="text-xs text-ink/60 pl-2">
+                                <div key={ex.exerciseId} className="text-xs text-ink/60 dark:text-white/60 pl-2">
                                     <span className="font-medium">{ex.name}</span>
                                     {ex.sets.length > 0 && (
                                         <>
@@ -211,7 +210,7 @@ function ReportSection({ report, language }: { report: ReportRow | null; languag
                 onClick={() => setIsOpen((v) => !v)}
                 className="flex w-full items-center justify-between px-4 py-3 text-sm text-left"
             >
-                <span className="font-medium text-ink/70">
+                <span className="font-medium text-ink/70 dark:text-white/70">
                     {zh ? '訓練報告' : 'Report'}
                     {isCompleted && (
                         <span className="ml-2 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
@@ -225,7 +224,7 @@ function ReportSection({ report, language }: { report: ReportRow | null; languag
             {isOpen && (
                 <div className="px-4 pb-4 space-y-4">
                     {!report && (
-                        <p className="text-sm text-ink/40">
+                        <p className="text-sm text-ink/40 dark:text-white/40">
                             {zh ? '這個週期沒有打卡紀錄。' : 'No check-in for this period.'}
                         </p>
                     )}
