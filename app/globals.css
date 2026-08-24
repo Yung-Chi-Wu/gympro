@@ -35,19 +35,20 @@ h3 {
    DARK MODE
 ══════════════════════════════════ */
 
-/* 這兩行是關鍵——覆蓋變數，所有 text-ink/* 自動正確 */
+/* html 直接設顏色——所有子元素透過繼承自動變白 */
 html.dark {
-  --color-ink: #EAE7E0;
-  --color-background: #1A1814;
-  color-scheme: dark;
-}
-
-html.dark body {
   background-color: #1A1814;
-  color: #EAE7E0;
+  color: #EAE7E0 !important;
+  color-scheme: dark;
+  --color-ink: #EAE7E0;
 }
 
-/* Cards */
+/* 強制所有文字繼承，除非有明確顏色 */
+html.dark *:not([class*="text-red"]):not([class*="text-green"]):not([class*="text-yellow"]):not([class*="text-orange"]):not([class*="text-plate"]):not([class*="text-chalk"]):not(.text-white) {
+  color: inherit;
+}
+
+/* Backgrounds */
 html.dark .bg-white {
   background-color: #2C2923 !important;
 }
@@ -58,6 +59,18 @@ html.dark .bg-\[\#FAFAF8\] {
 
 html.dark .bg-\[\#F5F5F3\] {
   background-color: #242220 !important;
+}
+
+html.dark body {
+  background-color: #1A1814 !important;
+}
+
+html.dark aside {
+  background-color: #1E1C19 !important;
+}
+
+html.dark header {
+  background-color: #1E1C19 !important;
 }
 
 /* 淺色背景區塊 */
@@ -100,19 +113,6 @@ html.dark .border-dashed {
 
 html.dark .border-gray-200 {
   border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-/* Tailwind 固定顏色（不走變數的） */
-html.dark .text-gray-700 {
-  color: #DDD9D0 !important;
-}
-
-html.dark .text-gray-600 {
-  color: #C0BCB4 !important;
-}
-
-html.dark .text-gray-500 {
-  color: #A09C95 !important;
 }
 
 /* Inputs */
@@ -192,13 +192,4 @@ html.dark .animate-pulse {
 html.dark .bottom-nav {
   background-color: #2C2923 !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-/* Sidebar */
-html.dark aside {
-  background-color: #1E1C19 !important;
-}
-
-html.dark header {
-  background-color: #1E1C19 !important;
 }
