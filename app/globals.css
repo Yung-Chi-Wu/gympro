@@ -186,3 +186,9 @@ html.dark .bottom-nav {
   background-color: #2C2923 !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
+
+/* 主要 CTA 按鈕在 dark mode 反白，更明顯 */
+html.dark .bg-plate:is(button, [type="submit"]) {
+  background-color: #F5F3EC !important;
+  color: #1A1814 !important;
+}

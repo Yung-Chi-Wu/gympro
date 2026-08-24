@@ -245,7 +245,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
                 />
                 <button
                     type="submit"
-                    className="rounded-md bg-plate px-4 py-2 font-display uppercase tracking-wide text-chalk hover:bg-plate-light"
+                    className="rounded-md bg-plate dark:bg-white dark:text-[#1A1814] px-4 py-2 font-display uppercase tracking-wide text-chalk dark:font-bold hover:opacity-90 transition-opacity"
                 >
                     {t('newRoutine')}
                 </button>

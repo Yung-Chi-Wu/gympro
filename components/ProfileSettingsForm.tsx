@@ -224,7 +224,7 @@ export function ProfileSettingsForm({
                 <button
                     type="submit"
                     disabled={isSaving}
-                    className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-50"
+                    className="rounded-md bg-plate dark:bg-white dark:text-[#1A1814] px-4 py-2 text-white font-medium disabled:opacity-50 hover:opacity-90 transition-opacity"
                 >
                     {isSaving
                         ? (isZhTW ? '儲存中...' : 'Saving...')
