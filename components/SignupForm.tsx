@@ -19,16 +19,15 @@ export function SignupForm({ locale }: SignupFormProps) {
     const [oauthLoading, setOauthLoading] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
+    const [needsVerification, setNeedsVerification] = useState(false)
+    const [resendSent, setResendSent] = useState(false)
 
     async function handleSignup(e: React.FormEvent) {
         e.preventDefault()
         setError(null)
         setIsSubmitting(true)
 
-        const { error: signupError } = await supabase.auth.signUp({
-            email,
-            password,
-        })
+        const { data, error: signupError } = await supabase.auth.signUp({ email, password })
 
         setIsSubmitting(false)
 
@@ -37,116 +36,118 @@ export function SignupForm({ locale }: SignupFormProps) {
             return
         }
 
+        // 如果需要 email 驗證
+        if (data?.user && !data.session) {
+            setNeedsVerification(true)
+            return
+        }
+
         setSuccess(true)
         setTimeout(() => router.push('/dashboard'), 1500)
+    }
+
+    async function handleResend() {
+        const { error } = await supabase.auth.resend({ type: 'signup', email })
+        if (!error) setResendSent(true)
     }
 
     async function handleOAuth(provider: 'google' | 'facebook') {
         setError(null)
         setOauthLoading(provider)
-
         const { error } = await supabase.auth.signInWithOAuth({
             provider,
-            options: {
-                redirectTo: `${window.location.origin}/auth/callback`,
-            },
+            options: { redirectTo: `${window.location.origin}/auth/callback` },
         })
-
         if (error) {
             setError(zh ? '登入失敗，請再試一次。' : 'Login failed. Please try again.')
             setOauthLoading(null)
         }
     }
 
+    if (needsVerification) {
+        return (
+            <div className="w-full max-w-sm space-y-4 rounded-lg border p-6 text-center">
+                <div className="text-4xl">📩</div>
+                <h1 className="text-xl font-bold">
+                    {zh ? '請驗證你的信箱' : 'Verify your email'}
+                </h1>
+                <p className="text-sm text-ink/60">
+                    {zh
+                        ? `我們已傳送驗證連結到 ${email}，請查看你的信箱再回來登入。`
+                        : `We sent a verification link to ${email}. Please check your inbox then come back to log in.`}
+                </p>
+                {resendSent ? (
+                    <p className="text-sm text-green-700">
+                        {zh ? '已重新傳送！' : 'Resent!'}
+                    </p>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={handleResend}
+                        className="text-sm text-plate underline"
+                    >
+                        {zh ? '重新傳送驗證信' : 'Resend verification email'}
+                    </button>
+                )}
+                <a href="/login" className="block text-sm text-ink/40 underline">
+                    {zh ? '回到登入頁' : 'Back to login'}
+                </a>
+            </div>
+        )
+    }
+
     if (success) {
         return (
             <div className="w-full max-w-sm space-y-4 rounded-lg border p-6 text-center">
-                <p className="text-lg font-medium">
-                    {zh ? '註冊成功！' : 'Account created!'}
-                </p>
-                <p className="text-sm text-ink/60">
-                    {zh ? '正在跳轉...' : 'Redirecting...'}
-                </p>
+                <p className="text-lg font-medium">{zh ? '註冊成功！' : 'Account created!'}</p>
+                <p className="text-sm text-ink/60">{zh ? '正在跳轉...' : 'Redirecting...'}</p>
             </div>
         )
     }
 
     return (
-        <form
-            onSubmit={handleSignup}
-            className="w-full max-w-sm space-y-4 rounded-lg border p-6"
-        >
+        <form onSubmit={handleSignup} className="w-full max-w-sm space-y-4 rounded-lg border p-6">
             <h1 className="text-2xl font-bold">
                 {zh ? '建立 GymPro 帳號' : 'Create your GymPro account'}
             </h1>
 
-            {error && (
-                <p role="alert" className="text-sm text-red-600">{error}</p>
-            )}
+            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
             <div className="space-y-1">
-                <label htmlFor="email" className="text-sm font-medium">
-                    {zh ? '電子郵件' : 'Email'}
-                </label>
-                <input
-                    id="email"
-                    type="email"
-                    required
-                    value={email}
+                <label htmlFor="email" className="text-sm font-medium">{zh ? '電子郵件' : 'Email'}</label>
+                <input id="email" type="email" required value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-md border px-3 py-2"
-                />
+                    className="w-full rounded-md border px-3 py-2" />
             </div>
 
             <div className="space-y-1">
-                <label htmlFor="password" className="text-sm font-medium">
-                    {zh ? '密碼' : 'Password'}
-                </label>
-                <input
-                    id="password"
-                    type="password"
-                    required
-                    minLength={6}
-                    value={password}
+                <label htmlFor="password" className="text-sm font-medium">{zh ? '密碼' : 'Password'}</label>
+                <input id="password" type="password" required minLength={6} value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-md border px-3 py-2"
-                />
-                <p className="text-xs text-ink/40">
-                    {zh ? '至少 6 個字元' : 'At least 6 characters'}
-                </p>
+                    className="w-full rounded-md border px-3 py-2" />
+                <p className="text-xs text-ink/40">{zh ? '至少 6 個字元' : 'At least 6 characters'}</p>
             </div>
 
-            <button
-                type="submit"
-                disabled={isSubmitting || !!oauthLoading}
-                className="w-full rounded-md bg-black py-2 text-white disabled:opacity-50"
-            >
+            <button type="submit" disabled={isSubmitting || !!oauthLoading}
+                className="w-full rounded-md bg-black py-2 text-white disabled:opacity-50">
                 {isSubmitting
                     ? (zh ? '註冊中...' : 'Signing up...')
                     : (zh ? '建立帳號' : 'Sign Up')}
             </button>
 
-            {/* 分隔線 */}
             <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-ink/10" />
                 </div>
                 <div className="relative flex justify-center text-xs text-ink/40">
-                    <span className="bg-white px-2">
-                        {zh ? '或' : 'or'}
-                    </span>
+                    <span className="bg-white px-2">{zh ? '或' : 'or'}</span>
                 </div>
             </div>
 
-            {/* OAuth 小圖示 */}
             <div className="flex justify-center gap-4">
-                <button
-                    type="button"
-                    onClick={() => handleOAuth('google')}
-                    disabled={!!oauthLoading}
+                <button type="button" onClick={() => handleOAuth('google')} disabled={!!oauthLoading}
                     aria-label="Continue with Google"
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 bg-white shadow-sm transition hover:bg-ink/5 disabled:opacity-50"
-                >
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 bg-white shadow-sm hover:bg-ink/5 disabled:opacity-50">
                     {oauthLoading === 'google' ? (
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-ink/20 border-t-ink" />
                     ) : (
@@ -159,13 +160,9 @@ export function SignupForm({ locale }: SignupFormProps) {
                     )}
                 </button>
 
-                <button
-                    type="button"
-                    onClick={() => handleOAuth('facebook')}
-                    disabled={!!oauthLoading}
+                <button type="button" onClick={() => handleOAuth('facebook')} disabled={!!oauthLoading}
                     aria-label="Continue with Facebook"
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 bg-white shadow-sm transition hover:bg-ink/5 disabled:opacity-50"
-                >
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 bg-white shadow-sm hover:bg-ink/5 disabled:opacity-50">
                     {oauthLoading === 'facebook' ? (
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-ink/20 border-t-[#1877F2]" />
                     ) : (
@@ -178,9 +175,7 @@ export function SignupForm({ locale }: SignupFormProps) {
 
             <p className="text-center text-sm">
                 {zh ? '已有帳號？' : 'Already have an account?'}{' '}
-                <a href="/login" className="underline">
-                    {zh ? '登入' : 'Log in'}
-                </a>
+                <a href="/login" className="underline">{zh ? '登入' : 'Log in'}</a>
             </p>
         </form>
     )

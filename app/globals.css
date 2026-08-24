@@ -6,9 +6,17 @@
   --color-chalk: #F5F3EC;
   --color-plate: #26241F;
   --color-plate-light: #3E3B34;
+}
 
-  --font-display: var(--font-display);
-  --font-mono: var(--font-mono);
+/* Dark mode overrides */
+.dark {
+  --color-background: #1A1814;
+  --color-ink: #F0EEE7;
+}
+
+/* Dark mode card backgrounds - 一行解決所有 bg-white 的 card */
+.dark .bg-white {
+  background-color: #26241F;
 }
 
 body {

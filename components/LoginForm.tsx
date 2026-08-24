@@ -18,26 +18,35 @@ export function LoginForm({ locale }: LoginFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [oauthLoading, setOauthLoading] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
+    const [needsVerification, setNeedsVerification] = useState(false)
+    const [resendSent, setResendSent] = useState(false)
 
     async function handleLogin(e: React.FormEvent) {
         e.preventDefault()
         setError(null)
+        setNeedsVerification(false)
         setIsSubmitting(true)
 
-        const { error: loginError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        })
+        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
 
         setIsSubmitting(false)
 
         if (loginError) {
-            setError(zh ? '登入失敗，請確認你的信箱和密碼。' : 'Login failed. Please check your email and password.')
+            if (loginError.message.toLowerCase().includes('email not confirmed')) {
+                setNeedsVerification(true)
+            } else {
+                setError(zh ? '登入失敗，請確認你的信箱和密碼。' : 'Login failed. Please check your email and password.')
+            }
             return
         }
 
         router.push('/dashboard')
         router.refresh()
+    }
+
+    async function handleResendVerification() {
+        const { error } = await supabase.auth.resend({ type: 'signup', email })
+        if (!error) setResendSent(true)
     }
 
     async function handleOAuth(provider: 'google' | 'facebook') {
@@ -46,9 +55,7 @@ export function LoginForm({ locale }: LoginFormProps) {
 
         const { error } = await supabase.auth.signInWithOAuth({
             provider,
-            options: {
-                redirectTo: `${window.location.origin}/auth/callback`,
-            },
+            options: { redirectTo: `${window.location.origin}/auth/callback` },
         })
 
         if (error) {
@@ -66,8 +73,27 @@ export function LoginForm({ locale }: LoginFormProps) {
                 {zh ? '登入 GymPro' : 'Log in to GymPro'}
             </h1>
 
-            {error && (
-                <p role="alert" className="text-sm text-red-600">{error}</p>
+            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+
+            {needsVerification && (
+                <div className="rounded-md bg-yellow-50 border border-yellow-200 p-3 space-y-2">
+                    <p className="text-sm text-yellow-800">
+                        {zh ? '你的信箱還未驗證，請查看你的信箱。' : 'Your email is not verified. Please check your inbox.'}
+                    </p>
+                    {resendSent ? (
+                        <p className="text-xs text-yellow-700">
+                            {zh ? '已重新傳送驗證信！' : 'Verification email resent!'}
+                        </p>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={handleResendVerification}
+                            className="text-xs text-yellow-800 underline"
+                        >
+                            {zh ? '重新傳送驗證信' : 'Resend verification email'}
+                        </button>
+                    )}
+                </div>
             )}
 
             <div className="space-y-1">
@@ -85,9 +111,14 @@ export function LoginForm({ locale }: LoginFormProps) {
             </div>
 
             <div className="space-y-1">
-                <label htmlFor="password" className="text-sm font-medium">
-                    {zh ? '密碼' : 'Password'}
-                </label>
+                <div className="flex items-center justify-between">
+                    <label htmlFor="password" className="text-sm font-medium">
+                        {zh ? '密碼' : 'Password'}
+                    </label>
+                    <a href="/forgot-password" className="text-xs text-ink/40 hover:text-ink underline">
+                        {zh ? '忘記密碼？' : 'Forgot password?'}
+                    </a>
+                </div>
                 <input
                     id="password"
                     type="password"
@@ -108,19 +139,15 @@ export function LoginForm({ locale }: LoginFormProps) {
                     : (zh ? '登入' : 'Log In')}
             </button>
 
-            {/* 分隔線 */}
             <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-ink/10" />
                 </div>
                 <div className="relative flex justify-center text-xs text-ink/40">
-                    <span className="bg-white px-2">
-                        {zh ? '或' : 'or'}
-                    </span>
+                    <span className="bg-white px-2">{zh ? '或' : 'or'}</span>
                 </div>
             </div>
 
-            {/* OAuth 小圖示 */}
             <div className="flex justify-center gap-4">
                 <button
                     type="button"
@@ -160,9 +187,7 @@ export function LoginForm({ locale }: LoginFormProps) {
 
             <p className="text-center text-sm">
                 {zh ? '還沒有帳號？' : "Don't have an account?"}{' '}
-                <a href="/signup" className="underline">
-                    {zh ? '立即註冊' : 'Sign up'}
-                </a>
+                <a href="/signup" className="underline">{zh ? '立即註冊' : 'Sign up'}</a>
             </p>
         </form>
     )
