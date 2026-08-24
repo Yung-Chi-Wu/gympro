@@ -294,9 +294,9 @@ function RecommendationDisplay({
                     <button
                         type="button"
                         onClick={() => setShowMore(true)}
-                        className="text-sm text-plate underline"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-plate px-4 py-2 text-sm font-medium text-chalk hover:bg-plate-light transition-colors"
                     >
-                        {t('readMore')}
+                        {t('readMore')} →
                     </button>
                 ) : (
                     <div className="space-y-5 pt-2">
@@ -355,7 +355,7 @@ function RecommendationDisplay({
                         <button
                             type="button"
                             onClick={() => setShowMore(false)}
-                            className="text-sm text-ink/40 underline"
+                            className="text-sm text-ink/50 dark:text-white/50 hover:text-ink dark:hover:text-white underline transition-colors"
                         >
                             {t('showLess')}
                         </button>

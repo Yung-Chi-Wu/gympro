@@ -169,8 +169,8 @@ export function ProfileSettingsForm({
                             type="button"
                             onClick={() => setWeightUnit('kg')}
                             className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition-colors ${weightUnit === 'kg'
-                                    ? 'border-plate bg-plate text-chalk'
-                                    : 'border-ink/20 text-ink/60'
+                                ? 'border-plate bg-plate text-chalk'
+                                : 'border-ink/20 text-ink/60'
                                 }`}
                         >
                             kg
@@ -179,8 +179,8 @@ export function ProfileSettingsForm({
                             type="button"
                             onClick={() => setWeightUnit('lb')}
                             className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition-colors ${weightUnit === 'lb'
-                                    ? 'border-plate bg-plate text-chalk'
-                                    : 'border-ink/20 text-ink/60'
+                                ? 'border-plate bg-plate text-chalk'
+                                : 'border-ink/20 text-ink/60'
                                 }`}
                         >
                             lb
@@ -200,11 +200,14 @@ export function ProfileSettingsForm({
                         }
                         className="w-full rounded-md border px-3 py-2"
                     />
-                    <p className="text-xs text-plate font-medium mt-1">
-                        {isZhTW
-                            ? '💡 設定目標後，AI 教練會根據你的目標給出更精準的建議。'
-                            : '💡 Setting a goal helps your AI coach give more targeted advice.'}
-                    </p>
+                    <div className="mt-2 flex items-start gap-2 rounded-lg bg-[#C8955A]/10 dark:bg-[#C8955A]/15 border border-[#C8955A]/30 px-3 py-2">
+                        <span className="text-base shrink-0">💡</span>
+                        <p className="text-xs text-[#8A5A30] dark:text-[#C8955A] font-medium">
+                            {isZhTW
+                                ? '設定目標後，AI 教練會根據你的目標給出更精準的建議。'
+                                : 'Setting a goal helps your AI coach give more targeted advice.'}
+                        </p>
+                    </div>
                 </Field>
 
                 {saveMessage && (

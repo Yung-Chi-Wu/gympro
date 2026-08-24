@@ -212,13 +212,19 @@ export function TodayWorkoutCard({
                     <button
                         type="button"
                         onClick={handleToggleUnit}
-                        className="flex rounded-lg border border-ink/20 overflow-hidden text-xs font-semibold"
+                        className="flex rounded-lg border-2 border-ink/20 dark:border-white/20 overflow-hidden text-xs font-bold shadow-sm"
                         aria-label={t('switchUnit')}
                     >
-                        <span className={`px-2.5 py-1 transition-colors ${weightUnit === 'kg' ? 'bg-plate text-chalk' : 'text-ink/40'}`}>
+                        <span className={`px-3 py-1.5 transition-colors ${weightUnit === 'kg'
+                                ? 'bg-plate text-chalk'
+                                : 'bg-transparent text-ink/50 dark:text-white/50 hover:text-ink dark:hover:text-white'
+                            }`}>
                             kg
                         </span>
-                        <span className={`px-2.5 py-1 transition-colors ${weightUnit === 'lb' ? 'bg-plate text-chalk' : 'text-ink/40'}`}>
+                        <span className={`px-3 py-1.5 transition-colors ${weightUnit === 'lb'
+                                ? 'bg-plate text-chalk'
+                                : 'bg-transparent text-ink/50 dark:text-white/50 hover:text-ink dark:hover:text-white'
+                            }`}>
                             lb
                         </span>
                     </button>

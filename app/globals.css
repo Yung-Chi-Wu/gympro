@@ -5,7 +5,7 @@
 /* 拿掉 inline——這樣 text-ink 會是 var(--color-ink)，runtime 可以改 */
 @theme {
   --color-background: #FAFAF8;
-  --color-ink: #2B2B28;
+  --color-ink: #1A1814;
   --color-chalk: #F5F3EC;
   --color-plate: #26241F;
   --color-plate-light: #3E3B34;
@@ -13,7 +13,7 @@
 
 body {
   background-color: #FAFAF8;
-  color: #2B2B28;
+  color: #1A1814;
   font-family: var(--font-body);
   overflow-x: hidden;
 }
