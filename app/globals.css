@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
-/* 讓 Tailwind v4 用 .dark class */
 @variant dark (&:where(.dark, .dark *));
 
-@theme inline {
+/* 拿掉 inline——這樣 text-ink 會是 var(--color-ink)，runtime 可以改 */
+@theme {
   --color-background: #FAFAF8;
   --color-ink: #2B2B28;
   --color-chalk: #F5F3EC;
@@ -11,7 +11,6 @@
   --color-plate-light: #3E3B34;
 }
 
-/* ── Light mode ── */
 body {
   background-color: #FAFAF8;
   color: #2B2B28;
@@ -37,8 +36,8 @@ h3 {
    DARK MODE
 ══════════════════════════════════ */
 
-/* 覆蓋所有 CSS 變數——text-ink/* 全部自動變淺色 */
 html.dark {
+  /* 改這兩個變數，所有 text-ink/* bg-background 自動跟著變 */
   --color-ink: #EAE7E0;
   --color-background: #1A1814;
   color-scheme: dark;
@@ -52,11 +51,6 @@ html.dark body {
 /* Cards */
 html.dark .bg-white {
   background-color: #2C2923 !important;
-}
-
-/* 淺灰背景 */
-html.dark .bg-\[\#F5F5F3\] {
-  background-color: #26241F !important;
 }
 
 /* 淺色背景區塊 */
@@ -101,7 +95,7 @@ html.dark .border-gray-200 {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Tailwind 固定顏色覆蓋 */
+/* Tailwind 固定顏色（不走變數的） */
 html.dark .text-gray-700 {
   color: #DDD9D0 !important;
 }
@@ -112,10 +106,6 @@ html.dark .text-gray-600 {
 
 html.dark .text-gray-500 {
   color: #A09C95 !important;
-}
-
-html.dark .text-gray-400 {
-  color: #807C76 !important;
 }
 
 /* Inputs */
@@ -195,19 +185,4 @@ html.dark .animate-pulse {
 html.dark .bottom-nav {
   background-color: #2C2923 !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-/* Login/Signup form */
-html.dark .rounded-lg.border {
-  background-color: #2C2923;
-}
-
-/* Sidebar gray bg */
-html.dark .bg-\[\#F5F5F3\] {
-  background-color: #26241F !important;
-}
-
-/* White bg sections in sidebar/header */
-html.dark .bg-\[#F5F5F3\] {
-  background-color: #26241F !important;
 }
