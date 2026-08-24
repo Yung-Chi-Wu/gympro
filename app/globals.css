@@ -8,7 +8,10 @@
   --color-plate-light: #3E3B34;
 }
 
+/* ── Light mode ── */
 body {
+  background-color: #FAFAF8;
+  color: #2B2B28;
   font-family: var(--font-body);
   overflow-x: hidden;
 }
@@ -28,24 +31,27 @@ h3 {
 }
 
 /* ══════════════════════════════════
-   DARK MODE — html.dark 提高優先度
+   DARK MODE
 ══════════════════════════════════ */
 
-/* Cards — 白底變深色 */
-html.dark .bg-white {
-  background-color: #2C2923 !important;
-}
-
-/* 所有文字顏色 */
+/* CSS 變數覆蓋——所有 text-ink/* 自動正確 */
 html.dark {
+  --color-ink: #EAE7E0;
+  --color-background: #1A1814;
   color-scheme: dark;
 }
 
 html.dark body {
-  color: #EAE7E0;
   background-color: #1A1814;
+  color: #EAE7E0;
 }
 
+/* Cards */
+html.dark .bg-white {
+  background-color: #2C2923 !important;
+}
+
+/* 繼承文字顏色 */
 html.dark h1,
 html.dark h2,
 html.dark h3,
@@ -56,24 +62,7 @@ html.dark li {
   color: inherit;
 }
 
-/* 明確的 ink 顏色 class */
-html.dark .text-ink {
-  color: #EAE7E0 !important;
-}
-
-html.dark .text-ink\/60 {
-  color: rgba(234, 231, 224, 0.6) !important;
-}
-
-html.dark .text-ink\/40 {
-  color: rgba(234, 231, 224, 0.4) !important;
-}
-
-html.dark .text-ink\/30 {
-  color: rgba(234, 231, 224, 0.3) !important;
-}
-
-/* Tailwind 固定顏色 */
+/* Tailwind 固定顏色覆蓋 */
 html.dark .text-gray-700 {
   color: #DDD9D0 !important;
 }
@@ -198,7 +187,7 @@ html.dark .animate-pulse {
   background-color: rgba(255, 255, 255, 0.06) !important;
 }
 
-/* 底部導覽 dark */
+/* 底部導覽 */
 html.dark .bottom-nav {
   background-color: #2C2923 !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
