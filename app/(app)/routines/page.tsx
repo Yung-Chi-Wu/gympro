@@ -112,13 +112,15 @@ export default async function RoutinesPage() {
 
     return (
         <div className="py-8 space-y-8">
-            <h1 className="text-3xl font-bold uppercase tracking-wide">{t('title')}</h1>
-            <CoachGEntry
-                hasRoutines={routineList.length > 0}
-                routineCount={routineList.length}
-                language={language}
-                trainingGoal={profile?.training_goal ?? null}
-            />
+            <div className="flex items-center justify-between gap-4">
+                <h1 className="text-3xl font-bold uppercase tracking-wide">{t('title')}</h1>
+                <CoachGEntry
+                    hasRoutines={routineList.length > 0}
+                    routineCount={routineList.length}
+                    language={language}
+                    trainingGoal={profile?.training_goal ?? null}
+                />
+            </div>
             {/* 桌面版兩欄，手機版單欄 */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-start">
 

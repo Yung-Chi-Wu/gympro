@@ -53,7 +53,7 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
     const [collected, setCollected] = useState<Record<string, string | string[] | null>>({})
     const bottomRef = useRef<HTMLDivElement>(null)
 
-    const STEP_KEYS = ['', 'days', 'duration', 'equipment', 'goals', 'level', 'injuries', 'focus']
+    const STEP_KEYS = ['', 'days', 'duration', 'equipment', 'goals', 'level', 'injuries', 'notes']
 
     useEffect(() => { startChat() }, [])
     useEffect(() => {

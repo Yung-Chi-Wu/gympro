@@ -51,8 +51,8 @@ export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal 
                 </div>
             ) : (
                 <button type="button" onClick={handleOpen}
-                    className="inline-flex items-center gap-2 rounded-lg border border-ink/20 dark:border-white/20 px-3 py-1.5 text-sm text-ink/60 dark:text-white/60 hover:border-[#C8955A] hover:text-[#C8955A] transition-colors">
-                    ✨ {zh ? 'Coach G 設計新課表' : 'Design with Coach G'}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#C8955A]/40 bg-[#C8955A]/8 px-3 py-1.5 text-sm font-medium text-[#C8955A] hover:bg-[#C8955A]/15 transition-colors shrink-0">
+                    ✨ {zh ? 'Coach G →' : 'Coach G →'}
                 </button>
             )}
 

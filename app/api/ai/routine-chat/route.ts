@@ -51,8 +51,8 @@ const QUESTIONS = {
     },
     {
       step: 7,
-      question: '有特別想加強的部位嗎？',
-      options: ['胸', '背', '肩', '手臂', '腿', '臀', '核心'],
+      question: '最後，還有什麼想告訴我的嗎？例如：不想做某些動作、想加強某個部位、或任何其他需求。',
+      options: [],
       multi_select: false,
       skippable: true,
     },
@@ -102,8 +102,8 @@ const QUESTIONS = {
     },
     {
       step: 7,
-      question: 'Any specific muscle group you want to focus on?',
-      options: ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Glutes', 'Core'],
+      question: 'Last question — anything else you want me to know? For example: exercises you dislike, muscle groups to prioritize, or any other preferences.',
+      options: [],
       multi_select: false,
       skippable: true,
     },

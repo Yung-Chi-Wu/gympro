@@ -11,7 +11,7 @@ interface CollectedInfo {
     goals: string[]
     level: string
     injuries: string | null
-    focus: string | null
+    notes: string | null
 }
 
 export async function POST(request: Request) {
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 - 目標：${collected.goals.join('、')}
 - 程度：${collected.level}
 - 受傷部位：${collected.injuries ?? '無'}
-- 想加強部位：${collected.focus ?? '無特別'}
+- 其他需求：${collected.notes ?? '無'}
 ${goalNote}`
         : `User info:
 - Cycle days: ${numDays} days (cycle_length MUST be ${numDays})
@@ -70,7 +70,7 @@ ${goalNote}`
 - Goals: ${collected.goals.join(', ')}
 - Level: ${collected.level}
 - Injuries: ${collected.injuries ?? 'None'}
-- Focus: ${collected.focus ?? 'No preference'}
+- Other notes: ${collected.notes ?? 'None'}
 ${goalNote}`
 
     const systemPrompt = zh
