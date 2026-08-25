@@ -24,12 +24,11 @@ interface CoachGResultProps {
     routines: GeneratedRoutine[]
     cycleLength: number
     language: string
-    replaceExisting: boolean
     onBack: () => void
     onSaved: () => void
 }
 
-export function CoachGResult({ routines, cycleLength, language, replaceExisting, onBack, onSaved }: CoachGResultProps) {
+export function CoachGResult({ routines, cycleLength, language, onBack, onSaved }: CoachGResultProps) {
     const zh = language === 'zh-TW'
     const router = useRouter()
     const [editableRoutines, setEditableRoutines] = useState<GeneratedRoutine[]>(routines)
@@ -88,7 +87,6 @@ export function CoachGResult({ routines, cycleLength, language, replaceExisting,
                     routines: editableRoutines,
                     cycleLength,
                     startDayIndex,
-                    replaceExisting,
                 }),
             })
 

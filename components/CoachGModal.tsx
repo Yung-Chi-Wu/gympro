@@ -26,12 +26,11 @@ interface GeneratedPlan {
 interface CoachGModalProps {
     language: string
     trainingGoal: string | null
-    replaceExisting: boolean
     onClose: () => void
     onSaved: () => void
 }
 
-export function CoachGModal({ language, trainingGoal, replaceExisting, onClose, onSaved }: CoachGModalProps) {
+export function CoachGModal({ language, trainingGoal, onClose, onSaved }: CoachGModalProps) {
     const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null)
 
     return (
@@ -42,7 +41,6 @@ export function CoachGModal({ language, trainingGoal, replaceExisting, onClose, 
                         routines={generatedPlan.routines}
                         cycleLength={generatedPlan.cycleLength}
                         language={language}
-                        replaceExisting={replaceExisting}
                         onBack={() => setGeneratedPlan(null)}
                         onSaved={onSaved}
                     />

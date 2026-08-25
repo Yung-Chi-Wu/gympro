@@ -14,7 +14,6 @@ export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal 
     const zh = language === 'zh-TW'
     const [showModal, setShowModal] = useState(false)
     const [showWarning, setShowWarning] = useState(false)
-    const [replaceExisting, setReplaceExisting] = useState(false)
 
     function handleOpen() {
         if (hasRoutines) {
@@ -24,20 +23,15 @@ export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal 
         }
     }
 
-    function handleWarningConfirm(replace: boolean) {
-        setReplaceExisting(replace)
-        setShowWarning(false)
-        setShowModal(true)
-    }
-
     function handleSaved() {
         setShowModal(false)
         window.location.reload()
     }
 
-    if (!hasRoutines) {
-        return (
-            <>
+    return (
+        <>
+            {/* 入口按鈕 */}
+            {!hasRoutines ? (
                 <div className="rounded-2xl border-2 border-dashed border-ink/20 p-8 text-center space-y-4">
                     <div className="text-4xl">🤖</div>
                     <div>
@@ -55,55 +49,69 @@ export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal 
                         ✨ {zh ? '讓 AI 幫我設計' : 'Design with AI'}
                     </button>
                 </div>
+            ) : (
+                <button type="button" onClick={handleOpen}
+                    className="inline-flex items-center gap-2 rounded-lg border border-ink/20 dark:border-white/20 px-3 py-1.5 text-sm text-ink/60 dark:text-white/60 hover:border-[#C8955A] hover:text-[#C8955A] transition-colors">
+                    ✨ {zh ? 'Coach G 設計新課表' : 'Design with Coach G'}
+                </button>
+            )}
 
-                {showModal && (
-                    <CoachGModal
-                        language={language}
-                        trainingGoal={trainingGoal}
-                        replaceExisting={replaceExisting}
-                        onClose={() => setShowModal(false)}
-                        onSaved={handleSaved}
-                    />
-                )}
-            </>
-        )
-    }
-
-    return (
-        <>
-            <button type="button" onClick={handleOpen}
-                className="inline-flex items-center gap-2 rounded-lg border border-ink/20 dark:border-white/20 px-3 py-1.5 text-sm text-ink/60 dark:text-white/60 hover:border-[#C8955A] hover:text-[#C8955A] transition-colors">
-                ✨ {zh ? 'Coach G 設計新課表' : 'Design with Coach G'}
-            </button>
-
-            {/* 既有課表警告 */}
+            {/* 警告 modal */}
             {showWarning && (
-                <div className="space-y-2">
-                    <p className="text-sm text-red-600 dark:text-red-400 font-medium">
-                        {zh
-                            ? '⚠️ 這會刪除你現有的所有課表和訓練循環'
-                            : '⚠️ This will delete all your existing routines and training cycle'}
-                    </p>
-                    <div className="flex gap-2">
-                        <button type="button"
-                            onClick={() => setShowWarning(false)}
-                            className="flex-1 rounded-xl border border-ink/20 dark:border-white/20 px-4 py-2.5 text-sm font-medium">
-                            {zh ? '取消' : 'Cancel'}
-                        </button>
-                        <button type="button"
-                            onClick={() => { setShowWarning(false); setShowModal(true) }}
-                            className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 transition-colors">
-                            {zh ? '確認，重新設計' : 'Confirm, redesign'}
-                        </button>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+                    <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-[#2C2923] p-6 shadow-xl space-y-5">
+                        {/* Header */}
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-sm shrink-0">
+                                G
+                            </div>
+                            <div>
+                                <p className="font-semibold text-sm">Coach G</p>
+                                <p className="text-xs text-ink/40">
+                                    {zh ? 'AI 課表設計師' : 'AI Routine Designer'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 說明 */}
+                        <div className="space-y-2">
+                            <p className="font-medium">
+                                {zh ? '重新設計課表' : 'Redesign your routine'}
+                            </p>
+                            <p className="text-sm text-ink/60">
+                                {zh
+                                    ? `你目前有 ${routineCount} 份課表。重新設計會刪除所有現有課表和訓練循環，讓 Coach G 從零幫你設計一套新的。`
+                                    : `You have ${routineCount} existing routine(s). Redesigning will delete all your current routines and training cycle so Coach G can build a fresh plan from scratch.`}
+                            </p>
+                            <div className="rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 px-3 py-2">
+                                <p className="text-xs text-red-600 dark:text-red-400">
+                                    ⚠️ {zh ? '此操作無法復原' : 'This action cannot be undone'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 按鈕 */}
+                        <div className="flex gap-2">
+                            <button type="button"
+                                onClick={() => setShowWarning(false)}
+                                className="flex-1 rounded-xl border border-ink/20 dark:border-white/20 px-4 py-2.5 text-sm font-medium hover:opacity-80 transition-opacity">
+                                {zh ? '取消' : 'Cancel'}
+                            </button>
+                            <button type="button"
+                                onClick={() => { setShowWarning(false); setShowModal(true) }}
+                                className="flex-1 rounded-xl bg-red-600 hover:bg-red-700 px-4 py-2.5 text-sm font-medium text-white transition-colors">
+                                {zh ? '確認，重新設計' : 'Confirm, redesign'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
 
+            {/* Coach G Modal */}
             {showModal && (
                 <CoachGModal
                     language={language}
                     trainingGoal={trainingGoal}
-                    replaceExisting={replaceExisting}
                     onClose={() => setShowModal(false)}
                     onSaved={handleSaved}
                 />

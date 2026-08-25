@@ -21,7 +21,9 @@ function buildChatPrompt(language: string, trainingGoal: string | null) {
 - 問題 6-7 是選填，skippable 必須是 true
 - 如果使用者對必答題說「跳過」或「沒有」，溫和提醒這題必須回答，重新給選項
 - 器材題（第3題）：如果使用者說沒有器材，引導選「徒手訓練」
-- 收集完 1-5 後（6-7 無論有沒有回答），立刻輸出 ready_to_generate
+- 必須依序問完 1-7 才能輸出 ready_to_generate
+- 問題 6 回答後，必須繼續問問題 7，不能跳過
+- 問題 7 回答後（或跳過後），才能輸出 ready_to_generate
 - 只輸出 JSON，不輸出任何其他文字
 - cycle_length 必須等於使用者指定的天數（例如使用者說 7 天，cycle_length 就是 7）
 - AI 可以自己決定哪幾天練、哪幾天休息，但 cycle_length 不能改變
@@ -55,7 +57,9 @@ Critical rules:
 - Questions 6-7 are optional, skippable must be true
 - If user tries to skip a required question, gently remind them it's required and re-show options
 - For equipment (Q3): if user says no equipment, guide them to select "Bodyweight"
-- After collecting 1-5 (regardless of 6-7 answers), immediately output ready_to_generate
+- MUST ask all 7 questions before outputting ready_to_generate
+- After question 6 is answered or skipped, MUST ask question 7
+- Only after question 7 is answered or skipped, output ready_to_generate
 - Output ONLY JSON, never plain text
 - cycle_length MUST equal the number of days the user specified (e.g. user says 7 days → cycle_length: 7)
 - AI decides which days to train and which to rest, but cycle_length cannot change

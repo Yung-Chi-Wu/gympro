@@ -123,6 +123,20 @@ export async function POST(request: Request) {
 
         savedRoutines.push({ id: routineData.id, name: routine.name })
     }
-
+    // 補上休息日（沒有課表的天數）
+    const assignedDays = new Set(routines.flatMap((r) => r.day_indices ?? []))
+    const restDayRows = []
+    for (let i = 1; i <= cycleLength; i++) {
+        if (!assignedDays.has(i)) {
+            restDayRows.push({
+                training_cycle_id: cycle.id,
+                day_index: i,
+                routine_id: null,
+            })
+        }
+    }
+    if (restDayRows.length > 0) {
+        await supabase.from('cycle_days').insert(restDayRows)
+    }
     return NextResponse.json({ success: true, routines: savedRoutines, cycleId: cycle.id })
 }
