@@ -16,14 +16,6 @@ interface ChatResponse {
     cycle_length?: number
 }
 
-interface GeneratedExercise {
-    exercise_name: string
-    exercise_name_zh_tw?: string
-    muscle_group: string
-    target_sets: number
-    target_reps: number
-}
-
 interface GeneratedRoutine {
     name: string
     name_zh_tw?: string
@@ -51,21 +43,19 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [options, setOptions] = useState<string[]>([])
-    const bottomRef = useRef<HTMLDivElement>(null)
     const [selectedOptions, setSelectedOptions] = useState<string[]>([])
     const [isMultiSelect, setIsMultiSelect] = useState(false)
+    const bottomRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        // 開場白
         startChat()
     }, [])
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages])
+    }, [messages, options])
 
     async function startChat() {
-        setIsLoading(true)
         const greeting: Message = {
             role: 'user',
             content: zh
@@ -79,24 +69,17 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
         setIsLoading(true)
         setOptions([])
         setSelectedOptions([])
+        setIsMultiSelect(false)
+
         try {
             const res = await fetch('/api/ai/routine-chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    messages: msgs,
-                    language,
-                    trainingGoal,
-                }),
+                body: JSON.stringify({ messages: msgs, language, trainingGoal }),
             })
 
             const data: ChatResponse = await res.json()
-
-            const assistantMsg: Message = {
-                role: 'assistant',
-                content: data.message,
-            }
-
+            const assistantMsg: Message = { role: 'assistant', content: data.message }
             setMessages([...msgs, assistantMsg])
 
             if (data.action === 'ask') {
@@ -107,11 +90,10 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                 onRoutinesGenerated(data.routines, data.cycle_length ?? data.routines.length)
             }
         } catch {
-            const errMsg: Message = {
+            setMessages((prev) => [...prev, {
                 role: 'assistant',
                 content: zh ? '發生錯誤，請再試一次。' : 'Something went wrong. Please try again.',
-            }
-            setMessages((prev) => [...prev, errMsg])
+            }])
         } finally {
             setIsLoading(false)
         }
@@ -125,6 +107,8 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
         const newMessages = [...messages, userMsg]
         setMessages(newMessages)
         setInput('')
+        setOptions([])
+        setSelectedOptions([])
 
         await sendMessage(newMessages)
     }
@@ -144,11 +128,8 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                         </p>
                     </div>
                 </div>
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="text-ink/40 hover:text-ink transition-colors"
-                >
+                <button type="button" onClick={onClose}
+                    className="text-ink/40 hover:text-ink transition-colors text-lg">
                     ✕
                 </button>
             </div>
@@ -163,8 +144,8 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                             </div>
                         )}
                         <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === 'user'
-                            ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
-                            : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
+                                ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
+                                : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
                             }`}>
                             {msg.content}
                         </div>
@@ -191,7 +172,12 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
 
             {/* Options */}
             {options.length > 0 && !isLoading && (
-                <div className="px-4 pb-3 space-y-2">
+                <div className="px-4 pb-2 space-y-2">
+                    {isMultiSelect && (
+                        <p className="text-xs text-ink/40">
+                            {zh ? '可以多選，選完按確認' : 'Select multiple, then confirm'}
+                        </p>
+                    )}
                     <div className="flex flex-wrap gap-2">
                         {options.map((opt, i) => {
                             const isSelected = selectedOptions.includes(opt)
@@ -201,14 +187,12 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                                     type="button"
                                     onClick={() => {
                                         if (isMultiSelect) {
-                                            // 多選——切換選取狀態
                                             setSelectedOptions((prev) =>
                                                 prev.includes(opt)
                                                     ? prev.filter((o) => o !== opt)
                                                     : [...prev, opt]
                                             )
                                         } else {
-                                            // 單選——直接送出
                                             handleSend(opt)
                                         }
                                     }}
@@ -223,44 +207,30 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                         })}
                     </div>
 
-                    {/* 多選才顯示確認和跳過 */}
-                    {isMultiSelect && (
-                        <div className="flex gap-2">
-                            {selectedOptions.length > 0 && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        handleSend(selectedOptions.join('、'))
-                                        setSelectedOptions([])
-                                    }}
-                                    className="rounded-lg bg-plate dark:bg-white px-4 py-1.5 text-xs font-semibold text-chalk dark:text-[#1A1814] hover:opacity-90 transition-opacity"
-                                >
-                                    {zh ? `確認（${selectedOptions.length}）` : `Confirm (${selectedOptions.length})`}
-                                </button>
-                            )}
+                    <div className="flex gap-2">
+                        {isMultiSelect && selectedOptions.length > 0 && (
                             <button
                                 type="button"
                                 onClick={() => {
-                                    handleSend(zh ? '跳過' : 'Skip')
+                                    handleSend(selectedOptions.join('、'))
                                     setSelectedOptions([])
                                 }}
-                                className="rounded-lg border border-ink/20 dark:border-white/20 px-4 py-1.5 text-xs text-ink/50 dark:text-white/50 hover:text-ink dark:hover:text-white transition-colors"
+                                className="rounded-lg bg-plate dark:bg-white px-4 py-1.5 text-xs font-semibold text-chalk dark:text-[#1A1814] hover:opacity-90 transition-opacity"
                             >
-                                {zh ? '跳過 / 沒有' : 'Skip / None'}
+                                {zh ? `確認（${selectedOptions.length}）` : `Confirm (${selectedOptions.length})`}
                             </button>
-                        </div>
-                    )}
-
-                    {/* 單選也有跳過 */}
-                    {!isMultiSelect && (
+                        )}
                         <button
                             type="button"
-                            onClick={() => handleSend(zh ? '跳過' : 'Skip')}
-                            className="text-xs text-ink/30 dark:text-white/30 hover:text-ink/60 dark:hover:text-white/60 transition-colors"
+                            onClick={() => {
+                                handleSend(zh ? '跳過' : 'Skip')
+                                setSelectedOptions([])
+                            }}
+                            className="rounded-lg border border-ink/20 dark:border-white/20 px-4 py-1.5 text-xs text-ink/50 dark:text-white/50 hover:text-ink dark:hover:text-white transition-colors"
                         >
                             {zh ? '跳過 / 沒有' : 'Skip / None'}
                         </button>
-                    )}
+                    </div>
                 </div>
             )}
 
@@ -271,8 +241,12 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                        placeholder={zh ? '或直接輸入你的情況...' : 'Or type your situation...'}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSend() }}
+                        placeholder={
+                            options.length > 0
+                                ? (zh ? '也可以直接打字回答...' : 'Or type your answer...')
+                                : (zh ? '輸入你的情況...' : 'Type your answer...')
+                        }
                         disabled={isLoading}
                         className="flex-1 rounded-xl border border-ink/20 dark:border-white/20 px-3 py-2 text-sm bg-transparent disabled:opacity-50"
                     />
