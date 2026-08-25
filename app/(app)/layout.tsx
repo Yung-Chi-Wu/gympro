@@ -24,9 +24,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                         {/* Sidebar logo */}
                         <Link href="/dashboard">
                             <img src="/logo-horizontal-light.svg" alt="GymPro"
-                                className="h-8 w-auto block dark:hidden" />
+                                className="h-9 w-auto block dark:hidden" />
                             <img src="/logo-horizontal-dark.svg" alt="GymPro"
-                                className="h-8 w-auto hidden dark:block" />
+                                className="h-9 w-auto hidden dark:block" />
                         </Link>
                     </div>
 
