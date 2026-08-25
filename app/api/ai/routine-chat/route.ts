@@ -6,65 +6,91 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 })
 
-const SYSTEM_PROMPT = `You are Coach G, an expert fitness coach and program designer for GymPro app.
+function buildSystemPrompt(language: string, exercises: { id: string; name: string; name_zh_tw: string | null; muscle_group: string }[], trainingGoal: string | null) {
+  const zh = language === 'zh-TW'
 
-Your job is to design a personalized training routine through friendly conversation.
-Ask ONE question at a time. Keep messages short and encouraging.
+  // 按肌群整理動作清單
+  const byMuscle: Record<string, string[]> = {}
+  for (const ex of exercises) {
+    if (!byMuscle[ex.muscle_group]) byMuscle[ex.muscle_group] = []
+    const label = zh && ex.name_zh_tw
+      ? `{"id":"${ex.id}","name":"${ex.name}","zh":"${ex.name_zh_tw}"}`
+      : `{"id":"${ex.id}","name":"${ex.name}"}`
+    byMuscle[ex.muscle_group].push(label)
+  }
 
-You must collect these details (in order):
-1. Days per week available
-2. Session duration
-3. Equipment available (can be multiple: barbell, dumbbells, machines, cables, bodyweight)
-4. Primary goal
-5. Training experience level
-6. Any injuries or areas to avoid
-7. Muscle groups to prioritize (optional)
-8. Any other preferences (optional - ask this last)
+  const exerciseList = Object.entries(byMuscle)
+    .map(([group, exs]) => `${group}: [${exs.join(',')}]`)
+    .join('\n')
 
-Rules:
-- Always provide clickable options with your question (3-6 options max)
-- Also accept free text answers
-- Be encouraging and professional
-- Reference previous answers to show you're listening
-- When you have enough info (at minimum: days, equipment, goal, level), generate the routine
+  const goalNote = trainingGoal ? (zh
+    ? `\n\n使用者的長期訓練目標：「${trainingGoal}」`
+    : `\n\nUser's long-term training goal: "${trainingGoal}"`) : ''
 
-CRITICAL: You must ONLY output valid JSON. Never output plain text. Never add explanation outside the JSON.
+  if (zh) {
+    return `你是 Coach G，GymPro 的專業健身教練和課表設計師。
 
-When still gathering info output ONLY this JSON:
-{"action":"ask","message":"your question here","options":["Option 1","Option 2","Option 3"]}
+你的工作是透過友善的對話為使用者設計個人化訓練課表。每次只問一個問題。
 
-When ready to generate output ONLY this JSON:
-{"action":"generate_routine","message":"brief encouraging summary","routines":[{"name":"Push Day","name_zh_tw":"推日","exercises":[{"exercise_name":"Barbell Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
-
-const SYSTEM_PROMPT_ZH = `你是 Coach G，GymPro 的專業健身教練和課表設計師。
-
-你的工作是透過友善的對話為使用者設計個人化訓練課表。
-每次只問一個問題，回答要簡短且鼓勵性。
-
-你必須依序收集這些資訊：
-1. 每週可以訓練幾天
+你必須依序收集：
+1. 每週訓練天數
 2. 每次訓練時長
 3. 可用器材（可多選：槓鈴、啞鈴、健身房器械、纜繩/滑輪、徒手）
-4. 主要訓練目標
-5. 訓練程度
-6. 有沒有受傷或要避開的部位
-7. 特別想加強的部位（選填）
-8. 其他偏好（選填，最後問）
+4. 主要目標（增肌/增強力量/減脂/維持體能）
+5. 訓練程度（新手/中階/進階）
+6. 受傷或要避開的部位（可跳過）
+7. 特別想加強的部位（可跳過）
 
-規則：
-- 每個問題都要提供可點選的選項（3-6個）
-- 同時接受自由文字回答
-- 語氣要專業且鼓勵
-- 引用之前的回答表示你在認真聽
-- 收集到足夠資訊後（至少：天數、器材、目標、程度）就生成課表
+收集完成後，根據下方資料庫動作清單設計課表。
 
-重要：只能輸出 JSON，絕對不能輸出純文字，不能在 JSON 外面加任何說明。
+⚠️ 重要規則：
+- 只能使用下方清單裡的動作，必須用正確的 exercise_id
+- 每個課表名稱必須提供中文（name_zh_tw）
+- 必須指定每個課表對應循環的哪幾天（day_indices）
+- cycle_length 必須是合理的循環天數（通常比訓練天數多1-2天休息日）
+- 只輸出 JSON，不要輸出任何其他文字${goalNote}
 
-還在收集資訊時只輸出這個 JSON：
-{"action":"ask","message":"你的問題","options":["選項1","選項2","選項3"]}
+可用動作清單（只能用這些）：
+${exerciseList}
 
-準備生成課表時只輸出這個 JSON：
-{"action":"generate_routine","message":"簡短鼓勵的說明","routines":[{"name":"Push Day","name_zh_tw":"推日","exercises":[{"exercise_name":"Barbell Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
+還在收集資訊時只輸出：
+{"action":"ask","message":"問題內容","options":["選項1","選項2"]}
+
+準備生成課表時只輸出：
+{"action":"generate_routine","message":"鼓勵性說明","cycle_length":6,"routines":[{"name":"Push Day A","name_zh_tw":"推日 A","day_indices":[1,4],"exercises":[{"exercise_id":"實際uuid","exercise_name":"Barbell Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
+  }
+
+  return `You are Coach G, an expert fitness coach for GymPro app.
+
+Design a personalized training routine through friendly conversation. Ask ONE question at a time.
+
+Collect in order:
+1. Days per week
+2. Session duration
+3. Equipment (multi-select: barbell, dumbbells, machines, cables, bodyweight)
+4. Primary goal (muscle gain/strength/fat loss/fitness)
+5. Experience level (beginner/intermediate/advanced)
+6. Injuries or areas to avoid (skippable)
+7. Muscle groups to prioritize (skippable)
+
+After collecting info, design the routine using ONLY the exercises from the database below.
+
+⚠️ Critical rules:
+- ONLY use exercises from the list below with their exact exercise_id
+- Provide Chinese names (name_zh_tw) for all routines and exercises
+- Specify which cycle days each routine falls on (day_indices)
+- cycle_length should include rest days (usually training days + 1-2 rest days)
+- Output ONLY JSON, never plain text${goalNote}
+
+Available exercises (MUST use exact exercise_id):
+${exerciseList}
+
+While collecting info output ONLY:
+{"action":"ask","message":"your question","options":["Option 1","Option 2"]}
+
+When generating output ONLY:
+{"action":"generate_routine","message":"encouraging summary","cycle_length":6,"routines":[{"name":"Push Day A","name_zh_tw":"推日 A","day_indices":[1,4],"exercises":[{"exercise_id":"actual-uuid","exercise_name":"Barbell Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
+}
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -73,17 +99,20 @@ export async function POST(request: Request) {
 
   const { messages, language, trainingGoal } = await request.json()
 
-  const systemPrompt = language === 'zh-TW' ? SYSTEM_PROMPT_ZH : SYSTEM_PROMPT
+  // 從資料庫拿動作清單
+  const { data: exercises } = await supabase
+    .from('exercises')
+    .select('id, name, name_zh_tw, muscle_group')
+    .order('muscle_group')
+    .order('name')
 
-  const contextNote = trainingGoal
-    ? `\n\nUser's long-term training goal from their profile: "${trainingGoal}"`
-    : ''
+  const systemPrompt = buildSystemPrompt(language, exercises ?? [], trainingGoal)
 
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
-      system: systemPrompt + contextNote,
+      system: systemPrompt,
       messages,
     })
 
@@ -91,29 +120,26 @@ export async function POST(request: Request) {
       ? response.content[0].text.trim()
       : ''
 
-    // 嘗試解析 JSON——找第一個 { 到最後一個 }
     const startIdx = rawText.indexOf('{')
     const endIdx = rawText.lastIndexOf('}')
 
     if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
-      const jsonStr = rawText.slice(startIdx, endIdx + 1)
       try {
-        const parsed = JSON.parse(jsonStr)
+        const parsed = JSON.parse(rawText.slice(startIdx, endIdx + 1))
         if (parsed.action && parsed.message) {
           return NextResponse.json(parsed)
         }
       } catch {
-        // JSON 解析失敗，繼續
+        // 繼續
       }
     }
 
-    // 解析失敗——回傳錯誤提示讓 AI 重試
     const zh = language === 'zh-TW'
     return NextResponse.json({
       action: 'ask',
       message: zh
-        ? '抱歉，我剛才的回應出了點問題，請再說一次。'
-        : 'Sorry, something went wrong with my response. Could you repeat that?',
+        ? '抱歉，我剛才的回應有點問題，可以再說一次嗎？'
+        : 'Sorry, something went wrong. Could you repeat that?',
       options: [],
     })
 
@@ -121,9 +147,7 @@ export async function POST(request: Request) {
     console.error('Coach G error:', err)
     return NextResponse.json({
       action: 'ask',
-      message: language === 'zh-TW'
-        ? '發生錯誤，請稍後再試。'
-        : 'Something went wrong. Please try again.',
+      message: language === 'zh-TW' ? '發生錯誤，請稍後再試。' : 'Something went wrong. Please try again.',
       options: [],
     }, { status: 500 })
   }

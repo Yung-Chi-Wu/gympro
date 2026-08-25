@@ -12,6 +12,7 @@ interface ChatResponse {
     message: string
     options?: string[]
     routines?: GeneratedRoutine[]
+    cycle_length?: number
 }
 
 interface GeneratedExercise {
@@ -25,13 +26,21 @@ interface GeneratedExercise {
 interface GeneratedRoutine {
     name: string
     name_zh_tw?: string
-    exercises: GeneratedExercise[]
+    day_indices: number[]
+    exercises: {
+        exercise_id: string
+        exercise_name: string
+        exercise_name_zh_tw?: string
+        muscle_group: string
+        target_sets: number
+        target_reps: number
+    }[]
 }
 
 interface CoachGChatProps {
     language: string
     trainingGoal: string | null
-    onRoutinesGenerated: (routines: GeneratedRoutine[]) => void
+    onRoutinesGenerated: (routines: GeneratedRoutine[], cycleLength: number) => void
     onClose: () => void
 }
 
@@ -91,7 +100,7 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
             if (data.action === 'ask') {
                 setOptions(data.options ?? [])
             } else if (data.action === 'generate_routine' && data.routines) {
-                onRoutinesGenerated(data.routines)
+                onRoutinesGenerated(data.routines, data.cycle_length ?? data.routines.length)
             }
         } catch {
             const errMsg: Message = {
