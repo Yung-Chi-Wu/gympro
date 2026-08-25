@@ -87,6 +87,7 @@ export function CoachGResult({ routines, cycleLength, language, onBack, onSaved 
                     routines: editableRoutines,
                     cycleLength,
                     startDayIndex,
+                    language,
                 }),
             })
 

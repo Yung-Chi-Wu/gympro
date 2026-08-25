@@ -26,10 +26,12 @@ export async function POST(request: Request) {
         routines,
         cycleLength,
         startDayIndex,
+        language,
     }: {
         routines: Routine[]
         cycleLength: number
         startDayIndex: number
+        language: string
     } = await request.json()
 
     // 防呆：cycle_length 至少要涵蓋所有 day_indices
@@ -87,9 +89,13 @@ export async function POST(request: Request) {
     const savedRoutines = []
 
     for (const routine of routines) {
+        const routineName = language === 'zh-TW' && routine.name_zh_tw
+            ? routine.name_zh_tw
+            : routine.name
+
         const { data: routineData, error: routineError } = await supabase
             .from('routines')
-            .insert({ user_id: user.id, name: routine.name })
+            .insert({ user_id: user.id, name: routineName })
             .select('id')
             .single()
 
