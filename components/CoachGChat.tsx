@@ -91,8 +91,11 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
             })
 
             const data: ChatResponse = await res.json()
-            const assistantMsg: Message = { role: 'assistant', content: data.message }
-            setMessages([...msgs, assistantMsg])
+            // ready_to_generate 不顯示訊息，直接進入生成
+            if (data.action !== 'ready_to_generate') {
+                const assistantMsg: Message = { role: 'assistant', content: data.message }
+                setMessages([...msgs, assistantMsg])
+            }
 
             if (data.action === 'ask') {
                 setOptions(data.options ?? [])
@@ -172,8 +175,8 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                             <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 mt-1 shrink-0">G</div>
                         )}
                         <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === 'user'
-                                ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
-                                : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
+                            ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
+                            : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
                             }`}>
                             {msg.content}
                         </div>
@@ -242,8 +245,8 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                                         }
                                     }}
                                     className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${isMultiSelect && isSelected
-                                            ? 'bg-plate dark:bg-white border-plate dark:border-white text-chalk dark:text-[#1A1814]'
-                                            : 'border-ink/20 dark:border-white/20 hover:border-ink/40 dark:hover:border-white/40'
+                                        ? 'bg-plate dark:bg-white border-plate dark:border-white text-chalk dark:text-[#1A1814]'
+                                        : 'border-ink/20 dark:border-white/20 hover:border-ink/40 dark:hover:border-white/40'
                                         }`}>
                                     {isMultiSelect && isSelected ? '✓ ' : ''}{opt}
                                 </button>

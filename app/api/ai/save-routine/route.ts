@@ -56,20 +56,18 @@ export async function POST(request: Request) {
     }
 
     // 如果選擇取代，刪掉所有現有課表
-    if (replaceExisting) {
-        // 先找到所有現有課表 ID
-        const { data: existingRoutines } = await supabase
-            .from('routines')
-            .select('id')
-            .eq('user_id', user.id)
+    // 永遠刪除現有課表和循環，從零開始
+    const { data: existingRoutines } = await supabase
+        .from('routines')
+        .select('id')
+        .eq('user_id', user.id)
 
-        if (existingRoutines && existingRoutines.length > 0) {
-            const routineIds = existingRoutines.map((r) => r.id)
-            await supabase.from('routine_exercises').delete().in('routine_id', routineIds)
-        }
-
-        await supabase.from('routines').delete().eq('user_id', user.id)
+    if (existingRoutines && existingRoutines.length > 0) {
+        const routineIds = existingRoutines.map((r) => r.id)
+        await supabase.from('routine_exercises').delete().in('routine_id', routineIds)
     }
+
+    await supabase.from('routines').delete().eq('user_id', user.id)
 
     // 建立訓練循環
     const { data: cycle, error: cycleError } = await supabase

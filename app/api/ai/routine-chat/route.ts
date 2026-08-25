@@ -23,6 +23,9 @@ function buildChatPrompt(language: string, trainingGoal: string | null) {
 - 器材題（第3題）：如果使用者說沒有器材，引導選「徒手訓練」
 - 收集完 1-5 後（6-7 無論有沒有回答），立刻輸出 ready_to_generate
 - 只輸出 JSON，不輸出任何其他文字
+- cycle_length 必須等於使用者指定的天數（例如使用者說 7 天，cycle_length 就是 7）
+- AI 可以自己決定哪幾天練、哪幾天休息，但 cycle_length 不能改變
+- 例如：使用者說 7 天，AI 可以安排週一到週五練、週六週日休息，但 cycle_length: 7
 
 依序問這 7 個問題：
 1. 一週訓練幾天？選項：[2天, 3天, 4天, 5天, 6天, 7天]（必答，接受自由輸入，skippable:false）
@@ -54,6 +57,9 @@ Critical rules:
 - For equipment (Q3): if user says no equipment, guide them to select "Bodyweight"
 - After collecting 1-5 (regardless of 6-7 answers), immediately output ready_to_generate
 - Output ONLY JSON, never plain text
+- cycle_length MUST equal the number of days the user specified (e.g. user says 7 days → cycle_length: 7)
+- AI decides which days to train and which to rest, but cycle_length cannot change
+- Example: user says 7 days → AI can schedule training on days 1-5 and rest on days 6-7, but cycle_length: 7
 
 Ask these 7 questions in order:
 1. Days per week? Options: [2 days, 3 days, 4 days, 5 days, 6 days, 7 days] (required, accept free input, skippable:false)

@@ -78,41 +78,22 @@ export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal 
 
             {/* 既有課表警告 */}
             {showWarning && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-[#2C2923] p-6 space-y-4 shadow-xl">
-                        <h3 className="font-bold text-lg">
-                            {zh ? '你已經有課表了' : 'You have existing routines'}
-                        </h3>
-                        <p className="text-sm text-ink/60">
-                            {zh
-                                ? `你目前有 ${routineCount} 份課表。你想要怎麼處理？`
-                                : `You currently have ${routineCount} routine(s). How would you like to proceed?`}
-                        </p>
-                        <div className="space-y-2">
-                            <button type="button"
-                                onClick={() => handleWarningConfirm(false)}
-                                className="w-full rounded-xl border-2 border-ink/20 dark:border-white/20 px-4 py-3 text-left space-y-0.5 hover:border-[#C8955A] transition-colors">
-                                <p className="font-medium text-sm">
-                                    {zh ? '➕ 新增到現有課表' : '➕ Add alongside existing'}
-                                </p>
-                                <p className="text-xs text-ink/40">
-                                    {zh ? '保留現有課表，新增 AI 設計的課表' : 'Keep existing routines, add new AI-designed ones'}
-                                </p>
-                            </button>
-                            <button type="button"
-                                onClick={() => handleWarningConfirm(true)}
-                                className="w-full rounded-xl border-2 border-red-200 dark:border-red-900 px-4 py-3 text-left space-y-0.5 hover:border-red-400 transition-colors">
-                                <p className="font-medium text-sm text-red-600 dark:text-red-400">
-                                    {zh ? '🗑 全部取代' : '🗑 Replace all'}
-                                </p>
-                                <p className="text-xs text-ink/40">
-                                    {zh ? '刪除現有課表和循環，重新開始' : 'Delete all existing routines and cycle, start fresh'}
-                                </p>
-                            </button>
-                        </div>
-                        <button type="button" onClick={() => setShowWarning(false)}
-                            className="w-full text-center text-sm text-ink/40 hover:text-ink transition-colors">
+                <div className="space-y-2">
+                    <p className="text-sm text-red-600 dark:text-red-400 font-medium">
+                        {zh
+                            ? '⚠️ 這會刪除你現有的所有課表和訓練循環'
+                            : '⚠️ This will delete all your existing routines and training cycle'}
+                    </p>
+                    <div className="flex gap-2">
+                        <button type="button"
+                            onClick={() => setShowWarning(false)}
+                            className="flex-1 rounded-xl border border-ink/20 dark:border-white/20 px-4 py-2.5 text-sm font-medium">
                             {zh ? '取消' : 'Cancel'}
+                        </button>
+                        <button type="button"
+                            onClick={() => { setShowWarning(false); setShowModal(true) }}
+                            className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 transition-colors">
+                            {zh ? '確認，重新設計' : 'Confirm, redesign'}
                         </button>
                     </div>
                 </div>
