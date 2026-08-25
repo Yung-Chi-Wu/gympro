@@ -224,8 +224,8 @@ export function TodayWorkoutCard({
                         type="button"
                         onClick={weightUnit !== 'kg' ? handleToggleUnit : undefined}
                         className={`px-3 py-1.5 transition-all ${weightUnit === 'kg'
-                                ? 'bg-plate text-chalk'
-                                : 'bg-transparent text-ink/40 dark:text-white/40 hover:text-ink dark:hover:text-white'
+                            ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814]'
+                            : 'bg-transparent text-ink/40 dark:text-white/40 hover:text-ink dark:hover:text-white'
                             }`}
                     >
                         kg
@@ -235,8 +235,8 @@ export function TodayWorkoutCard({
                         type="button"
                         onClick={weightUnit !== 'lb' ? handleToggleUnit : undefined}
                         className={`px-3 py-1.5 transition-all ${weightUnit === 'lb'
-                                ? 'bg-plate text-chalk'
-                                : 'bg-transparent text-ink/40 dark:text-white/40 hover:text-ink dark:hover:text-white'
+                            ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814]'
+                            : 'bg-transparent text-ink/40 dark:text-white/40 hover:text-ink dark:hover:text-white'
                             }`}
                     >
                         lb
@@ -440,7 +440,7 @@ function TodayExerciseRow({ exercise, language, weightUnit, onAddSet, onDeleteSe
                 <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="rounded-md border px-3 py-1 text-sm disabled:opacity-50 active:scale-95 transition-transform"
+                    className="rounded-md border dark:border-white/30 px-3 py-1 text-sm dark:text-white/80 disabled:opacity-50 active:scale-95 transition-transform"
                 >
                     {isSubmitting ? '...' : t('add')}
                 </button>

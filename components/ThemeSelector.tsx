@@ -21,8 +21,8 @@ export function ThemeSelector({ isZhTW, value, onChange }: ThemeSelectorProps) {
                     type="button"
                     onClick={() => onChange(opt.value)}
                     className={`flex-1 rounded-xl border-2 py-2 text-sm font-medium transition-colors ${value === opt.value
-                            ? 'border-plate bg-plate text-chalk'
-                            : 'border-ink/20 text-ink/60 hover:border-ink/40 hover:text-ink'
+                            ? 'border-plate bg-plate text-chalk dark:border-white dark:bg-white dark:text-[#1A1814]'
+                            : 'border-ink/20 dark:border-white/30 text-ink/60 dark:text-white/60 hover:border-ink/40 dark:hover:border-white/50'
                         }`}
                 >
                     {isZhTW ? opt.labelZh : opt.labelEn}
