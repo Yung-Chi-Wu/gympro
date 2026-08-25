@@ -11,6 +11,7 @@ interface ChatResponse {
     action: 'ask' | 'generate_routine'
     message: string
     options?: string[]
+    multi_select?: boolean
     routines?: GeneratedRoutine[]
     cycle_length?: number
 }
@@ -52,6 +53,7 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
     const [options, setOptions] = useState<string[]>([])
     const bottomRef = useRef<HTMLDivElement>(null)
     const [selectedOptions, setSelectedOptions] = useState<string[]>([])
+    const [isMultiSelect, setIsMultiSelect] = useState(false)
 
     useEffect(() => {
         // 開場白
@@ -99,6 +101,8 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
 
             if (data.action === 'ask') {
                 setOptions(data.options ?? [])
+                setIsMultiSelect(data.multi_select ?? false)
+                setSelectedOptions([])
             } else if (data.action === 'generate_routine' && data.routines) {
                 onRoutinesGenerated(data.routines, data.cycle_length ?? data.routines.length)
             }
@@ -188,7 +192,6 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
             {/* Options */}
             {options.length > 0 && !isLoading && (
                 <div className="px-4 pb-3 space-y-2">
-                    {/* 選項按鈕（支援多選） */}
                     <div className="flex flex-wrap gap-2">
                         {options.map((opt, i) => {
                             const isSelected = selectedOptions.includes(opt)
@@ -197,48 +200,67 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                                     key={i}
                                     type="button"
                                     onClick={() => {
-                                        setSelectedOptions((prev) =>
-                                            prev.includes(opt)
-                                                ? prev.filter((o) => o !== opt)
-                                                : [...prev, opt]
-                                        )
+                                        if (isMultiSelect) {
+                                            // 多選——切換選取狀態
+                                            setSelectedOptions((prev) =>
+                                                prev.includes(opt)
+                                                    ? prev.filter((o) => o !== opt)
+                                                    : [...prev, opt]
+                                            )
+                                        } else {
+                                            // 單選——直接送出
+                                            handleSend(opt)
+                                        }
                                     }}
-                                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${isSelected
-                                        ? 'bg-plate dark:bg-white border-plate dark:border-white text-chalk dark:text-[#1A1814]'
-                                        : 'border-ink/20 dark:border-white/20 hover:border-ink/40 dark:hover:border-white/40'
+                                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${isMultiSelect && isSelected
+                                            ? 'bg-plate dark:bg-white border-plate dark:border-white text-chalk dark:text-[#1A1814]'
+                                            : 'border-ink/20 dark:border-white/20 hover:border-ink/40 dark:hover:border-white/40'
                                         }`}
                                 >
-                                    {isSelected ? '✓ ' : ''}{opt}
+                                    {isMultiSelect && isSelected ? '✓ ' : ''}{opt}
                                 </button>
                             )
                         })}
                     </div>
 
-                    {/* 確認送出 + 跳過 */}
-                    <div className="flex gap-2">
-                        {selectedOptions.length > 0 && (
+                    {/* 多選才顯示確認和跳過 */}
+                    {isMultiSelect && (
+                        <div className="flex gap-2">
+                            {selectedOptions.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        handleSend(selectedOptions.join('、'))
+                                        setSelectedOptions([])
+                                    }}
+                                    className="rounded-lg bg-plate dark:bg-white px-4 py-1.5 text-xs font-semibold text-chalk dark:text-[#1A1814] hover:opacity-90 transition-opacity"
+                                >
+                                    {zh ? `確認（${selectedOptions.length}）` : `Confirm (${selectedOptions.length})`}
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 onClick={() => {
-                                    handleSend(selectedOptions.join('、'))
+                                    handleSend(zh ? '跳過' : 'Skip')
                                     setSelectedOptions([])
                                 }}
-                                className="rounded-lg bg-plate dark:bg-white px-4 py-1.5 text-xs font-semibold text-chalk dark:text-[#1A1814] hover:opacity-90 transition-opacity"
+                                className="rounded-lg border border-ink/20 dark:border-white/20 px-4 py-1.5 text-xs text-ink/50 dark:text-white/50 hover:text-ink dark:hover:text-white transition-colors"
                             >
-                                {zh ? `確認（${selectedOptions.length}）` : `Confirm (${selectedOptions.length})`}
+                                {zh ? '跳過 / 沒有' : 'Skip / None'}
                             </button>
-                        )}
+                        </div>
+                    )}
+
+                    {/* 單選也有跳過 */}
+                    {!isMultiSelect && (
                         <button
                             type="button"
-                            onClick={() => {
-                                handleSend(zh ? '跳過' : 'Skip')
-                                setSelectedOptions([])
-                            }}
-                            className="rounded-lg border border-ink/20 dark:border-white/20 px-4 py-1.5 text-xs text-ink/50 dark:text-white/50 hover:text-ink dark:hover:text-white transition-colors"
+                            onClick={() => handleSend(zh ? '跳過' : 'Skip')}
+                            className="text-xs text-ink/30 dark:text-white/30 hover:text-ink/60 dark:hover:text-white/60 transition-colors"
                         >
                             {zh ? '跳過 / 沒有' : 'Skip / None'}
                         </button>
-                    </div>
+                    )}
                 </div>
             )}
 
