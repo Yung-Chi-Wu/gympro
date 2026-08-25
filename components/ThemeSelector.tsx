@@ -8,7 +8,7 @@ interface ThemeSelectorProps {
 
 export function ThemeSelector({ isZhTW, value, onChange }: ThemeSelectorProps) {
     const options = [
-        { value: 'system', labelZh: '跟系統走', labelEn: 'System' },
+        { value: 'system', labelZh: '系統', labelEn: 'System' },
         { value: 'light', labelZh: '日間', labelEn: 'Light' },
         { value: 'dark', labelZh: '夜間', labelEn: 'Dark' },
     ]
@@ -22,7 +22,7 @@ export function ThemeSelector({ isZhTW, value, onChange }: ThemeSelectorProps) {
                     onClick={() => onChange(opt.value)}
                     className={`flex-1 rounded-xl border-2 py-2 text-sm font-medium transition-colors ${value === opt.value
                             ? 'border-plate bg-plate text-chalk'
-                            : 'border-ink/20 text-ink/60 hover:border-ink/40'
+                            : 'border-ink/20 text-ink/60 hover:border-ink/40 hover:text-ink'
                         }`}
                 >
                     {isZhTW ? opt.labelZh : opt.labelEn}

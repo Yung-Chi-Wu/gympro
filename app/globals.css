@@ -193,3 +193,20 @@ html.dark .bottom-nav {
   background-color: #2C2923 !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
+
+html.dark .border-ink\/20 {
+  border-color: rgba(234, 231, 224, 0.2) !important;
+}
+
+html.dark .border-ink\/40 {
+  border-color: rgba(234, 231, 224, 0.4) !important;
+}
+
+/* Login 頁的圓形 OAuth 按鈕 */
+html.dark .rounded-full.border {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+html.dark .rounded-full.bg-white {
+  background-color: #3A3733 !important;
+}
