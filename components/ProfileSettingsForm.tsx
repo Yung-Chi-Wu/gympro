@@ -179,23 +179,19 @@ export function ProfileSettingsForm({
 
                 <Field label={isZhTW ? '重量單位' : 'Weight Unit'}>
                     <div className="flex gap-3">
-                        <button
-                            type="button"
-                            onClick={() => setWeightUnit('kg')}
-                            className={`flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition-colors ${weightUnit === 'kg'
-                                ? 'border-plate bg-plate text-chalk dark:border-white dark:bg-white dark:text-[#1A1814]'
-                                : 'border-ink/20 dark:border-white/30 text-ink/60 dark:text-white/60'
-                                }`}
-                        >
-                            kg
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setWeightUnit('lb')}
-                            className="rounded-md bg-plate dark:bg-white px-4 py-2 text-chalk dark:text-[#1A1814] font-medium disabled:opacity-50 hover:opacity-90 transition-opacity"
-                        >
-                            lb
-                        </button>
+                        {(['kg', 'lb'] as const).map((unit) => (
+                            <button
+                                key={unit}
+                                type="button"
+                                onClick={() => setWeightUnit(unit)}
+                                className={`flex-1 h-10 rounded-xl border-2 text-sm font-semibold transition-colors text-center ${weightUnit === unit
+                                        ? 'border-plate bg-plate text-chalk dark:border-white dark:bg-white dark:text-[#1A1814]'
+                                        : 'border-ink/20 dark:border-white/30 text-ink/60 dark:text-white/60'
+                                    }`}
+                            >
+                                {unit}
+                            </button>
+                        ))}
                     </div>
                 </Field>
 
