@@ -321,10 +321,6 @@ export function CycleScheduler({
                                 ＋
                             </button>
 
-                            <span className="text-sm text-ink/40">
-                                {zh ? '天' : 'days'}
-                            </span>
-
                             <button
                                 type="submit"
                                 disabled={isSaving}
