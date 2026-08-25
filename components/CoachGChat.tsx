@@ -46,7 +46,6 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
     const [isLoading, setIsLoading] = useState(false)
     const [isGenerating, setIsGenerating] = useState(false)
     const [options, setOptions] = useState<string[]>([])
-    const [currentQuestion, setCurrentQuestion] = useState<string>('')
     const [selectedOptions, setSelectedOptions] = useState<string[]>([])
     const [isMultiSelect, setIsMultiSelect] = useState(false)
     const [isSkippable, setIsSkippable] = useState(false)
@@ -67,7 +66,6 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
         setSelectedOptions([])
         setIsMultiSelect(false)
         setIsSkippable(false)
-        setCurrentQuestion('')
 
         try {
             const res = await fetch('/api/ai/routine-chat', {
@@ -90,7 +88,8 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
             }
 
             if (data.action === 'ask' && data.question) {
-                setCurrentQuestion(data.question)
+                // 問題也加進 messages，這樣回答後不會消失
+                setMessages((prev) => [...prev, { role: 'assistant', content: data.question! }])
                 setOptions(data.options ?? [])
                 setIsMultiSelect(data.multi_select ?? false)
                 setIsSkippable(data.skippable ?? false)
@@ -180,23 +179,15 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                             <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 mt-1 shrink-0">G</div>
                         )}
                         <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === 'user'
-                                ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
-                                : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
+                            ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
+                            : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
                             }`}>
                             {msg.content}
                         </div>
                     </div>
                 ))}
 
-                {/* 問題顯示 */}
-                {currentQuestion && !isLoading && !isGenerating && (
-                    <div className="flex justify-start">
-                        <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 mt-1 shrink-0">G</div>
-                        <div className="max-w-[80%] bg-ink/5 dark:bg-white/8 rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm">
-                            {currentQuestion}
-                        </div>
-                    </div>
-                )}
+
 
                 {/* 生成中 */}
                 {isGenerating && (
@@ -252,8 +243,8 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                                         }
                                     }}
                                     className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${isMultiSelect && isSelected
-                                            ? 'bg-plate dark:bg-white border-plate dark:border-white text-chalk dark:text-[#1A1814]'
-                                            : 'border-ink/20 dark:border-white/20 hover:border-ink/40 dark:hover:border-white/40'
+                                        ? 'bg-plate dark:bg-white border-plate dark:border-white text-chalk dark:text-[#1A1814]'
+                                        : 'border-ink/20 dark:border-white/20 hover:border-ink/40 dark:hover:border-white/40'
                                         }`}>
                                     {isMultiSelect && isSelected ? '✓ ' : ''}{opt}
                                 </button>
