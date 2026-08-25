@@ -8,10 +8,9 @@ interface CoachGEntryProps {
     routineCount: number
     language: string
     trainingGoal: string | null
-    onRefresh: () => void
 }
 
-export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal, onRefresh }: CoachGEntryProps) {
+export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal }: CoachGEntryProps) {
     const zh = language === 'zh-TW'
     const [showModal, setShowModal] = useState(false)
     const [showWarning, setShowWarning] = useState(false)
@@ -33,7 +32,7 @@ export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal,
 
     function handleSaved() {
         setShowModal(false)
-        onRefresh()
+        window.location.reload()
     }
 
     if (!hasRoutines) {

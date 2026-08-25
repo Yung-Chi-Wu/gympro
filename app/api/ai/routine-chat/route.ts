@@ -2,93 +2,71 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-})
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
-function buildSystemPrompt(
-  language: string,
-  exercises: { id: string; name: string; name_zh_tw: string | null; muscle_group: string }[],
-  trainingGoal: string | null
-) {
+function buildChatPrompt(language: string, trainingGoal: string | null) {
   const zh = language === 'zh-TW'
-  const exerciseLines = exercises
-    .map((ex) => `${ex.id}|${ex.name}${ex.name_zh_tw ? '|' + ex.name_zh_tw : ''}|${ex.muscle_group}`)
-    .join('\n')
-
   const goalNote = trainingGoal
-    ? (zh ? `\n使用者長期目標：「${trainingGoal}」，設計課表時納入考量。` : `\nUser's long-term goal: "${trainingGoal}". Factor this into the routine design.`)
+    ? (zh ? `\n使用者長期目標：「${trainingGoal}」` : `\nUser's long-term goal: "${trainingGoal}"`)
     : ''
 
   if (zh) {
-    return `你是 Coach G，GymPro 的專業健身教練。透過對話幫使用者設計個人化訓練課表。${goalNote}
+    return `你是 Coach G，GymPro 的健身教練。透過對話收集使用者的訓練資訊。${goalNote}
 
-重要規則：
-- 每次只問一個問題
-- 仔細讀對話歷史，已經得到答案的問題不要再問
-- 使用者說「跳過」或「沒有」代表沒有該項資訊，直接進入下一個問題
-- 收集完所有必要資訊後立刻生成課表，不要再問多餘問題
-- 只輸出 JSON，絕對不輸出任何其他文字
+規則：
+- 每次只問一個問題，附上選項
+- 仔細讀對話歷史，絕對不重複問已經回答的問題
+- 使用者可以點選項或自由打字，兩種都接受
+- 問題 1-5 是必答，沒有跳過選項
+- 問題 6-7 是選填，必須有「跳過」選項
+- 收集完所有必要資訊（1-5）後，輸出 ready_to_generate
+- 只輸出 JSON，不輸出任何其他文字
 
-必須收集的資訊（依序）：
-1. 每週訓練天數 → 選項：2天/3天/4天/5天/6天/7天
-2. 每次訓練時長 → 選項：30分鐘/45分鐘/60分鐘/90分鐘以上
-3. 可用器材（多選）→ 選項：槓鈴、啞鈴、健身房器械、纜繩滑輪、徒手訓練，multi_select:true
-4. 主要目標（多選）→ 選項：增肌、增強力量、減脂、維持體能，multi_select:true
-5. 訓練程度 → 選項：新手（不到1年）/中階（1-3年）/進階（3年以上）
-6. 受傷部位 → 選項：沒有/肩膀/膝蓋/下背/手腕，說明使用者可跳過
-7. 想加強部位 → 選項：胸/背/肩/手臂/腿/臀/核心/沒有特別，說明使用者可跳過
+依序問這 7 個問題：
+1. 一週訓練幾天？選項：[2天, 3天, 4天, 5天, 6天, 7天]（必答，接受自由輸入如「10天」）
+2. 每次訓練多久？選項：[30分鐘, 45分鐘, 60分鐘, 90分鐘以上]（必答）
+3. 有哪些器材？選項：[槓鈴, 啞鈴, 健身房器械, 纜繩/滑輪, 徒手訓練]（必答，multi_select:true）
+4. 主要目標？選項：[增肌, 增強力量, 減脂, 維持體能]（必答，multi_select:true）
+5. 訓練程度？選項：[新手（不到1年）, 中階（1-3年）, 進階（3年以上）]（必答）
+6. 有受傷要避開的部位嗎？選項：[肩膀, 膝蓋, 下背, 手腕]，必須有「跳過」（選填）
+7. 想特別加強哪個部位？選項：[胸, 背, 肩, 手臂, 腿, 臀, 核心]，必須有「跳過」（選填）
 
-收集完1-5後就可以生成課表，6-7是選填。
-
-設計課表規則：
-- 只能使用下方清單的動作，必須用正確的 exercise_id
-- 指定每個課表對應循環的哪幾天（day_indices）
-- cycle_length 包含休息日
-
-動作清單（格式：id|英文名|中文名|肌群）：
-${exerciseLines}
-
-問問題時輸出（multi_select 預設 false）：
+問問題時輸出：
 {"action":"ask","message":"問題內容","options":["選項1","選項2"],"multi_select":false}
 
-生成課表時輸出：
-{"action":"generate_routine","message":"鼓勵說明","cycle_length":7,"routines":[{"name":"Push Day","name_zh_tw":"推日","day_indices":[1,4],"exercises":[{"exercise_id":"uuid","exercise_name":"Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
+多選時加 "multi_select":true
+
+收集完 1-5（6-7 無論有沒有答）後輸出：
+{"action":"ready_to_generate","collected":{"days":"使用者回答","duration":"使用者回答","equipment":["器材"],"goals":["目標"],"level":"程度","injuries":"受傷部位或null","focus":"加強部位或null"}}`
   }
 
-  return `You are Coach G, GymPro's professional fitness coach. Design personalized routines through conversation.${goalNote}
+  return `You are Coach G, GymPro's fitness coach. Collect training info through conversation.${goalNote}
 
-Critical rules:
-- Ask ONE question at a time
-- Read the conversation history carefully — NEVER ask a question you already have the answer to
-- If user says "Skip" or "None", accept it and move to the next question immediately
-- Once you have info for items 1-5, generate the routine — don't ask unnecessary questions
+Rules:
+- Ask ONE question at a time with options
+- Read conversation history carefully — NEVER repeat answered questions
+- Users can click options OR type freely — accept both
+- Questions 1-5 are required, no skip option
+- Questions 6-7 are optional, MUST include "Skip" option
+- After collecting 1-5 (regardless of 6-7), output ready_to_generate
 - Output ONLY JSON, never plain text
 
-Collect in order:
-1. Days per week → options: 2 days/3 days/4 days/5 days/6 days/7 days
-2. Session duration → options: 30 min/45 min/60 min/90+ min
-3. Equipment (multi-select) → options: Barbell, Dumbbell, Gym Machines, Cable Machine, Bodyweight, multi_select:true
-4. Primary goal (multi-select) → options: Build Muscle, Increase Strength, Lose Fat, Stay Fit, multi_select:true
-5. Experience level → options: Beginner (<1yr)/Intermediate (1-3yr)/Advanced (3yr+)
-6. Injuries to avoid → options: None/Shoulder/Knee/Lower Back/Wrist (skippable)
-7. Muscles to focus → options: Chest/Back/Shoulders/Arms/Legs/Glutes/Core/No preference (skippable)
+Ask these 7 questions in order:
+1. Days per week? Options: [2 days, 3 days, 4 days, 5 days, 6 days, 7 days] (required, accept free input like "10 days")
+2. Session duration? Options: [30 min, 45 min, 60 min, 90+ min] (required)
+3. Equipment? Options: [Barbell, Dumbbell, Gym Machines, Cable Machine, Bodyweight] (required, multi_select:true)
+4. Primary goal? Options: [Build Muscle, Increase Strength, Lose Fat, Stay Fit] (required, multi_select:true)
+5. Experience level? Options: [Beginner (<1yr), Intermediate (1-3yr), Advanced (3yr+)] (required)
+6. Any injuries to avoid? Options: [Shoulder, Knee, Lower Back, Wrist] + must include "Skip" (optional)
+7. Muscle to focus on? Options: [Chest, Back, Shoulders, Arms, Legs, Glutes, Core] + must include "Skip" (optional)
 
-Items 1-5 are required. Items 6-7 are optional — if skipped, design without restrictions.
-
-Design rules:
-- ONLY use exercises from the list below with their exact exercise_id
-- Specify day_indices for each routine in the cycle
-- cycle_length includes rest days
-
-Exercise list (format: id|name|zh_name|muscle_group):
-${exerciseLines}
-
-While asking output (multi_select defaults to false):
+When asking output:
 {"action":"ask","message":"question","options":["opt1","opt2"],"multi_select":false}
 
-When generating output:
-{"action":"generate_routine","message":"encouraging summary","cycle_length":7,"routines":[{"name":"Push Day","name_zh_tw":"推日","day_indices":[1,4],"exercises":[{"exercise_id":"uuid","exercise_name":"Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
+For multi-select add "multi_select":true
+
+After collecting 1-5 output:
+{"action":"ready_to_generate","collected":{"days":"answer","duration":"answer","equipment":["equipment"],"goals":["goals"],"level":"level","injuries":"injuries or null","focus":"focus or null"}}`
 }
 
 export async function POST(request: Request) {
@@ -97,43 +75,29 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { messages, language, trainingGoal } = await request.json()
-
-  const { data: exercises } = await supabase
-    .from('exercises')
-    .select('id, name, name_zh_tw, muscle_group')
-    .order('muscle_group')
-    .order('name')
-
-  const systemPrompt = buildSystemPrompt(language, exercises ?? [], trainingGoal)
+  const systemPrompt = buildChatPrompt(language, trainingGoal)
 
   try {
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
+      model: 'claude-haiku-4-5',
+      max_tokens: 1024,
       system: systemPrompt,
       messages,
     })
 
     const rawText = response.content[0].type === 'text'
-      ? response.content[0].text.trim()
-      : ''
+      ? response.content[0].text.trim() : ''
 
-    // 找第一個 { 到最後一個 }
     const startIdx = rawText.indexOf('{')
     const endIdx = rawText.lastIndexOf('}')
 
-    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    if (startIdx !== -1 && endIdx !== -1) {
       try {
         const parsed = JSON.parse(rawText.slice(startIdx, endIdx + 1))
-        if (parsed.action && parsed.message) {
-          return NextResponse.json(parsed)
-        }
-      } catch {
-        // JSON 解析失敗
-      }
+        if (parsed.action) return NextResponse.json(parsed)
+      } catch { /* 繼續 */ }
     }
 
-    // fallback
     const zh = language === 'zh-TW'
     return NextResponse.json({
       action: 'ask',
@@ -141,14 +105,8 @@ export async function POST(request: Request) {
       options: [],
       multi_select: false,
     })
-
   } catch (err) {
-    console.error('Coach G error:', err)
-    return NextResponse.json({
-      action: 'ask',
-      message: language === 'zh-TW' ? '發生錯誤，請稍後再試。' : 'Something went wrong.',
-      options: [],
-      multi_select: false,
-    }, { status: 500 })
+    console.error('Coach G chat error:', err)
+    return NextResponse.json({ error: 'AI error' }, { status: 500 })
   }
 }

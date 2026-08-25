@@ -8,12 +8,21 @@ interface Message {
 }
 
 interface ChatResponse {
-    action: 'ask' | 'generate_routine'
+    action: 'ask' | 'ready_to_generate' | 'generate_routine'
     message: string
     options?: string[]
     multi_select?: boolean
     routines?: GeneratedRoutine[]
     cycle_length?: number
+    collected?: {
+        days: string
+        duration: string
+        equipment: string[]
+        goals: string[]
+        level: string
+        injuries: string | null
+        focus: string | null
+    }
 }
 
 interface GeneratedRoutine {
@@ -67,8 +76,6 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
         setSelectedOptions([])
         setIsMultiSelect(false)
 
-        // 超過 8 條訊息，很可能在生成課表
-        if (msgs.length >= 8) setIsGenerating(true)
 
         try {
             const res = await fetch('/api/ai/routine-chat', {
@@ -87,8 +94,26 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                 setOptions(data.options ?? [])
                 setIsMultiSelect(data.multi_select ?? false)
                 setSelectedOptions([])
-            } else if (data.action === 'generate_routine' && data.routines) {
-                onRoutinesGenerated(data.routines, data.cycle_length ?? data.routines.length)
+            } else if (data.action === 'ready_to_generate' && data.collected) {
+                // 問答完成，呼叫生成 API
+                setIsGenerating(true)
+                try {
+                    const genRes = await fetch('/api/ai/generate-routine', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            collected: data.collected,
+                            language,
+                            trainingGoal,
+                        }),
+                    })
+                    const genData = await genRes.json()
+                    if (genData.action === 'generate_routine' && genData.routines) {
+                        onRoutinesGenerated(genData.routines, genData.cycle_length ?? genData.routines.length)
+                    }
+                } finally {
+                    setIsGenerating(false)
+                }
             }
         } catch {
             setIsGenerating(false)
@@ -142,8 +167,8 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                             <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 mt-1 shrink-0">G</div>
                         )}
                         <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === 'user'
-                                ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
-                                : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
+                            ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
+                            : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
                             }`}>
                             {msg.content}
                         </div>
@@ -210,8 +235,8 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                                         }
                                     }}
                                     className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${isMultiSelect && isSelected
-                                            ? 'bg-plate dark:bg-white border-plate dark:border-white text-chalk dark:text-[#1A1814]'
-                                            : 'border-ink/20 dark:border-white/20 hover:border-ink/40 dark:hover:border-white/40'
+                                        ? 'bg-plate dark:bg-white border-plate dark:border-white text-chalk dark:text-[#1A1814]'
+                                        : 'border-ink/20 dark:border-white/20 hover:border-ink/40 dark:hover:border-white/40'
                                         }`}>
                                     {isMultiSelect && isSelected ? '✓ ' : ''}{opt}
                                 </button>
