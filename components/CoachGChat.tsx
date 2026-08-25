@@ -223,34 +223,38 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
             </div>
 
             {/* Options */}
-            {options.length > 0 && !isLoading && !isGenerating && (
+            {(options.length > 0 || isSkippable) && !isLoading && !isGenerating && (
                 <div className="px-4 pb-2 space-y-2">
                     {isMultiSelect && (
-                        <p className="text-xs text-ink/40">{zh ? '可以多選，選完按確認' : 'Select multiple, then confirm'}</p>
+                        <p className="text-xs text-ink/40">
+                            {zh ? '可以多選，選完按確認' : 'Select multiple, then confirm'}
+                        </p>
                     )}
-                    <div className="flex flex-wrap gap-2">
-                        {options.map((opt, i) => {
-                            const isSelected = selectedOptions.includes(opt)
-                            return (
-                                <button key={i} type="button"
-                                    onClick={() => {
-                                        if (isMultiSelect) {
-                                            setSelectedOptions((prev) =>
-                                                prev.includes(opt) ? prev.filter((o) => o !== opt) : [...prev, opt]
-                                            )
-                                        } else {
-                                            handleAnswer(opt)
-                                        }
-                                    }}
-                                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${isMultiSelect && isSelected
-                                        ? 'bg-plate dark:bg-white border-plate dark:border-white text-chalk dark:text-[#1A1814]'
-                                        : 'border-ink/20 dark:border-white/20 hover:border-ink/40 dark:hover:border-white/40'
-                                        }`}>
-                                    {isMultiSelect && isSelected ? '✓ ' : ''}{opt}
-                                </button>
-                            )
-                        })}
-                    </div>
+                    {options.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                            {options.map((opt, i) => {
+                                const isSelected = selectedOptions.includes(opt)
+                                return (
+                                    <button key={i} type="button"
+                                        onClick={() => {
+                                            if (isMultiSelect) {
+                                                setSelectedOptions((prev) =>
+                                                    prev.includes(opt) ? prev.filter((o) => o !== opt) : [...prev, opt]
+                                                )
+                                            } else {
+                                                handleAnswer(opt)
+                                            }
+                                        }}
+                                        className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${isMultiSelect && isSelected
+                                                ? 'bg-plate dark:bg-white border-plate dark:border-white text-chalk dark:text-[#1A1814]'
+                                                : 'border-ink/20 dark:border-white/20 hover:border-ink/40 dark:hover:border-white/40'
+                                            }`}>
+                                        {isMultiSelect && isSelected ? '✓ ' : ''}{opt}
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    )}
                     <div className="flex gap-2">
                         {isMultiSelect && selectedOptions.length > 0 && (
                             <button type="button"
