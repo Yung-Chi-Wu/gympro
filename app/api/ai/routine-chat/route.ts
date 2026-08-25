@@ -82,25 +82,34 @@ export async function POST(request: Request) {
   const systemPrompt = buildChatPrompt(language, trainingGoal)
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5',
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages,
-    })
+    let parsed = null
 
-    const rawText = response.content[0].type === 'text'
-      ? response.content[0].text.trim() : ''
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages,
+      })
 
-    const startIdx = rawText.indexOf('{')
-    const endIdx = rawText.lastIndexOf('}')
+      const rawText = response.content[0].type === 'text'
+        ? response.content[0].text.trim() : ''
 
-    if (startIdx !== -1 && endIdx !== -1) {
-      try {
-        const parsed = JSON.parse(rawText.slice(startIdx, endIdx + 1))
-        if (parsed.action) return NextResponse.json(parsed)
-      } catch { /* 繼續 */ }
+      const startIdx = rawText.indexOf('{')
+      const endIdx = rawText.lastIndexOf('}')
+
+      if (startIdx !== -1 && endIdx !== -1) {
+        try {
+          const candidate = JSON.parse(rawText.slice(startIdx, endIdx + 1))
+          if (candidate.action) {
+            parsed = candidate
+            break
+          }
+        } catch { /* 繼續重試 */ }
+      }
     }
+
+    if (parsed) return NextResponse.json(parsed)
 
     const zh = language === 'zh-TW'
     return NextResponse.json({
