@@ -21,10 +21,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <div className="hidden sm:flex h-screen overflow-hidden">
                 <aside className="w-56 shrink-0 flex flex-col bg-[#F5F5F3] dark:bg-[#1E1C19] border-r border-gray-200 dark:border-white/10 h-screen sticky top-0 overflow-y-auto">
                     <div className="p-5 border-b border-gray-200 dark:border-white/10">
+                        {/* Sidebar logo */}
                         <Link href="/dashboard">
-                            <span className="font-bold text-xl tracking-wide text-[#26241F] dark:text-[#EAE7E0]">
-                                GYM<span className="font-light text-[#C8955A]">PRO</span>
-                            </span>
+                            <img src="/logo-horizontal-light.svg" alt="GymPro"
+                                className="h-8 w-auto block dark:hidden" />
+                            <img src="/logo-horizontal-dark.svg" alt="GymPro"
+                                className="h-8 w-auto hidden dark:block" />
                         </Link>
                     </div>
 
@@ -55,9 +57,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <div className="sm:hidden flex flex-col min-h-screen bg-[#FAFAF8] dark:bg-[#1A1814]">
                 <header className="bg-white dark:bg-[#1E1C19] border-b border-gray-200 dark:border-white/10 px-4 py-3 flex items-center justify-between shrink-0">
                     <Link href="/dashboard">
-                        <span className="font-bold text-lg tracking-wide text-[#26241F] dark:text-[#EAE7E0]">
-                            GYM<span className="font-light text-[#C8955A]">PRO</span>
-                        </span>
+                        <img src="/logo-horizontal-light.svg" alt="GymPro"
+                            className="h-7 w-auto block dark:hidden" />
+                        <img src="/logo-horizontal-dark.svg" alt="GymPro"
+                            className="h-7 w-auto hidden dark:block" />
                     </Link>
                     <LogoutButton />
                 </header>
