@@ -37,7 +37,7 @@ export function WeightTrendCard({ entries, language }: WeightTrendCardProps) {
     const latestWeight = chartData.length > 0 ? chartData[chartData.length - 1].weightKg : null
 
     return (
-        <div className="rounded-2xl border border-ink/10 bg-white shadow-sm">
+        <div className="rounded-xl border border-ink/10 bg-white">
             <button
                 type="button"
                 onClick={() => setIsOpen((v) => !v)}

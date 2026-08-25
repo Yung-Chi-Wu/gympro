@@ -46,7 +46,7 @@ export function DeleteAccountButton({ isZhTW }: DeleteAccountButtonProps) {
 
             {showConfirm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-                    <div className="w-full max-w-sm rounded-2xl bg-white p-6 space-y-4 shadow-xl">
+                    <div className="w-full max-w-sm rounded-xl bg-white p-6 space-y-4 shadow-xl">
                         <h3 className="text-lg font-bold text-red-600">
                             {isZhTW ? '確定要刪除帳號？' : 'Delete your account?'}
                         </h3>

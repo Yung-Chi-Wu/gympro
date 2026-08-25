@@ -67,7 +67,7 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
 
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 px-4 pb-6 sm:items-center sm:pb-0">
-            <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-[#2C2923] p-6 shadow-xl space-y-5">
+            <div className="w-full max-w-sm rounded-xl bg-white dark:bg-[#2C2923] p-6 shadow-xl space-y-5">
 
                 {/* Progress dots */}
                 <div className="flex justify-center gap-1.5">

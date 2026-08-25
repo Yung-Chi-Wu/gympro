@@ -178,7 +178,7 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                         {msg.role === 'assistant' && (
                             <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 mt-1 shrink-0">G</div>
                         )}
-                        <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === 'user'
+                        <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === 'user'
                             ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
                             : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
                             }`}>
@@ -193,7 +193,7 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                 {isGenerating && (
                     <div className="flex justify-start">
                         <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 shrink-0">G</div>
-                        <div className="bg-ink/5 dark:bg-white/8 rounded-2xl rounded-tl-sm px-4 py-3 space-y-1">
+                        <div className="bg-ink/5 dark:bg-white/8 rounded-xl rounded-tl-sm px-4 py-3 space-y-1">
                             <p className="text-sm font-medium">{zh ? '✨ 課表設計中...' : '✨ Designing your routine...'}</p>
                             <p className="text-xs text-ink/40">{zh ? '根據你的需求分析最適合的訓練計畫' : 'Analyzing the best plan for your goals'}</p>
                             <div className="flex gap-1 mt-1">
@@ -209,7 +209,7 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                 {isLoading && !isGenerating && (
                     <div className="flex justify-start">
                         <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 shrink-0">G</div>
-                        <div className="bg-ink/5 dark:bg-white/8 rounded-2xl rounded-tl-sm px-4 py-3">
+                        <div className="bg-ink/5 dark:bg-white/8 rounded-xl rounded-tl-sm px-4 py-3">
                             <div className="flex gap-1">
                                 <div className="w-2 h-2 rounded-full bg-ink/30 animate-bounce" style={{ animationDelay: '0ms' }} />
                                 <div className="w-2 h-2 rounded-full bg-ink/30 animate-bounce" style={{ animationDelay: '150ms' }} />

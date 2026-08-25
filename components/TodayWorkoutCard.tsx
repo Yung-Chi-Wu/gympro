@@ -204,7 +204,7 @@ export function TodayWorkoutCard({
     }
 
     return (
-        <div className="relative rounded-2xl border border-ink/10 bg-white p-4 space-y-3 shadow-sm">
+        <div className="relative rounded-xl border border-ink/10 bg-white p-4 space-y-3">
             <div className="flex items-start justify-between gap-2">
                 {/* 左：標題 + 第幾天 */}
                 <div>
@@ -219,7 +219,7 @@ export function TodayWorkoutCard({
                 </div>
 
                 {/* 右：kg/lb 切換 */}
-                <div className="flex shrink-0 rounded-lg overflow-hidden text-xs font-bold shadow-sm border border-ink/20 dark:border-white/20">
+                <div className="flex shrink-0 rounded-lg overflow-hidden text-xs font-bold border border-ink/20 dark:border-white/20">
                     <button
                         type="button"
                         onClick={weightUnit !== 'kg' ? handleToggleUnit : undefined}

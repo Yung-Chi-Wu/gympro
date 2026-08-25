@@ -5,10 +5,10 @@ export default function RoutinesLoading() {
 
             <div className="space-y-4">
                 <div className="h-6 w-32 rounded bg-ink/10 animate-pulse" />
-                <div className="rounded-2xl border border-ink/10 bg-white p-6 shadow-sm">
+                <div className="rounded-xl border border-ink/10 bg-white p-6">
                     <div className="h-10 w-24 rounded bg-ink/10 animate-pulse" />
                 </div>
-                <div className="rounded-2xl border border-ink/10 bg-white p-6 shadow-sm space-y-3">
+                <div className="rounded-xl border border-ink/10 bg-white p-6 space-y-3">
                     {[...Array(4)].map((_, i) => (
                         <div key={i} className="flex gap-3">
                             <div className="h-8 w-16 rounded bg-ink/10 animate-pulse" />
@@ -22,7 +22,7 @@ export default function RoutinesLoading() {
                 <div className="h-6 w-28 rounded bg-ink/10 animate-pulse" />
                 <div className="h-12 rounded-md bg-ink/10 animate-pulse" />
                 {[...Array(3)].map((_, i) => (
-                    <div key={i} className="rounded-2xl border border-ink/10 bg-white p-4 shadow-sm">
+                    <div key={i} className="rounded-xl border border-ink/10 bg-white p-4">
                         <div className="h-6 w-32 rounded bg-ink/10 animate-pulse" />
                     </div>
                 ))}

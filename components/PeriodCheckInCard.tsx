@@ -50,7 +50,7 @@ export function PeriodCheckInCard({ language, latestWeightKg, weightUnit }: Peri
         : (zh ? '體重（磅）' : 'Weight (lb)')
 
     return (
-        <div className="rounded-2xl border border-ink/10 bg-white p-4 space-y-3 shadow-sm">
+        <div className="rounded-xl border border-ink/10 bg-white p-4 space-y-3">
             <h2 className="text-lg font-semibold uppercase tracking-wide">{t('title')}</h2>
             <p className="text-sm text-ink/60">{t('description')}</p>
 

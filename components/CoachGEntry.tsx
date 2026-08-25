@@ -32,7 +32,7 @@ export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal 
         <>
             {/* 入口按鈕 */}
             {!hasRoutines ? (
-                <div className="rounded-2xl border-2 border-dashed border-ink/20 p-8 text-center space-y-4">
+                <div className="rounded-xl border-2 border-dashed border-ink/20 p-8 text-center space-y-4">
                     <div className="text-4xl">🤖</div>
                     <div>
                         <p className="font-semibold text-lg">
@@ -59,7 +59,7 @@ export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal 
             {/* 警告 modal */}
             {showWarning && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-                    <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-[#2C2923] p-6 shadow-xl space-y-5">
+                    <div className="w-full max-w-sm rounded-xl bg-white dark:bg-[#2C2923] p-6 shadow-xl space-y-5">
                         {/* Header */}
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-sm shrink-0">

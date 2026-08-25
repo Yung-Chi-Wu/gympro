@@ -247,7 +247,7 @@ export function CycleScheduler({
             {!cycleId ? (
                 <form
                     onSubmit={handleCreateCycle}
-                    className="rounded-2xl border border-ink/10 bg-white p-6 space-y-3 shadow-sm"
+                    className="rounded-xl border border-ink/10 bg-white p-6 space-y-3"
                 >
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -287,7 +287,7 @@ export function CycleScheduler({
                 <>
                     <form
                         onSubmit={handleRequestLengthChange}
-                        className="rounded-2xl border border-ink/10 bg-white p-4 shadow-sm"
+                        className="rounded-xl border border-ink/10 bg-white p-4"
                     >
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -324,7 +324,7 @@ export function CycleScheduler({
                         </div>
                     </form>
 
-                    <div className="rounded-2xl border border-ink/10 bg-white p-6 space-y-2 shadow-sm">
+                    <div className="rounded-xl border border-ink/10 bg-white p-6 space-y-2">
                         {days.map((day) => (
                             <div key={day.dayIndex} className="flex items-center justify-between gap-3">
                                 <span className="text-sm font-medium w-20 shrink-0">
@@ -356,7 +356,7 @@ export function CycleScheduler({
             {
                 pending && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
-                        <div className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-sm">
+                        <div className="w-full max-w-sm space-y-4 rounded-xl bg-white p-6">
                             <h3 className="font-semibold">
                                 {zh ? '變更循環天數？' : 'Change cycle length?'}
                             </h3>

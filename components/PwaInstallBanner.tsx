@@ -72,7 +72,7 @@ export function PwaInstallBanner({ language }: PwaInstallBannerProps) {
     if (showAndroid) {
         return (
             <div className="fixed bottom-20 left-4 right-4 z-50 sm:bottom-4 sm:left-auto sm:right-4 sm:w-80">
-                <div className="rounded-2xl border border-ink/10 bg-white p-4 shadow-lg">
+                <div className="rounded-xl border border-ink/10 bg-white p-4 shadow-lg">
                     <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1">
                             <p className="text-sm font-semibold">
@@ -118,7 +118,7 @@ export function PwaInstallBanner({ language }: PwaInstallBannerProps) {
     if (showIos) {
         return (
             <div className="fixed bottom-20 left-4 right-4 z-50" style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
-                <div className="rounded-2xl border border-ink/10 bg-white p-4 shadow-lg">
+                <div className="rounded-xl border border-ink/10 bg-white p-4 shadow-lg">
                     <div className="flex items-start justify-between gap-3">
                         <div className="space-y-2">
                             <p className="text-sm font-semibold">

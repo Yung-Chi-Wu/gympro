@@ -35,7 +35,7 @@ export function CoachGModal({ language, trainingGoal, onClose, onSaved }: CoachG
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-lg h-[85vh] rounded-2xl bg-white dark:bg-[#2C2923] shadow-xl flex flex-col overflow-hidden">
+            <div className="w-full max-w-lg h-[85vh] rounded-xl bg-white dark:bg-[#2C2923] shadow-xl flex flex-col overflow-hidden">
                 {generatedPlan ? (
                     <CoachGResult
                         routines={generatedPlan.routines}

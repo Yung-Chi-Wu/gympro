@@ -112,7 +112,7 @@ export function RecommendationPanel({ userId, language }: RecommendationPanelPro
     }, [checkStatus])
 
     return (
-        <div className="rounded-2xl border border-ink/10 bg-white p-6 space-y-4 shadow-sm">
+        <div className="rounded-xl border border-ink/10 bg-white p-6 space-y-4">
             {status === 'idle' && (
                 <p className="text-sm text-ink/60">{t('idle')}</p>
             )}

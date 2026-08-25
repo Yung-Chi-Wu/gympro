@@ -147,7 +147,7 @@ export function SignupForm({ locale }: SignupFormProps) {
             <div className="flex justify-center gap-4">
                 <button type="button" onClick={() => handleOAuth('google')} disabled={!!oauthLoading}
                     aria-label="Continue with Google"
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 bg-white shadow-sm hover:bg-ink/5 disabled:opacity-50">
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 bg-white hover:bg-ink/5 disabled:opacity-50">
                     {oauthLoading === 'google' ? (
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-ink/20 border-t-ink" />
                     ) : (
@@ -162,7 +162,7 @@ export function SignupForm({ locale }: SignupFormProps) {
 
                 <button type="button" onClick={() => handleOAuth('facebook')} disabled={!!oauthLoading}
                     aria-label="Continue with Facebook"
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 bg-white shadow-sm hover:bg-ink/5 disabled:opacity-50">
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 bg-white hover:bg-ink/5 disabled:opacity-50">
                     {oauthLoading === 'facebook' ? (
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-ink/20 border-t-[#1877F2]" />
                     ) : (

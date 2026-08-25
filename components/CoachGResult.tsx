@@ -174,7 +174,7 @@ export function CoachGResult({ routines, cycleLength, language, onBack, onSaved 
 
                 {/* 課表列表 */}
                 {editableRoutines.map((routine, ri) => (
-                    <div key={ri} className="rounded-2xl border border-ink/10 bg-white p-4 space-y-3 shadow-sm">
+                    <div key={ri} className="rounded-xl border border-ink/10 bg-white p-4 space-y-3">
                         <div>
                             <p className="font-semibold">{getRoutineName(routine)}</p>
                             <p className="text-xs text-ink/40">

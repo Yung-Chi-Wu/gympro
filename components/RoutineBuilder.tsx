@@ -213,7 +213,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
                 {routines.map((routine) => {
                     const isExpanded = expandedRoutineId === routine.id
                     return (
-                        <div key={routine.id} className="rounded-2xl border border-ink/10 bg-white shadow-sm">
+                        <div key={routine.id} className="rounded-xl border border-ink/10 bg-white">
                             <div className="flex w-full items-center justify-between px-4 py-3 gap-2">
                                 {/* 課表名稱——點擊展開 */}
                                 <button
@@ -236,10 +236,15 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
                                     <button
                                         type="button"
                                         onClick={() => handleDeleteRoutine(routine.id)}
-                                        className="text-ink/30 hover:text-red-500 transition-colors text-sm px-1"
+                                        className="text-ink/50 hover:text-red-500 dark:text-white/40 dark:hover:text-red-400 transition-colors p-1"
                                         title={zh ? '刪除課表' : 'Delete routine'}
                                     >
-                                        🗑
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="3,6 5,6 21,6" />
+                                            <path d="M19,6l-1,14a2,2,0,0,1-2,2H8a2,2,0,0,1-2-2L5,6" />
+                                            <path d="M10,11v6M14,11v6" />
+                                            <path d="M9,6V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2" />
+                                        </svg>
                                     </button>
                                     {/* 展開箭頭 */}
                                     <button

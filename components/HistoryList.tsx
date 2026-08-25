@@ -79,7 +79,7 @@ interface PeriodRowProps {
 
 function PeriodRow({ period, report, userId, language }: PeriodRowProps) {
     return (
-        <div className="rounded-2xl border border-ink/10 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-xl border border-ink/10 bg-white overflow-hidden">
             <div className="px-4 py-3 border-b border-ink/10 bg-ink/[0.02]">
                 <p className="font-semibold text-sm dark:text-white">
                     {formatDateRange(period.start, period.end, language)}
