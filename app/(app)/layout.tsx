@@ -58,9 +58,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <header className="bg-white dark:bg-[#1E1C19] border-b border-gray-200 dark:border-white/10 px-4 py-3 flex items-center justify-between shrink-0">
                     <Link href="/dashboard">
                         <img src="/logo-horizontal-light.svg" alt="GymPro"
-                            className="h-7 w-auto block dark:hidden" />
+                            className="h-8 w-auto block dark:hidden" />
                         <img src="/logo-horizontal-dark.svg" alt="GymPro"
-                            className="h-7 w-auto hidden dark:block" />
+                            className="h-8 w-auto hidden dark:block" />
                     </Link>
                     <LogoutButton />
                 </header>
