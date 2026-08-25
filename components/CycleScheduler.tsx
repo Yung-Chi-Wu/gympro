@@ -289,35 +289,36 @@ export function CycleScheduler({
                         onSubmit={handleRequestLengthChange}
                         className="rounded-2xl border border-ink/10 bg-white p-6 space-y-4 shadow-sm"
                     >
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">
-                                {zh ? '循環天數' : 'Cycle length (days)'}
-                            </label>
-                            <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                                <label className="text-sm font-medium shrink-0">
+                                    {zh ? '循環天數' : 'Cycle length'}
+                                </label>
                                 <input
                                     type="text"
                                     inputMode="numeric"
                                     value={lengthInput}
                                     onChange={(e) => setLengthInput(e.target.value)}
-                                    className="w-28 rounded-md border px-3 py-2 text-sm h-10"
+                                    className="w-14 rounded-md border px-2 py-1 text-sm text-center"
                                 />
                                 <button
                                     type="submit"
                                     disabled={isSaving}
-                                    className="rounded-md border px-4 py-2 text-sm h-10 disabled:opacity-50 whitespace-nowrap"
+                                    className="rounded-md border px-3 py-1 text-sm text-ink/60 dark:text-white/60 disabled:opacity-50 whitespace-nowrap"
                                 >
-                                    {zh ? '更新天數' : 'Update Length'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleDeleteCycle}
-                                    disabled={isSaving}
-                                    className="ml-auto rounded-md border border-red-200 px-4 py-2 text-sm h-10 text-red-500 hover:bg-red-50 dark:border-red-900 dark:text-red-400 disabled:opacity-50 whitespace-nowrap"
-                                >
-                                    {zh ? '刪除循環' : 'Delete cycle'}
+                                    {zh ? '更新' : 'Update'}
                                 </button>
                             </div>
+                            <button
+                                type="button"
+                                onClick={handleDeleteCycle}
+                                disabled={isSaving}
+                                className="rounded-md border border-red-200 dark:border-red-900 px-3 py-1 text-sm text-red-500 dark:text-red-400 disabled:opacity-50 whitespace-nowrap"
+                            >
+                                {zh ? '刪除' : 'Delete'}
+                            </button>
                         </div>
+
                     </form>
 
                     <div className="rounded-2xl border border-ink/10 bg-white p-6 space-y-2 shadow-sm">
@@ -346,51 +347,54 @@ export function CycleScheduler({
                         ))}
                     </div>
                 </>
-            )}
+            )
+            }
 
-            {pending && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
-                    <div className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-sm">
-                        <h3 className="font-semibold">
-                            {zh ? '變更循環天數？' : 'Change cycle length?'}
-                        </h3>
-                        <p className="text-sm text-ink/60">
-                            {zh
-                                ? `從 ${cycleLength} 天改成 ${pending.newLength} 天會影響你目前在循環中的位置。`
-                                : `Changing from ${cycleLength} to ${pending.newLength} days affects where you are in the cycle.`}
-                        </p>
-                        <div className="flex flex-col gap-2">
-                            {pending.canContinue && (
+            {
+                pending && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
+                        <div className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-sm">
+                            <h3 className="font-semibold">
+                                {zh ? '變更循環天數？' : 'Change cycle length?'}
+                            </h3>
+                            <p className="text-sm text-ink/60">
+                                {zh
+                                    ? `從 ${cycleLength} 天改成 ${pending.newLength} 天會影響你目前在循環中的位置。`
+                                    : `Changing from ${cycleLength} to ${pending.newLength} days affects where you are in the cycle.`}
+                            </p>
+                            <div className="flex flex-col gap-2">
+                                {pending.canContinue && (
+                                    <button
+                                        type="button"
+                                        onClick={() => applyLengthChange(false)}
+                                        disabled={isSaving}
+                                        className="rounded-md border px-4 py-2 text-sm disabled:opacity-50"
+                                    >
+                                        {zh ? '保留目前的進度，只延長循環天數' : 'Keep my current day, just extend the cycle'}
+                                    </button>
+                                )}
                                 <button
                                     type="button"
-                                    onClick={() => applyLengthChange(false)}
+                                    onClick={() => applyLengthChange(true)}
                                     disabled={isSaving}
-                                    className="rounded-md border px-4 py-2 text-sm disabled:opacity-50"
+                                    className="rounded-md bg-plate px-4 py-2 font-display uppercase tracking-wide text-chalk hover:bg-plate-light disabled:opacity-50"
                                 >
-                                    {zh ? '保留目前的進度，只延長循環天數' : 'Keep my current day, just extend the cycle'}
+                                    {zh ? '從第一天重新開始' : 'Restart from Day 1'}
                                 </button>
-                            )}
-                            <button
-                                type="button"
-                                onClick={() => applyLengthChange(true)}
-                                disabled={isSaving}
-                                className="rounded-md bg-plate px-4 py-2 font-display uppercase tracking-wide text-chalk hover:bg-plate-light disabled:opacity-50"
-                            >
-                                {zh ? '從第一天重新開始' : 'Restart from Day 1'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setPending(null)}
-                                disabled={isSaving}
-                                className="rounded-md px-4 py-2 text-sm text-ink/60 disabled:opacity-50"
-                            >
-                                {zh ? '取消' : 'Cancel'}
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPending(null)}
+                                    disabled={isSaving}
+                                    className="rounded-md px-4 py-2 text-sm text-ink/60 disabled:opacity-50"
+                                >
+                                    {zh ? '取消' : 'Cancel'}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </section>
+                )
+            }
+        </section >
     )
 }
 
