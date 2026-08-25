@@ -247,3 +247,16 @@ html.dark .bottom-nav {
   background-color: #2C2923 !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
+
+/* Welcome 頁面次要按鈕 */
+html.dark .border-\[\#26241F\] {
+  border-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+html.dark .text-\[\#26241F\] {
+  color: #EAE7E0 !important;
+}
+
+html.dark .hover\:bg-\[\#26241F\]:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}

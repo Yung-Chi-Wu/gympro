@@ -18,18 +18,26 @@ export default async function Home() {
         <LangToggle currentLocale={locale} />
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
-        <h1 className="text-4xl font-bold uppercase tracking-wide">{t('headline')}</h1>
-        <p className="max-w-sm text-ink/60">{t('tagline')}</p>
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold uppercase tracking-wide">
+            GYM<span className="text-[#C8955A]">PRO</span>
+          </h1>
+          <p className="max-w-sm text-sm text-ink/60">{t('tagline')}</p>
+        </div>
+
         <div className="flex w-full max-w-xs flex-col gap-3">
+          {/* 登入——主要 CTA，深色底白字，在任何模式都明顯 */}
 
           <a href="/login"
-            className="rounded-md bg-plate px-4 py-3 text-center font-display uppercase tracking-wide text-chalk hover:bg-plate-light"
+            className="rounded-xl bg-[#26241F] px-4 py-3.5 text-center font-semibold text-white hover:bg-[#3E3B34] transition-colors shadow-lg"
           >
             {t('login')}
           </a>
 
+          {/* 建立帳號——次要，有明顯邊框 */}
+
           <a href="/signup"
-            className="rounded-md border border-ink/20 px-4 py-3 text-center text-sm text-ink/70 hover:border-ink/40 hover:text-ink transition-colors"
+            className="rounded-xl border-2 border-[#26241F] px-4 py-3.5 text-center font-semibold text-[#26241F] hover:bg-[#26241F] hover:text-white transition-colors"
           >
             {t('signup')}
           </a>
