@@ -29,7 +29,7 @@ export default async function Home() {
           </a>
 
           <a href="/signup"
-            className="rounded-md border px-4 py-3 text-center text-sm"
+            className="rounded-md border border-ink/20 px-4 py-3 text-center text-sm text-ink/70 hover:border-ink/40 hover:text-ink transition-colors"
           >
             {t('signup')}
           </a>

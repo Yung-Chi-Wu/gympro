@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* 讓 Tailwind v4 用 .dark class（next-themes 用） */
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -10,6 +11,7 @@
   --color-plate-light: #3E3B34;
 }
 
+/* ── Light mode ── */
 body {
   background-color: #FAFAF8;
   color: #1A1814;
@@ -31,24 +33,25 @@ h3 {
   padding-bottom: calc(5rem + env(safe-area-inset-bottom));
 }
 
-/* ══════════════════════════════════
-   DARK MODE
-══════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   DARK MODE — html.dark（next-themes class strategy）
+══════════════════════════════════════════════════════ */
 
-/* html 直接設顏色——所有子元素透過繼承自動變白 */
+/* 根元素——所有子元素透過繼承自動變淺色 */
 html.dark {
-  background-color: #1A1814;
-  color: #EAE7E0 !important;
-  color-scheme: dark;
   --color-ink: #EAE7E0;
+  --color-background: #1A1814;
+  color-scheme: dark;
+  background-color: #1A1814;
+  color: #EAE7E0;
 }
 
-/* 強制所有文字繼承，除非有明確顏色 */
-html.dark *:not([class*="text-red"]):not([class*="text-green"]):not([class*="text-yellow"]):not([class*="text-orange"]):not([class*="text-plate"]):not([class*="text-chalk"]):not(.text-white) {
-  color: inherit;
+html.dark body {
+  background-color: #1A1814;
+  color: #EAE7E0;
 }
 
-/* Backgrounds */
+/* ── Backgrounds ── */
 html.dark .bg-white {
   background-color: #2C2923 !important;
 }
@@ -61,16 +64,17 @@ html.dark .bg-\[\#F5F5F3\] {
   background-color: #242220 !important;
 }
 
-html.dark body {
-  background-color: #1A1814 !important;
-}
-
 html.dark aside {
   background-color: #1E1C19 !important;
 }
 
 html.dark header {
   background-color: #1E1C19 !important;
+}
+
+/* Login/Signup/Forgot 表單背景 */
+html.dark .rounded-lg.border {
+  background-color: #2C2923 !important;
 }
 
 /* 淺色背景區塊 */
@@ -90,13 +94,21 @@ html.dark .bg-plate\/10 {
   background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-/* Borders */
+/* ── Borders ── */
 html.dark .border {
   border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 html.dark .border-ink\/10 {
   border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.dark .border-ink\/20 {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+html.dark .border-ink\/40 {
+  border-color: rgba(255, 255, 255, 0.4) !important;
 }
 
 html.dark .border-t {
@@ -115,7 +127,40 @@ html.dark .border-gray-200 {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Inputs */
+/* ── Text（固定 Tailwind 顏色，不走變數的） ── */
+html.dark .text-gray-700 {
+  color: #DDD9D0 !important;
+}
+
+html.dark .text-gray-600 {
+  color: #C0BCB4 !important;
+}
+
+html.dark .text-gray-500 {
+  color: #A09C95 !important;
+}
+
+html.dark .text-ink\/70 {
+  color: rgba(234, 231, 224, 0.7) !important;
+}
+
+html.dark .text-ink\/60 {
+  color: rgba(234, 231, 224, 0.6) !important;
+}
+
+html.dark .text-ink\/40 {
+  color: rgba(234, 231, 224, 0.4) !important;
+}
+
+html.dark .text-ink\/30 {
+  color: rgba(234, 231, 224, 0.3) !important;
+}
+
+html.dark .text-ink {
+  color: #EAE7E0 !important;
+}
+
+/* ── Inputs ── */
 html.dark input:not([type="checkbox"]),
 html.dark textarea,
 html.dark select {
@@ -129,7 +174,16 @@ html.dark textarea::placeholder {
   color: rgba(234, 231, 224, 0.35) !important;
 }
 
-/* Badge colors */
+/* OAuth 圓形按鈕（Login 頁） */
+html.dark .rounded-full.border {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+html.dark .rounded-full.bg-white {
+  background-color: #3A3733 !important;
+}
+
+/* ── Badge / Alert 顏色 ── */
 html.dark .bg-yellow-50 {
   background-color: #3D300A !important;
 }
@@ -174,7 +228,7 @@ html.dark .text-green-700 {
   color: #80F080 !important;
 }
 
-/* Recharts */
+/* ── Recharts ── */
 html.dark .recharts-text {
   fill: rgba(234, 231, 224, 0.6) !important;
 }
@@ -183,30 +237,13 @@ html.dark .recharts-cartesian-grid line {
   stroke: rgba(255, 255, 255, 0.06) !important;
 }
 
-/* Skeleton */
+/* ── Skeleton ── */
 html.dark .animate-pulse {
   background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-/* Bottom nav */
+/* ── Bottom nav ── */
 html.dark .bottom-nav {
   background-color: #2C2923 !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-html.dark .border-ink\/20 {
-  border-color: rgba(234, 231, 224, 0.2) !important;
-}
-
-html.dark .border-ink\/40 {
-  border-color: rgba(234, 231, 224, 0.4) !important;
-}
-
-/* Login 頁的圓形 OAuth 按鈕 */
-html.dark .rounded-full.border {
-  border-color: rgba(255, 255, 255, 0.25) !important;
-}
-
-html.dark .rounded-full.bg-white {
-  background-color: #3A3733 !important;
 }
