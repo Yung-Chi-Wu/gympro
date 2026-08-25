@@ -25,7 +25,10 @@ export async function POST(request: Request) {
         trainingGoal: string | null
     } = await request.json()
 
-    // 按器材過濾動作清單
+    // 從 days 字串提取數字
+    const daysMatch = collected.days.match(/\d+/)
+    const numDays = daysMatch ? parseInt(daysMatch[0]) : 4
+
     const equipmentKeywords = buildEquipmentFilter(collected.equipment, language)
     const { data: exercises } = await supabase
         .from('exercises')
@@ -33,7 +36,6 @@ export async function POST(request: Request) {
         .order('muscle_group')
         .order('name')
 
-    // 過濾只留相關器材的動作
     const filteredExercises = (exercises ?? []).filter((ex) => {
         if (!ex.equipment) return collected.equipment.some((e) =>
             e.toLowerCase().includes('bodyweight') || e.toLowerCase().includes('徒手')
@@ -53,7 +55,7 @@ export async function POST(request: Request) {
 
     const userInfo = zh
         ? `使用者資訊：
-- 每週訓練天數：${collected.days}
+- 循環天數：${numDays} 天（cycle_length 必須是 ${numDays}）
 - 每次時長：${collected.duration}
 - 器材：${collected.equipment.join('、')}
 - 目標：${collected.goals.join('、')}
@@ -62,7 +64,7 @@ export async function POST(request: Request) {
 - 想加強部位：${collected.focus ?? '無特別'}
 ${goalNote}`
         : `User info:
-- Days per week: ${collected.days}
+- Cycle days: ${numDays} days (cycle_length MUST be ${numDays})
 - Session duration: ${collected.duration}
 - Equipment: ${collected.equipment.join(', ')}
 - Goals: ${collected.goals.join(', ')}
@@ -74,32 +76,34 @@ ${goalNote}`
     const systemPrompt = zh
         ? `你是 Coach G，專業健身教練。根據使用者資訊設計課表。
 
-規則：
+⚠️ 最重要規則：
+- cycle_length 必須完全等於使用者指定的循環天數（${numDays} 天），絕對不能是其他數字
+- day_indices 必須在 1 到 ${numDays} 之間
+- AI 可以決定哪幾天練、哪幾天休息，但 cycle_length 固定是 ${numDays}
 - 只能使用下方清單的動作，必須用正確的 exercise_id
 - 每個課表提供中文名稱（name_zh_tw）
-- 指定每個課表對應循環的哪幾天（day_indices）
-- cycle_length 包含休息日
 - 只輸出 JSON，不輸出其他文字
 
 動作清單（格式：id|英文名|中文名|肌群）：
 ${exerciseLines}
 
-輸出格式：
-{"action":"generate_routine","message":"鼓勵說明","cycle_length":7,"routines":[{"name":"Push Day","name_zh_tw":"推日","day_indices":[1,4],"exercises":[{"exercise_id":"uuid","exercise_name":"Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
+輸出格式（cycle_length 必須是 ${numDays}）：
+{"action":"generate_routine","message":"鼓勵說明","cycle_length":${numDays},"routines":[{"name":"Push Day","name_zh_tw":"推日","day_indices":[1,4],"exercises":[{"exercise_id":"uuid","exercise_name":"Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
         : `You are Coach G, a professional fitness coach. Design a routine based on user info.
 
-Rules:
+⚠️ CRITICAL RULES:
+- cycle_length MUST exactly equal ${numDays} (the user's specified days) — no exceptions
+- day_indices must be between 1 and ${numDays}
+- AI decides which days to train vs rest, but cycle_length is always ${numDays}
 - ONLY use exercises from the list below with exact exercise_id
 - Provide Chinese name (name_zh_tw) for each routine
-- Specify day_indices for each routine
-- cycle_length includes rest days
 - Output ONLY JSON, no other text
 
 Exercise list (id|name|zh_name|muscle_group):
 ${exerciseLines}
 
-Output format:
-{"action":"generate_routine","message":"encouraging summary","cycle_length":7,"routines":[{"name":"Push Day","name_zh_tw":"推日","day_indices":[1,4],"exercises":[{"exercise_id":"uuid","exercise_name":"Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
+Output format (cycle_length MUST be ${numDays}):
+{"action":"generate_routine","message":"encouraging summary","cycle_length":${numDays},"routines":[{"name":"Push Day","name_zh_tw":"推日","day_indices":[1,4],"exercises":[{"exercise_id":"uuid","exercise_name":"Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
 
     try {
         const response = await client.messages.create({
@@ -118,7 +122,11 @@ Output format:
         if (startIdx !== -1 && endIdx !== -1) {
             try {
                 const parsed = JSON.parse(rawText.slice(startIdx, endIdx + 1))
-                if (parsed.action === 'generate_routine') return NextResponse.json(parsed)
+                if (parsed.action === 'generate_routine') {
+                    // 強制確保 cycle_length 正確
+                    parsed.cycle_length = numDays
+                    return NextResponse.json(parsed)
+                }
             } catch { /* 繼續 */ }
         }
 
@@ -131,7 +139,6 @@ Output format:
 
 function buildEquipmentFilter(equipment: string[], language: string): string[] {
     const keywords: string[] = []
-    const zh = language === 'zh-TW'
 
     for (const eq of equipment) {
         const lower = eq.toLowerCase()
@@ -142,7 +149,6 @@ function buildEquipmentFilter(equipment: string[], language: string): string[] {
         if (lower.includes('bodyweight') || lower.includes('徒手')) keywords.push('bodyweight')
     }
 
-    // 徒手動作永遠包含
     if (!keywords.includes('bodyweight')) keywords.push('bodyweight')
 
     return keywords

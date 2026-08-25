@@ -17,6 +17,7 @@ function buildChatPrompt(language: string, trainingGoal: string | null) {
 - 每次只問一個問題，附上選項
 - 仔細讀對話歷史，絕對不重複問已經回答的問題
 - 使用者可以點選項或自由打字，兩種都接受
+- 使用者用逗號分隔的回答（例如「胸, 肩」）視為當前問題的多選答案
 - 問題 1-5 是必答，skippable 必須是 false，不能接受跳過
 - 問題 6-7 是選填，skippable 必須是 true
 - 如果使用者對必答題說「跳過」或「沒有」，溫和提醒這題必須回答，重新給選項
