@@ -287,38 +287,35 @@ export function CycleScheduler({
                 <>
                     <form
                         onSubmit={handleRequestLengthChange}
-                        className="rounded-2xl border border-ink/10 bg-white p-6 space-y-4 shadow-sm"
+                        className="rounded-2xl border border-ink/10 bg-white p-4 shadow-sm"
                     >
-                        <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                                <label className="text-sm font-medium shrink-0">
-                                    {zh ? '循環天數' : 'Cycle length'}
-                                </label>
-                                <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    value={lengthInput}
-                                    onChange={(e) => setLengthInput(e.target.value)}
-                                    className="w-14 rounded-md border px-2 py-1 text-sm text-center"
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={isSaving}
-                                    className="rounded-md border px-3 py-1 text-sm text-ink/60 dark:text-white/60 disabled:opacity-50 whitespace-nowrap"
-                                >
-                                    {zh ? '更新' : 'Update'}
-                                </button>
-                            </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-ink/60 shrink-0">
+                                {zh ? '循環天數' : 'Cycle days'}
+                            </label>
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                value={lengthInput}
+                                onChange={(e) => setLengthInput(e.target.value)}
+                                className="w-12 rounded-md border px-2 py-1.5 text-sm text-center"
+                            />
+                            <button
+                                type="submit"
+                                disabled={isSaving}
+                                className="rounded-md border px-3 py-1.5 text-xs text-ink/60 dark:text-white/60 disabled:opacity-50"
+                            >
+                                {zh ? '更新' : 'Update'}
+                            </button>
                             <button
                                 type="button"
                                 onClick={handleDeleteCycle}
                                 disabled={isSaving}
-                                className="rounded-md border border-red-200 dark:border-red-900 px-3 py-1 text-sm text-red-500 dark:text-red-400 disabled:opacity-50 whitespace-nowrap"
+                                className="ml-auto rounded-md border border-red-200 dark:border-red-900 px-3 py-1.5 text-xs text-red-500 dark:text-red-400 disabled:opacity-50"
                             >
-                                {zh ? '刪除' : 'Delete'}
+                                {zh ? '刪除循環' : 'Delete'}
                             </button>
                         </div>
-
                     </form>
 
                     <div className="rounded-2xl border border-ink/10 bg-white p-6 space-y-2 shadow-sm">
