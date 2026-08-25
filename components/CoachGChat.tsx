@@ -42,6 +42,7 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
     const [isLoading, setIsLoading] = useState(false)
     const [options, setOptions] = useState<string[]>([])
     const bottomRef = useRef<HTMLDivElement>(null)
+    const [selectedOptions, setSelectedOptions] = useState<string[]>([])
 
     useEffect(() => {
         // 開場白
@@ -66,7 +67,7 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
     async function sendMessage(msgs: Message[]) {
         setIsLoading(true)
         setOptions([])
-
+        setSelectedOptions([])
         try {
             const res = await fetch('/api/ai/routine-chat', {
                 method: 'POST',
@@ -149,8 +150,8 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                             </div>
                         )}
                         <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === 'user'
-                                ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
-                                : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
+                            ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
+                            : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
                             }`}>
                             {msg.content}
                         </div>
@@ -177,17 +178,58 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
 
             {/* Options */}
             {options.length > 0 && !isLoading && (
-                <div className="px-4 pb-2 flex flex-wrap gap-2">
-                    {options.map((opt, i) => (
+                <div className="px-4 pb-3 space-y-2">
+                    {/* 選項按鈕（支援多選） */}
+                    <div className="flex flex-wrap gap-2">
+                        {options.map((opt, i) => {
+                            const isSelected = selectedOptions.includes(opt)
+                            return (
+                                <button
+                                    key={i}
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedOptions((prev) =>
+                                            prev.includes(opt)
+                                                ? prev.filter((o) => o !== opt)
+                                                : [...prev, opt]
+                                        )
+                                    }}
+                                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${isSelected
+                                        ? 'bg-plate dark:bg-white border-plate dark:border-white text-chalk dark:text-[#1A1814]'
+                                        : 'border-ink/20 dark:border-white/20 hover:border-ink/40 dark:hover:border-white/40'
+                                        }`}
+                                >
+                                    {isSelected ? '✓ ' : ''}{opt}
+                                </button>
+                            )
+                        })}
+                    </div>
+
+                    {/* 確認送出 + 跳過 */}
+                    <div className="flex gap-2">
+                        {selectedOptions.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    handleSend(selectedOptions.join('、'))
+                                    setSelectedOptions([])
+                                }}
+                                className="rounded-lg bg-plate dark:bg-white px-4 py-1.5 text-xs font-semibold text-chalk dark:text-[#1A1814] hover:opacity-90 transition-opacity"
+                            >
+                                {zh ? `確認（${selectedOptions.length}）` : `Confirm (${selectedOptions.length})`}
+                            </button>
+                        )}
                         <button
-                            key={i}
                             type="button"
-                            onClick={() => handleSend(opt)}
-                            className="rounded-full border border-ink/20 dark:border-white/20 px-3 py-1.5 text-xs font-medium hover:bg-plate hover:text-chalk dark:hover:bg-white dark:hover:text-[#1A1814] hover:border-plate dark:hover:border-white transition-colors"
+                            onClick={() => {
+                                handleSend(zh ? '跳過' : 'Skip')
+                                setSelectedOptions([])
+                            }}
+                            className="rounded-lg border border-ink/20 dark:border-white/20 px-4 py-1.5 text-xs text-ink/50 dark:text-white/50 hover:text-ink dark:hover:text-white transition-colors"
                         >
-                            {opt}
+                            {zh ? '跳過 / 沒有' : 'Skip / None'}
                         </button>
-                    ))}
+                    </div>
                 </div>
             )}
 
