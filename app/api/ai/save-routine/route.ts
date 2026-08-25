@@ -26,10 +26,12 @@ export async function POST(request: Request) {
         routines,
         cycleLength,
         startDayIndex,
+        replaceExisting,
     }: {
         routines: Routine[]
         cycleLength: number
         startDayIndex: number
+        replaceExisting: boolean
     } = await request.json()
 
     // 計算 start_date
@@ -51,6 +53,22 @@ export async function POST(request: Request) {
     if (existingCycle) {
         await supabase.from('cycle_days').delete().eq('training_cycle_id', existingCycle.id)
         await supabase.from('training_cycles').delete().eq('id', existingCycle.id)
+    }
+
+    // 如果選擇取代，刪掉所有現有課表
+    if (replaceExisting) {
+        // 先找到所有現有課表 ID
+        const { data: existingRoutines } = await supabase
+            .from('routines')
+            .select('id')
+            .eq('user_id', user.id)
+
+        if (existingRoutines && existingRoutines.length > 0) {
+            const routineIds = existingRoutines.map((r) => r.id)
+            await supabase.from('routine_exercises').delete().in('routine_id', routineIds)
+        }
+
+        await supabase.from('routines').delete().eq('user_id', user.id)
     }
 
     // 建立訓練循環

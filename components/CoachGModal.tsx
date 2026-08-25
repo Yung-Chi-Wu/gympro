@@ -4,20 +4,18 @@ import { useState } from 'react'
 import { CoachGChat } from './CoachGChat'
 import { CoachGResult } from './CoachGResult'
 
-interface GeneratedExercise {
-    exercise_id: string
-    exercise_name: string
-    exercise_name_zh_tw?: string
-    muscle_group: string
-    target_sets: number
-    target_reps: number
-}
-
 interface GeneratedRoutine {
     name: string
     name_zh_tw?: string
     day_indices: number[]
-    exercises: GeneratedExercise[]
+    exercises: {
+        exercise_id: string
+        exercise_name: string
+        exercise_name_zh_tw?: string
+        muscle_group: string
+        target_sets: number
+        target_reps: number
+    }[]
 }
 
 interface GeneratedPlan {
@@ -28,11 +26,12 @@ interface GeneratedPlan {
 interface CoachGModalProps {
     language: string
     trainingGoal: string | null
+    replaceExisting: boolean
     onClose: () => void
     onSaved: () => void
 }
 
-export function CoachGModal({ language, trainingGoal, onClose, onSaved }: CoachGModalProps) {
+export function CoachGModal({ language, trainingGoal, replaceExisting, onClose, onSaved }: CoachGModalProps) {
     const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null)
 
     return (
@@ -43,6 +42,7 @@ export function CoachGModal({ language, trainingGoal, onClose, onSaved }: CoachG
                         routines={generatedPlan.routines}
                         cycleLength={generatedPlan.cycleLength}
                         language={language}
+                        replaceExisting={replaceExisting}
                         onBack={() => setGeneratedPlan(null)}
                         onSaved={onSaved}
                     />

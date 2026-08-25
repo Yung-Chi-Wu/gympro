@@ -42,25 +42,21 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+    const [isGenerating, setIsGenerating] = useState(false)
     const [options, setOptions] = useState<string[]>([])
     const [selectedOptions, setSelectedOptions] = useState<string[]>([])
     const [isMultiSelect, setIsMultiSelect] = useState(false)
     const bottomRef = useRef<HTMLDivElement>(null)
 
-    useEffect(() => {
-        startChat()
-    }, [])
-
+    useEffect(() => { startChat() }, [])
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages, options])
+    }, [messages, options, isGenerating])
 
     async function startChat() {
         const greeting: Message = {
             role: 'user',
-            content: zh
-                ? '你好！請幫我設計一份訓練課表。'
-                : 'Hi! Please help me design a training routine.',
+            content: zh ? '你好！請幫我設計一份訓練課表。' : 'Hi! Please help me design a training routine.',
         }
         await sendMessage([greeting])
     }
@@ -71,6 +67,9 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
         setSelectedOptions([])
         setIsMultiSelect(false)
 
+        // 超過 8 條訊息，很可能在生成課表
+        if (msgs.length >= 8) setIsGenerating(true)
+
         try {
             const res = await fetch('/api/ai/routine-chat', {
                 method: 'POST',
@@ -79,6 +78,8 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
             })
 
             const data: ChatResponse = await res.json()
+            setIsGenerating(false)
+
             const assistantMsg: Message = { role: 'assistant', content: data.message }
             setMessages([...msgs, assistantMsg])
 
@@ -90,6 +91,7 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                 onRoutinesGenerated(data.routines, data.cycle_length ?? data.routines.length)
             }
         } catch {
+            setIsGenerating(false)
             setMessages((prev) => [...prev, {
                 role: 'assistant',
                 content: zh ? '發生錯誤，請再試一次。' : 'Something went wrong. Please try again.',
@@ -129,9 +131,7 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                     </div>
                 </div>
                 <button type="button" onClick={onClose}
-                    className="text-ink/40 hover:text-ink transition-colors text-lg">
-                    ✕
-                </button>
+                    className="text-ink/40 hover:text-ink transition-colors text-lg">✕</button>
             </div>
 
             {/* Messages */}
@@ -139,9 +139,7 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                 {messages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         {msg.role === 'assistant' && (
-                            <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 mt-1 shrink-0">
-                                G
-                            </div>
+                            <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 mt-1 shrink-0">G</div>
                         )}
                         <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === 'user'
                                 ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
@@ -152,11 +150,30 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                     </div>
                 ))}
 
-                {isLoading && (
+                {/* 生成中的特殊 loading */}
+                {isGenerating && (
                     <div className="flex justify-start">
-                        <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 shrink-0">
-                            G
+                        <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 shrink-0">G</div>
+                        <div className="bg-ink/5 dark:bg-white/8 rounded-2xl rounded-tl-sm px-4 py-3 space-y-1">
+                            <p className="text-sm font-medium">
+                                {zh ? '✨ 課表設計中...' : '✨ Designing your routine...'}
+                            </p>
+                            <p className="text-xs text-ink/40">
+                                {zh ? '根據你的需求分析最適合的訓練計畫' : 'Analyzing the best plan for your goals'}
+                            </p>
+                            <div className="flex gap-1 mt-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-[#C8955A] animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <div className="w-1.5 h-1.5 rounded-full bg-[#C8955A] animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <div className="w-1.5 h-1.5 rounded-full bg-[#C8955A] animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </div>
                         </div>
+                    </div>
+                )}
+
+                {/* 一般 loading */}
+                {isLoading && !isGenerating && (
+                    <div className="flex justify-start">
+                        <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 shrink-0">G</div>
                         <div className="bg-ink/5 dark:bg-white/8 rounded-2xl rounded-tl-sm px-4 py-3">
                             <div className="flex gap-1">
                                 <div className="w-2 h-2 rounded-full bg-ink/30 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -182,15 +199,11 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                         {options.map((opt, i) => {
                             const isSelected = selectedOptions.includes(opt)
                             return (
-                                <button
-                                    key={i}
-                                    type="button"
+                                <button key={i} type="button"
                                     onClick={() => {
                                         if (isMultiSelect) {
                                             setSelectedOptions((prev) =>
-                                                prev.includes(opt)
-                                                    ? prev.filter((o) => o !== opt)
-                                                    : [...prev, opt]
+                                                prev.includes(opt) ? prev.filter((o) => o !== opt) : [...prev, opt]
                                             )
                                         } else {
                                             handleSend(opt)
@@ -199,35 +212,23 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                                     className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${isMultiSelect && isSelected
                                             ? 'bg-plate dark:bg-white border-plate dark:border-white text-chalk dark:text-[#1A1814]'
                                             : 'border-ink/20 dark:border-white/20 hover:border-ink/40 dark:hover:border-white/40'
-                                        }`}
-                                >
+                                        }`}>
                                     {isMultiSelect && isSelected ? '✓ ' : ''}{opt}
                                 </button>
                             )
                         })}
                     </div>
-
                     <div className="flex gap-2">
                         {isMultiSelect && selectedOptions.length > 0 && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    handleSend(selectedOptions.join('、'))
-                                    setSelectedOptions([])
-                                }}
-                                className="rounded-lg bg-plate dark:bg-white px-4 py-1.5 text-xs font-semibold text-chalk dark:text-[#1A1814] hover:opacity-90 transition-opacity"
-                            >
+                            <button type="button"
+                                onClick={() => { handleSend(selectedOptions.join('、')); setSelectedOptions([]) }}
+                                className="rounded-lg bg-plate dark:bg-white px-4 py-1.5 text-xs font-semibold text-chalk dark:text-[#1A1814] hover:opacity-90 transition-opacity">
                                 {zh ? `確認（${selectedOptions.length}）` : `Confirm (${selectedOptions.length})`}
                             </button>
                         )}
-                        <button
-                            type="button"
-                            onClick={() => {
-                                handleSend(zh ? '跳過' : 'Skip')
-                                setSelectedOptions([])
-                            }}
-                            className="rounded-lg border border-ink/20 dark:border-white/20 px-4 py-1.5 text-xs text-ink/50 dark:text-white/50 hover:text-ink dark:hover:text-white transition-colors"
-                        >
+                        <button type="button"
+                            onClick={() => { handleSend(zh ? '沒有，跳過這題' : 'None, skip this question'); setSelectedOptions([]) }}
+                            className="rounded-lg border border-ink/20 dark:border-white/20 px-4 py-1.5 text-xs text-ink/50 dark:text-white/50 hover:text-ink dark:hover:text-white transition-colors">
                             {zh ? '跳過 / 沒有' : 'Skip / None'}
                         </button>
                     </div>
@@ -242,20 +243,15 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') handleSend() }}
-                        placeholder={
-                            options.length > 0
-                                ? (zh ? '也可以直接打字回答...' : 'Or type your answer...')
-                                : (zh ? '輸入你的情況...' : 'Type your answer...')
-                        }
+                        placeholder={options.length > 0
+                            ? (zh ? '也可以直接打字回答...' : 'Or type your answer...')
+                            : (zh ? '輸入你的情況...' : 'Type your answer...')}
                         disabled={isLoading}
                         className="flex-1 rounded-xl border border-ink/20 dark:border-white/20 px-3 py-2 text-sm bg-transparent disabled:opacity-50"
                     />
-                    <button
-                        type="button"
-                        onClick={() => handleSend()}
+                    <button type="button" onClick={() => handleSend()}
                         disabled={!input.trim() || isLoading}
-                        className="rounded-xl bg-plate dark:bg-white px-4 py-2 text-sm font-medium text-chalk dark:text-[#1A1814] disabled:opacity-50 hover:opacity-90 transition-opacity"
-                    >
+                        className="rounded-xl bg-plate dark:bg-white px-4 py-2 text-sm font-medium text-chalk dark:text-[#1A1814] disabled:opacity-50 hover:opacity-90 transition-opacity">
                         {zh ? '送出' : 'Send'}
                     </button>
                 </div>

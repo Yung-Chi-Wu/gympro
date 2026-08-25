@@ -6,7 +6,7 @@ import { RoutineBuilder } from '@/components/RoutineBuilder'
 import { CycleScheduler } from '@/components/CycleScheduler'
 import type { ExerciseOption } from '@/components/log-types'
 import { CoachGEntry } from '@/components/CoachGEntry'
-
+import { CoachGEntryWrapper } from '@/components/CoachGEntryWrapper'
 export interface RoutineExerciseRow {
     id: string
     exercise_id: string
@@ -114,8 +114,9 @@ export default async function RoutinesPage() {
     return (
         <div className="py-8 space-y-8">
             <h1 className="text-3xl font-bold uppercase tracking-wide">{t('title')}</h1>
-            <CoachGEntry
+            <CoachGEntryWrapper
                 hasRoutines={routineList.length > 0}
+                routineCount={routineList.length}
                 language={language}
                 trainingGoal={profile?.training_goal ?? null}
             />

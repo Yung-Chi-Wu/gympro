@@ -249,34 +249,31 @@ export function CycleScheduler({
                     onSubmit={handleCreateCycle}
                     className="rounded-2xl border border-ink/10 bg-white p-6 space-y-3 shadow-sm"
                 >
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">
-                            {zh ? '你的訓練循環幾天一輪？' : 'How many days is your cycle?'}
-                        </label>
-                        <input
-                            type="text"
-                            inputMode="numeric"
-                            value={lengthInput}
-                            onChange={(e) => setLengthInput(e.target.value)}
-                            className="w-24 rounded-md border px-3 py-2 text-sm"
-                        />
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">
-                            {zh ? '今天是循環的第幾天？' : 'Which day of your cycle is today?'}
-                        </label>
-                        <input
-                            type="text"
-                            inputMode="numeric"
-                            value={todayDayInput}
-                            onChange={(e) => setTodayDayInput(e.target.value)}
-                            className="w-24 rounded-md border px-3 py-2 text-sm"
-                        />
-                        <p className="text-xs text-ink/40">
-                            {zh
-                                ? '如果你的訓練循環已經進行到一半，在這裡設定好讓系統對齊你現在的位置。'
-                                : "If you're already partway through your routine in your head, set this so today lines up with the right day."}
-                        </p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium">
+                                {zh ? '循環幾天一輪？' : 'Cycle length (days)'}
+                            </label>
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                value={lengthInput}
+                                onChange={(e) => setLengthInput(e.target.value)}
+                                className="w-full rounded-md border px-3 py-2 text-sm"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium">
+                                {zh ? '今天是第幾天？' : 'Today is day...'}
+                            </label>
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                value={todayDayInput}
+                                onChange={(e) => setTodayDayInput(e.target.value)}
+                                className="w-full rounded-md border px-3 py-2 text-sm"
+                            />
+                        </div>
                     </div>
                     <button
                         type="submit"
