@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 const client = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY!,
+  apiKey: process.env.ANTHROPIC_API_KEY!,
 })
 
 const SYSTEM_PROMPT = `You are Coach G, an expert fitness coach and program designer for GymPro app.
@@ -27,35 +27,14 @@ Rules:
 - Be encouraging and professional
 - Reference previous answers to show you're listening
 - When you have enough info (at minimum: days, equipment, goal, level), generate the routine
-- Generate the routine in the user's language
 
-When ready to generate, output ONLY this JSON (no other text):
-{
-  "action": "generate_routine",
-  "message": "Here's your personalized routine! [brief summary in user's language]",
-  "routines": [
-    {
-      "name": "Push Day",
-      "name_zh_tw": "推日",
-      "exercises": [
-        {
-          "exercise_name": "Barbell Bench Press",
-          "exercise_name_zh_tw": "槓鈴臥推",
-          "muscle_group": "chest",
-          "target_sets": 4,
-          "target_reps": 8
-        }
-      ]
-    }
-  ]
-}
+CRITICAL: You must ONLY output valid JSON. Never output plain text. Never add explanation outside the JSON.
 
-When still gathering info, output ONLY this JSON (no other text):
-{
-  "action": "ask",
-  "message": "Your question here",
-  "options": ["Option 1", "Option 2", "Option 3"]
-}`
+When still gathering info output ONLY this JSON:
+{"action":"ask","message":"your question here","options":["Option 1","Option 2","Option 3"]}
+
+When ready to generate output ONLY this JSON:
+{"action":"generate_routine","message":"brief encouraging summary","routines":[{"name":"Push Day","name_zh_tw":"推日","exercises":[{"exercise_name":"Barbell Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
 
 const SYSTEM_PROMPT_ZH = `你是 Coach G，GymPro 的專業健身教練和課表設計師。
 
@@ -79,76 +58,73 @@ const SYSTEM_PROMPT_ZH = `你是 Coach G，GymPro 的專業健身教練和課表
 - 引用之前的回答表示你在認真聽
 - 收集到足夠資訊後（至少：天數、器材、目標、程度）就生成課表
 
-準備生成課表時，只輸出以下 JSON（不要其他文字）：
-{
-  "action": "generate_routine",
-  "message": "這是你的個人化課表！[簡短說明]",
-  "routines": [
-    {
-      "name": "Push Day",
-      "name_zh_tw": "推日",
-      "exercises": [
-        {
-          "exercise_name": "Barbell Bench Press",
-          "exercise_name_zh_tw": "槓鈴臥推",
-          "muscle_group": "chest",
-          "target_sets": 4,
-          "target_reps": 8
-        }
-      ]
-    }
-  ]
-}
+重要：只能輸出 JSON，絕對不能輸出純文字，不能在 JSON 外面加任何說明。
 
-還在收集資訊時，只輸出以下 JSON（不要其他文字）：
-{
-  "action": "ask",
-  "message": "你的問題",
-  "options": ["選項1", "選項2", "選項3"]
-}`
+還在收集資訊時只輸出這個 JSON：
+{"action":"ask","message":"你的問題","options":["選項1","選項2","選項3"]}
+
+準備生成課表時只輸出這個 JSON：
+{"action":"generate_routine","message":"簡短鼓勵的說明","routines":[{"name":"Push Day","name_zh_tw":"推日","exercises":[{"exercise_name":"Barbell Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
 
 export async function POST(request: Request) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { messages, language, trainingGoal } = await request.json()
+  const { messages, language, trainingGoal } = await request.json()
 
-    const systemPrompt = language === 'zh-TW' ? SYSTEM_PROMPT_ZH : SYSTEM_PROMPT
+  const systemPrompt = language === 'zh-TW' ? SYSTEM_PROMPT_ZH : SYSTEM_PROMPT
 
-    const contextNote = trainingGoal
-        ? `\n\nUser's long-term training goal from their profile: "${trainingGoal}"`
-        : ''
+  const contextNote = trainingGoal
+    ? `\n\nUser's long-term training goal from their profile: "${trainingGoal}"`
+    : ''
 
-    try {
-        const response = await client.messages.create({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 4096,
-            system: systemPrompt + contextNote,
-            messages,
-        })
+  try {
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4096,
+      system: systemPrompt + contextNote,
+      messages,
+    })
 
-        const rawText = response.content[0].type === 'text' ? response.content[0].text : ''
+    const rawText = response.content[0].type === 'text'
+      ? response.content[0].text.trim()
+      : ''
 
-        // 解析 JSON 回應
-        try {
-            const jsonMatch = rawText.match(/\{[\s\S]*\}/)
-            if (jsonMatch) {
-                const parsed = JSON.parse(jsonMatch[0])
-                return NextResponse.json(parsed)
-            }
-        } catch {
-            // JSON 解析失敗，回傳原始文字
+    // 嘗試解析 JSON——找第一個 { 到最後一個 }
+    const startIdx = rawText.indexOf('{')
+    const endIdx = rawText.lastIndexOf('}')
+
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      const jsonStr = rawText.slice(startIdx, endIdx + 1)
+      try {
+        const parsed = JSON.parse(jsonStr)
+        if (parsed.action && parsed.message) {
+          return NextResponse.json(parsed)
         }
-
-        // fallback
-        return NextResponse.json({
-            action: 'ask',
-            message: rawText,
-            options: [],
-        })
-    } catch (err) {
-        console.error('Coach G error:', err)
-        return NextResponse.json({ error: 'AI error' }, { status: 500 })
+      } catch {
+        // JSON 解析失敗，繼續
+      }
     }
+
+    // 解析失敗——回傳錯誤提示讓 AI 重試
+    const zh = language === 'zh-TW'
+    return NextResponse.json({
+      action: 'ask',
+      message: zh
+        ? '抱歉，我剛才的回應出了點問題，請再說一次。'
+        : 'Sorry, something went wrong with my response. Could you repeat that?',
+      options: [],
+    })
+
+  } catch (err) {
+    console.error('Coach G error:', err)
+    return NextResponse.json({
+      action: 'ask',
+      message: language === 'zh-TW'
+        ? '發生錯誤，請稍後再試。'
+        : 'Something went wrong. Please try again.',
+      options: [],
+    }, { status: 500 })
+  }
 }
