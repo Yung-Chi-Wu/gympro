@@ -47,6 +47,7 @@ export function TodayWorkoutCard({
     const [toast, setToast] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [weightUnit, setWeightUnit] = useState<WeightUnit>(initialWeightUnit)
+    const [isCollapsed, setIsCollapsed] = useState(false)
 
     function showToast(message: string) {
         setToast(message)
@@ -207,8 +208,13 @@ export function TodayWorkoutCard({
 
     return (
         <div className="relative rounded-xl border border-ink/10 bg-white p-4 space-y-3">
-            <div className="flex items-start justify-between">
-                <div>
+            {/* Header */}
+            <div className="flex items-center justify-between gap-2">
+                <button
+                    type="button"
+                    onClick={() => setIsCollapsed((v) => !v)}
+                    className="flex-1 text-left"
+                >
                     <h2 className="text-lg font-semibold uppercase tracking-wide">{t('title')}</h2>
                     {routineName && (
                         <p className="text-sm font-medium text-ink/70 mt-0.5">{routineName}</p>
@@ -220,93 +226,106 @@ export function TodayWorkoutCard({
                                 : `Day ${dayIndex} of ${cycleLength}`}
                         </span>
                     )}
-                </div>
+                </button>
 
-                {/* 右：kg/lb 切換 */}
-                <div className="flex shrink-0 rounded-lg overflow-hidden text-xs font-bold border border-ink/20 dark:border-white/20">
-                    <button
-                        type="button"
-                        onClick={weightUnit !== 'kg' ? handleToggleUnit : undefined}
-                        className={`px-3 py-1.5 transition-all ${weightUnit === 'kg'
-                            ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814]'
-                            : 'bg-transparent text-ink/40 dark:text-white/40 hover:text-ink dark:hover:text-white'
-                            }`}
-                    >
-                        kg
-                    </button>
-                    <div className="w-px bg-ink/20 dark:bg-white/20" />
-                    <button
-                        type="button"
-                        onClick={weightUnit !== 'lb' ? handleToggleUnit : undefined}
-                        className={`px-3 py-1.5 transition-all ${weightUnit === 'lb'
-                            ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814]'
-                            : 'bg-transparent text-ink/40 dark:text-white/40 hover:text-ink dark:hover:text-white'
-                            }`}
-                    >
-                        lb
-                    </button>
-                </div>
-            </div>
-
-            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-
-            {
-                hasCycle && isRestDay && exercises.length === 0 && (
-                    <p className="text-sm text-ink/60">{t('restDay')}</p>
-                )
-            }
-            {
-                hasCycle && !isRestDay && exercises.length === 0 && (
-                    <p className="text-sm text-ink/60">{t('emptyRoutine')}</p>
-                )
-            }
-            {
-                !hasCycle && exercises.length === 0 && (
-                    <p className="text-sm text-ink/60">{t('emptyFree')}</p>
-                )
-            }
-
-            <div>
-                {exercises.map((exercise) => (
-                    <TodayExerciseRow
-                        key={exercise.exerciseId}
-                        exercise={exercise}
-                        language={language}
-                        weightUnit={weightUnit}
-                        onAddSet={handleAddSet}
-                        onDeleteSet={handleDeleteSet}
-                        onRemove={handleRemoveExercise}
-                    />
-                ))}
-            </div>
-
-            {
-                showAddPicker ? (
-                    <AddExercisePanel
-                        exercises={allExercises}
-                        language={language}
-                        onAdd={handleAddAdHocExercise}
-                        onCancel={() => setShowAddPicker(false)}
-                    />
-                ) : (
-                    <button
-                        type="button"
-                        onClick={() => setShowAddPicker(true)}
-                        className="w-full rounded-md border border-dashed px-4 py-2 text-sm text-ink/60 hover:border-ink/30 hover:text-ink"
-                    >
-                        {t('addExercise')}
-                    </button>
-                )
-            }
-
-            {
-                toast && (
-                    <div className="fixed bottom-6 right-6 rounded-md bg-plate px-4 py-2 text-sm text-chalk shadow-lg">
-                        {toast}
+                <div className="flex items-center gap-2 shrink-0">
+                    {/* kg/lb 切換 */}
+                    <div className="flex rounded-lg overflow-hidden text-xs font-bold border border-ink/20 dark:border-white/20">
+                        <button
+                            type="button"
+                            onClick={weightUnit !== 'kg' ? handleToggleUnit : undefined}
+                            className={`px-3 py-1.5 transition-all ${weightUnit === 'kg'
+                                ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814]'
+                                : 'bg-transparent text-ink/40 dark:text-white/40 hover:text-ink dark:hover:text-white'
+                                }`}
+                        >
+                            kg
+                        </button>
+                        <div className="w-px bg-ink/20 dark:bg-white/20" />
+                        <button
+                            type="button"
+                            onClick={weightUnit !== 'lb' ? handleToggleUnit : undefined}
+                            className={`px-3 py-1.5 transition-all ${weightUnit === 'lb'
+                                ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814]'
+                                : 'bg-transparent text-ink/40 dark:text-white/40 hover:text-ink dark:hover:text-white'
+                                }`}
+                        >
+                            lb
+                        </button>
                     </div>
-                )
-            }
-        </div >
+
+                    {/* 摺疊按鈕 */}
+                    <button
+                        type="button"
+                        onClick={() => setIsCollapsed((v) => !v)}
+                        className="text-ink/30 hover:text-ink dark:text-white/30 dark:hover:text-white transition-colors p-1"
+                    >
+                        <svg
+                            width="16" height="16" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" strokeWidth="2"
+                            strokeLinecap="round" strokeLinejoin="round"
+                            style={{ transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                        >
+                            <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            {/* 可摺疊內容 */}
+            {!isCollapsed && (
+                <>
+                    {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+
+                    {hasCycle && isRestDay && exercises.length === 0 && (
+                        <p className="text-sm text-ink/60">{t('restDay')}</p>
+                    )}
+                    {hasCycle && !isRestDay && exercises.length === 0 && (
+                        <p className="text-sm text-ink/60">{t('emptyRoutine')}</p>
+                    )}
+                    {!hasCycle && exercises.length === 0 && (
+                        <p className="text-sm text-ink/60">{t('emptyFree')}</p>
+                    )}
+
+                    <div>
+                        {exercises.map((exercise) => (
+                            <TodayExerciseRow
+                                key={exercise.exerciseId}
+                                exercise={exercise}
+                                language={language}
+                                weightUnit={weightUnit}
+                                onAddSet={handleAddSet}
+                                onDeleteSet={handleDeleteSet}
+                                onRemove={handleRemoveExercise}
+                            />
+                        ))}
+                    </div>
+
+                    {showAddPicker ? (
+                        <AddExercisePanel
+                            exercises={allExercises}
+                            language={language}
+                            onAdd={handleAddAdHocExercise}
+                            onCancel={() => setShowAddPicker(false)}
+                        />
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => setShowAddPicker(true)}
+                            className="w-full rounded-md border border-dashed px-4 py-2 text-sm text-ink/60 hover:border-ink/30 hover:text-ink"
+                        >
+                            {t('addExercise')}
+                        </button>
+                    )}
+                </>
+            )}
+
+            {toast && (
+                <div className="fixed bottom-6 right-6 rounded-md bg-plate px-4 py-2 text-sm text-chalk shadow-lg">
+                    {toast}
+                </div>
+            )}
+        </div>
     )
 }
 
