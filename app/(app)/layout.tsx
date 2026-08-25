@@ -20,13 +20,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {/* ── Desktop Sidebar ── */}
             <div className="hidden sm:flex h-screen overflow-hidden">
                 <aside className="w-56 shrink-0 flex flex-col bg-[#F5F5F3] dark:bg-[#1E1C19] border-r border-gray-200 dark:border-white/10 h-screen sticky top-0 overflow-y-auto">
-                    <div className="p-5 border-b border-gray-200 dark:border-white/10">
-                        {/* Sidebar logo */}
+                    <div className="p-5 border-b border-gray-200 dark:border-white/10 flex items-center justify-center">
                         <Link href="/dashboard">
                             <img src="/logo-horizontal-light.svg" alt="GymPro"
-                                className="h-9 w-auto block dark:hidden" />
+                                className="h-11 w-auto block dark:hidden" />
                             <img src="/logo-horizontal-dark.svg" alt="GymPro"
-                                className="h-9 w-auto hidden dark:block" />
+                                className="h-11 w-auto hidden dark:block" />
                         </Link>
                     </div>
 
