@@ -11,6 +11,13 @@
   --color-plate-light: #3E3B34;
 }
 
+/* 防止 iOS 自動放大輸入框 */
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
 /* ── Light mode ── */
 body {
   background-color: #FAFAF8;
