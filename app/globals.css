@@ -37,7 +37,6 @@ h3 {
    DARK MODE — html.dark（next-themes class strategy）
 ══════════════════════════════════════════════════════ */
 
-/* 根元素——所有子元素透過繼承自動變淺色 */
 html.dark {
   --color-ink: #EAE7E0;
   --color-background: #1A1814;
@@ -72,7 +71,7 @@ html.dark header {
   background-color: #1E1C19 !important;
 }
 
-/* Login/Signup/Forgot 表單背景 */
+/* Login/Signup 表單背景 */
 html.dark .rounded-lg.border {
   background-color: #2C2923 !important;
 }
@@ -127,7 +126,7 @@ html.dark .border-gray-200 {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* ── Text（固定 Tailwind 顏色，不走變數的） ── */
+/* ── Text ── */
 html.dark .text-gray-700 {
   color: #DDD9D0 !important;
 }
@@ -183,7 +182,7 @@ html.dark .rounded-full.bg-white {
   background-color: #3A3733 !important;
 }
 
-/* ── Badge / Alert 顏色 ── */
+/* ── Badge / Alert ── */
 html.dark .bg-yellow-50 {
   background-color: #3D300A !important;
 }
@@ -246,17 +245,4 @@ html.dark .animate-pulse {
 html.dark .bottom-nav {
   background-color: #2C2923 !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-/* Welcome 頁面次要按鈕 */
-html.dark .border-\[\#26241F\] {
-  border-color: rgba(255, 255, 255, 0.6) !important;
-}
-
-html.dark .text-\[\#26241F\] {
-  color: #EAE7E0 !important;
-}
-
-html.dark .hover\:bg-\[\#26241F\]:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
 }
