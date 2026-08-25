@@ -214,28 +214,49 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
                     const isExpanded = expandedRoutineId === routine.id
                     return (
                         <div key={routine.id} className="rounded-2xl border border-ink/10 bg-white shadow-sm">
-                            <button
-                                type="button"
-                                onClick={() => setExpandedRoutineId(isExpanded ? null : routine.id)}
-                                className="flex w-full items-center justify-between p-4 text-left"
-                            >
-                                <span className="font-medium">{routine.name}</span>
-                                <span className="flex items-center gap-2 text-sm text-ink/40 shrink-0">
-                                    {routine.exercises.length}{' '}
-                                    {routine.exercises.length === 1 ? t('exercise') : t('exercises')}
-                                    {' '}
-                                    <span className="ml-1">{isExpanded ? '▲' : '▼'}</span>
-                                </span>
-                            </button>
+                            <div className="flex w-full items-center justify-between px-4 py-3 gap-2">
+                                {/* 課表名稱——點擊展開 */}
+                                <button
+                                    type="button"
+                                    onClick={() => setExpandedRoutineId(isExpanded ? null : routine.id)}
+                                    className="flex-1 text-left font-medium truncate"
+                                >
+                                    {routine.name}
+                                </button>
 
-                            {isExpanded && (
-                                <div className="border-t border-ink/10 p-4 space-y-3">
-                                    <RoutineNameEditor
+                                {/* 右側操作區 */}
+                                <div className="flex items-center gap-2 shrink-0">
+                                    {/* 改名按鈕 */}
+                                    <RoutineRenameButton
                                         currentName={routine.name}
                                         language={language}
                                         onSave={(newName) => handleRenameRoutine(routine.id, newName)}
-                                        onDelete={() => handleDeleteRoutine(routine.id)}
                                     />
+                                    {/* 刪除按鈕 */}
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteRoutine(routine.id)}
+                                        className="text-ink/30 hover:text-red-500 transition-colors text-sm px-1"
+                                        title={zh ? '刪除課表' : 'Delete routine'}
+                                    >
+                                        🗑
+                                    </button>
+                                    {/* 展開箭頭 */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setExpandedRoutineId(isExpanded ? null : routine.id)}
+                                        className="text-ink/40 text-xs px-1"
+                                    >
+                                        <span className="text-sm text-ink/40">
+                                            {routine.exercises.length} {routine.exercises.length === 1 ? t('exercise') : t('exercises')}
+                                        </span>
+                                        {' '}{isExpanded ? '▲' : '▼'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {isExpanded && (
+                                <div className="border-t border-ink/10 p-4 space-y-3">
 
                                     {routine.exercises.length > 0 && (
                                         <div className="space-y-2">
@@ -277,7 +298,55 @@ interface RoutineNameEditorProps {
     onSave: (newName: string) => void
     onDelete: () => void
 }
+interface RoutineRenameButtonProps {
+    currentName: string
+    language: string
+    onSave: (newName: string) => void
+}
 
+function RoutineRenameButton({ currentName, language, onSave }: RoutineRenameButtonProps) {
+    const zh = language === 'zh-TW'
+    const [isEditing, setIsEditing] = useState(false)
+    const [name, setName] = useState(currentName)
+
+    function commit() {
+        if (name.trim() && name.trim() !== currentName) {
+            onSave(name.trim())
+        } else {
+            setName(currentName)
+        }
+        setIsEditing(false)
+    }
+
+    if (isEditing) {
+        return (
+            <input
+                type="text"
+                autoFocus
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onBlur={commit}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') commit()
+                    if (e.key === 'Escape') { setName(currentName); setIsEditing(false) }
+                }}
+                className="w-32 rounded border px-2 py-0.5 text-sm font-medium"
+                onClick={(e) => e.stopPropagation()}
+            />
+        )
+    }
+
+    return (
+        <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setIsEditing(true) }}
+            className="text-ink/30 hover:text-ink/60 transition-colors text-sm px-1"
+            title={zh ? '改名' : 'Rename'}
+        >
+            ✎
+        </button>
+    )
+}
 function RoutineNameEditor({ currentName, language, onSave, onDelete }: RoutineNameEditorProps) {
     const zh = language === 'zh-TW'
     const [isEditing, setIsEditing] = useState(false)
