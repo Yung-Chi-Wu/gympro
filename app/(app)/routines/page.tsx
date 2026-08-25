@@ -5,6 +5,7 @@ import { getEffectiveLanguage } from '@/lib/get-language'
 import { RoutineBuilder } from '@/components/RoutineBuilder'
 import { CycleScheduler } from '@/components/CycleScheduler'
 import type { ExerciseOption } from '@/components/log-types'
+import { CoachGEntry } from '@/components/CoachGEntry'
 
 export interface RoutineExerciseRow {
     id: string
@@ -53,9 +54,10 @@ export default async function RoutinesPage() {
     const t = await getTranslations('routines')
 
     const [profileResult, exercisesResult, routinesResult, cycleResult] = await Promise.all([
+
         supabase
             .from('user_profiles')
-            .select('language')
+            .select('language,training_goal')
             .eq('user_id', user.id)
             .maybeSingle(),
         supabase
@@ -79,8 +81,8 @@ export default async function RoutinesPage() {
             .eq('user_id', user.id)
             .maybeSingle(),
     ])
-
-    const language = await getEffectiveLanguage(profileResult.data?.language)
+    const profile = profileResult.data
+    const language = await getEffectiveLanguage(profile?.language)
     const cycle = cycleResult.data
 
     const routineList: RoutineWithExercises[] = ((routinesResult.data as RawRoutineRow[]) ?? []).map((r) => ({
@@ -112,7 +114,11 @@ export default async function RoutinesPage() {
     return (
         <div className="py-8 space-y-8">
             <h1 className="text-3xl font-bold uppercase tracking-wide">{t('title')}</h1>
-
+            <CoachGEntry
+                hasRoutines={routineList.length > 0}
+                language={language}
+                trainingGoal={profile?.training_goal ?? null}
+            />
             {/* 桌面版兩欄，手機版單欄 */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-start">
 
