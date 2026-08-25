@@ -122,6 +122,17 @@ export default async function DashboardPage() {
   isRestDay = hasCycle && routineIdForToday === null
   const existingWorkout = existingWorkoutResult.data
 
+  // 查今天課表名稱
+  let routineName: string | null = null
+  if (routineIdForToday) {
+    const { data: routineData } = await supabase
+      .from('routines')
+      .select('name')
+      .eq('id', routineIdForToday)
+      .maybeSingle()
+    routineName = routineData?.name ?? null
+  }
+
   let todayExercises: TodayExercise[] = []
 
   if (existingWorkout) {
@@ -198,6 +209,7 @@ export default async function DashboardPage() {
             allExercises={(allExercisesResult.data ?? []) as ExerciseOption[]}
             language={language}
             weightUnit={weightUnit}
+            routineName={routineName}
           />
         </div>
 

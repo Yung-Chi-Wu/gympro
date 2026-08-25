@@ -22,6 +22,7 @@ interface TodayWorkoutCardProps {
     allExercises: ExerciseOption[]
     language: string
     weightUnit: WeightUnit
+    routineName: string | null
 }
 
 export function TodayWorkoutCard({
@@ -36,6 +37,7 @@ export function TodayWorkoutCard({
     allExercises,
     language,
     weightUnit: initialWeightUnit,
+    routineName,
 }: TodayWorkoutCardProps) {
     const t = useTranslations('today')
     const supabase = createClient()
@@ -205,10 +207,12 @@ export function TodayWorkoutCard({
 
     return (
         <div className="relative rounded-xl border border-ink/10 bg-white p-4 space-y-3">
-            <div className="flex items-start justify-between gap-2">
-                {/* 左：標題 + 第幾天 */}
+            <div className="flex items-start justify-between">
                 <div>
                     <h2 className="text-lg font-semibold uppercase tracking-wide">{t('title')}</h2>
+                    {routineName && (
+                        <p className="text-sm font-medium text-ink/70 mt-0.5">{routineName}</p>
+                    )}
                     {hasCycle && (
                         <span className="text-xs text-ink/40">
                             {language === 'zh-TW'
