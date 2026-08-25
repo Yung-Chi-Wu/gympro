@@ -181,31 +181,41 @@ export default async function DashboardPage() {
         <span className="block truncate">{greetingName}</span>
       </h1>
 
-      <TodayWorkoutCard
-        userId={user.id}
-        initialWorkoutId={existingWorkout?.id ?? null}
-        routineIdForToday={routineIdForToday}
-        isRestDay={isRestDay}
-        hasCycle={hasCycle}
-        dayIndex={dayIndex}
-        cycleLength={cycle?.cycle_length ?? 0}
-        initialExercises={todayExercises}
-        allExercises={(allExercisesResult.data ?? []) as ExerciseOption[]}
-        language={language}
-        weightUnit={weightUnit}
-      />
+      {/* 桌面版兩欄，手機版單欄 */}
+      <div className="grid grid-cols-1 sm:grid-cols-[3fr_2fr] gap-6 items-start">
 
-      <PeriodCheckInCard
-        language={language}
-        latestWeightKg={latestWeightKg}
-        weightUnit={weightUnit}
-      />
+        {/* 左欄：今天 */}
+        <div className="space-y-6">
+          <TodayWorkoutCard
+            userId={user.id}
+            initialWorkoutId={existingWorkout?.id ?? null}
+            routineIdForToday={routineIdForToday}
+            isRestDay={isRestDay}
+            hasCycle={hasCycle}
+            dayIndex={dayIndex}
+            cycleLength={cycle?.cycle_length ?? 0}
+            initialExercises={todayExercises}
+            allExercises={(allExercisesResult.data ?? []) as ExerciseOption[]}
+            language={language}
+            weightUnit={weightUnit}
+          />
+        </div>
 
-      <div className="space-y-3">
-        <h2 className="text-xl font-bold uppercase tracking-wide border-b border-ink/10 pb-3">
-          {tReport('sectionTitle')}
-        </h2>
-        <RecommendationPanel userId={user.id} language={language} />
+        {/* 右欄：打卡 + AI 報告 */}
+        <div className="space-y-6">
+          <PeriodCheckInCard
+            language={language}
+            latestWeightKg={latestWeightKg}
+            weightUnit={weightUnit}
+          />
+
+          <div className="space-y-3">
+            <h2 className="text-lg font-bold uppercase tracking-wide border-b border-ink/10 pb-2">
+              {tReport('sectionTitle')}
+            </h2>
+            <RecommendationPanel userId={user.id} language={language} />
+          </div>
+        </div>
       </div>
     </div>
   )

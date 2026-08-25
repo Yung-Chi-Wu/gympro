@@ -110,23 +110,33 @@ export default async function RoutinesPage() {
     }
 
     return (
-        <div className="py-8 space-y-10">
+        <div className="py-8 space-y-8">
             <h1 className="text-3xl font-bold uppercase tracking-wide">{t('title')}</h1>
 
-            <CycleScheduler
-                userId={user.id}
-                routines={routineList.map((r) => ({ id: r.id, name: r.name }))}
-                initialCycle={cycle ? { id: cycle.id, cycleLength: cycle.cycle_length } : null}
-                initialCycleDays={cycleDays}
-                language={language}
-            />
+            {/* 桌面版兩欄，手機版單欄 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-start">
 
-            <RoutineBuilder
-                userId={user.id}
-                exercises={(exercisesResult.data ?? []) as ExerciseOption[]}
-                initialRoutines={routineList}
-                language={language}
-            />
+                {/* 左欄：訓練循環 */}
+                <div>
+                    <CycleScheduler
+                        userId={user.id}
+                        routines={routineList.map((r) => ({ id: r.id, name: r.name }))}
+                        initialCycle={cycle ? { id: cycle.id, cycleLength: cycle.cycle_length } : null}
+                        initialCycleDays={cycleDays}
+                        language={language}
+                    />
+                </div>
+
+                {/* 右欄：我的課表 */}
+                <div>
+                    <RoutineBuilder
+                        userId={user.id}
+                        exercises={(exercisesResult.data ?? []) as ExerciseOption[]}
+                        initialRoutines={routineList}
+                        language={language}
+                    />
+                </div>
+            </div>
         </div>
     )
 }

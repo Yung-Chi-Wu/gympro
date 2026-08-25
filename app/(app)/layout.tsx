@@ -45,7 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </aside>
 
                 <main className="flex-1 overflow-y-auto bg-[#FAFAF8] dark:bg-[#1A1814]">
-                    <div className="max-w-3xl mx-auto px-8 py-8">
+                    <div className="max-w-5xl mx-auto px-8 py-8">
                         {children}
                     </div>
                 </main>

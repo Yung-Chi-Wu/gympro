@@ -24,19 +24,21 @@ export default async function SettingsPage() {
     const effectiveLanguage = await getEffectiveLanguage(profile?.language)
 
     return (
-        <div className="py-8 max-w-lg space-y-6 overflow-x-hidden">
-            <h1 className="text-2xl font-bold">{t('title')}</h1>
-            <ProfileSettingsForm
-                userId={user.id}
-                initialHeightCm={profile?.height_cm ?? null}
-                initialDisplayName={profile?.display_name ?? null}
-                initialTrainingGoal={profile?.training_goal ?? null}
-                initialDateOfBirth={profile?.date_of_birth ?? null}
-                initialSex={profile?.sex ?? null}
-                initialTimezone={profile?.timezone ?? 'UTC'}
-                initialLanguage={effectiveLanguage}
-                initialWeightUnit={(profile?.weight_unit as WeightUnit) ?? 'kg'}
-            />
+        <div className="py-8">
+            <div className="max-w-lg space-y-6 overflow-x-hidden">
+                <h1 className="text-2xl font-bold">{t('title')}</h1>
+                <ProfileSettingsForm
+                    userId={user.id}
+                    initialHeightCm={profile?.height_cm ?? null}
+                    initialDisplayName={profile?.display_name ?? null}
+                    initialTrainingGoal={profile?.training_goal ?? null}
+                    initialDateOfBirth={profile?.date_of_birth ?? null}
+                    initialSex={profile?.sex ?? null}
+                    initialTimezone={profile?.timezone ?? 'UTC'}
+                    initialLanguage={effectiveLanguage}
+                    initialWeightUnit={(profile?.weight_unit as WeightUnit) ?? 'kg'}
+                />
+            </div>
         </div>
     )
 }
