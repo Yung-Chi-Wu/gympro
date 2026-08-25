@@ -376,7 +376,7 @@ function ExistingExerciseRow({ exercise, language, exercises, onUpdateTarget, on
                         value={targetSets}
                         onChange={(e) => setTargetSets(e.target.value)}
                         onBlur={commitIfChanged}
-                        className="w-14 rounded-md border px-2 py-1 text-sm text-center"
+                        className="w-14 rounded-md border px-2 py-0 text-sm text-center h-9 flex items-center"
                     />
                 </div>
                 <span className="text-ink/40 mt-4">×</span>
@@ -388,7 +388,7 @@ function ExistingExerciseRow({ exercise, language, exercises, onUpdateTarget, on
                         value={targetReps}
                         onChange={(e) => setTargetReps(e.target.value)}
                         onBlur={commitIfChanged}
-                        className="w-14 rounded-md border px-2 py-1 text-sm text-center"
+                        className="w-14 rounded-md border px-2 py-0 text-sm text-center h-9 flex items-center"
                     />
                 </div>
                 <button
@@ -425,26 +425,25 @@ function AddExerciseToRoutine({ exercises, language, onAdd }: AddExerciseToRouti
                 language={language}
             />
             <div className="flex gap-2 items-end">
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col gap-1.5">
                     <span className="text-xs text-ink/40">{t('sets')}</span>
                     <input
                         type="text"
                         inputMode="numeric"
                         value={targetSets}
                         onChange={(e) => setTargetSets(e.target.value)}
-                        className="w-16 rounded-md border px-2 py-1 text-sm text-center"
-                    />
+                        className="w-16 rounded-md border px-2 py-2 text-sm text-center h-9" />
+
                 </div>
-                <span className="pb-1 text-sm text-ink/40">×</span>
-                <div className="flex flex-col items-center">
+                <span className="mb-2 text-sm text-ink/40">×</span>
+                <div className="flex flex-col gap-1.5">
                     <span className="text-xs text-ink/40">{t('reps')}</span>
                     <input
                         type="text"
                         inputMode="numeric"
                         value={targetReps}
                         onChange={(e) => setTargetReps(e.target.value)}
-                        className="w-16 rounded-md border px-2 py-1 text-sm text-center"
-                    />
+                        className="w-16 rounded-md border px-2 py-2 text-sm text-center h-9" />
                 </div>
                 <button
                     type="button"
@@ -457,7 +456,7 @@ function AddExerciseToRoutine({ exercises, language, onAdd }: AddExerciseToRouti
                             onAdd(exercise, setsNum, repsNum)
                         }
                     }}
-                    className="rounded-md border px-3 py-1 text-sm disabled:opacity-50"
+                    className="rounded-md border px-3 py-2 text-sm h-9 mb-0 disabled:opacity-50"
                 >
                     {t('add')}
                 </button>

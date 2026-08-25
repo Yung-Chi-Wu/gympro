@@ -18,6 +18,13 @@ select {
   font-size: 16px;
 }
 
+/* 統一所有 input、select、button 的 base 高度 */
+input:not([type="checkbox"]),
+select,
+textarea {
+  min-height: 2.5rem;
+}
+
 /* ── Light mode ── */
 body {
   background-color: #FAFAF8;

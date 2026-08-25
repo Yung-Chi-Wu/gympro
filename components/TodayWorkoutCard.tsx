@@ -420,7 +420,7 @@ function TodayExerciseRow({ exercise, language, weightUnit, onAddSet, onDeleteSe
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="flex gap-2">
+            <form onSubmit={handleSubmit} className="flex gap-2 items-end">
                 <input
                     type="text"
                     inputMode="numeric"

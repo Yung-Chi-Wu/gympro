@@ -291,7 +291,7 @@ export function CycleScheduler({
                     >
                         <div className="flex items-end justify-between gap-3">
                             <div className="flex items-end gap-3">
-                                <div className="space-y-1">
+                                <div className="space-y-2">
                                     <label className="text-sm font-medium">
                                         {zh ? '循環天數' : 'Cycle length (days)'}
                                     </label>
@@ -315,7 +315,7 @@ export function CycleScheduler({
                                 type="button"
                                 onClick={handleDeleteCycle}
                                 disabled={isSaving}
-                                className="text-sm text-ink/40 hover:text-red-600 disabled:opacity-50"
+                                className="rounded-md border px-4 py-2 text-sm h-10 disabled:opacity-50"
                             >
                                 {zh ? '刪除循環' : 'Delete cycle'}
                             </button>

@@ -185,8 +185,8 @@ export function ProfileSettingsForm({
                                 type="button"
                                 onClick={() => setWeightUnit(unit)}
                                 className={`flex-1 h-10 rounded-xl border-2 text-sm font-semibold transition-colors text-center ${weightUnit === unit
-                                        ? 'border-plate bg-plate text-chalk dark:border-white dark:bg-white dark:text-[#1A1814]'
-                                        : 'border-ink/20 dark:border-white/30 text-ink/60 dark:text-white/60'
+                                    ? 'border-plate bg-plate text-chalk dark:border-white dark:bg-white dark:text-[#1A1814]'
+                                    : 'border-ink/20 dark:border-white/30 text-ink/60 dark:text-white/60'
                                     }`}
                             >
                                 {unit}
@@ -304,8 +304,8 @@ function OnboardingModalWrapper({
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
-        <div className="space-y-1">
-            <label className="text-sm font-medium text-ink">{label}</label>
+        <div className="space-y-2">
+            <label className="text-sm font-medium">{label}</label>
             {children}
         </div>
     )
