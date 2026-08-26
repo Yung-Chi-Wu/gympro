@@ -57,7 +57,6 @@ export function TodayWorkoutCard({
     async function handleToggleUnit() {
         const next: WeightUnit = weightUnit === 'kg' ? 'lb' : 'kg'
         setWeightUnit(next)
-        // 同步存進資料庫
         await supabase
             .from('user_profiles')
             .update({ weight_unit: next } as never)
@@ -208,6 +207,7 @@ export function TodayWorkoutCard({
 
     return (
         <div className="relative rounded-xl border border-ink/10 bg-white p-4 space-y-3">
+
             {/* Header */}
             <div className="flex items-center justify-between gap-2">
                 <button
@@ -264,7 +264,10 @@ export function TodayWorkoutCard({
                             width="16" height="16" viewBox="0 0 24 24"
                             fill="none" stroke="currentColor" strokeWidth="2"
                             strokeLinecap="round" strokeLinejoin="round"
-                            style={{ transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                            style={{
+                                transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                                transition: 'transform 0.2s',
+                            }}
                         >
                             <polyline points="6 9 12 15 18 9" />
                         </svg>

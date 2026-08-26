@@ -192,10 +192,9 @@ export default async function DashboardPage() {
         <span className="block truncate">{greetingName}</span>
       </h1>
 
-      {/* 桌面版兩欄，手機版單欄 */}
       <div className="grid grid-cols-1 sm:grid-cols-[3fr_2fr] gap-6 items-start">
 
-        {/* 左欄：今天 */}
+        {/* 左欄：今天 + 桌面版 AI 報告 */}
         <div className="space-y-6">
           <TodayWorkoutCard
             userId={user.id}
@@ -211,9 +210,17 @@ export default async function DashboardPage() {
             weightUnit={weightUnit}
             routineName={routineName}
           />
+
+          {/* 桌面版才顯示 AI 報告 */}
+          <div className="hidden sm:block space-y-3">
+            <h2 className="text-lg font-bold uppercase tracking-wide border-b border-ink/10 pb-2">
+              {tReport('sectionTitle')}
+            </h2>
+            <RecommendationPanel userId={user.id} language={language} />
+          </div>
         </div>
 
-        {/* 右欄：打卡 + AI 報告 */}
+        {/* 右欄：打卡 + 手機版 AI 報告 */}
         <div className="space-y-6">
           <PeriodCheckInCard
             language={language}
@@ -221,7 +228,8 @@ export default async function DashboardPage() {
             weightUnit={weightUnit}
           />
 
-          <div className="space-y-3">
+          {/* 手機版才顯示 AI 報告（打卡下面） */}
+          <div className="block sm:hidden space-y-3">
             <h2 className="text-lg font-bold uppercase tracking-wide border-b border-ink/10 pb-2">
               {tReport('sectionTitle')}
             </h2>
