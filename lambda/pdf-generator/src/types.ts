@@ -8,6 +8,7 @@ export interface PdfRequestMessage {
 // own package.json, so it can't import ai-worker's types.ts directly.
 export interface StoredRecommendation {
     summary: string
+    headline?: string
     weeklyVolume: {
         totalSets: number
         totalTonnageKg: number

@@ -4,9 +4,15 @@ import type { StoredRecommendation } from './types'
 const PAGE_WIDTH = 595
 const PAGE_HEIGHT = 842
 const MARGIN = 50
-const INK = rgb(0.169, 0.169, 0.157) // matches the app's #2B2B28
-const PLATE = rgb(0.149, 0.141, 0.122) // matches the app's #26241F
-const MUTED = rgb(0.5, 0.5, 0.48)
+const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2
+
+// Brand colors
+const INK = rgb(0.102, 0.094, 0.078)  // #1A1814
+const PLATE = rgb(0.149, 0.141, 0.122)  // #26241F
+const GOLD = rgb(0.784, 0.584, 0.353)  // #C8955A
+const MUTED = rgb(0.502, 0.498, 0.478)  // #807C79
+const LIGHT_BG = rgb(0.980, 0.980, 0.973)  // #FAFAF8
+const WHITE = rgb(1, 1, 1)
 
 export async function generateReportPdf(
     periodStart: string,
@@ -17,112 +23,183 @@ export async function generateReportPdf(
     const bold = await doc.embedFont(StandardFonts.HelveticaBold)
     const regular = await doc.embedFont(StandardFonts.Helvetica)
 
-    let y = PAGE_HEIGHT - MARGIN
+    let y = PAGE_HEIGHT
 
-    y = drawHeading(page, bold, 'GymPro Training Report', y)
-    y = drawText(page, regular, `Period starting ${periodStart}`, y - 4, MUTED, 11)
-    y -= 20
+    // ── Header bar ──
+    page.drawRectangle({ x: 0, y: PAGE_HEIGHT - 72, width: PAGE_WIDTH, height: 72, color: PLATE })
 
-    y = drawSectionTitle(page, bold, 'Summary', y)
-    y = drawParagraph(page, regular, recommendation.summary, y, 10)
-    y -= 16
+    // GYM (bold white)
+    page.drawText('GYM', { x: MARGIN, y: PAGE_HEIGHT - 44, size: 28, font: bold, color: WHITE })
+    // PRO (light gold)
+    const gymWidth = bold.widthOfTextAtSize('GYM', 28)
+    page.drawText('PRO', { x: MARGIN + gymWidth + 2, y: PAGE_HEIGHT - 44, size: 28, font: regular, color: GOLD })
 
-    const strengthEntries = Object.entries(recommendation.strengthIndex)
+    // Tagline
+    page.drawText('AI TRAINING REPORT', { x: MARGIN, y: PAGE_HEIGHT - 60, size: 8, font: regular, color: GOLD })
+
+    // Period date (right side)
+    const periodLabel = `Period: ${periodStart}`
+    const periodWidth = regular.widthOfTextAtSize(periodLabel, 9)
+    page.drawText(periodLabel, {
+        x: PAGE_WIDTH - MARGIN - periodWidth,
+        y: PAGE_HEIGHT - 44,
+        size: 9, font: regular, color: WHITE,
+    })
+
+    // Gold accent line under header
+    page.drawRectangle({ x: 0, y: PAGE_HEIGHT - 74, width: PAGE_WIDTH, height: 2, color: GOLD })
+
+    y = PAGE_HEIGHT - 72 - 24
+
+    // ── Headline ──
+    if (recommendation.headline) {
+        y = drawWrappedText(page, bold, recommendation.headline, y, 13, INK)
+        y -= 8
+        // Thin divider
+        page.drawRectangle({ x: MARGIN, y, width: CONTENT_WIDTH, height: 0.5, color: GOLD })
+        y -= 16
+    }
+
+    // ── Summary ──
+    y = drawSection(page, bold, regular, 'SUMMARY', recommendation.summary, y)
+
+    // ── Strength Index ──
+    const strengthEntries = Object.entries(recommendation.strengthIndex ?? {})
     if (strengthEntries.length > 0) {
-        y = drawSectionTitle(page, bold, 'Strength Index', y)
+        y = drawSectionHeader(page, bold, 'STRENGTH INDEX', y)
         for (const [muscle, data] of strengthEntries) {
-            const change =
-                data.previousIndex !== null ? data.currentIndex - data.previousIndex : null
-            const changeLabel = change !== null ? ` (${change >= 0 ? '+' : ''}${change})` : ''
-            y = drawText(
-                page,
-                regular,
-                `${capitalize(muscle)}: ${data.currentIndex}${changeLabel}`,
-                y,
-                INK,
-                10
-            )
+            const change = data.previousIndex !== null
+                ? data.currentIndex - data.previousIndex
+                : null
+            const changeLabel = change !== null
+                ? ` (${change >= 0 ? '+' : ''}${change})`
+                : ''
+            const label = `${capitalize(muscle)}: ${data.currentIndex}${changeLabel}`
+            const changeColor = change === null ? MUTED : change >= 0 ? GOLD : rgb(0.8, 0.3, 0.3)
+            page.drawText(`• ${capitalize(muscle)}`, { x: MARGIN, y, size: 10, font: bold, color: INK })
+            const bulletEnd = MARGIN + bold.widthOfTextAtSize(`• ${capitalize(muscle)}`, 10)
+            page.drawText(`  ${data.currentIndex}${changeLabel}`, {
+                x: bulletEnd, y, size: 10, font: regular,
+                color: change !== null ? changeColor : MUTED,
+            })
+            y -= 16
         }
-        y -= 16
+        y -= 8
     }
 
-    const splitEntries = Object.entries(recommendation.volumeSplit)
+    // ── Training Split ──
+    const splitEntries = Object.entries(recommendation.volumeSplit ?? {})
     if (splitEntries.length > 0) {
-        y = drawSectionTitle(page, bold, 'Training Split', y)
+        y = drawSectionHeader(page, bold, 'TRAINING SPLIT', y)
         for (const [muscle, pct] of splitEntries) {
-            y = drawBar(page, regular, muscle, pct, y)
+            y = drawBar(page, regular, bold, muscle, pct, y)
         }
-        y -= 16
+        y -= 8
     }
 
-    y = drawSectionTitle(page, bold, 'Progressive Overload', y)
-    y = drawParagraph(page, regular, recommendation.progressiveOverload.notes, y, 10)
-    y -= 16
+    // ── Progressive Overload ──
+    if (recommendation.progressiveOverload?.notes) {
+        y = drawSection(page, bold, regular, 'PROGRESSIVE OVERLOAD', recommendation.progressiveOverload.notes, y)
+    }
 
-    if (recommendation.muscleImbalances.length > 0) {
-        y = drawSectionTitle(page, bold, 'Things to Watch', y)
+    // ── Muscle Imbalances ──
+    if (recommendation.muscleImbalances?.length > 0) {
+        y = drawSectionHeader(page, bold, 'THINGS TO WATCH', y)
         for (const item of recommendation.muscleImbalances) {
-            y = drawParagraph(
-                page,
-                regular,
-                `${capitalize(item.muscleGroup)} (${item.severity}): ${item.observation}`,
-                y,
-                10
-            )
+            const severityColor =
+                item.severity === 'severe' ? rgb(0.8, 0.2, 0.2) :
+                    item.severity === 'moderate' ? rgb(0.9, 0.5, 0.1) :
+                        GOLD
+            page.drawText(`▲ ${capitalize(item.muscleGroup)}`, {
+                x: MARGIN, y, size: 10, font: bold, color: severityColor,
+            })
+            y -= 14
+            y = drawWrappedText(page, regular, item.observation, y, 9, MUTED)
+            y -= 6
         }
-        y -= 16
+        y -= 4
     }
 
+    // ── Deload ──
     if (recommendation.deloadRecommended && recommendation.deloadReason) {
-        y = drawSectionTitle(page, bold, 'Deload Recommended', y)
-        y = drawParagraph(page, regular, recommendation.deloadReason, y, 10)
-        y -= 16
+        // Red banner
+        page.drawRectangle({ x: MARGIN, y: y - 2, width: CONTENT_WIDTH, height: 28, color: rgb(0.95, 0.92, 0.92) })
+        page.drawRectangle({ x: MARGIN, y: y - 2, width: 3, height: 28, color: rgb(0.8, 0.2, 0.2) })
+        page.drawText('⚠ DELOAD RECOMMENDED', {
+            x: MARGIN + 10, y: y + 8, size: 9, font: bold, color: rgb(0.7, 0.1, 0.1),
+        })
+        y -= 36
+        y = drawWrappedText(page, regular, recommendation.deloadReason, y, 9, MUTED)
+        y -= 8
     }
 
-    y = drawSectionTitle(page, bold, 'What To Do Next', y)
-    for (const item of recommendation.actionItems) {
-        y = drawParagraph(page, regular, `• ${item}`, y, 10)
+    // ── Action Items ──
+    if (recommendation.actionItems?.length > 0) {
+        y = drawSectionHeader(page, bold, 'WHAT TO DO NEXT', y)
+
+        // Light background box
+        const boxHeight = recommendation.actionItems.length * 20 + 12
+        page.drawRectangle({
+            x: MARGIN, y: y - boxHeight + 8,
+            width: CONTENT_WIDTH, height: boxHeight,
+            color: LIGHT_BG,
+        })
+        page.drawRectangle({ x: MARGIN, y: y - boxHeight + 8, width: 3, height: boxHeight, color: GOLD })
+
+        for (let i = 0; i < recommendation.actionItems.length; i++) {
+            const item = recommendation.actionItems[i]
+            page.drawText(`${i + 1}.`, { x: MARGIN + 10, y, size: 10, font: bold, color: GOLD })
+            y = drawWrappedText(page, regular, item, y, 10, INK, MARGIN + 24)
+            y -= 4
+        }
+        y -= 8
     }
+
+    // ── Footer ──
+    page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: 28, color: PLATE })
+    page.drawText('GYMPRO — AI TRAINING REPORT', {
+        x: MARGIN, y: 9, size: 8, font: regular, color: rgb(0.5, 0.48, 0.44),
+    })
+    const generatedLabel = `Generated ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}`
+    const genWidth = regular.widthOfTextAtSize(generatedLabel, 8)
+    page.drawText(generatedLabel, {
+        x: PAGE_WIDTH - MARGIN - genWidth, y: 9, size: 8, font: regular, color: rgb(0.5, 0.48, 0.44),
+    })
 
     return doc.save()
 }
 
-function drawHeading(page: PDFPage, font: PDFFont, text: string, y: number): number {
-    page.drawText(text, { x: MARGIN, y, size: 20, font, color: PLATE })
-    return y - 24
+// ── Helpers ──
+
+function drawSectionHeader(page: PDFPage, font: PDFFont, title: string, y: number): number {
+    page.drawText(title, { x: MARGIN, y, size: 9, font, color: MUTED })
+    page.drawRectangle({ x: MARGIN, y: y - 4, width: CONTENT_WIDTH, height: 0.5, color: rgb(0.85, 0.85, 0.83) })
+    return y - 16
 }
 
-function drawSectionTitle(page: PDFPage, font: PDFFont, text: string, y: number): number {
-    page.drawText(text.toUpperCase(), { x: MARGIN, y, size: 11, font, color: MUTED })
-    return y - 18
+function drawSection(
+    page: PDFPage,
+    bold: PDFFont,
+    regular: PDFFont,
+    title: string,
+    text: string,
+    y: number
+): number {
+    y = drawSectionHeader(page, bold, title, y)
+    y = drawWrappedText(page, regular, text, y, 10, INK)
+    return y - 12
 }
 
-function drawText(
+function drawWrappedText(
     page: PDFPage,
     font: PDFFont,
     text: string,
     y: number,
+    size: number,
     color = INK,
-    size = 10
+    xStart = MARGIN
 ): number {
-    page.drawText(text, { x: MARGIN, y, size, font, color })
-    return y - (size + 6)
-}
-
-// pdf-lib has no built-in text wrapping — this measures each word against
-// the font metrics and breaks lines manually to fit the page width.
-function drawParagraph(
-    page: PDFPage,
-    font: PDFFont,
-    text: string,
-    y: number,
-    size: number
-): number {
-    const maxWidth = PAGE_WIDTH - MARGIN * 2
-    // pdf-lib's standard fonts (WinAnsi encoding) can't render newline
-    // characters — Claude's generated text occasionally includes them.
-    // Collapse any whitespace run (including newlines) into a single
-    // space before we ever measure or draw the text.
+    const maxWidth = PAGE_WIDTH - xStart - MARGIN
     const sanitized = text.replace(/\s+/g, ' ').trim()
     const words = sanitized.split(' ')
     let line = ''
@@ -132,7 +209,7 @@ function drawParagraph(
         const candidate = line ? `${line} ${word}` : word
         const width = font.widthOfTextAtSize(candidate, size)
         if (width > maxWidth && line) {
-            page.drawText(line, { x: MARGIN, y: cursorY, size, font, color: INK })
+            page.drawText(line, { x: xStart, y: cursorY, size, font, color })
             cursorY -= size + 4
             line = word
         } else {
@@ -140,35 +217,35 @@ function drawParagraph(
         }
     }
     if (line) {
-        page.drawText(line, { x: MARGIN, y: cursorY, size, font, color: INK })
+        page.drawText(line, { x: xStart, y: cursorY, size, font, color })
         cursorY -= size + 4
     }
 
-    return cursorY - 4
+    return cursorY - 2
 }
 
-function drawBar(page: PDFPage, font: PDFFont, label: string, pct: number, y: number): number {
-    const barMaxWidth = 200
+function drawBar(
+    page: PDFPage,
+    regular: PDFFont,
+    bold: PDFFont,
+    label: string,
+    pct: number,
+    y: number
+): number {
+    const barMaxWidth = CONTENT_WIDTH * 0.6
     const barWidth = Math.max(2, (pct / 100) * barMaxWidth)
-    const labelText = `${capitalize(label)} — ${pct}%`
 
-    page.drawText(labelText, { x: MARGIN, y, size: 9, font, color: INK })
-    page.drawRectangle({
-        x: MARGIN,
-        y: y - 14,
-        width: barMaxWidth,
-        height: 6,
-        color: rgb(0.9, 0.9, 0.88),
-    })
-    page.drawRectangle({
-        x: MARGIN,
-        y: y - 14,
-        width: barWidth,
-        height: 6,
-        color: PLATE,
+    page.drawText(capitalize(label), { x: MARGIN, y, size: 9, font: bold, color: INK })
+    page.drawText(`${pct}%`, {
+        x: MARGIN + barMaxWidth + 8, y, size: 9, font: regular, color: MUTED,
     })
 
-    return y - 26
+    // Background bar
+    page.drawRectangle({ x: MARGIN, y: y - 12, width: barMaxWidth, height: 5, color: rgb(0.88, 0.88, 0.86) })
+    // Fill bar
+    page.drawRectangle({ x: MARGIN, y: y - 12, width: barWidth, height: 5, color: GOLD })
+
+    return y - 22
 }
 
 function capitalize(text: string): string {
