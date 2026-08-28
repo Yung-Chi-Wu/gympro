@@ -193,7 +193,9 @@ export function TodayWorkoutCard({
                 ...prev,
                 {
                     exerciseId: exercise.id,
-                    name: exercise.name,
+                    name: language === 'zh-TW' && exercise.name_zh_tw
+                        ? exercise.name_zh_tw
+                        : exercise.name,
                     muscleGroup: exercise.muscle_group,
                     plannedRowId: data.id,
                     loggedSets: [],
