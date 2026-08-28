@@ -157,18 +157,24 @@ function TrainingLogSection({
                         </p>
                     )}
                     {!loading && workouts.map((workout) => (
-                        <div key={workout.id} className="space-y-2 border-t border-ink/5 first:border-t-0 pt-2 first:pt-0">
-                            <p className="text-xs font-semibold text-ink/50 dark:text-white/50 uppercase tracking-wide">
+                        <div key={workout.id} className="space-y-3 border-t border-ink/5 first:border-t-0 pt-3 first:pt-0">
+                            <p className="text-xs font-semibold text-ink/40 dark:text-white/40 uppercase tracking-wide">
                                 {formatDate(workout.performed_at, language)}
                             </p>
-                            <div className="space-y-1.5">
+                            <div className="space-y-3">
                                 {workout.exercises.map((ex) => (
-                                    <div key={ex.exerciseId} className="flex items-baseline justify-between gap-2">
-                                        <span className="text-sm font-medium truncate">{ex.name}</span>
+                                    <div key={ex.exerciseId}>
+                                        <p className="text-sm font-medium leading-snug">
+                                            {ex.name}
+                                        </p>
                                         {ex.sets.length > 0 && (
-                                            <span className="text-xs text-ink/40 dark:text-white/40 shrink-0 font-mono">
-                                                {ex.sets.map((s) => `${s.reps}×${s.weightKg}kg`).join('  ')}
-                                            </span>
+                                            <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
+                                                {ex.sets.map((s, i) => (
+                                                    <span key={i} className="text-xs text-ink/40 dark:text-white/40 font-mono whitespace-nowrap">
+                                                        {s.reps}×{s.weightKg}kg
+                                                    </span>
+                                                ))}
+                                            </div>
                                         )}
                                     </div>
                                 ))}
