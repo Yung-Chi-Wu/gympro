@@ -105,10 +105,34 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
         const routine = routines.find((r) => r.id === routineId)
         if (!routine) return
 
-        if (routine.exercises.some((ex) => ex.exercise_id === exercise.id)) {
+        // 只檢查有效動作（排除 Unknown exercise 的幽靈動作）
+        const validExercises = routine.exercises.filter(
+            (ex) => ex.exercise_name !== 'Unknown exercise' && ex.exercise_name !== ''
+        )
+        if (validExercises.some((ex) => ex.exercise_id === exercise.id)) {
             const name = zh && exercise.name_zh_tw ? exercise.name_zh_tw : exercise.name
             setError(zh ? `「${name}」已經在這份課表裡了。` : `${exercise.name} is already in this routine.`)
             return
+        }
+
+        // 自動清除幽靈動作
+        const ghostExercises = routine.exercises.filter(
+            (ex) => ex.exercise_name === 'Unknown exercise' || ex.exercise_name === ''
+        )
+        if (ghostExercises.length > 0) {
+            for (const ghost of ghostExercises) {
+                await supabase.from('routine_exercises').delete().eq('id', ghost.id)
+            }
+            setRoutines((prev) =>
+                prev.map((r) =>
+                    r.id !== routineId ? r : {
+                        ...r,
+                        exercises: r.exercises.filter(
+                            (ex) => ex.exercise_name !== 'Unknown exercise' && ex.exercise_name !== ''
+                        ),
+                    }
+                )
+            )
         }
 
         const { data, error: insertError } = await supabase
@@ -265,18 +289,20 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
 
                                     {routine.exercises.length > 0 && (
                                         <div className="space-y-2">
-                                            {routine.exercises.map((ex) => (
-                                                <ExistingExerciseRow
-                                                    key={ex.id}
-                                                    exercise={ex}
-                                                    language={language}
-                                                    exercises={exercises}
-                                                    onUpdateTarget={(sets, reps) =>
-                                                        handleUpdateTarget(routine.id, ex.id, sets, reps)
-                                                    }
-                                                    onRemove={() => handleRemoveExercise(routine.id, ex.id)}
-                                                />
-                                            ))}
+                                            {routine.exercises
+                                                .filter((ex) => ex.exercise_name !== 'Unknown exercise' && ex.exercise_name !== '')
+                                                .map((ex) => (
+                                                    <ExistingExerciseRow
+                                                        key={ex.id}
+                                                        exercise={ex}
+                                                        language={language}
+                                                        exercises={exercises}
+                                                        onUpdateTarget={(sets, reps) =>
+                                                            handleUpdateTarget(routine.id, ex.id, sets, reps)
+                                                        }
+                                                        onRemove={() => handleRemoveExercise(routine.id, ex.id)}
+                                                    />
+                                                ))}
                                         </div>
                                     )}
 

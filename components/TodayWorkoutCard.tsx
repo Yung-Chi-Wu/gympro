@@ -432,7 +432,7 @@ function TodayExerciseRow({ exercise, language, weightUnit, onAddSet, onDeleteSe
                             key={s.id}
                             className="inline-flex items-center gap-2 rounded-full bg-plate/10 px-3 py-1 font-mono text-xs"
                         >
-                            {formatWeight(s.weightKg, weightUnit)}×{s.reps}
+                            {s.reps}×{formatWeight(s.weightKg, weightUnit)}
                             <button
                                 type="button"
                                 onClick={() => onDeleteSet(exercise.exerciseId, s.id)}

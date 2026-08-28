@@ -157,22 +157,22 @@ function TrainingLogSection({
                         </p>
                     )}
                     {!loading && workouts.map((workout) => (
-                        <div key={workout.id} className="space-y-1">
-                            <p className="text-sm font-medium dark:text-white/90">
+                        <div key={workout.id} className="space-y-2 border-t border-ink/5 first:border-t-0 pt-2 first:pt-0">
+                            <p className="text-xs font-semibold text-ink/50 dark:text-white/50 uppercase tracking-wide">
                                 {formatDate(workout.performed_at, language)}
-                                {workout.title && ` — ${workout.title}`}
                             </p>
-                            {workout.exercises.map((ex) => (
-                                <div key={ex.exerciseId} className="text-xs text-ink/60 dark:text-white/60 pl-2">
-                                    <span className="font-medium">{ex.name}</span>
-                                    {ex.sets.length > 0 && (
-                                        <>
-                                            {': '}
-                                            {ex.sets.map((s) => `${s.weightKg}kg×${s.reps}`).join(', ')}
-                                        </>
-                                    )}
-                                </div>
-                            ))}
+                            <div className="space-y-1.5">
+                                {workout.exercises.map((ex) => (
+                                    <div key={ex.exerciseId} className="flex items-baseline justify-between gap-2">
+                                        <span className="text-sm font-medium truncate">{ex.name}</span>
+                                        {ex.sets.length > 0 && (
+                                            <span className="text-xs text-ink/40 dark:text-white/40 shrink-0 font-mono">
+                                                {ex.sets.map((s) => `${s.reps}×${s.weightKg}kg`).join('  ')}
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     ))}
                 </div>
