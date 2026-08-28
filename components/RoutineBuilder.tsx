@@ -105,35 +105,8 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
         const routine = routines.find((r) => r.id === routineId)
         if (!routine) return
 
-        // 只檢查有效動作（排除 Unknown exercise 的幽靈動作）
-        const validExercises = routine.exercises.filter(
-            (ex) => ex.exercise_name !== 'Unknown exercise' && ex.exercise_name !== ''
-        )
-        if (validExercises.some((ex) => ex.exercise_id === exercise.id)) {
-            const name = zh && exercise.name_zh_tw ? exercise.name_zh_tw : exercise.name
-            setError(zh ? `「${name}」已經在這份課表裡了。` : `${exercise.name} is already in this routine.`)
-            return
-        }
-
-        // 自動清除幽靈動作
-        const ghostExercises = routine.exercises.filter(
-            (ex) => ex.exercise_name === 'Unknown exercise' || ex.exercise_name === ''
-        )
-        if (ghostExercises.length > 0) {
-            for (const ghost of ghostExercises) {
-                await supabase.from('routine_exercises').delete().eq('id', ghost.id)
-            }
-            setRoutines((prev) =>
-                prev.map((r) =>
-                    r.id !== routineId ? r : {
-                        ...r,
-                        exercises: r.exercises.filter(
-                            (ex) => ex.exercise_name !== 'Unknown exercise' && ex.exercise_name !== ''
-                        ),
-                    }
-                )
-            )
-        }
+        // ← 把這整段重複檢查刪掉
+        // if (routine.exercises.some(...)) { ... }
 
         const { data, error: insertError } = await supabase
             .from('routine_exercises')
