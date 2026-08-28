@@ -105,15 +105,17 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
         const routine = routines.find((r) => r.id === routineId)
         if (!routine) return
 
-        // ← 把這整段重複檢查刪掉
-        // if (routine.exercises.some(...)) { ... }
+        // 用最大 order_index + 1，避免刪除動作後產生 index 衝突
+        const nextOrderIndex = routine.exercises.length > 0
+            ? Math.max(...routine.exercises.map((ex) => ex.order_index)) + 1
+            : 0
 
         const { data, error: insertError } = await supabase
             .from('routine_exercises')
             .insert({
                 routine_id: routineId,
                 exercise_id: exercise.id,
-                order_index: routine.exercises.length,
+                order_index: nextOrderIndex,
                 target_sets: targetSets,
                 target_reps: targetReps,
             })
@@ -121,12 +123,7 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
             .single()
 
         if (insertError || !data) {
-            if (insertError?.code === '23505') {
-                const name = zh && exercise.name_zh_tw ? exercise.name_zh_tw : exercise.name
-                setError(zh ? `「${name}」已經在這份課表裡了。` : `${exercise.name} is already in this routine.`)
-            } else {
-                setError(toFriendlyError(insertError, language))
-            }
+            setError(toFriendlyError(insertError, language))
             return
         }
 
@@ -212,7 +209,6 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
                     return (
                         <div key={routine.id} className="rounded-xl border border-ink/10 bg-white">
                             <div className="flex w-full items-center justify-between px-4 py-3 gap-2">
-                                {/* 課表名稱——點擊展開 */}
                                 <button
                                     type="button"
                                     onClick={() => setExpandedRoutineId(isExpanded ? null : routine.id)}
@@ -221,15 +217,12 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
                                     {routine.name}
                                 </button>
 
-                                {/* 右側操作區 */}
                                 <div className="flex items-center gap-2 shrink-0">
-                                    {/* 改名按鈕 */}
                                     <RoutineRenameButton
                                         currentName={routine.name}
                                         language={language}
                                         onSave={(newName) => handleRenameRoutine(routine.id, newName)}
                                     />
-                                    {/* 刪除按鈕 */}
                                     <button
                                         type="button"
                                         onClick={() => handleDeleteRoutine(routine.id)}
@@ -243,7 +236,6 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
                                             <path d="M9,6V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2" />
                                         </svg>
                                     </button>
-                                    {/* 展開箭頭 */}
                                     <button
                                         type="button"
                                         onClick={() => setExpandedRoutineId(isExpanded ? null : routine.id)}
@@ -259,7 +251,6 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
 
                             {isExpanded && (
                                 <div className="border-t border-ink/10 p-4 space-y-3">
-
                                     {routine.exercises.length > 0 && (
                                         <div className="space-y-2">
                                             {routine.exercises
@@ -296,12 +287,6 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
     )
 }
 
-interface RoutineNameEditorProps {
-    currentName: string
-    language: string
-    onSave: (newName: string) => void
-    onDelete: () => void
-}
 interface RoutineRenameButtonProps {
     currentName: string
     language: string
@@ -351,57 +336,6 @@ function RoutineRenameButton({ currentName, language, onSave }: RoutineRenameBut
         </button>
     )
 }
-function RoutineNameEditor({ currentName, language, onSave, onDelete }: RoutineNameEditorProps) {
-    const zh = language === 'zh-TW'
-    const [isEditing, setIsEditing] = useState(false)
-    const [name, setName] = useState(currentName)
-
-    function commit() {
-        if (name.trim() && name.trim() !== currentName) {
-            onSave(name)
-        } else {
-            setName(currentName)
-        }
-        setIsEditing(false)
-    }
-
-    if (isEditing) {
-        return (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <input
-                    type="text"
-                    autoFocus
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onBlur={commit}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') commit()
-                        if (e.key === 'Escape') { setName(currentName); setIsEditing(false) }
-                    }}
-                    className="flex-1 rounded-md border px-3 py-2 text-sm font-medium"
-                />
-                <button type="button" onClick={onDelete}
-                    className="text-sm text-ink/40 hover:text-red-600 sm:shrink-0">
-                    {zh ? '刪除課表' : 'Delete routine'}
-                </button>
-            </div>
-        )
-    }
-
-    return (
-        <div className="flex items-center justify-between">
-            <button type="button" onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 text-left" aria-label="Edit routine name">
-                <span className="font-medium">{currentName}</span>
-                <span className="text-ink/40">✎</span>
-            </button>
-            <button type="button" onClick={onDelete}
-                className="text-sm text-ink/40 hover:text-red-600">
-                {zh ? '刪除課表' : 'Delete routine'}
-            </button>
-        </div>
-    )
-}
 
 interface ExistingExerciseRowProps {
     exercise: RoutineExerciseRow
@@ -449,7 +383,7 @@ function ExistingExerciseRow({ exercise, language, exercises, onUpdateTarget, on
                         value={targetSets}
                         onChange={(e) => setTargetSets(e.target.value)}
                         onBlur={commitIfChanged}
-                        className="w-14 rounded-md border px-2 py-0 text-sm text-center h-9 flex items-center"
+                        className="w-14 rounded-md border px-2 py-0 text-sm text-center h-9"
                     />
                 </div>
                 <span className="text-ink/40 mt-4">×</span>
@@ -461,7 +395,7 @@ function ExistingExerciseRow({ exercise, language, exercises, onUpdateTarget, on
                         value={targetReps}
                         onChange={(e) => setTargetReps(e.target.value)}
                         onBlur={commitIfChanged}
-                        className="w-14 rounded-md border px-2 py-0 text-sm text-center h-9 flex items-center"
+                        className="w-14 rounded-md border px-2 py-0 text-sm text-center h-9"
                     />
                 </div>
                 <button
@@ -505,8 +439,8 @@ function AddExerciseToRoutine({ exercises, language, onAdd }: AddExerciseToRouti
                         inputMode="numeric"
                         value={targetSets}
                         onChange={(e) => setTargetSets(e.target.value)}
-                        className="w-16 rounded-md border px-2 py-2 text-sm text-center h-9" />
-
+                        className="w-16 rounded-md border px-2 py-2 text-sm text-center h-9"
+                    />
                 </div>
                 <span className="mb-2 text-sm text-ink/40">×</span>
                 <div className="flex flex-col gap-1.5">
@@ -516,7 +450,8 @@ function AddExerciseToRoutine({ exercises, language, onAdd }: AddExerciseToRouti
                         inputMode="numeric"
                         value={targetReps}
                         onChange={(e) => setTargetReps(e.target.value)}
-                        className="w-16 rounded-md border px-2 py-2 text-sm text-center h-9" />
+                        className="w-16 rounded-md border px-2 py-2 text-sm text-center h-9"
+                    />
                 </div>
                 <button
                     type="button"
