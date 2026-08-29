@@ -22,6 +22,7 @@ function buildSystemPrompt(language: string, userContext: {
     todayRoutineName: string | null
     weightUnit: string
     timezone: string
+    todayDate: string
 }) {
     const zh = language === 'zh-TW'
     const name = userContext.displayName || (zh ? '訓練者' : 'athlete')
@@ -36,6 +37,7 @@ function buildSystemPrompt(language: string, userContext: {
 - 今天的課表：${userContext.todayRoutineName ?? '沒有課表'}
 - 重量單位：${userContext.weightUnit}
 - 時區：${userContext.timezone}
+- 今天日期：${userContext.todayDate}（用這個計算昨天、上週等相對日期）
 
 你只能回答：健身知識、查詢訓練記錄、修改今天課表、GymPro APP 使用說明。
 跟健身或 APP 無關的問題請禮貌拒絕。
@@ -61,6 +63,7 @@ User info:
 - Today's routine: ${userContext.todayRoutineName ?? 'no routine'}
 - Weight unit: ${userContext.weightUnit}
 - Timezone: ${userContext.timezone}
+- Today's date: ${userContext.todayDate} (use this to calculate yesterday, last week, etc.)
 
 Only answer: fitness knowledge, training history queries, today's workout modifications, GymPro APP guidance.
 Decline anything unrelated to fitness or the APP.
@@ -211,6 +214,7 @@ export async function POST(request: Request) {
         todayRoutineName,
         weightUnit: profile?.weight_unit ?? 'kg',
         timezone: userTimezone,
+        todayDate: localDateStr(new Date()),
     }
 
     const systemPrompt = buildSystemPrompt(language, userContext)
