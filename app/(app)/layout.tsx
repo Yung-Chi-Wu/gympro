@@ -3,9 +3,22 @@ import { getTranslations } from 'next-intl/server'
 import { LogoutButton } from '@/components/LogoutButton'
 import { BottomNav } from '@/components/BottomNav'
 import { SidebarLink } from '@/components/SidebarLink'
+import { RonnieWidget } from '@/components/RonnieWidget'
+import { createClient } from '@/lib/supabase/server'
+import { getEffectiveLanguage } from '@/lib/get-language'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
     const t = await getTranslations('nav')
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    const profileResult = user ? await supabase
+        .from('user_profiles')
+        .select('language')
+        .eq('user_id', user.id)
+        .maybeSingle() : null
+
+    const language = await getEffectiveLanguage(profileResult?.data?.language)
 
     const NAV_LINKS = [
         { href: '/dashboard', label: t('dashboard'), icon: '🏠' },
@@ -72,6 +85,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
                 <BottomNav links={NAV_LINKS} />
             </div>
+            {user && (
+                <RonnieWidget
+                    language={language}
+                    userId={user.id}
+                />
+            )}
         </div>
     )
 }
