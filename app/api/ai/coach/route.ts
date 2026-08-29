@@ -109,7 +109,7 @@ const TOOLS: Anthropic.Tool[] = [
     },
     {
         name: 'get_today_workout',
-        description: "Get the user's planned exercises and logged sets for today.",
+        description: "Get the user's planned exercises for today from their routine, and any logged sets if they've started working out.",
         input_schema: { type: 'object' as const, properties: {}, required: [] },
     },
     {
@@ -285,6 +285,7 @@ export async function POST(request: Request) {
             const todayStr = localDateStr(new Date())
             const range = localDateToUtcRange(todayStr)
 
+            // 先查今天有沒有已開始的 workout
             const { data: workout } = await supabase
                 .from('workouts')
                 .select(`
@@ -301,26 +302,72 @@ export async function POST(request: Request) {
                 .limit(1)
                 .maybeSingle()
 
-            if (!workout) return language === 'zh-TW' ? '今天還沒有訓練記錄' : 'No workout logged today'
+            if (workout) {
+                // 有開始的 workout，回傳已記錄的組數
+                const { data: todaySets } = await supabase
+                    .from('workout_sets')
+                    .select('exercise_id, reps, weight_kg')
+                    .eq('workout_id', workout.id)
 
-            const { data: todaySets } = await supabase
-                .from('workout_sets')
-                .select('exercise_id, reps, weight_kg')
-                .eq('workout_id', workout.id)
+                const exercises = (workout.workout_planned_exercises ?? []).map((pe: {
+                    exercise_id: string
+                    exercises: { name: string; name_zh_tw: string | null } | null
+                }) => {
+                    const exName = language === 'zh-TW' && pe.exercises?.name_zh_tw
+                        ? pe.exercises.name_zh_tw : pe.exercises?.name ?? 'Unknown'
+                    const sets = (todaySets ?? [])
+                        .filter((s) => s.exercise_id === pe.exercise_id)
+                        .map((s) => `${s.reps}×${s.weight_kg}kg`).join(', ')
+                    return `${exName}: ${sets || (language === 'zh-TW' ? '尚未記錄' : 'no sets yet')}`
+                }).join('\n')
 
-            const exercises = (workout.workout_planned_exercises ?? []).map((pe: {
-                exercise_id: string
-                exercises: { name: string; name_zh_tw: string | null } | null
-            }) => {
-                const exName = language === 'zh-TW' && pe.exercises?.name_zh_tw
-                    ? pe.exercises.name_zh_tw : pe.exercises?.name ?? 'Unknown'
-                const sets = (todaySets ?? [])
-                    .filter((s) => s.exercise_id === pe.exercise_id)
-                    .map((s) => `${s.reps}×${s.weight_kg}kg`).join(', ')
-                return `${exName}: ${sets || (language === 'zh-TW' ? '尚未記錄' : 'no sets')}`
-            }).join('\n')
+                return exercises || (language === 'zh-TW' ? '今天課表是空的' : 'No exercises today')
+            }
 
-            return exercises || (language === 'zh-TW' ? '今天課表是空的' : 'No exercises today')
+            // 還沒開始，從 routine 拉今天的計畫動作
+            if (todayRoutineName && cycle) {
+                const todayDateStr = localDateStr(new Date())
+                const startDate = new Date(cycle.start_date + 'T12:00:00Z')
+                const todayDate = new Date(todayDateStr + 'T12:00:00Z')
+                const daysSince = Math.floor((todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+                const dayIndex = ((daysSince % cycle.cycle_length) + cycle.cycle_length) % cycle.cycle_length + 1
+
+                const { data: cycleDay } = await supabase
+                    .from('cycle_days')
+                    .select('routine_id')
+                    .eq('training_cycle_id', cycle.id)
+                    .eq('day_index', dayIndex)
+                    .maybeSingle()
+
+                if (cycleDay?.routine_id) {
+                    const { data: routineExercises } = await supabase
+                        .from('routine_exercises')
+                        .select('exercise_id, target_sets, target_reps, exercises(name, name_zh_tw)')
+                        .eq('routine_id', cycleDay.routine_id)
+                        .order('order_index')
+
+                    if (routineExercises?.length) {
+                        const zh = language === 'zh-TW'
+                        const list = routineExercises.map((re: {
+                            exercise_id: string
+                            target_sets: number | null
+                            target_reps: number | null
+                            exercises: { name: string; name_zh_tw: string | null } | null
+                        }) => {
+                            const exName = zh && re.exercises?.name_zh_tw
+                                ? re.exercises.name_zh_tw : re.exercises?.name ?? 'Unknown'
+                            const sets = re.target_sets ?? '?'
+                            const reps = re.target_reps ?? '?'
+                            return `${exName}: ${sets}組 × ${reps}下（計畫）`
+                        }).join('\n')
+                        return zh
+                            ? `今天課表「${todayRoutineName}」（尚未開始記錄）：\n${list}`
+                            : `Today's routine "${todayRoutineName}" (not started yet):\n${list}`
+                    }
+                }
+            }
+
+            return language === 'zh-TW' ? '今天是休息日或沒有課表' : 'Rest day or no routine today'
         }
 
         if (toolName === 'add_exercise_today') {

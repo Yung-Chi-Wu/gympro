@@ -197,7 +197,7 @@ export default async function DashboardPage() {
 
         {/* 左欄：今天 + 桌面版 AI 報告 */}
         <div className="space-y-6">
-          <TodayWorkoutCard
+          <DashboardClientShell
             userId={user.id}
             initialWorkoutId={existingWorkout?.id ?? null}
             routineIdForToday={routineIdForToday}
@@ -210,43 +210,25 @@ export default async function DashboardPage() {
             language={language}
             weightUnit={weightUnit}
             routineName={routineName}
+            latestWeightKg={latestWeightKg}
           />
 
-          {/* 左欄：今天 + 桌面版 AI 報告 */}
-          <div className="space-y-6">
-            <DashboardClientShell
-              userId={user.id}
-              initialWorkoutId={existingWorkout?.id ?? null}
-              routineIdForToday={routineIdForToday}
-              isRestDay={isRestDay}
-              hasCycle={hasCycle}
-              dayIndex={dayIndex}
-              cycleLength={cycle?.cycle_length ?? 0}
-              initialExercises={todayExercises}
-              allExercises={(allExercisesResult.data ?? []) as ExerciseOption[]}
-              language={language}
-              weightUnit={weightUnit}
-              routineName={routineName}
-              latestWeightKg={latestWeightKg}
-            />
-
-            {/* 桌面版 AI 報告 */}
-            <div className="hidden sm:block space-y-3">
-              <h2 className="text-lg font-bold uppercase tracking-wide border-b border-ink/10 pb-2">
-                {tReport('sectionTitle')}
-              </h2>
-              <RecommendationPanel userId={user.id} language={language} />
-            </div>
+          {/* 桌面版 AI 報告 */}
+          <div className="hidden sm:block space-y-3">
+            <h2 className="text-lg font-bold uppercase tracking-wide border-b border-ink/10 pb-2">
+              {tReport('sectionTitle')}
+            </h2>
+            <RecommendationPanel userId={user.id} language={language} />
           </div>
+        </div>
 
-          {/* 右欄：手機版 AI 報告 */}
-          <div className="space-y-6">
-            <div className="block sm:hidden space-y-3">
-              <h2 className="text-lg font-bold uppercase tracking-wide border-b border-ink/10 pb-2">
-                {tReport('sectionTitle')}
-              </h2>
-              <RecommendationPanel userId={user.id} language={language} />
-            </div>
+        {/* 右欄：手機版 AI 報告 */}
+        <div className="space-y-6">
+          <div className="block sm:hidden space-y-3">
+            <h2 className="text-lg font-bold uppercase tracking-wide border-b border-ink/10 pb-2">
+              {tReport('sectionTitle')}
+            </h2>
+            <RecommendationPanel userId={user.id} language={language} />
           </div>
         </div>
       </div>
