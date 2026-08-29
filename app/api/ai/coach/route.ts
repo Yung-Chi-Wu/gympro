@@ -46,8 +46,9 @@ function buildSystemPrompt(language: string, userContext: {
 如果使用者想重新設計完整課表，告訴他去「訓練課表」用 Coach G。
 
 重要規則：
-- 推薦替代動作時，必須先用 search_exercises 搜尋資料庫，只能推薦資料庫裡有的動作，不能憑記憶推薦
-- 推薦完如果使用者同意新增，直接用剛才搜尋到的 exercise_id 新增，不要再搜尋一次
+- 絕對不能憑記憶推薦動作，推薦任何動作之前必須先呼叫 search_exercises
+- 推薦完如果使用者同意新增，直接用剛才搜尋結果的 exercise_id 新增，不要再搜尋一次
+- 如果沒有先搜尋就推薦，然後使用者要新增，你必須先搜尋取得 exercise_id 才能新增
 - 「今天不想做某動作」→ 只從今天課表移除，不動固定課表
 - 「以後都不要做某動作」→ 告訴使用者去「訓練課表」頁面手動修改
 
@@ -77,8 +78,9 @@ Decline anything unrelated.
 For AI reports → History page. For full routine redesign → Coach G in Routines.
 
 Critical rules:
-- When recommending exercises, ALWAYS use search_exercises first, only recommend exercises found in the database
-- If user agrees to add an exercise, use the exercise_id from the previous search directly
+- NEVER recommend exercises from memory. ALWAYS call search_exercises before suggesting any exercise.
+- After recommending, if user agrees to add, use the exercise_id from that search result directly.
+- If you recommended without searching first and user wants to add, search now to get the exercise_id.
 - "Don't want to do X today" → remove from today only, never touch the routine
 - "Remove X permanently" → tell user to edit in Routines page
 
@@ -287,7 +289,9 @@ export async function POST(request: Request) {
 
         if (toolName === 'search_exercises') {
             let query = supabase.from('exercises').select('id, name, name_zh_tw, muscle_group')
-            if (toolInput.query) query = query.ilike('name', `%${toolInput.query}%`)
+            if (toolInput.query) {
+                query = query.or(`name.ilike.%${toolInput.query}%,name_zh_tw.ilike.%${toolInput.query}%`)
+            }
             if (toolInput.muscle_group) query = query.eq('muscle_group', toolInput.muscle_group)
             const { data } = await query.limit(10)
             if (!data?.length) return language === 'zh-TW' ? '找不到符合的動作' : 'No exercises found'
