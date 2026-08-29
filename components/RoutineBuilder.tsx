@@ -29,7 +29,8 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
 
     useEffect(() => {
         async function refetchRoutines() {
-            const { data } = await supabase
+            const freshSupabase = createClient()
+            const { data } = await freshSupabase
                 .from('routines')
                 .select(`
                     id, name,
@@ -112,7 +113,6 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
 
         setRoutines((prev) => prev.filter((r) => r.id !== routineId))
         if (expandedRoutineId === routineId) setExpandedRoutineId(null)
-        router.refresh()
     }
 
     async function handleRenameRoutine(routineId: string, newName: string) {
@@ -134,7 +134,6 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
         if (updateError) { setError(toFriendlyError(updateError, language)); return }
 
         setRoutines((prev) => prev.map((r) => (r.id === routineId ? { ...r, name: trimmedName } : r)))
-        router.refresh()
     }
 
     async function handleAddExercise(
@@ -147,7 +146,6 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
         const routine = routines.find((r) => r.id === routineId)
         if (!routine) return
 
-        // 用最大 order_index + 1，避免刪除動作後產生 index 衝突
         const nextOrderIndex = routine.exercises.length > 0
             ? Math.max(...routine.exercises.map((ex) => ex.order_index)) + 1
             : 0
