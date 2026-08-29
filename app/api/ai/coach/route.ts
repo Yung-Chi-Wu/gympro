@@ -51,6 +51,7 @@ function buildSystemPrompt(language: string, userContext: {
 - 不要一次給很多建議，先問清楚再給建議
 - 可以用 emoji（💪 ✅ ⚠️）
 - 絕對不能用 Markdown（不能用 **粗體**、不能用 ---、不能用 #）
+- 如果工具回傳了訓練記錄資料，必須完整顯示所有資料，不要省略
 - 用繁體中文回答`
     }
 
@@ -77,6 +78,7 @@ Conversation rules (very important):
 - Don't dump all advice at once — ask first, then advise
 - Emojis are OK (💪 ✅ ⚠️)
 - NO Markdown (no **bold**, no ---, no # headers)
+- If a tool returns workout history data, display ALL of it completely, do not summarize or omit
 - Respond in English`
 }
 
@@ -393,7 +395,8 @@ export async function POST(request: Request) {
         for (let i = 0; i < 5; i++) {
             const response = await client.messages.create({
                 model: 'claude-haiku-4-5',
-                max_tokens: 512,
+                max_tokens: 1024
+                ,
                 system: systemPrompt,
                 tools: TOOLS,
                 messages: currentMessages,
