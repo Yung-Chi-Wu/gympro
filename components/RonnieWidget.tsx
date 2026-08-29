@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
+
 interface Message {
     role: 'user' | 'assistant'
     content: string
@@ -26,6 +27,7 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
     const abortRef = useRef<AbortController | null>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
     const router = useRouter()
+    const inputRef = useRef<HTMLInputElement>(null)
 
     const todayKey = `${STORAGE_KEY_PREFIX}${userId}_${new Date().toISOString().split('T')[0]}`
 
@@ -87,6 +89,7 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
         const newMessages = [...messages, userMsg]
         setMessages(newMessages)
         setInput('')
+        setTimeout(() => inputRef.current?.focus(), 50)
 
         await sendMessages(newMessages)
     }
@@ -295,6 +298,7 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
                     <div className="p-3 border-t border-ink/10 dark:border-white/10 shrink-0">
                         <div className="flex gap-2">
                             <input
+                                ref={inputRef}
                                 type="text"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
@@ -307,7 +311,7 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
                                 disabled={!input.trim() || isLoading}
                                 className="rounded-xl px-3 py-2 text-sm font-medium text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                                 style={{ backgroundColor: '#C8955A' }}>
-                                {zh ? '送' : 'Send'}
+                                {zh ? '發送' : 'Send'}
                             </button>
                         </div>
                     </div>
