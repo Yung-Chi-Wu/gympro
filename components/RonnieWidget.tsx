@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
-
 interface Message {
     role: 'user' | 'assistant'
     content: string
@@ -18,6 +17,7 @@ const STORAGE_KEY_PREFIX = 'ronnie_chat_'
 
 export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
     const zh = language === 'zh-TW'
+    const router = useRouter()
     const [isOpen, setIsOpen] = useState(false)
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
@@ -26,11 +26,11 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
     const [editingText, setEditingText] = useState('')
     const abortRef = useRef<AbortController | null>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
-    const router = useRouter()
     const inputRef = useRef<HTMLInputElement>(null)
 
     const todayKey = `${STORAGE_KEY_PREFIX}${userId}_${new Date().toISOString().split('T')[0]}`
 
+    // 載入今天的對話
     useEffect(() => {
         try {
             const saved = localStorage.getItem(todayKey)
@@ -38,6 +38,15 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
         } catch { /* ignore */ }
     }, [todayKey])
 
+    // reload 後重新開啟
+    useEffect(() => {
+        if (sessionStorage.getItem('ronnie_open') === 'true') {
+            sessionStorage.removeItem('ronnie_open')
+            setIsOpen(true)
+        }
+    }, [])
+
+    // 儲存對話
     useEffect(() => {
         if (messages.length > 0) {
             try {
@@ -66,8 +75,12 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
             })
             const data = await res.json()
             setMessages((prev) => [...prev, { role: 'assistant', content: data.message }])
+
             if (data.reloadDashboard) {
-                setTimeout(() => router.refresh(), 800)
+                setTimeout(() => {
+                    sessionStorage.setItem('ronnie_open', 'true')
+                    window.location.reload()
+                }, 1000)
             }
         } catch (err: unknown) {
             if (err instanceof Error && err.name === 'AbortError') return
@@ -77,7 +90,7 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
             }])
         } finally {
             setIsLoading(false)
-            abortRef.current = null
+            setTimeout(() => inputRef.current?.focus(), 50)
         }
     }, [language, zh])
 
@@ -97,6 +110,7 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
     function handleStop() {
         abortRef.current?.abort()
         setIsLoading(false)
+        setTimeout(() => inputRef.current?.focus(), 50)
     }
 
     function handleEditStart(index: number, content: string) {
@@ -106,7 +120,6 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
 
     async function handleEditSubmit(index: number) {
         if (!editingText.trim()) return
-        // 截斷到 index（不含），換成新的訊息，重新送出
         const newMessages = [
             ...messages.slice(0, index),
             { role: 'user' as const, content: editingText.trim() },
@@ -133,7 +146,7 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
 
     return (
         <>
-            {/* 懸浮按鈕——金色 */}
+            {/* 懸浮按鈕 */}
             {!isOpen && (
                 <button
                     type="button"
@@ -217,7 +230,6 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
                                     </div>
                                 )}
                                 <div className="relative max-w-[80%]">
-                                    {/* 使用者訊息可以編輯 */}
                                     {msg.role === 'user' && editingIndex === i ? (
                                         <div className="space-y-1">
                                             <textarea
@@ -248,19 +260,16 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
                                     ) : (
                                         <>
                                             <div className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${msg.role === 'user'
-                                                ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
-                                                : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
+                                                    ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
+                                                    : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
                                                 }`}>
                                                 {renderContent(msg.content)}
                                             </div>
-
-                                            {/* 編輯按鈕——hover 才顯示 */}
                                             {msg.role === 'user' && !isLoading && (
                                                 <button
                                                     type="button"
                                                     onClick={() => handleEditStart(i, msg.content)}
                                                     className="absolute -left-6 top-1 opacity-0 group-hover:opacity-100 transition-opacity text-ink/30 hover:text-ink/60 text-xs"
-                                                    title={zh ? '編輯' : 'Edit'}
                                                 >
                                                     ✎
                                                 </button>
@@ -302,10 +311,11 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
                                 type="text"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') handleSend() }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !isLoading) handleSend()
+                                }}
                                 placeholder={zh ? '問 Ronnie...' : 'Ask Ronnie...'}
-                                disabled={isLoading}
-                                className="flex-1 rounded-xl border border-ink/20 dark:border-white/20 px-3 py-2 text-sm bg-transparent disabled:opacity-50"
+                                className="flex-1 rounded-xl border border-ink/20 dark:border-white/20 px-3 py-2 text-sm bg-transparent"
                             />
                             <button type="button" onClick={() => handleSend()}
                                 disabled={!input.trim() || isLoading}
