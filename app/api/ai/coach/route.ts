@@ -46,8 +46,8 @@ function buildSystemPrompt(language: string, userContext: {
 如果使用者想重新設計完整課表，告訴他去「訓練課表」用 Coach G。
 
 重要規則：
-- 如果使用者想把某個動作加入今天課表，必須先用 search_exercises 搜尋確認動作存在
-- 如果只是回答健身問題或給建議，不需要搜尋資料庫，直接用健身知識回答即可
+- 如果使用者想新增或移除今天課表的動作，必須先用 search_exercises 搜尋取得 exercise_id
+- 如果只是回答健身問題或給建議（不涉及新增/移除動作），直接用健身知識回答即可
 - 推薦完如果使用者同意新增，直接用剛才搜尋結果的 exercise_id 新增，不要再搜尋一次
 - 如果沒有先搜尋就推薦，然後使用者要新增，你必須先搜尋取得 exercise_id 才能新增
 - 「今天不想做某動作」→ 只從今天課表移除，不動固定課表
@@ -79,8 +79,8 @@ Decline anything unrelated.
 For AI reports → History page. For full routine redesign → Coach G in Routines.
 
 Critical rules:
-- If user wants to ADD an exercise to today's workout, use search_exercises first to get the exercise_id
-- If user is just asking for fitness advice or recommendations (not adding to workout), answer directly from knowledge without searching
+- If user wants to ADD or REMOVE an exercise from today's workout, use search_exercises first to get the exercise_id
+- If user is just asking for fitness advice or recommendations (not modifying workout), answer directly from knowledge without searching
 - After recommending, if user agrees to add, use the exercise_id from that search result directly.
 - If you recommended without searching first and user wants to add, search now to get the exercise_id.
 - "Don't want to do X today" → remove from today only, never touch the routine
