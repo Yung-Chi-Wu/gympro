@@ -417,7 +417,9 @@ export async function POST(request: Request) {
         }
 
         if (toolName === 'remove_exercise_today') {
+            console.log('remove_exercise_today called with:', toolInput)
             const workoutId = await ensureTodayWorkout()
+            console.log('workoutId:', workoutId)
             if (!workoutId) return language === 'zh-TW' ? '建立今日訓練失敗' : 'Failed to create workout'
 
             const { error } = await supabase
