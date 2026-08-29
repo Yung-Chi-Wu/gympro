@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
@@ -26,6 +26,48 @@ export function RoutineBuilder({ userId, exercises, initialRoutines, language }:
     const [newRoutineName, setNewRoutineName] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null)
+
+    useEffect(() => {
+        async function refetchRoutines() {
+            const { data } = await supabase
+                .from('routines')
+                .select(`
+                    id, name,
+                    routine_exercises (
+                        id, exercise_id, order_index, target_sets, target_reps,
+                        exercises ( name, muscle_group )
+                    )
+                `)
+                .eq('user_id', userId)
+                .order('created_at')
+
+            if (data) {
+                setRoutines(data.map((r) => ({
+                    id: r.id,
+                    name: r.name,
+                    exercises: (r.routine_exercises ?? []).map((re: {
+                        id: string
+                        exercise_id: string
+                        order_index: number
+                        target_sets: number | null
+                        target_reps: number | null
+                        exercises: { name: string; muscle_group: string } | null
+                    }) => ({
+                        id: re.id,
+                        exercise_id: re.exercise_id,
+                        exercise_name: re.exercises?.name ?? 'Unknown exercise',
+                        muscle_group: re.exercises?.muscle_group ?? 'other',
+                        order_index: re.order_index,
+                        target_sets: re.target_sets,
+                        target_reps: re.target_reps,
+                    })),
+                })))
+            }
+        }
+
+        window.addEventListener('ronnie-routine-changed', refetchRoutines)
+        return () => window.removeEventListener('ronnie-routine-changed', refetchRoutines)
+    }, [userId])
 
     async function handleCreateRoutine(e: React.FormEvent) {
         e.preventDefault()

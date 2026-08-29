@@ -78,6 +78,7 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
 
             if (data.reloadDashboard) {
                 window.dispatchEvent(new CustomEvent('ronnie-workout-changed'))
+                window.dispatchEvent(new CustomEvent('ronnie-routine-changed'))
             }
         } catch (err: unknown) {
             if (err instanceof Error && err.name === 'AbortError') return

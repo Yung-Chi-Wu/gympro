@@ -379,7 +379,7 @@ export async function POST(request: Request) {
                 .eq('exercise_id', toolInput.exercise_id)
 
             if (error) return language === 'zh-TW' ? `移除失敗：${error.message}` : `Failed: ${error.message}`
-
+            needsDashboardReload = true
             return language === 'zh-TW'
                 ? `✓ 已將「${toolInput.exercise_name}」從所有固定課表永久移除`
                 : `✓ Permanently removed "${toolInput.exercise_name}" from all your routines`
