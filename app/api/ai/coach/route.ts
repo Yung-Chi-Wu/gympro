@@ -53,6 +53,7 @@ function buildSystemPrompt(language: string, userContext: {
 - 「今天不想做某動作」→ 只從今天課表移除，不動固定課表
 - 「以後都不要做某動作」→ 告訴使用者去「訓練課表」頁面手動修改
 - 「以後都不要做X」、「從課表永久移除X」、「所有課表都拿掉X」→ 使用 remove_exercise_from_routine 工具直接執行，不要叫使用者自己去設定
+- 使用者問「某個課表有什麼動作」→ 使用 get_routine_exercises 工具，不要用 get_today_workout
 
 互動規則：
 - 每次只說 1-3 句話
@@ -87,6 +88,7 @@ Critical rules:
 - "Don't want to do X today" → remove from today only, never touch the routine
 - "Remove X permanently" → tell user to edit in Routines page
 - "Never do X again", "remove X from my routine permanently", "take X out of all routines" → use remove_exercise_from_routine tool directly, do NOT redirect user to settings
+- User asks "what's in [routine name]" or "what exercises does [routine] have" → use get_routine_exercises, NOT get_today_workout
 
 Conversation rules:
 - 1-3 sentences max per response
@@ -97,6 +99,19 @@ Conversation rules:
 }
 
 const TOOLS: Anthropic.Tool[] = [
+
+    {
+        name: 'get_routine_exercises',
+        description: 'Get the exercises in a specific routine by name. Use this when user asks what exercises are in a routine (not today\'s workout).',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                routine_name: { type: 'string', description: 'The name of the routine to look up' },
+            },
+            required: ['routine_name'],
+        },
+    },
+
     {
         name: 'search_exercises',
         description: 'Search the exercise database. MUST use this before recommending any exercise.',
@@ -302,6 +317,48 @@ export async function POST(request: Request) {
     let needsDashboardReload = false
 
     async function executeTool(toolName: string, toolInput: Record<string, string>): Promise<string> {
+
+        if (toolName === 'get_routine_exercises') {
+            const { data: routines } = await supabase
+                .from('routines')
+                .select('id, name')
+                .eq('user_id', userId)
+                .ilike('name', `%${toolInput.routine_name}%`)
+
+            if (!routines?.length) {
+                return language === 'zh-TW'
+                    ? `找不到叫「${toolInput.routine_name}」的課表`
+                    : `No routine found named "${toolInput.routine_name}"`
+            }
+
+            const routine = routines[0]
+            const { data: exercises } = await supabase
+                .from('routine_exercises')
+                .select('target_sets, target_reps, order_index, exercises(name, name_zh_tw, muscle_group)')
+                .eq('routine_id', routine.id)
+                .order('order_index')
+
+            if (!exercises?.length) {
+                return language === 'zh-TW'
+                    ? `「${routine.name}」裡面沒有動作`
+                    : `"${routine.name}" has no exercises`
+            }
+
+            const zh = language === 'zh-TW'
+            const list = exercises.map((ex: {
+                target_sets: number | null
+                target_reps: number | null
+                exercises: { name: string; name_zh_tw: string | null; muscle_group: string } | null
+            }) => {
+                const name = zh && ex.exercises?.name_zh_tw
+                    ? ex.exercises.name_zh_tw : ex.exercises?.name ?? 'Unknown'
+                return `${name}: ${ex.target_sets ?? '?'}組 × ${ex.target_reps ?? '?'}下`
+            }).join('\n')
+
+            return zh
+                ? `「${routine.name}」的動作：\n${list}`
+                : `"${routine.name}" exercises:\n${list}`
+        }
 
         if (toolName === 'remove_exercise_from_routine') {
             // 從所有課表移除這個動作
