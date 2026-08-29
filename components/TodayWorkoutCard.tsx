@@ -23,6 +23,7 @@ interface TodayWorkoutCardProps {
     language: string
     weightUnit: WeightUnit
     routineName: string | null
+    onWeightUnitChange?: (unit: WeightUnit) => void
 }
 
 export function TodayWorkoutCard({
@@ -38,6 +39,7 @@ export function TodayWorkoutCard({
     language,
     weightUnit: initialWeightUnit,
     routineName,
+    onWeightUnitChange,
 }: TodayWorkoutCardProps) {
     const t = useTranslations('today')
     const supabase = createClient()
@@ -57,6 +59,7 @@ export function TodayWorkoutCard({
     async function handleToggleUnit() {
         const next: WeightUnit = weightUnit === 'kg' ? 'lb' : 'kg'
         setWeightUnit(next)
+        onWeightUnitChange?.(next)
         await supabase
             .from('user_profiles')
             .update({ weight_unit: next } as never)
