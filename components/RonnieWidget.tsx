@@ -179,10 +179,15 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
                                     </div>
                                 )}
                                 <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${msg.role === 'user'
-                                        ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
-                                        : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
+                                    ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
+                                    : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
                                     }`}>
-                                    {msg.content}
+                                    {msg.content.split('\n').map((line, i) => (
+                                        <span key={i}>
+                                            {line}
+                                            {i < msg.content.split('\n').length - 1 && <br />}
+                                        </span>
+                                    ))}
                                 </div>
                             </div>
                         ))}
