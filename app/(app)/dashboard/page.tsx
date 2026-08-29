@@ -198,6 +198,7 @@ export default async function DashboardPage() {
         {/* 左欄：今天 + 桌面版 AI 報告 */}
         <div className="space-y-6">
           <DashboardClientShell
+            key={existingWorkout?.id ?? 'no-workout'}
             userId={user.id}
             initialWorkoutId={existingWorkout?.id ?? null}
             routineIdForToday={routineIdForToday}

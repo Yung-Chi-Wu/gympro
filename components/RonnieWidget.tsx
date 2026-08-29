@@ -78,9 +78,8 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
 
             if (data.reloadDashboard) {
                 setTimeout(() => {
-                    sessionStorage.setItem('ronnie_open', 'true')
-                    window.location.reload()
-                }, 1000)
+                    router.refresh()
+                }, 500)
             }
         } catch (err: unknown) {
             if (err instanceof Error && err.name === 'AbortError') return
@@ -260,8 +259,8 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
                                     ) : (
                                         <>
                                             <div className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${msg.role === 'user'
-                                                    ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
-                                                    : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
+                                                ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
+                                                : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
                                                 }`}>
                                                 {renderContent(msg.content)}
                                             </div>
