@@ -9,6 +9,7 @@ function buildSystemPrompt(language: string, userContext: {
     goal: string | null
     todayRoutineName: string | null
     weightUnit: string
+    timezone: string
 }) {
     const zh = language === 'zh-TW'
     const name = userContext.displayName || (zh ? '訓練者' : 'athlete')
@@ -22,8 +23,9 @@ function buildSystemPrompt(language: string, userContext: {
 - 長期目標：${userContext.goal ?? '未設定'}
 - 今天的課表：${userContext.todayRoutineName ?? '沒有課表'}
 - 重量單位：${userContext.weightUnit}
+- 時區：${userContext.timezone}
 
-你只能回答以下範疇的問題：
+你只能回答以下範疇：
 1. 健身知識（動作技術、替代動作、組數/重量建議、恢復、運動營養）
 2. 查詢使用者的訓練歷史記錄
 3. 修改今天的課表（新增/刪除動作）
@@ -37,41 +39,52 @@ GymPro APP 功能說明：
 - 打卡：每個訓練週期結束時確認體重，觸發 AI 分析
 - Coach G：AI 課表設計師，透過對話設計完整訓練計畫
 
-如果使用者問 AI 報告的內容，告訴他去「訓練紀錄」頁面查看。
-如果使用者想重新設計完整課表，告訴他去「訓練課表」頁面使用 Coach G。
-如果使用者問的問題跟健身或 APP 完全無關，禮貌地說你只能回答健身和 APP 相關的問題。
+如果使用者問 AI 報告，告訴他去「訓練紀錄」查看。
+如果使用者想重新設計完整課表，告訴他去「訓練課表」用 Coach G。
+如果問題跟健身或 APP 無關，禮貌拒絕。
 
-回答要簡潔，不要太長。使用繁體中文回答。`
+格式規則（非常重要）：
+- 可以用 emoji（如 💪 ✅ ⚠️）
+- 絕對不能用 Markdown（不能用 **粗體**、不能用 ---、不能用 # 標題）
+- 回答要簡短，最多 5-6 句話，不要長篇大論
+- 用換行分段，不要用符號清單
+- 繁體中文回答`
     }
 
     return `You are Ronnie, GymPro's AI personal fitness coach, named after the legendary bodybuilder Ronnie Coleman.
-You are professional, direct, and a bit hardcore. Occasionally drop a "Ain't nothin' but a peanut!" but stay friendly.
+Professional, direct, a bit hardcore. Occasionally drop "Ain't nothin' but a peanut!" but stay friendly.
 
 User info:
 - Name: ${name}
-- Long-term goal: ${userContext.goal ?? 'not set'}
+- Goal: ${userContext.goal ?? 'not set'}
 - Today's routine: ${userContext.todayRoutineName ?? 'no routine'}
 - Weight unit: ${userContext.weightUnit}
+- Timezone: ${userContext.timezone}
 
-You can ONLY answer questions in these areas:
-1. Fitness knowledge (exercise technique, alternatives, set/rep/weight advice, recovery, sports nutrition)
-2. Query the user's training history
+You can ONLY answer:
+1. Fitness knowledge (technique, alternatives, sets/reps/weight, recovery, nutrition)
+2. Query training history
 3. Modify today's workout (add/remove exercises)
-4. GymPro APP usage guidance
+4. GymPro APP guidance
 
-GymPro APP features:
-- Home: view today's workout, log sets, period check-in
-- Routines: create and manage routines, set training cycles, use Coach G to design routines
-- History: view training log, weight trends, AI training reports
-- Settings: personal info, language, weight unit, display mode
-- Check-in: confirm weight at end of training period, triggers AI analysis
-- Coach G: AI routine designer, designs complete training plans through conversation
+GymPro features:
+- Home: today's workout, log sets, period check-in
+- Routines: manage routines, training cycles, Coach G
+- History: training log, weight trends, AI reports
+- Settings: profile, language, weight unit, display mode
+- Check-in: confirm weight at period end, triggers AI analysis
+- Coach G: AI routine designer
 
-If asked about AI report content, direct them to the History page.
-If asked to redesign their full routine, direct them to use Coach G in the Routines page.
-If asked anything unrelated to fitness or the APP, politely say you only answer fitness and APP questions.
+For AI report content → History page.
+For full routine redesign → Coach G in Routines.
+Off-topic → politely decline.
 
-Keep answers concise. Respond in English.`
+Format rules (very important):
+- Emojis are OK (💪 ✅ ⚠️)
+- NO Markdown (no **bold**, no ---, no # headers)
+- Keep it SHORT — max 5-6 sentences
+- Use line breaks for paragraphs, not bullet symbols
+- Respond in English`
 }
 
 const TOOLS: Anthropic.Tool[] = [
@@ -81,8 +94,8 @@ const TOOLS: Anthropic.Tool[] = [
         input_schema: {
             type: 'object' as const,
             properties: {
-                query: { type: 'string', description: 'Search term (exercise name or partial name)' },
-                muscle_group: { type: 'string', description: 'Filter by muscle group (optional): chest, back, shoulders, biceps, triceps, legs, glutes, core' },
+                query: { type: 'string', description: 'Search term' },
+                muscle_group: { type: 'string', description: 'Filter by muscle group (optional)' },
             },
             required: [],
         },
@@ -93,29 +106,25 @@ const TOOLS: Anthropic.Tool[] = [
         input_schema: {
             type: 'object' as const,
             properties: {
-                date_from: { type: 'string', description: 'Start date in YYYY-MM-DD format' },
-                date_to: { type: 'string', description: 'End date in YYYY-MM-DD format' },
+                date_from: { type: 'string', description: 'Start date YYYY-MM-DD in user local time' },
+                date_to: { type: 'string', description: 'End date YYYY-MM-DD in user local time' },
             },
             required: ['date_from', 'date_to'],
         },
     },
     {
         name: 'get_today_workout',
-        description: "Get the user's current workout for today.",
-        input_schema: {
-            type: 'object' as const,
-            properties: {},
-            required: [],
-        },
+        description: "Get the user's workout for today.",
+        input_schema: { type: 'object' as const, properties: {}, required: [] },
     },
     {
         name: 'add_exercise_today',
-        description: "Add an exercise to today's workout. First use search_exercises to get the exercise ID.",
+        description: "Add an exercise to today's workout. Use search_exercises first to get the ID.",
         input_schema: {
             type: 'object' as const,
             properties: {
-                exercise_id: { type: 'string', description: 'The exercise ID from search_exercises' },
-                exercise_name: { type: 'string', description: 'Human-readable exercise name for confirmation' },
+                exercise_id: { type: 'string', description: 'Exercise ID from search_exercises' },
+                exercise_name: { type: 'string', description: 'Exercise name for confirmation' },
             },
             required: ['exercise_id', 'exercise_name'],
         },
@@ -126,8 +135,8 @@ const TOOLS: Anthropic.Tool[] = [
         input_schema: {
             type: 'object' as const,
             properties: {
-                exercise_id: { type: 'string', description: 'The exercise ID to remove' },
-                exercise_name: { type: 'string', description: 'Human-readable exercise name for confirmation' },
+                exercise_id: { type: 'string', description: 'Exercise ID to remove' },
+                exercise_name: { type: 'string', description: 'Exercise name for confirmation' },
             },
             required: ['exercise_id', 'exercise_name'],
         },
@@ -139,15 +148,12 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // 把 user.id 存成 userId，讓 TypeScript 確定它不是 null
     const userId = user.id
-
     const { messages, language } = await request.json()
 
-    // 取得使用者 context
     const [profileResult, cycleResult] = await Promise.all([
         supabase.from('user_profiles')
-            .select('display_name, training_goal, weight_unit')
+            .select('display_name, training_goal, weight_unit, timezone')
             .eq('user_id', userId)
             .maybeSingle(),
         supabase.from('training_cycles')
@@ -158,8 +164,30 @@ export async function POST(request: Request) {
 
     const profile = profileResult.data
     const cycle = cycleResult.data
+    const userTimezone = profile?.timezone ?? 'UTC'
 
-    // 今天的課表名稱
+    // Timezone helpers
+    function getUtcOffset(date: Date, tz: string): number {
+        const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }))
+        const tzDate = new Date(date.toLocaleString('en-US', { timeZone: tz }))
+        return utcDate.getTime() - tzDate.getTime()
+    }
+
+    function toTzStartOfDay(dateStr: string): string {
+        const local = new Date(`${dateStr}T00:00:00`)
+        return new Date(local.getTime() + getUtcOffset(local, userTimezone)).toISOString()
+    }
+
+    function toTzEndOfDay(dateStr: string): string {
+        const local = new Date(`${dateStr}T23:59:59`)
+        return new Date(local.getTime() + getUtcOffset(local, userTimezone)).toISOString()
+    }
+
+    function todayInTz(): string {
+        return new Date().toLocaleDateString('en-CA', { timeZone: userTimezone })
+    }
+
+    // Today's routine name
     let todayRoutineName: string | null = null
     if (cycle) {
         const today = new Date()
@@ -180,13 +208,12 @@ export async function POST(request: Request) {
         goal: profile?.training_goal ?? null,
         todayRoutineName,
         weightUnit: profile?.weight_unit ?? 'kg',
+        timezone: userTimezone,
     }
 
     const systemPrompt = buildSystemPrompt(language, userContext)
 
-    // Tool execution
     async function executeTool(toolName: string, toolInput: Record<string, string>): Promise<string> {
-
         if (toolName === 'search_exercises') {
             let query = supabase.from('exercises').select('id, name, name_zh_tw, muscle_group')
             if (toolInput.query) query = query.ilike('name', `%${toolInput.query}%`)
@@ -200,25 +227,22 @@ export async function POST(request: Request) {
         }
 
         if (toolName === 'get_workout_history') {
-            // 查 workouts（不嵌套 workout_sets）
             const { data: workouts } = await supabase
                 .from('workouts')
                 .select(`
-                    id,
-                    performed_at,
+                    id, performed_at,
                     workout_planned_exercises(
                         exercise_id,
                         exercises(name, name_zh_tw)
                     )
                 `)
                 .eq('user_id', userId)
-                .gte('performed_at', toolInput.date_from + 'T00:00:00Z')
-                .lte('performed_at', toolInput.date_to + 'T23:59:59Z')
+                .gte('performed_at', toTzStartOfDay(toolInput.date_from))
+                .lte('performed_at', toTzEndOfDay(toolInput.date_to))
                 .order('performed_at')
 
-            if (!workouts?.length) return language === 'zh-TW' ? '這段期間沒有訓練記錄' : 'No workouts found in this period'
+            if (!workouts?.length) return language === 'zh-TW' ? '這段期間沒有訓練記錄' : 'No workouts found'
 
-            // 分開查 workout_sets
             const workoutIds = workouts.map((w) => w.id)
             const { data: allSets } = await supabase
                 .from('workout_sets')
@@ -227,7 +251,8 @@ export async function POST(request: Request) {
 
             return workouts.map((w) => {
                 const date = new Date(w.performed_at).toLocaleDateString(
-                    language === 'zh-TW' ? 'zh-TW' : 'en-US'
+                    language === 'zh-TW' ? 'zh-TW' : 'en-US',
+                    { timeZone: userTimezone }
                 )
                 const exercises = (w.workout_planned_exercises ?? []).map((pe: {
                     exercise_id: string
@@ -245,10 +270,7 @@ export async function POST(request: Request) {
         }
 
         if (toolName === 'get_today_workout') {
-            const today = new Date()
-            const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
-            const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59).toISOString()
-
+            const today = todayInTz()
             const { data: workout } = await supabase
                 .from('workouts')
                 .select(`
@@ -259,15 +281,14 @@ export async function POST(request: Request) {
                     )
                 `)
                 .eq('user_id', userId)
-                .gte('performed_at', startOfDay)
-                .lte('performed_at', endOfDay)
+                .gte('performed_at', toTzStartOfDay(today))
+                .lte('performed_at', toTzEndOfDay(today))
                 .order('performed_at', { ascending: false })
                 .limit(1)
                 .maybeSingle()
 
-            if (!workout) return language === 'zh-TW' ? '今天還沒有訓練記錄' : 'No workout logged today yet'
+            if (!workout) return language === 'zh-TW' ? '今天還沒有訓練記錄' : 'No workout logged today'
 
-            // 分開查 workout_sets
             const { data: todaySets } = await supabase
                 .from('workout_sets')
                 .select('exercise_id, reps, weight_kg')
@@ -282,25 +303,22 @@ export async function POST(request: Request) {
                 const sets = (todaySets ?? [])
                     .filter((s) => s.exercise_id === pe.exercise_id)
                     .map((s) => `${s.reps}×${s.weight_kg}kg`).join(', ')
-                return `${exName}: ${sets || (language === 'zh-TW' ? '尚未記錄組數' : 'no sets logged')}`
+                return `${exName}: ${sets || (language === 'zh-TW' ? '尚未記錄' : 'no sets')}`
             }).join('\n')
 
             return exercises || (language === 'zh-TW' ? '今天課表是空的' : 'No exercises today')
         }
 
         if (toolName === 'add_exercise_today') {
-            const today = new Date()
-            const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
-            const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59).toISOString()
-
+            const today = todayInTz()
             let workoutId: string
 
             const { data: existing } = await supabase
                 .from('workouts')
                 .select('id')
                 .eq('user_id', userId)
-                .gte('performed_at', startOfDay)
-                .lte('performed_at', endOfDay)
+                .gte('performed_at', toTzStartOfDay(today))
+                .lte('performed_at', toTzEndOfDay(today))
                 .limit(1)
                 .maybeSingle()
 
@@ -312,7 +330,7 @@ export async function POST(request: Request) {
                     .insert({ user_id: userId, performed_at: new Date().toISOString() })
                     .select('id')
                     .single()
-                if (error || !newWorkout) return language === 'zh-TW' ? '新增失敗' : 'Failed to create workout'
+                if (error || !newWorkout) return language === 'zh-TW' ? '新增失敗' : 'Failed'
                 workoutId = newWorkout.id
             }
 
@@ -327,16 +345,13 @@ export async function POST(request: Request) {
         }
 
         if (toolName === 'remove_exercise_today') {
-            const today = new Date()
-            const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
-            const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59).toISOString()
-
+            const today = todayInTz()
             const { data: workout } = await supabase
                 .from('workouts')
                 .select('id')
                 .eq('user_id', userId)
-                .gte('performed_at', startOfDay)
-                .lte('performed_at', endOfDay)
+                .gte('performed_at', toTzStartOfDay(today))
+                .lte('performed_at', toTzEndOfDay(today))
                 .limit(1)
                 .maybeSingle()
 
@@ -363,7 +378,7 @@ export async function POST(request: Request) {
         for (let i = 0; i < 5; i++) {
             const response = await client.messages.create({
                 model: 'claude-haiku-4-5',
-                max_tokens: 1024,
+                max_tokens: 512,
                 system: systemPrompt,
                 tools: TOOLS,
                 messages: currentMessages,
@@ -409,8 +424,8 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             message: language === 'zh-TW'
-                ? '抱歉，我需要更多時間思考這個問題，請再問一次。'
-                : 'Sorry, let me try again.',
+                ? '抱歉，請再問一次。'
+                : 'Sorry, please try again.',
         })
 
     } catch (err) {
