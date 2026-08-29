@@ -59,6 +59,7 @@ function buildSystemPrompt(language: string, userContext: {
 - 可以用 emoji（💪 ✅ ⚠️）
 - 絕對不能用 Markdown（不能用 **粗體**、---、#）
 - 如果工具回傳了訓練記錄，必須完整顯示所有資料
+- 如果使用者說「以後都不要做」或「從課表永久移除」→ 使用 remove_exercise_from_routine 工具
 - 繁體中文回答`
     }
 
@@ -91,6 +92,7 @@ Conversation rules:
 - Ask ONE question at a time if you need more info
 - Emojis OK (💪 ✅ ⚠️), NO Markdown (no **bold**, ---, #)
 - If tool returns workout history, display ALL of it completely
+- If user says "never want to do X again" or "remove permanently from routine" → use remove_exercise_from_routine tool
 - Respond in English`
 }
 
@@ -143,6 +145,18 @@ const TOOLS: Anthropic.Tool[] = [
             type: 'object' as const,
             properties: {
                 exercise_id: { type: 'string', description: 'Exercise ID to remove' },
+                exercise_name: { type: 'string', description: 'Exercise name for confirmation' },
+            },
+            required: ['exercise_id', 'exercise_name'],
+        },
+    },
+    {
+        name: 'remove_exercise_from_routine',
+        description: 'Permanently remove an exercise from all of the user\'s routines. Use this when user says they never want to do an exercise again or want to remove it from their permanent schedule.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                exercise_id: { type: 'string', description: 'Exercise ID to remove from all routines' },
                 exercise_name: { type: 'string', description: 'Exercise name for confirmation' },
             },
             required: ['exercise_id', 'exercise_name'],
@@ -288,6 +302,31 @@ export async function POST(request: Request) {
     let needsDashboardReload = false
 
     async function executeTool(toolName: string, toolInput: Record<string, string>): Promise<string> {
+
+        if (toolName === 'remove_exercise_from_routine') {
+            // 從所有課表移除這個動作
+            const { data: userRoutines } = await supabase
+                .from('routines')
+                .select('id')
+                .eq('user_id', userId)
+
+            if (!userRoutines?.length) {
+                return language === 'zh-TW' ? '你沒有固定課表' : 'No routines found'
+            }
+
+            const routineIds = userRoutines.map((r) => r.id)
+            const { error } = await supabase
+                .from('routine_exercises')
+                .delete()
+                .in('routine_id', routineIds)
+                .eq('exercise_id', toolInput.exercise_id)
+
+            if (error) return language === 'zh-TW' ? `移除失敗：${error.message}` : `Failed: ${error.message}`
+
+            return language === 'zh-TW'
+                ? `✓ 已將「${toolInput.exercise_name}」從所有固定課表永久移除`
+                : `✓ Permanently removed "${toolInput.exercise_name}" from all your routines`
+        }
 
         if (toolName === 'search_exercises') {
             let query = supabase.from('exercises').select('id, name, name_zh_tw, muscle_group')

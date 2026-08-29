@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { MuscleGroupExercisePicker } from './MuscleGroupExercisePicker'
@@ -25,7 +25,18 @@ interface TodayWorkoutCardProps {
     routineName: string | null
     onWeightUnitChange?: (unit: WeightUnit) => void
 }
+interface PlannedExerciseRow {
+    id: string
+    exercise_id: string
+    exercises: { name: string; name_zh_tw: string | null; muscle_group: string } | null
+}
 
+interface WorkoutSetRow {
+    id: string
+    exercise_id: string
+    reps: number
+    weight_kg: number
+}
 export function TodayWorkoutCard({
     userId,
     initialWorkoutId,
@@ -50,6 +61,50 @@ export function TodayWorkoutCard({
     const [error, setError] = useState<string | null>(null)
     const [weightUnit, setWeightUnit] = useState<WeightUnit>(initialWeightUnit)
     const [isCollapsed, setIsCollapsed] = useState(false)
+
+    // 監聽 Ronnie 修改今天課表的事件
+    useEffect(() => {
+        async function refetchExercises() {
+            if (!workoutId) return
+            const [plannedResult, setsResult] = await Promise.all([
+                supabase
+                    .from('workout_planned_exercises')
+                    .select('id, exercise_id, exercises(name, name_zh_tw, muscle_group)')
+                    .eq('workout_id', workoutId),
+                supabase
+                    .from('workout_sets')
+                    .select('id, exercise_id, reps, weight_kg')
+                    .eq('workout_id', workoutId),
+            ])
+
+            const planned = (plannedResult.data ?? []) as Array<{
+                id: string
+                exercise_id: string
+                exercises: { name: string; name_zh_tw: string | null; muscle_group: string } | null
+            }>
+            const sets = (setsResult.data ?? []) as Array<{
+                id: string
+                exercise_id: string
+                reps: number
+                weight_kg: number
+            }>
+
+            setExercises(planned.map((p) => ({
+                exerciseId: p.exercise_id,
+                name: language === 'zh-TW' && p.exercises?.name_zh_tw
+                    ? p.exercises.name_zh_tw
+                    : p.exercises?.name ?? 'Unknown',
+                muscleGroup: p.exercises?.muscle_group ?? 'other',
+                plannedRowId: p.id,
+                loggedSets: sets
+                    .filter((s) => s.exercise_id === p.exercise_id)
+                    .map((s) => ({ id: s.id, reps: s.reps, weightKg: s.weight_kg })),
+            })))
+        }
+
+        window.addEventListener('ronnie-workout-changed', refetchExercises)
+        return () => window.removeEventListener('ronnie-workout-changed', refetchExercises)
+    }, [workoutId, language])
 
     function showToast(message: string) {
         setToast(message)

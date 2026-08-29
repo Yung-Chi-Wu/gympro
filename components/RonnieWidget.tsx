@@ -77,9 +77,7 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
             setMessages((prev) => [...prev, { role: 'assistant', content: data.message }])
 
             if (data.reloadDashboard) {
-                setTimeout(() => {
-                    router.refresh()
-                }, 500)
+                window.dispatchEvent(new CustomEvent('ronnie-workout-changed'))
             }
         } catch (err: unknown) {
             if (err instanceof Error && err.name === 'AbortError') return
