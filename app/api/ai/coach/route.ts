@@ -401,9 +401,12 @@ export async function POST(request: Request) {
                 .insert({ workout_id: workoutId, exercise_id: toolInput.exercise_id, user_id: userId })
 
             if (error) return language === 'zh-TW' ? `新增失敗：${error.message}` : `Failed: ${error.message}`
-            return language === 'zh-TW'
-                ? `✓ 已將「${toolInput.exercise_name}」加入今天的課表`
-                : `✓ Added "${toolInput.exercise_name}" to today's workout`
+            return JSON.stringify({
+                message: language === 'zh-TW'
+                    ? `✓ 已將「${toolInput.exercise_name}」加入今天的課表`
+                    : `✓ Added "${toolInput.exercise_name}" to today's workout`,
+                action: 'reload_dashboard',
+            })
         }
 
         if (toolName === 'remove_exercise_today') {
@@ -428,9 +431,12 @@ export async function POST(request: Request) {
                 .eq('exercise_id', toolInput.exercise_id)
 
             if (error) return language === 'zh-TW' ? `刪除失敗：${error.message}` : `Failed: ${error.message}`
-            return language === 'zh-TW'
-                ? `✓ 已將「${toolInput.exercise_name}」從今天課表移除`
-                : `✓ Removed "${toolInput.exercise_name}" from today's workout`
+            return JSON.stringify({
+                message: language === 'zh-TW'
+                    ? `✓ 已將「${toolInput.exercise_name}」從今天課表移除（不影響你的固定課表）`
+                    : `✓ Removed "${toolInput.exercise_name}" from today only (your routine is unchanged)`,
+                action: 'reload_dashboard',
+            })
         }
 
         return 'Tool not found'
@@ -454,7 +460,21 @@ export async function POST(request: Request) {
                     .filter((b) => b.type === 'text')
                     .map((b) => (b as { type: 'text'; text: string }).text)
                     .join('')
-                return NextResponse.json({ message: stripMarkdown(rawText) })
+                return NextResponse.json({
+                    message: stripMarkdown(rawText),
+                    reloadDashboard: currentMessages.some((m) => {
+                        if (m.role !== 'user') return false
+                        const content = m.content
+                        if (!Array.isArray(content)) return false
+                        return content.some((c) => {
+                            if (c.type !== 'tool_result') return false
+                            try {
+                                const parsed = JSON.parse(c.content as string)
+                                return parsed.action === 'reload_dashboard'
+                            } catch { return false }
+                        })
+                    }),
+                })
             }
 
             if (response.stop_reason === 'tool_use') {
