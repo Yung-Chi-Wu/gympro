@@ -45,14 +45,19 @@ function buildSystemPrompt(language: string, userContext: {
 如果使用者問 AI 報告，告訴他去「訓練紀錄」查看。
 如果使用者想重新設計完整課表，告訴他去「訓練課表」用 Coach G。
 
-互動規則（非常重要）：
+重要規則：
+- 推薦替代動作時，必須先用 search_exercises 搜尋資料庫，只能推薦資料庫裡有的動作，不能憑記憶推薦
+- 推薦完如果使用者同意新增，直接用剛才搜尋到的 exercise_id 新增，不要再搜尋一次
+- 「今天不想做某動作」→ 只從今天課表移除，不動固定課表
+- 「以後都不要做某動作」→ 告訴使用者去「訓練課表」頁面手動修改
+
+互動規則：
 - 每次只說 1-3 句話
 - 如果需要了解更多才能回答，一次只問一個問題
-- 不要一次給很多建議，先問清楚再給建議
 - 可以用 emoji（💪 ✅ ⚠️）
-- 絕對不能用 Markdown（不能用 **粗體**、不能用 ---、不能用 #）
-- 如果工具回傳了訓練記錄資料，必須完整顯示所有資料，不要省略
-- 用繁體中文回答`
+- 絕對不能用 Markdown（不能用 **粗體**、---、#）
+- 如果工具回傳了訓練記錄，必須完整顯示所有資料
+- 繁體中文回答`
     }
 
     return `You are Ronnie, GymPro's AI personal fitness coach, named after legendary bodybuilder Ronnie Coleman.
@@ -67,54 +72,57 @@ User info:
 - Today's date: ${userContext.todayDate} (use this to calculate yesterday, last week, etc.)
 
 Only answer: fitness knowledge, training history queries, today's workout modifications, GymPro APP guidance.
-Decline anything unrelated to fitness or the APP.
+Decline anything unrelated.
 
-For AI report content → History page.
-For full routine redesign → Coach G in Routines.
+For AI reports → History page. For full routine redesign → Coach G in Routines.
 
-Conversation rules (very important):
-- Keep responses to 1-3 sentences max
-- If you need more info, ask ONE question at a time
-- Don't dump all advice at once — ask first, then advise
-- Emojis are OK (💪 ✅ ⚠️)
-- NO Markdown (no **bold**, no ---, no # headers)
-- If a tool returns workout history data, display ALL of it completely, do not summarize or omit
+Critical rules:
+- When recommending exercises, ALWAYS use search_exercises first, only recommend exercises found in the database
+- If user agrees to add an exercise, use the exercise_id from the previous search directly
+- "Don't want to do X today" → remove from today only, never touch the routine
+- "Remove X permanently" → tell user to edit in Routines page
+
+Conversation rules:
+- 1-3 sentences max per response
+- Ask ONE question at a time if you need more info
+- Emojis OK (💪 ✅ ⚠️), NO Markdown (no **bold**, ---, #)
+- If tool returns workout history, display ALL of it completely
 - Respond in English`
 }
 
 const TOOLS: Anthropic.Tool[] = [
     {
         name: 'search_exercises',
-        description: 'Search the exercise database to find exercises by name or muscle group.',
+        description: 'Search the exercise database. MUST use this before recommending any exercise.',
         input_schema: {
             type: 'object' as const,
             properties: {
-                query: { type: 'string', description: 'Search term' },
-                muscle_group: { type: 'string', description: 'Filter by muscle group (optional)' },
+                query: { type: 'string', description: 'Search term (exercise name)' },
+                muscle_group: { type: 'string', description: 'Filter by muscle group: chest, back, shoulders, biceps, triceps, legs, glutes, core' },
             },
             required: [],
         },
     },
     {
         name: 'get_workout_history',
-        description: "Get the user's workout history for a date range. Date must be in user's local timezone.",
+        description: "Get the user's workout history. Dates must be in user's local timezone YYYY-MM-DD.",
         input_schema: {
             type: 'object' as const,
             properties: {
-                date_from: { type: 'string', description: 'Start date YYYY-MM-DD in user local timezone' },
-                date_to: { type: 'string', description: 'End date YYYY-MM-DD in user local timezone' },
+                date_from: { type: 'string', description: 'Start date YYYY-MM-DD' },
+                date_to: { type: 'string', description: 'End date YYYY-MM-DD' },
             },
             required: ['date_from', 'date_to'],
         },
     },
     {
         name: 'get_today_workout',
-        description: "Get the user's planned exercises for today from their routine, and any logged sets if they've started working out.",
+        description: "Get today's planned exercises and logged sets. Shows routine plan if workout not started yet.",
         input_schema: { type: 'object' as const, properties: {}, required: [] },
     },
     {
         name: 'add_exercise_today',
-        description: "Add an exercise to today's workout. Use search_exercises first to get the ID.",
+        description: "Add an exercise to today's workout. Must use search_exercises first to get the ID.",
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -126,7 +134,7 @@ const TOOLS: Anthropic.Tool[] = [
     },
     {
         name: 'remove_exercise_today',
-        description: "Remove an exercise from today's workout.",
+        description: "Remove an exercise from today's workout only. Does NOT affect the permanent routine.",
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -161,53 +169,104 @@ export async function POST(request: Request) {
     const cycle = cycleResult.data
     const userTimezone = profile?.timezone ?? 'America/New_York'
 
-    // 時區工具函式
     function localDateStr(date: Date): string {
-        // 取得使用者時區的當地日期字串 YYYY-MM-DD
         return date.toLocaleDateString('en-CA', { timeZone: userTimezone })
     }
 
     function localDateToUtcRange(dateStr: string): { start: string; end: string } {
-        // 把當地日期 YYYY-MM-DD 轉成對應的 UTC 範圍
+        const testDate = new Date(`${dateStr}T12:00:00Z`)
         const formatter = new Intl.DateTimeFormat('en-US', {
             timeZone: userTimezone,
             year: 'numeric', month: '2-digit', day: '2-digit',
             hour: '2-digit', minute: '2-digit', second: '2-digit',
             hour12: false,
         })
-
-        // 找出該時區在該日期的 UTC offset
-        const testDate = new Date(`${dateStr}T12:00:00Z`)
         const parts = formatter.formatToParts(testDate)
         const p: Record<string, string> = {}
         parts.forEach(({ type, value }) => { p[type] = value })
         const tzOffset = testDate.getTime() - new Date(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}Z`).getTime()
 
-        const startLocal = new Date(`${dateStr}T00:00:00Z`)
-        const endLocal = new Date(`${dateStr}T23:59:59Z`)
-
         return {
-            start: new Date(startLocal.getTime() + tzOffset).toISOString(),
-            end: new Date(endLocal.getTime() + tzOffset).toISOString(),
+            start: new Date(new Date(`${dateStr}T00:00:00Z`).getTime() + tzOffset).toISOString(),
+            end: new Date(new Date(`${dateStr}T23:59:59Z`).getTime() + tzOffset).toISOString(),
         }
     }
 
-    // 今天的課表名稱
-    let todayRoutineName: string | null = null
-    if (cycle) {
+    // 取得今天課表的 routine_id 和 dayIndex
+    async function getTodayRoutineId(): Promise<string | null> {
+        if (!cycle) return null
         const todayStr = localDateStr(new Date())
         const startDate = new Date(cycle.start_date + 'T12:00:00Z')
         const todayDate = new Date(todayStr + 'T12:00:00Z')
         const daysSince = Math.floor((todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
         const dayIndex = ((daysSince % cycle.cycle_length) + cycle.cycle_length) % cycle.cycle_length + 1
-
         const { data: cycleDay } = await supabase
             .from('cycle_days')
-            .select('routine_id, routines(name)')
+            .select('routine_id')
             .eq('training_cycle_id', cycle.id)
             .eq('day_index', dayIndex)
             .maybeSingle()
-        todayRoutineName = (cycleDay?.routines as { name: string } | null)?.name ?? null
+        return cycleDay?.routine_id ?? null
+    }
+
+    // 確保今天有 workout（如果沒有，從 routine 建立）
+    async function ensureTodayWorkout(): Promise<string | null> {
+        const todayStr = localDateStr(new Date())
+        const range = localDateToUtcRange(todayStr)
+
+        const { data: existing } = await supabase
+            .from('workouts')
+            .select('id')
+            .eq('user_id', userId)
+            .gte('performed_at', range.start)
+            .lte('performed_at', range.end)
+            .limit(1)
+            .maybeSingle()
+
+        if (existing) return existing.id
+
+        // 建立新 workout
+        const { data: newWorkout, error } = await supabase
+            .from('workouts')
+            .insert({ user_id: userId, performed_at: new Date().toISOString() })
+            .select('id')
+            .single()
+
+        if (error || !newWorkout) return null
+
+        // 從 routine 複製今天的動作
+        const routineId = await getTodayRoutineId()
+        if (routineId) {
+            const { data: routineExercises } = await supabase
+                .from('routine_exercises')
+                .select('exercise_id')
+                .eq('routine_id', routineId)
+                .order('order_index')
+
+            if (routineExercises?.length) {
+                const rows = routineExercises.map((re: { exercise_id: string }) => ({
+                    workout_id: newWorkout.id,
+                    exercise_id: re.exercise_id,
+                    user_id: userId,
+                }))
+                await supabase.from('workout_planned_exercises').insert(rows)
+            }
+        }
+
+        return newWorkout.id
+    }
+
+    let todayRoutineName: string | null = null
+    if (cycle) {
+        const routineId = await getTodayRoutineId()
+        if (routineId) {
+            const { data: routine } = await supabase
+                .from('routines')
+                .select('name')
+                .eq('id', routineId)
+                .maybeSingle()
+            todayRoutineName = routine?.name ?? null
+        }
     }
 
     const userContext = {
@@ -220,6 +279,9 @@ export async function POST(request: Request) {
     }
 
     const systemPrompt = buildSystemPrompt(language, userContext)
+
+    // 簡單 flag 追蹤是否需要 reload
+    let needsDashboardReload = false
 
     async function executeTool(toolName: string, toolInput: Record<string, string>): Promise<string> {
 
@@ -241,19 +303,13 @@ export async function POST(request: Request) {
 
             const { data: workouts } = await supabase
                 .from('workouts')
-                .select(`
-                    id, performed_at,
-                    workout_planned_exercises(
-                        exercise_id,
-                        exercises(name, name_zh_tw)
-                    )
-                `)
+                .select(`id, performed_at, workout_planned_exercises(exercise_id, exercises(name, name_zh_tw))`)
                 .eq('user_id', userId)
                 .gte('performed_at', fromRange.start)
                 .lte('performed_at', toRange.end)
                 .order('performed_at')
 
-            if (!workouts?.length) return language === 'zh-TW' ? '這段期間沒有訓練記錄' : 'No workouts found in this period'
+            if (!workouts?.length) return language === 'zh-TW' ? '這段期間沒有訓練記錄' : 'No workouts found'
 
             const workoutIds = workouts.map((w) => w.id)
             const { data: allSets } = await supabase
@@ -285,16 +341,9 @@ export async function POST(request: Request) {
             const todayStr = localDateStr(new Date())
             const range = localDateToUtcRange(todayStr)
 
-            // 先查今天有沒有已開始的 workout
             const { data: workout } = await supabase
                 .from('workouts')
-                .select(`
-                    id,
-                    workout_planned_exercises(
-                        exercise_id,
-                        exercises(name, name_zh_tw)
-                    )
-                `)
+                .select(`id, workout_planned_exercises(exercise_id, exercises(name, name_zh_tw))`)
                 .eq('user_id', userId)
                 .gte('performed_at', range.start)
                 .lte('performed_at', range.end)
@@ -303,7 +352,6 @@ export async function POST(request: Request) {
                 .maybeSingle()
 
             if (workout) {
-                // 有開始的 workout，回傳已記錄的組數
                 const { data: todaySets } = await supabase
                     .from('workout_sets')
                     .select('exercise_id, reps, weight_kg')
@@ -320,50 +368,33 @@ export async function POST(request: Request) {
                         .map((s) => `${s.reps}×${s.weight_kg}kg`).join(', ')
                     return `${exName}: ${sets || (language === 'zh-TW' ? '尚未記錄' : 'no sets yet')}`
                 }).join('\n')
-
                 return exercises || (language === 'zh-TW' ? '今天課表是空的' : 'No exercises today')
             }
 
-            // 還沒開始，從 routine 拉今天的計畫動作
-            if (todayRoutineName && cycle) {
-                const todayDateStr = localDateStr(new Date())
-                const startDate = new Date(cycle.start_date + 'T12:00:00Z')
-                const todayDate = new Date(todayDateStr + 'T12:00:00Z')
-                const daysSince = Math.floor((todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-                const dayIndex = ((daysSince % cycle.cycle_length) + cycle.cycle_length) % cycle.cycle_length + 1
+            // 尚未開始，從 routine 顯示計畫
+            const routineId = await getTodayRoutineId()
+            if (routineId) {
+                const { data: routineExercises } = await supabase
+                    .from('routine_exercises')
+                    .select('exercise_id, target_sets, target_reps, exercises(name, name_zh_tw)')
+                    .eq('routine_id', routineId)
+                    .order('order_index')
 
-                const { data: cycleDay } = await supabase
-                    .from('cycle_days')
-                    .select('routine_id')
-                    .eq('training_cycle_id', cycle.id)
-                    .eq('day_index', dayIndex)
-                    .maybeSingle()
-
-                if (cycleDay?.routine_id) {
-                    const { data: routineExercises } = await supabase
-                        .from('routine_exercises')
-                        .select('exercise_id, target_sets, target_reps, exercises(name, name_zh_tw)')
-                        .eq('routine_id', cycleDay.routine_id)
-                        .order('order_index')
-
-                    if (routineExercises?.length) {
-                        const zh = language === 'zh-TW'
-                        const list = routineExercises.map((re: {
-                            exercise_id: string
-                            target_sets: number | null
-                            target_reps: number | null
-                            exercises: { name: string; name_zh_tw: string | null } | null
-                        }) => {
-                            const exName = zh && re.exercises?.name_zh_tw
-                                ? re.exercises.name_zh_tw : re.exercises?.name ?? 'Unknown'
-                            const sets = re.target_sets ?? '?'
-                            const reps = re.target_reps ?? '?'
-                            return `${exName}: ${sets}組 × ${reps}下（計畫）`
-                        }).join('\n')
-                        return zh
-                            ? `今天課表「${todayRoutineName}」（尚未開始記錄）：\n${list}`
-                            : `Today's routine "${todayRoutineName}" (not started yet):\n${list}`
-                    }
+                if (routineExercises?.length) {
+                    const zh = language === 'zh-TW'
+                    const list = routineExercises.map((re: {
+                        exercise_id: string
+                        target_sets: number | null
+                        target_reps: number | null
+                        exercises: { name: string; name_zh_tw: string | null } | null
+                    }) => {
+                        const exName = zh && re.exercises?.name_zh_tw
+                            ? re.exercises.name_zh_tw : re.exercises?.name ?? 'Unknown'
+                        return `${exName}: ${re.target_sets ?? '?'}組 × ${re.target_reps ?? '?'}下（計畫）`
+                    }).join('\n')
+                    return zh
+                        ? `今天課表「${todayRoutineName}」（尚未開始記錄）：\n${list}`
+                        : `Today's routine "${todayRoutineName}" (not started):\n${list}`
                 }
             }
 
@@ -371,72 +402,35 @@ export async function POST(request: Request) {
         }
 
         if (toolName === 'add_exercise_today') {
-            const todayStr = localDateStr(new Date())
-            const range = localDateToUtcRange(todayStr)
-            let workoutId: string
-
-            const { data: existing } = await supabase
-                .from('workouts')
-                .select('id')
-                .eq('user_id', userId)
-                .gte('performed_at', range.start)
-                .lte('performed_at', range.end)
-                .limit(1)
-                .maybeSingle()
-
-            if (existing) {
-                workoutId = existing.id
-            } else {
-                const { data: newWorkout, error } = await supabase
-                    .from('workouts')
-                    .insert({ user_id: userId, performed_at: new Date().toISOString() })
-                    .select('id')
-                    .single()
-                if (error || !newWorkout) return language === 'zh-TW' ? '新增失敗' : 'Failed'
-                workoutId = newWorkout.id
-            }
+            const workoutId = await ensureTodayWorkout()
+            if (!workoutId) return language === 'zh-TW' ? '建立今日訓練失敗' : 'Failed to create workout'
 
             const { error } = await supabase
                 .from('workout_planned_exercises')
                 .insert({ workout_id: workoutId, exercise_id: toolInput.exercise_id, user_id: userId })
 
             if (error) return language === 'zh-TW' ? `新增失敗：${error.message}` : `Failed: ${error.message}`
-            return JSON.stringify({
-                message: language === 'zh-TW'
-                    ? `✓ 已將「${toolInput.exercise_name}」加入今天的課表`
-                    : `✓ Added "${toolInput.exercise_name}" to today's workout`,
-                action: 'reload_dashboard',
-            })
+            needsDashboardReload = true
+            return language === 'zh-TW'
+                ? `✓ 已將「${toolInput.exercise_name}」加入今天的課表`
+                : `✓ Added "${toolInput.exercise_name}" to today's workout`
         }
 
         if (toolName === 'remove_exercise_today') {
-            const todayStr = localDateStr(new Date())
-            const range = localDateToUtcRange(todayStr)
-
-            const { data: workout } = await supabase
-                .from('workouts')
-                .select('id')
-                .eq('user_id', userId)
-                .gte('performed_at', range.start)
-                .lte('performed_at', range.end)
-                .limit(1)
-                .maybeSingle()
-
-            if (!workout) return language === 'zh-TW' ? '今天沒有訓練記錄' : 'No workout today'
+            const workoutId = await ensureTodayWorkout()
+            if (!workoutId) return language === 'zh-TW' ? '建立今日訓練失敗' : 'Failed to create workout'
 
             const { error } = await supabase
                 .from('workout_planned_exercises')
                 .delete()
-                .eq('workout_id', workout.id)
+                .eq('workout_id', workoutId)
                 .eq('exercise_id', toolInput.exercise_id)
 
-            if (error) return language === 'zh-TW' ? `刪除失敗：${error.message}` : `Failed: ${error.message}`
-            return JSON.stringify({
-                message: language === 'zh-TW'
-                    ? `✓ 已將「${toolInput.exercise_name}」從今天課表移除（不影響你的固定課表）`
-                    : `✓ Removed "${toolInput.exercise_name}" from today only (your routine is unchanged)`,
-                action: 'reload_dashboard',
-            })
+            if (error) return language === 'zh-TW' ? `移除失敗：${error.message}` : `Failed: ${error.message}`
+            needsDashboardReload = true
+            return language === 'zh-TW'
+                ? `✓ 已將「${toolInput.exercise_name}」從今天課表移除（不影響固定課表）`
+                : `✓ Removed "${toolInput.exercise_name}" from today only (routine unchanged)`
         }
 
         return 'Tool not found'
@@ -448,8 +442,7 @@ export async function POST(request: Request) {
         for (let i = 0; i < 5; i++) {
             const response = await client.messages.create({
                 model: 'claude-haiku-4-5',
-                max_tokens: 1024
-                ,
+                max_tokens: 1024,
                 system: systemPrompt,
                 tools: TOOLS,
                 messages: currentMessages,
@@ -462,18 +455,7 @@ export async function POST(request: Request) {
                     .join('')
                 return NextResponse.json({
                     message: stripMarkdown(rawText),
-                    reloadDashboard: currentMessages.some((m) => {
-                        if (m.role !== 'user') return false
-                        const content = m.content
-                        if (!Array.isArray(content)) return false
-                        return content.some((c) => {
-                            if (c.type !== 'tool_result') return false
-                            try {
-                                const parsed = JSON.parse(c.content as string)
-                                return parsed.action === 'reload_dashboard'
-                            } catch { return false }
-                        })
-                    }),
+                    reloadDashboard: needsDashboardReload,
                 })
             }
 
@@ -509,6 +491,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             message: language === 'zh-TW' ? '抱歉，請再問一次。' : 'Sorry, please try again.',
+            reloadDashboard: false,
         })
 
     } catch (err) {
