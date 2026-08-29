@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -24,6 +25,7 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
     const [editingText, setEditingText] = useState('')
     const abortRef = useRef<AbortController | null>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
+    const router = useRouter()
 
     const todayKey = `${STORAGE_KEY_PREFIX}${userId}_${new Date().toISOString().split('T')[0]}`
 
@@ -63,7 +65,7 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
             const data = await res.json()
             setMessages((prev) => [...prev, { role: 'assistant', content: data.message }])
             if (data.reloadDashboard) {
-                setTimeout(() => window.location.reload(), 1500)
+                setTimeout(() => router.refresh(), 800)
             }
         } catch (err: unknown) {
             if (err instanceof Error && err.name === 'AbortError') return
