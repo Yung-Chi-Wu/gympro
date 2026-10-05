@@ -108,6 +108,14 @@ export function RecommendationPanel({ userId, language }: RecommendationPanelPro
         return () => window.removeEventListener('period-checkin-success', checkStatus)
     }, [checkStatus])
 
+    // The worker finishes in seconds, but nothing pushes its result back to
+    // the browser — keep checking until the report leaves 'pending'.
+    useEffect(() => {
+        if (status !== 'pending') return
+        const timer = setInterval(checkStatus, 5000)
+        return () => clearInterval(timer)
+    }, [status, checkStatus])
+
     return (
         <div className="rounded-xl border border-ink/10 bg-white p-6 space-y-4">
             {status === 'idle' && (

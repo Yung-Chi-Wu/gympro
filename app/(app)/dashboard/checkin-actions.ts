@@ -109,6 +109,13 @@ export async function submitPeriodCheckIn(weightKg: number, userNote?: string): 
         console.log(`Queued report for user ${user.id}, period ${window.periodStart} (messageId ${MessageId})`)
     } catch (err) {
         console.error(`Failed to queue report for user ${user.id}, period ${window.periodStart}:`, err)
+        // Otherwise the row stays 'pending' forever: the report panel spins and a
+        // retry check-in is rejected as "already checked in".
+        await supabase
+            .from('period_reports')
+            .update({ status: 'failed', error_message: 'Failed to queue report request.' })
+            .eq('user_id', user.id)
+            .eq('period_start', window.periodStart)
         return { success: false, message: 'Failed to queue your report. Please try again.' }
     }
 
