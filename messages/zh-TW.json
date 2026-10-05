@@ -48,6 +48,7 @@
         "sectionTitle": "AI 教練報告",
         "idle": "打卡後，你的最新訓練報告會出現在這裡。",
         "pending": "正在分析你的訓練數據...",
+        "failed": "報告生成失敗。",
         "trainingSplit": "訓練分配",
         "bodyMetrics": "身體數據",
         "strengthTrend": "力量趨勢",

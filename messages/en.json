@@ -48,6 +48,7 @@
         "sectionTitle": "AI Coach Report",
         "idle": "Your latest report will appear here once you check in.",
         "pending": "Analyzing your training data...",
+        "failed": "Report generation failed.",
         "trainingSplit": "Training Split",
         "bodyMetrics": "Body Metrics",
         "strengthTrend": "Strength Trend",

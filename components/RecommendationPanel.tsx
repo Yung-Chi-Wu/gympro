@@ -143,7 +143,8 @@ export function RecommendationPanel({ userId, language }: RecommendationPanelPro
             )}
 
             {status === 'failed' && (
-                <p className="text-red-600">{errorMessage ?? 'Something went wrong.'}</p>
+                // error_message holds the technical cause for debugging; users get a plain message
+                <p className="text-red-600">{t('failed')}</p>
             )}
         </div>
     )
