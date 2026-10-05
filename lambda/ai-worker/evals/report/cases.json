@@ -1,0 +1,2338 @@
+[
+  {
+    "id": "first-report-progress-zh",
+    "tags": [
+      "first_report",
+      "zh"
+    ],
+    "prompt": "Regression case from 2026-10-05: no previous report, yet chest/triceps are already above the 100 baseline. Must not be called insufficient_data or \"first recorded period\".",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72.3,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.6
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 27,
+          "totalTonnageKg": 10202,
+          "tonnagePerBodyweightKg": 141.1,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 8,
+              "tonnageKg": 4000
+            },
+            "shoulders": {
+              "sets": 6,
+              "tonnageKg": 1680
+            },
+            "triceps": {
+              "sets": 3,
+              "tonnageKg": 990
+            },
+            "back": {
+              "sets": 3,
+              "tonnageKg": 1500
+            },
+            "biceps": {
+              "sets": 3,
+              "tonnageKg": 432
+            },
+            "legs": {
+              "sets": 4,
+              "tonnageKg": 1600
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 39.2,
+          "shoulders": 16.5,
+          "triceps": 9.7,
+          "back": 14.7,
+          "biceps": 4.2,
+          "legs": 15.7
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 104,
+            "previousIndex": null
+          },
+          "triceps": {
+            "currentIndex": 110,
+            "previousIndex": null
+          },
+          "shoulders": {
+            "currentIndex": 100,
+            "previousIndex": null
+          },
+          "back": {
+            "currentIndex": 100,
+            "previousIndex": null
+          },
+          "biceps": {
+            "currentIndex": 100,
+            "previousIndex": null
+          },
+          "legs": {
+            "currentIndex": 100,
+            "previousIndex": null
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": null,
+      "trainingGoal": "增肌，三個月內臥推做到 80 公斤",
+      "userNote": null,
+      "language": "zh-TW"
+    },
+    "expected": {
+      "status": "on_track",
+      "imbalanced": [
+        "back"
+      ],
+      "balanced": [
+        "triceps"
+      ],
+      "deload": false,
+      "language": "zh-TW"
+    },
+    "meta": {
+      "why": "Regression case from 2026-10-05: no previous report, yet chest/triceps are already above the 100 baseline. Must not be called insufficient_data or \"first recorded period\"."
+    }
+  },
+  {
+    "id": "seed-week3-shoulder-note-zh",
+    "tags": [
+      "user_note",
+      "zh"
+    ],
+    "prompt": "The planted-signal test athlete (week 3). Squat regressed 6 points, so the rule says regressing even though bench improved. Should respond to the shoulder note.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72.6,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.7
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 27,
+          "totalTonnageKg": 10352,
+          "tonnagePerBodyweightKg": 142.6,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 8,
+              "tonnageKg": 4160
+            },
+            "shoulders": {
+              "sets": 6,
+              "tonnageKg": 1680
+            },
+            "triceps": {
+              "sets": 3,
+              "tonnageKg": 1080
+            },
+            "back": {
+              "sets": 3,
+              "tonnageKg": 1500
+            },
+            "biceps": {
+              "sets": 3,
+              "tonnageKg": 432
+            },
+            "legs": {
+              "sets": 4,
+              "tonnageKg": 1500
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 40.2,
+          "shoulders": 16.2,
+          "triceps": 10.4,
+          "back": 14.5,
+          "biceps": 4.2,
+          "legs": 14.5
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 108,
+            "previousIndex": 104
+          },
+          "triceps": {
+            "currentIndex": 120,
+            "previousIndex": 110
+          },
+          "legs": {
+            "currentIndex": 94,
+            "previousIndex": 100
+          },
+          "shoulders": {
+            "currentIndex": 100,
+            "previousIndex": 100
+          },
+          "back": {
+            "currentIndex": 100,
+            "previousIndex": 100
+          },
+          "biceps": {
+            "currentIndex": 100,
+            "previousIndex": 100
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "胸肌與三頭在進步，但背部和腿部訓練量偏少，建議增加划船與腿部組數。",
+      "trainingGoal": "增肌，三個月內臥推做到 80 公斤",
+      "userNote": "這週肩膀有點緊，推的動作有點吃力",
+      "language": "zh-TW"
+    },
+    "expected": {
+      "status": "regressing",
+      "imbalanced": [
+        "back"
+      ],
+      "balanced": [
+        "triceps"
+      ],
+      "deload": null,
+      "language": "zh-TW"
+    },
+    "meta": {
+      "why": "The planted-signal test athlete (week 3). Squat regressed 6 points, so the rule says regressing even though bench improved. Should respond to the shoulder note."
+    }
+  },
+  {
+    "id": "balanced-all-progress-en",
+    "tags": [
+      "progress",
+      "en"
+    ],
+    "prompt": "Clean positive control: everything up 4-7 points on a balanced split. No imbalance, no deload.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 28,
+          "totalTonnageKg": 10732,
+          "tonnagePerBodyweightKg": 149.1,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 6,
+              "tonnageKg": 2880
+            },
+            "back": {
+              "sets": 6,
+              "tonnageKg": 3000
+            },
+            "legs": {
+              "sets": 6,
+              "tonnageKg": 2400
+            },
+            "shoulders": {
+              "sets": 4,
+              "tonnageKg": 1120
+            },
+            "biceps": {
+              "sets": 3,
+              "tonnageKg": 432
+            },
+            "triceps": {
+              "sets": 3,
+              "tonnageKg": 900
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 26.8,
+          "back": 28,
+          "legs": 22.4,
+          "shoulders": 10.4,
+          "biceps": 4,
+          "triceps": 8.4
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 112,
+            "previousIndex": 106
+          },
+          "back": {
+            "currentIndex": 110,
+            "previousIndex": 104
+          },
+          "legs": {
+            "currentIndex": 115,
+            "previousIndex": 108
+          },
+          "shoulders": {
+            "currentIndex": 108,
+            "previousIndex": 104
+          },
+          "biceps": {
+            "currentIndex": 106,
+            "previousIndex": 102
+          },
+          "triceps": {
+            "currentIndex": 109,
+            "previousIndex": 104
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "Steady progress on the main lifts; keep the current progression and watch recovery.",
+      "trainingGoal": "Build muscle and get stronger overall",
+      "userNote": null,
+      "language": "en"
+    },
+    "expected": {
+      "status": "on_track",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs",
+        "shoulders"
+      ],
+      "deload": false,
+      "language": "en"
+    },
+    "meta": {
+      "why": "Clean positive control: everything up 4-7 points on a balanced split. No imbalance, no deload."
+    }
+  },
+  {
+    "id": "balanced-all-progress-zh",
+    "tags": [
+      "progress",
+      "zh"
+    ],
+    "prompt": "Positive control in Chinese, with glutes and core in the mix.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 28,
+          "totalTonnageKg": 10850,
+          "tonnagePerBodyweightKg": 150.7,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 5,
+              "tonnageKg": 2400
+            },
+            "back": {
+              "sets": 6,
+              "tonnageKg": 3000
+            },
+            "legs": {
+              "sets": 7,
+              "tonnageKg": 2800
+            },
+            "glutes": {
+              "sets": 3,
+              "tonnageKg": 1350
+            },
+            "shoulders": {
+              "sets": 4,
+              "tonnageKg": 1120
+            },
+            "core": {
+              "sets": 3,
+              "tonnageKg": 180
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 22.1,
+          "back": 27.6,
+          "legs": 25.8,
+          "glutes": 12.4,
+          "shoulders": 10.3,
+          "core": 1.7
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 107,
+            "previousIndex": 103
+          },
+          "back": {
+            "currentIndex": 109,
+            "previousIndex": 105
+          },
+          "legs": {
+            "currentIndex": 111,
+            "previousIndex": 106
+          },
+          "glutes": {
+            "currentIndex": 106,
+            "previousIndex": 102
+          },
+          "shoulders": {
+            "currentIndex": 104,
+            "previousIndex": 100
+          },
+          "core": {
+            "currentIndex": 103,
+            "previousIndex": 100
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "胸肌與三頭在進步，但背部和腿部訓練量偏少，建議增加划船與腿部組數。",
+      "trainingGoal": "維持體能、全身均衡發展",
+      "userNote": null,
+      "language": "zh-TW"
+    },
+    "expected": {
+      "status": "on_track",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs"
+      ],
+      "deload": false,
+      "language": "zh-TW"
+    },
+    "meta": {
+      "why": "Positive control in Chinese, with glutes and core in the mix."
+    }
+  },
+  {
+    "id": "balanced-stalling-en",
+    "tags": [
+      "stalling",
+      "en"
+    ],
+    "prompt": "Every group within ±1 of last period: stalling, balanced.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 28,
+          "totalTonnageKg": 10732,
+          "tonnagePerBodyweightKg": 149.1,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 6,
+              "tonnageKg": 2880
+            },
+            "back": {
+              "sets": 6,
+              "tonnageKg": 3000
+            },
+            "legs": {
+              "sets": 6,
+              "tonnageKg": 2400
+            },
+            "shoulders": {
+              "sets": 4,
+              "tonnageKg": 1120
+            },
+            "biceps": {
+              "sets": 3,
+              "tonnageKg": 432
+            },
+            "triceps": {
+              "sets": 3,
+              "tonnageKg": 900
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 26.8,
+          "back": 28,
+          "legs": 22.4,
+          "shoulders": 10.4,
+          "biceps": 4,
+          "triceps": 8.4
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 105,
+            "previousIndex": 104
+          },
+          "back": {
+            "currentIndex": 103,
+            "previousIndex": 103
+          },
+          "legs": {
+            "currentIndex": 107,
+            "previousIndex": 108
+          },
+          "shoulders": {
+            "currentIndex": 102,
+            "previousIndex": 101
+          },
+          "biceps": {
+            "currentIndex": 101,
+            "previousIndex": 101
+          },
+          "triceps": {
+            "currentIndex": 104,
+            "previousIndex": 104
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "Steady progress on the main lifts; keep the current progression and watch recovery.",
+      "trainingGoal": "Increase strength",
+      "userNote": null,
+      "language": "en"
+    },
+    "expected": {
+      "status": "stalling",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs",
+        "shoulders"
+      ],
+      "deload": null,
+      "language": "en"
+    },
+    "meta": {
+      "why": "Every group within ±1 of last period: stalling, balanced."
+    }
+  },
+  {
+    "id": "stalling-busy-note-zh",
+    "tags": [
+      "user_note",
+      "zh"
+    ],
+    "prompt": "Low volume by choice; holding steady is the right outcome. A deload makes no sense here, and the note should be acknowledged.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 15,
+          "totalTonnageKg": 5588,
+          "tonnagePerBodyweightKg": 77.6,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 3,
+              "tonnageKg": 1440
+            },
+            "back": {
+              "sets": 3,
+              "tonnageKg": 1500
+            },
+            "legs": {
+              "sets": 3,
+              "tonnageKg": 1200
+            },
+            "shoulders": {
+              "sets": 2,
+              "tonnageKg": 560
+            },
+            "biceps": {
+              "sets": 2,
+              "tonnageKg": 288
+            },
+            "triceps": {
+              "sets": 2,
+              "tonnageKg": 600
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 25.8,
+          "back": 26.8,
+          "legs": 21.5,
+          "shoulders": 10,
+          "biceps": 5.2,
+          "triceps": 10.7
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 106,
+            "previousIndex": 106
+          },
+          "back": {
+            "currentIndex": 104,
+            "previousIndex": 105
+          },
+          "legs": {
+            "currentIndex": 108,
+            "previousIndex": 107
+          },
+          "shoulders": {
+            "currentIndex": 103,
+            "previousIndex": 103
+          },
+          "biceps": {
+            "currentIndex": 102,
+            "previousIndex": 102
+          },
+          "triceps": {
+            "currentIndex": 105,
+            "previousIndex": 105
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "胸肌與三頭在進步，但背部和腿部訓練量偏少，建議增加划船與腿部組數。",
+      "trainingGoal": "增肌",
+      "userNote": "最近工作很忙，一週只能練兩次，先求維持",
+      "language": "zh-TW"
+    },
+    "expected": {
+      "status": "stalling",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs"
+      ],
+      "deload": false,
+      "language": "zh-TW"
+    },
+    "meta": {
+      "why": "Low volume by choice; holding steady is the right outcome. A deload makes no sense here, and the note should be acknowledged."
+    }
+  },
+  {
+    "id": "threshold-up-plus2-en",
+    "tags": [
+      "threshold",
+      "en"
+    ],
+    "prompt": "Gains of at most 2 points are noise under the rule: stalling, not on_track.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 28,
+          "totalTonnageKg": 10732,
+          "tonnagePerBodyweightKg": 149.1,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 6,
+              "tonnageKg": 2880
+            },
+            "back": {
+              "sets": 6,
+              "tonnageKg": 3000
+            },
+            "legs": {
+              "sets": 6,
+              "tonnageKg": 2400
+            },
+            "shoulders": {
+              "sets": 4,
+              "tonnageKg": 1120
+            },
+            "biceps": {
+              "sets": 3,
+              "tonnageKg": 432
+            },
+            "triceps": {
+              "sets": 3,
+              "tonnageKg": 900
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 26.8,
+          "back": 28,
+          "legs": 22.4,
+          "shoulders": 10.4,
+          "biceps": 4,
+          "triceps": 8.4
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 106,
+            "previousIndex": 104
+          },
+          "back": {
+            "currentIndex": 104,
+            "previousIndex": 103
+          },
+          "legs": {
+            "currentIndex": 107,
+            "previousIndex": 105
+          },
+          "shoulders": {
+            "currentIndex": 103,
+            "previousIndex": 103
+          },
+          "biceps": {
+            "currentIndex": 102,
+            "previousIndex": 102
+          },
+          "triceps": {
+            "currentIndex": 104,
+            "previousIndex": 104
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "Steady progress on the main lifts; keep the current progression and watch recovery.",
+      "trainingGoal": "Build muscle",
+      "userNote": null,
+      "language": "en"
+    },
+    "expected": {
+      "status": "stalling",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs",
+        "shoulders"
+      ],
+      "deload": null,
+      "language": "en"
+    },
+    "meta": {
+      "why": "Gains of at most 2 points are noise under the rule: stalling, not on_track."
+    }
+  },
+  {
+    "id": "threshold-down-minus2-zh",
+    "tags": [
+      "threshold",
+      "zh"
+    ],
+    "prompt": "A 2-point dip is noise: stalling, not regressing.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 28,
+          "totalTonnageKg": 10732,
+          "tonnagePerBodyweightKg": 149.1,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 6,
+              "tonnageKg": 2880
+            },
+            "back": {
+              "sets": 6,
+              "tonnageKg": 3000
+            },
+            "legs": {
+              "sets": 6,
+              "tonnageKg": 2400
+            },
+            "shoulders": {
+              "sets": 4,
+              "tonnageKg": 1120
+            },
+            "biceps": {
+              "sets": 3,
+              "tonnageKg": 432
+            },
+            "triceps": {
+              "sets": 3,
+              "tonnageKg": 900
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 26.8,
+          "back": 28,
+          "legs": 22.4,
+          "shoulders": 10.4,
+          "biceps": 4,
+          "triceps": 8.4
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 104,
+            "previousIndex": 105
+          },
+          "back": {
+            "currentIndex": 103,
+            "previousIndex": 103
+          },
+          "legs": {
+            "currentIndex": 106,
+            "previousIndex": 108
+          },
+          "shoulders": {
+            "currentIndex": 102,
+            "previousIndex": 102
+          },
+          "biceps": {
+            "currentIndex": 101,
+            "previousIndex": 101
+          },
+          "triceps": {
+            "currentIndex": 103,
+            "previousIndex": 103
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "胸肌與三頭在進步，但背部和腿部訓練量偏少，建議增加划船與腿部組數。",
+      "trainingGoal": "增強力量",
+      "userNote": null,
+      "language": "zh-TW"
+    },
+    "expected": {
+      "status": "stalling",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs",
+        "shoulders"
+      ],
+      "deload": false,
+      "language": "zh-TW"
+    },
+    "meta": {
+      "why": "A 2-point dip is noise: stalling, not regressing."
+    }
+  },
+  {
+    "id": "goal-lift-up-back-down-en",
+    "tags": [
+      "regression",
+      "en"
+    ],
+    "prompt": "The goal lift is improving, but back dropped 5 points: regressing by the rule. Tests that goal progress does not hide a regression.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 27,
+          "totalTonnageKg": 10528,
+          "tonnagePerBodyweightKg": 146.2,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 9,
+              "tonnageKg": 4320
+            },
+            "triceps": {
+              "sets": 4,
+              "tonnageKg": 1200
+            },
+            "shoulders": {
+              "sets": 4,
+              "tonnageKg": 1120
+            },
+            "back": {
+              "sets": 4,
+              "tonnageKg": 2000
+            },
+            "biceps": {
+              "sets": 2,
+              "tonnageKg": 288
+            },
+            "legs": {
+              "sets": 4,
+              "tonnageKg": 1600
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 41,
+          "triceps": 11.4,
+          "shoulders": 10.6,
+          "back": 19,
+          "biceps": 2.7,
+          "legs": 15.2
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 112,
+            "previousIndex": 106
+          },
+          "triceps": {
+            "currentIndex": 108,
+            "previousIndex": 105
+          },
+          "back": {
+            "currentIndex": 96,
+            "previousIndex": 101
+          },
+          "shoulders": {
+            "currentIndex": 104,
+            "previousIndex": 104
+          },
+          "biceps": {
+            "currentIndex": 100,
+            "previousIndex": 100
+          },
+          "legs": {
+            "currentIndex": 102,
+            "previousIndex": 102
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "Steady progress on the main lifts; keep the current progression and watch recovery.",
+      "trainingGoal": "Bench press 100 kg",
+      "userNote": null,
+      "language": "en"
+    },
+    "expected": {
+      "status": "regressing",
+      "imbalanced": [
+        "back"
+      ],
+      "balanced": [
+        "legs"
+      ],
+      "deload": false,
+      "language": "en"
+    },
+    "meta": {
+      "why": "The goal lift is improving, but back dropped 5 points: regressing by the rule. Tests that goal progress does not hide a regression."
+    }
+  },
+  {
+    "id": "multi-regression-fatigue-zh",
+    "tags": [
+      "deload",
+      "zh"
+    ],
+    "prompt": "Four groups down 4-7 points plus poor sleep, fatigue and knee pain: the clear deload case.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 28,
+          "totalTonnageKg": 10732,
+          "tonnagePerBodyweightKg": 149.1,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 6,
+              "tonnageKg": 2880
+            },
+            "back": {
+              "sets": 6,
+              "tonnageKg": 3000
+            },
+            "legs": {
+              "sets": 6,
+              "tonnageKg": 2400
+            },
+            "shoulders": {
+              "sets": 4,
+              "tonnageKg": 1120
+            },
+            "biceps": {
+              "sets": 3,
+              "tonnageKg": 432
+            },
+            "triceps": {
+              "sets": 3,
+              "tonnageKg": 900
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 26.8,
+          "back": 28,
+          "legs": 22.4,
+          "shoulders": 10.4,
+          "biceps": 4,
+          "triceps": 8.4
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 98,
+            "previousIndex": 104
+          },
+          "back": {
+            "currentIndex": 95,
+            "previousIndex": 100
+          },
+          "legs": {
+            "currentIndex": 93,
+            "previousIndex": 100
+          },
+          "shoulders": {
+            "currentIndex": 97,
+            "previousIndex": 101
+          },
+          "biceps": {
+            "currentIndex": 100,
+            "previousIndex": 100
+          },
+          "triceps": {
+            "currentIndex": 101,
+            "previousIndex": 102
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "各肌群穩定進步，維持目前的漸進節奏。",
+      "trainingGoal": "增肌",
+      "userNote": "最近睡不好、一直覺得很累，膝蓋有點痠",
+      "language": "zh-TW"
+    },
+    "expected": {
+      "status": "regressing",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs",
+        "shoulders"
+      ],
+      "deload": true,
+      "language": "zh-TW"
+    },
+    "meta": {
+      "why": "Four groups down 4-7 points plus poor sleep, fatigue and knee pain: the clear deload case."
+    }
+  },
+  {
+    "id": "overreaching-high-volume-en",
+    "tags": [
+      "deload",
+      "en"
+    ],
+    "prompt": "Roughly double the usual volume, five groups down 4-7 points, and the user reports aching joints and fatigue: the second clear deload case.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 56,
+          "totalTonnageKg": 21464,
+          "tonnagePerBodyweightKg": 298.1,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 12,
+              "tonnageKg": 5760
+            },
+            "back": {
+              "sets": 12,
+              "tonnageKg": 6000
+            },
+            "legs": {
+              "sets": 12,
+              "tonnageKg": 4800
+            },
+            "shoulders": {
+              "sets": 8,
+              "tonnageKg": 2240
+            },
+            "biceps": {
+              "sets": 6,
+              "tonnageKg": 864
+            },
+            "triceps": {
+              "sets": 6,
+              "tonnageKg": 1800
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 26.8,
+          "back": 28,
+          "legs": 22.4,
+          "shoulders": 10.4,
+          "biceps": 4,
+          "triceps": 8.4
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 99,
+            "previousIndex": 105
+          },
+          "back": {
+            "currentIndex": 98,
+            "previousIndex": 104
+          },
+          "legs": {
+            "currentIndex": 97,
+            "previousIndex": 104
+          },
+          "shoulders": {
+            "currentIndex": 99,
+            "previousIndex": 103
+          },
+          "biceps": {
+            "currentIndex": 100,
+            "previousIndex": 101
+          },
+          "triceps": {
+            "currentIndex": 100,
+            "previousIndex": 102
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "Steady progress on the main lifts; keep the current progression and watch recovery.",
+      "trainingGoal": "Build muscle",
+      "userNote": "My joints ache, I feel run down and my sessions keep getting worse",
+      "language": "en"
+    },
+    "expected": {
+      "status": "regressing",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs",
+        "shoulders"
+      ],
+      "deload": true,
+      "language": "en"
+    },
+    "meta": {
+      "why": "Roughly double the usual volume, five groups down 4-7 points, and the user reports aching joints and fatigue: the second clear deload case."
+    }
+  },
+  {
+    "id": "multi-regression-no-note-en",
+    "tags": [
+      "regression",
+      "en"
+    ],
+    "prompt": "Three groups down 4-6 points with no explanation: regressing. Deload is defensible either way.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 28,
+          "totalTonnageKg": 10732,
+          "tonnagePerBodyweightKg": 149.1,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 6,
+              "tonnageKg": 2880
+            },
+            "back": {
+              "sets": 6,
+              "tonnageKg": 3000
+            },
+            "legs": {
+              "sets": 6,
+              "tonnageKg": 2400
+            },
+            "shoulders": {
+              "sets": 4,
+              "tonnageKg": 1120
+            },
+            "biceps": {
+              "sets": 3,
+              "tonnageKg": 432
+            },
+            "triceps": {
+              "sets": 3,
+              "tonnageKg": 900
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 26.8,
+          "back": 28,
+          "legs": 22.4,
+          "shoulders": 10.4,
+          "biceps": 4,
+          "triceps": 8.4
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 101,
+            "previousIndex": 106
+          },
+          "back": {
+            "currentIndex": 100,
+            "previousIndex": 104
+          },
+          "legs": {
+            "currentIndex": 102,
+            "previousIndex": 108
+          },
+          "shoulders": {
+            "currentIndex": 103,
+            "previousIndex": 103
+          },
+          "biceps": {
+            "currentIndex": 102,
+            "previousIndex": 102
+          },
+          "triceps": {
+            "currentIndex": 104,
+            "previousIndex": 104
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "Steady progress on the main lifts; keep the current progression and watch recovery.",
+      "trainingGoal": "Build muscle",
+      "userNote": null,
+      "language": "en"
+    },
+    "expected": {
+      "status": "regressing",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs",
+        "shoulders"
+      ],
+      "deload": null,
+      "language": "en"
+    },
+    "meta": {
+      "why": "Three groups down 4-6 points with no explanation: regressing. Deload is defensible either way."
+    }
+  },
+  {
+    "id": "leg-neglect-en",
+    "tags": [
+      "imbalance",
+      "en"
+    ],
+    "prompt": "One leg set all week (under 5% of volume) while upper body progresses.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 23,
+          "totalTonnageKg": 8732,
+          "tonnagePerBodyweightKg": 121.3,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 6,
+              "tonnageKg": 2880
+            },
+            "back": {
+              "sets": 6,
+              "tonnageKg": 3000
+            },
+            "shoulders": {
+              "sets": 4,
+              "tonnageKg": 1120
+            },
+            "biceps": {
+              "sets": 3,
+              "tonnageKg": 432
+            },
+            "triceps": {
+              "sets": 3,
+              "tonnageKg": 900
+            },
+            "legs": {
+              "sets": 1,
+              "tonnageKg": 400
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 33,
+          "back": 34.4,
+          "shoulders": 12.8,
+          "biceps": 4.9,
+          "triceps": 10.3,
+          "legs": 4.6
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 108,
+            "previousIndex": 104
+          },
+          "back": {
+            "currentIndex": 107,
+            "previousIndex": 104
+          },
+          "shoulders": {
+            "currentIndex": 103,
+            "previousIndex": 102
+          },
+          "biceps": {
+            "currentIndex": 101,
+            "previousIndex": 101
+          },
+          "triceps": {
+            "currentIndex": 104,
+            "previousIndex": 103
+          },
+          "legs": {
+            "currentIndex": 100,
+            "previousIndex": 100
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "Steady progress on the main lifts; keep the current progression and watch recovery.",
+      "trainingGoal": "Build muscle",
+      "userNote": null,
+      "language": "en"
+    },
+    "expected": {
+      "status": "on_track",
+      "imbalanced": [
+        "legs"
+      ],
+      "balanced": [
+        "chest",
+        "back"
+      ],
+      "deload": false,
+      "language": "en"
+    },
+    "meta": {
+      "why": "One leg set all week (under 5% of volume) while upper body progresses."
+    }
+  },
+  {
+    "id": "push-pull-imbalance-zh",
+    "tags": [
+      "imbalance",
+      "zh"
+    ],
+    "prompt": "20 push sets vs 5 pull sets, nothing moving: stalling with a push/pull imbalance.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 30,
+          "totalTonnageKg": 11468,
+          "tonnagePerBodyweightKg": 159.3,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 10,
+              "tonnageKg": 4800
+            },
+            "shoulders": {
+              "sets": 6,
+              "tonnageKg": 1680
+            },
+            "triceps": {
+              "sets": 4,
+              "tonnageKg": 1200
+            },
+            "back": {
+              "sets": 3,
+              "tonnageKg": 1500
+            },
+            "biceps": {
+              "sets": 2,
+              "tonnageKg": 288
+            },
+            "legs": {
+              "sets": 5,
+              "tonnageKg": 2000
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 41.9,
+          "shoulders": 14.6,
+          "triceps": 10.5,
+          "back": 13.1,
+          "biceps": 2.5,
+          "legs": 17.4
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 105,
+            "previousIndex": 105
+          },
+          "shoulders": {
+            "currentIndex": 103,
+            "previousIndex": 102
+          },
+          "triceps": {
+            "currentIndex": 104,
+            "previousIndex": 104
+          },
+          "back": {
+            "currentIndex": 101,
+            "previousIndex": 101
+          },
+          "biceps": {
+            "currentIndex": 100,
+            "previousIndex": 100
+          },
+          "legs": {
+            "currentIndex": 102,
+            "previousIndex": 103
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "胸肌與三頭在進步，但背部和腿部訓練量偏少，建議增加划船與腿部組數。",
+      "trainingGoal": "增肌",
+      "userNote": null,
+      "language": "zh-TW"
+    },
+    "expected": {
+      "status": "stalling",
+      "imbalanced": [
+        "back"
+      ],
+      "balanced": [
+        "legs"
+      ],
+      "deload": null,
+      "language": "zh-TW"
+    },
+    "meta": {
+      "why": "20 push sets vs 5 pull sets, nothing moving: stalling with a push/pull imbalance."
+    }
+  },
+  {
+    "id": "pull-heavy-en",
+    "tags": [
+      "imbalance",
+      "en"
+    ],
+    "prompt": "Mirror image of the usual imbalance: chest is the neglected group.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 28,
+          "totalTonnageKg": 10784,
+          "tonnagePerBodyweightKg": 149.8,
+          "byMuscleGroup": {
+            "back": {
+              "sets": 12,
+              "tonnageKg": 6000
+            },
+            "biceps": {
+              "sets": 6,
+              "tonnageKg": 864
+            },
+            "chest": {
+              "sets": 2,
+              "tonnageKg": 960
+            },
+            "shoulders": {
+              "sets": 2,
+              "tonnageKg": 560
+            },
+            "legs": {
+              "sets": 6,
+              "tonnageKg": 2400
+            }
+          }
+        },
+        "volumeSplit": {
+          "back": 55.6,
+          "biceps": 8,
+          "chest": 8.9,
+          "shoulders": 5.2,
+          "legs": 22.3
+        },
+        "strengthIndex": {
+          "back": {
+            "currentIndex": 110,
+            "previousIndex": 106
+          },
+          "biceps": {
+            "currentIndex": 104,
+            "previousIndex": 104
+          },
+          "chest": {
+            "currentIndex": 100,
+            "previousIndex": 100
+          },
+          "shoulders": {
+            "currentIndex": 101,
+            "previousIndex": 101
+          },
+          "legs": {
+            "currentIndex": 103,
+            "previousIndex": 103
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "Steady progress on the main lifts; keep the current progression and watch recovery.",
+      "trainingGoal": "Build a bigger back",
+      "userNote": null,
+      "language": "en"
+    },
+    "expected": {
+      "status": "on_track",
+      "imbalanced": [
+        "chest"
+      ],
+      "balanced": [
+        "legs"
+      ],
+      "deload": false,
+      "language": "en"
+    },
+    "meta": {
+      "why": "Mirror image of the usual imbalance: chest is the neglected group."
+    }
+  },
+  {
+    "id": "balanced-mixed-control-zh",
+    "tags": [
+      "progress",
+      "zh"
+    ],
+    "prompt": "Negative control for imbalance: balanced split, chest +3, small wobbles elsewhere. Nothing should be flagged.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 28,
+          "totalTonnageKg": 10732,
+          "tonnagePerBodyweightKg": 149.1,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 6,
+              "tonnageKg": 2880
+            },
+            "back": {
+              "sets": 6,
+              "tonnageKg": 3000
+            },
+            "legs": {
+              "sets": 6,
+              "tonnageKg": 2400
+            },
+            "shoulders": {
+              "sets": 4,
+              "tonnageKg": 1120
+            },
+            "biceps": {
+              "sets": 3,
+              "tonnageKg": 432
+            },
+            "triceps": {
+              "sets": 3,
+              "tonnageKg": 900
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 26.8,
+          "back": 28,
+          "legs": 22.4,
+          "shoulders": 10.4,
+          "biceps": 4,
+          "triceps": 8.4
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 107,
+            "previousIndex": 104
+          },
+          "back": {
+            "currentIndex": 105,
+            "previousIndex": 103
+          },
+          "legs": {
+            "currentIndex": 104,
+            "previousIndex": 105
+          },
+          "shoulders": {
+            "currentIndex": 102,
+            "previousIndex": 102
+          },
+          "biceps": {
+            "currentIndex": 101,
+            "previousIndex": 101
+          },
+          "triceps": {
+            "currentIndex": 103,
+            "previousIndex": 103
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "胸肌與三頭在進步，但背部和腿部訓練量偏少，建議增加划船與腿部組數。",
+      "trainingGoal": "增肌",
+      "userNote": null,
+      "language": "zh-TW"
+    },
+    "expected": {
+      "status": "on_track",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs",
+        "shoulders"
+      ],
+      "deload": false,
+      "language": "zh-TW"
+    },
+    "meta": {
+      "why": "Negative control for imbalance: balanced split, chest +3, small wobbles elsewhere. Nothing should be flagged."
+    }
+  },
+  {
+    "id": "missing-body-metrics-en",
+    "tags": [
+      "missing_data",
+      "en"
+    ],
+    "prompt": "No height, weight, age, sex or goal. Must not invent a bodyweight, BMI or age.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": null,
+          "latestWeightKg": null,
+          "weightRecordedAt": null,
+          "ageYears": null,
+          "sex": null,
+          "bmi": null
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 28,
+          "totalTonnageKg": 10732,
+          "tonnagePerBodyweightKg": null,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 6,
+              "tonnageKg": 2880
+            },
+            "back": {
+              "sets": 6,
+              "tonnageKg": 3000
+            },
+            "legs": {
+              "sets": 6,
+              "tonnageKg": 2400
+            },
+            "shoulders": {
+              "sets": 4,
+              "tonnageKg": 1120
+            },
+            "biceps": {
+              "sets": 3,
+              "tonnageKg": 432
+            },
+            "triceps": {
+              "sets": 3,
+              "tonnageKg": 900
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 26.8,
+          "back": 28,
+          "legs": 22.4,
+          "shoulders": 10.4,
+          "biceps": 4,
+          "triceps": 8.4
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 108,
+            "previousIndex": 104
+          },
+          "back": {
+            "currentIndex": 104,
+            "previousIndex": 103
+          },
+          "legs": {
+            "currentIndex": 105,
+            "previousIndex": 105
+          },
+          "shoulders": {
+            "currentIndex": 102,
+            "previousIndex": 102
+          },
+          "biceps": {
+            "currentIndex": 101,
+            "previousIndex": 101
+          },
+          "triceps": {
+            "currentIndex": 103,
+            "previousIndex": 103
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "Steady progress on the main lifts; keep the current progression and watch recovery.",
+      "trainingGoal": null,
+      "userNote": null,
+      "language": "en"
+    },
+    "expected": {
+      "status": "on_track",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs"
+      ],
+      "deload": false,
+      "language": "en"
+    },
+    "meta": {
+      "why": "No height, weight, age, sex or goal. Must not invent a bodyweight, BMI or age."
+    }
+  },
+  {
+    "id": "fat-loss-goal-zh",
+    "tags": [
+      "goal",
+      "zh"
+    ],
+    "prompt": "Strength holding steady during a cut is a good outcome; advice should fit the fat-loss goal.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 172,
+          "latestWeightKg": 82,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 35,
+          "sex": "male",
+          "bmi": 27.7
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 28,
+          "totalTonnageKg": 10732,
+          "tonnagePerBodyweightKg": 130.9,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 6,
+              "tonnageKg": 2880
+            },
+            "back": {
+              "sets": 6,
+              "tonnageKg": 3000
+            },
+            "legs": {
+              "sets": 6,
+              "tonnageKg": 2400
+            },
+            "shoulders": {
+              "sets": 4,
+              "tonnageKg": 1120
+            },
+            "biceps": {
+              "sets": 3,
+              "tonnageKg": 432
+            },
+            "triceps": {
+              "sets": 3,
+              "tonnageKg": 900
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 26.8,
+          "back": 28,
+          "legs": 22.4,
+          "shoulders": 10.4,
+          "biceps": 4,
+          "triceps": 8.4
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 103,
+            "previousIndex": 103
+          },
+          "back": {
+            "currentIndex": 102,
+            "previousIndex": 102
+          },
+          "legs": {
+            "currentIndex": 104,
+            "previousIndex": 105
+          },
+          "shoulders": {
+            "currentIndex": 101,
+            "previousIndex": 101
+          },
+          "biceps": {
+            "currentIndex": 100,
+            "previousIndex": 100
+          },
+          "triceps": {
+            "currentIndex": 102,
+            "previousIndex": 102
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "胸肌與三頭在進步，但背部和腿部訓練量偏少，建議增加划船與腿部組數。",
+      "trainingGoal": "減脂 5 公斤，保留肌肉",
+      "userNote": null,
+      "language": "zh-TW"
+    },
+    "expected": {
+      "status": "stalling",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs"
+      ],
+      "deload": false,
+      "language": "zh-TW"
+    },
+    "meta": {
+      "why": "Strength holding steady during a cut is a good outcome; advice should fit the fat-loss goal."
+    }
+  },
+  {
+    "id": "missed-routines-en",
+    "tags": [
+      "adherence",
+      "en"
+    ],
+    "prompt": "Half the planned sessions missed; stalling, and consistency is the obvious lever.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 16,
+          "totalTonnageKg": 5988,
+          "tonnagePerBodyweightKg": 83.2,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 3,
+              "tonnageKg": 1440
+            },
+            "back": {
+              "sets": 3,
+              "tonnageKg": 1500
+            },
+            "legs": {
+              "sets": 4,
+              "tonnageKg": 1600
+            },
+            "shoulders": {
+              "sets": 2,
+              "tonnageKg": 560
+            },
+            "biceps": {
+              "sets": 2,
+              "tonnageKg": 288
+            },
+            "triceps": {
+              "sets": 2,
+              "tonnageKg": 600
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 24,
+          "back": 25.1,
+          "legs": 26.7,
+          "shoulders": 9.4,
+          "biceps": 4.8,
+          "triceps": 10
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 104,
+            "previousIndex": 104
+          },
+          "back": {
+            "currentIndex": 103,
+            "previousIndex": 103
+          },
+          "legs": {
+            "currentIndex": 105,
+            "previousIndex": 106
+          },
+          "shoulders": {
+            "currentIndex": 102,
+            "previousIndex": 102
+          },
+          "biceps": {
+            "currentIndex": 101,
+            "previousIndex": 101
+          },
+          "triceps": {
+            "currentIndex": 103,
+            "previousIndex": 103
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [
+            "Upper A",
+            "Lower A"
+          ],
+          "missedRoutines": [
+            "Upper B",
+            "Lower B"
+          ]
+        }
+      },
+      "previousContext": "Steady progress on the main lifts; keep the current progression and watch recovery.",
+      "trainingGoal": "Build muscle",
+      "userNote": null,
+      "language": "en"
+    },
+    "expected": {
+      "status": "stalling",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs"
+      ],
+      "deload": false,
+      "language": "en"
+    },
+    "meta": {
+      "why": "Half the planned sessions missed; stalling, and consistency is the obvious lever."
+    }
+  },
+  {
+    "id": "older-female-progress-en",
+    "tags": [
+      "progress",
+      "en"
+    ],
+    "prompt": "Different profile (46, female, BMI 25.6) with solid progress; advice should be calibrated, not generic.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 163,
+          "latestWeightKg": 68,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 46,
+          "sex": "female",
+          "bmi": 25.6
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 24,
+          "totalTonnageKg": 9190,
+          "tonnagePerBodyweightKg": 135.1,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 4,
+              "tonnageKg": 1920
+            },
+            "back": {
+              "sets": 5,
+              "tonnageKg": 2500
+            },
+            "legs": {
+              "sets": 6,
+              "tonnageKg": 2400
+            },
+            "glutes": {
+              "sets": 3,
+              "tonnageKg": 1350
+            },
+            "shoulders": {
+              "sets": 3,
+              "tonnageKg": 840
+            },
+            "core": {
+              "sets": 3,
+              "tonnageKg": 180
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 20.9,
+          "back": 27.2,
+          "legs": 26.1,
+          "glutes": 14.7,
+          "shoulders": 9.1,
+          "core": 2
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 106,
+            "previousIndex": 102
+          },
+          "back": {
+            "currentIndex": 107,
+            "previousIndex": 103
+          },
+          "legs": {
+            "currentIndex": 110,
+            "previousIndex": 105
+          },
+          "glutes": {
+            "currentIndex": 108,
+            "previousIndex": 104
+          },
+          "shoulders": {
+            "currentIndex": 103,
+            "previousIndex": 102
+          },
+          "core": {
+            "currentIndex": 102,
+            "previousIndex": 101
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "Steady progress on the main lifts; keep the current progression and watch recovery.",
+      "trainingGoal": "Stay strong and healthy",
+      "userNote": null,
+      "language": "en"
+    },
+    "expected": {
+      "status": "on_track",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs"
+      ],
+      "deload": false,
+      "language": "en"
+    },
+    "meta": {
+      "why": "Different profile (46, female, BMI 25.6) with solid progress; advice should be calibrated, not generic."
+    }
+  },
+  {
+    "id": "borderline-11-sets-zh",
+    "tags": [
+      "low_volume",
+      "zh"
+    ],
+    "prompt": "Just over the 10-set minimum, three groups only; chest +5 so on_track.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 11,
+          "totalTonnageKg": 5120,
+          "tonnagePerBodyweightKg": 71.1,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 4,
+              "tonnageKg": 1920
+            },
+            "back": {
+              "sets": 4,
+              "tonnageKg": 2000
+            },
+            "legs": {
+              "sets": 3,
+              "tonnageKg": 1200
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 37.5,
+          "back": 39.1,
+          "legs": 23.4
+        },
+        "strengthIndex": {
+          "chest": {
+            "currentIndex": 105,
+            "previousIndex": 100
+          },
+          "back": {
+            "currentIndex": 100,
+            "previousIndex": 100
+          },
+          "legs": {
+            "currentIndex": 100,
+            "previousIndex": 100
+          }
+        },
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "胸肌與三頭在進步，但背部和腿部訓練量偏少，建議增加划船與腿部組數。",
+      "trainingGoal": "增肌",
+      "userNote": null,
+      "language": "zh-TW"
+    },
+    "expected": {
+      "status": "on_track",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back"
+      ],
+      "deload": false,
+      "language": "zh-TW"
+    },
+    "meta": {
+      "why": "Just over the 10-set minimum, three groups only; chest +5 so on_track."
+    }
+  },
+  {
+    "id": "empty-strength-index-en",
+    "tags": [
+      "missing_data",
+      "en"
+    ],
+    "prompt": "Sets were logged but there is no strength index: the one case where insufficient_data is correct.",
+    "input": {
+      "summary": {
+        "userContext": {
+          "heightCm": 175,
+          "latestWeightKg": 72,
+          "weightRecordedAt": "2026-09-28T12:00:00+00:00",
+          "ageYears": 28,
+          "sex": "male",
+          "bmi": 23.5
+        },
+        "targetPeriod": {
+          "periodStart": "2026-09-28",
+          "periodEnd": "2026-10-04",
+          "totalSets": 12,
+          "totalTonnageKg": 5520,
+          "tonnagePerBodyweightKg": 76.7,
+          "byMuscleGroup": {
+            "chest": {
+              "sets": 4,
+              "tonnageKg": 1920
+            },
+            "back": {
+              "sets": 4,
+              "tonnageKg": 2000
+            },
+            "legs": {
+              "sets": 4,
+              "tonnageKg": 1600
+            }
+          }
+        },
+        "volumeSplit": {
+          "chest": 34.8,
+          "back": 36.2,
+          "legs": 29
+        },
+        "strengthIndex": {},
+        "routineAdherence": {
+          "followedRoutines": [],
+          "missedRoutines": []
+        }
+      },
+      "previousContext": "Steady progress on the main lifts; keep the current progression and watch recovery.",
+      "trainingGoal": "Build muscle",
+      "userNote": null,
+      "language": "en"
+    },
+    "expected": {
+      "status": "insufficient_data",
+      "imbalanced": [],
+      "balanced": [
+        "chest",
+        "back",
+        "legs"
+      ],
+      "deload": false,
+      "language": "en"
+    },
+    "meta": {
+      "why": "Sets were logged but there is no strength index: the one case where insufficient_data is correct."
+    }
+  }
+]

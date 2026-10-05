@@ -1,0 +1,92 @@
+{
+  "flow": "weekly-report",
+  "description": "AI weekly training report (lambda/ai-worker generateRecommendation) on 22 synthetic cases with planted signals",
+  "metrics": [
+    {
+      "id": "pass",
+      "label": "全部通過",
+      "kind": "binary"
+    },
+    {
+      "id": "status_correct",
+      "label": "狀態判斷",
+      "kind": "binary"
+    },
+    {
+      "id": "imbalance_recall",
+      "label": "失衡有抓到",
+      "kind": "float",
+      "scale": 1
+    },
+    {
+      "id": "no_false_alarm",
+      "label": "沒有誤報",
+      "kind": "binary"
+    },
+    {
+      "id": "deload_correct",
+      "label": "減量判斷",
+      "kind": "binary"
+    },
+    {
+      "id": "language_correct",
+      "label": "語言正確",
+      "kind": "binary"
+    },
+    {
+      "id": "grounded_numbers",
+      "label": "數字有根據",
+      "kind": "binary"
+    },
+    {
+      "id": "sound_advice",
+      "label": "健身知識正確",
+      "kind": "binary"
+    },
+    {
+      "id": "note_addressed",
+      "label": "有回應備註",
+      "kind": "binary"
+    }
+  ],
+  "perf_fields": [
+    {
+      "id": "latency_s",
+      "label": "Latency",
+      "unit": "s"
+    },
+    {
+      "id": "in_tokens",
+      "label": "In tokens"
+    },
+    {
+      "id": "out_tokens",
+      "label": "Out tokens"
+    },
+    {
+      "id": "cost_usd",
+      "label": "Cost",
+      "unit": "$"
+    }
+  ],
+  "prices": {
+    "claude-sonnet-4-6": {
+      "in": 3,
+      "out": 15
+    },
+    "claude-haiku-4-5": {
+      "in": 1,
+      "out": 5
+    },
+    "claude-opus-5-5": {
+      "in": 4,
+      "out": 20
+    }
+  },
+  "harness_paths": [
+    "lambda/ai-worker/evals/report/grade.mjs",
+    "lambda/ai-worker/evals/report/judge.mjs",
+    "lambda/ai-worker/evals/report/cases.json"
+  ],
+  "harness_sha": "007de79910325db2fd486681e5dc15db2aa1f488751cc7814de85e72702b4a49"
+}
