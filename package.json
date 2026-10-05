@@ -10,11 +10,10 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
-    "@aws-sdk/client-s3": "^3.1112.0",
     "@aws-sdk/client-sqs": "^3.1112.0",
-    "@aws-sdk/s3-request-presigner": "^3.1112.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
+    "@vercel/oidc-aws-credentials-provider": "^3.3.11",
     "next": "16.3.1",
     "next-intl": "^4.13.7",
     "next-themes": "^0.4.6",

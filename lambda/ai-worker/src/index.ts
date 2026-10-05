@@ -9,7 +9,6 @@ import {
   saveRecommendation,
   saveFailedStatus,
   saveInsufficientDataStatus,
-  enqueuePdfGeneration,
 } from './supabase'
 import { generateRecommendation } from './claude'
 import type { AnalysisRequestMessage, AiRecommendation } from './types'
@@ -20,7 +19,11 @@ async function processMessage(record: SQSRecord): Promise<void> {
   const message = JSON.parse(record.body) as AnalysisRequestMessage
   const { userId, periodStart, periodEnd, userNote, language: messageLanguage } = message
 
-  console.log(`Processing recommendation for user ${userId}, period ${periodStart} to ${periodEnd}`)
+  // messageId matches the one Next.js logs when it queues the request,
+  // so a single report can be traced across Vercel and CloudWatch.
+  console.log(
+    `Processing recommendation for user ${userId}, period ${periodStart} to ${periodEnd} (messageId ${record.messageId})`
+  )
 
   const supabase = await getSupabaseClient()
 
@@ -91,16 +94,13 @@ async function processMessage(record: SQSRecord): Promise<void> {
       },
     }
     await saveRecommendation(supabase, userId, periodStart, recommendation, userNote ?? null)
-    console.log(`Successfully saved recommendation for user ${userId}`)
-
-    const pdfQueueUrl = process.env.PDF_QUEUE_URL
-    if (pdfQueueUrl) {
-      await enqueuePdfGeneration(pdfQueueUrl, userId, periodStart)
-      console.log(`Queued PDF generation for user ${userId}`)
-    }
+    console.log(`Successfully saved recommendation for user ${userId} (messageId ${record.messageId})`)
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err)
-    console.error(`Failed to process recommendation for user ${userId}:`, errorMessage)
+    console.error(
+      `Failed to process recommendation for user ${userId} (messageId ${record.messageId}):`,
+      errorMessage
+    )
     await saveFailedStatus(supabase, userId, periodStart, errorMessage)
     throw err
   }

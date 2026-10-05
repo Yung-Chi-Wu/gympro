@@ -14,7 +14,12 @@ export async function getSupabaseClient(): Promise<SupabaseClient> {
         throw new Error('SUPABASE_URL environment variable is not set')
     }
 
-    const serviceRoleKey = await getSecret('gympro/supabase-service-role-key')
+    const serviceRoleKeyParam = process.env.SUPABASE_SERVICE_ROLE_KEY_PARAM
+    if (!serviceRoleKeyParam) {
+        throw new Error('SUPABASE_SERVICE_ROLE_KEY_PARAM environment variable is not set')
+    }
+
+    const serviceRoleKey = await getSecret(serviceRoleKeyParam)
 
     cachedClient = createClient(supabaseUrl, serviceRoleKey)
     return cachedClient
@@ -102,7 +107,7 @@ export async function saveRecommendation(
             context_summary: contextSummary,
             user_note: userNote,
             completed_at: new Date().toISOString(),
-            pdf_status: 'pending',
+            pdf_status: 'not_applicable',
         },
         { onConflict: 'user_id,period_start' }
     )
@@ -280,7 +285,7 @@ export async function fetchRoutineAdherence(
 // ---------- Strength index, per muscle group ----------
 // Each exercise's "current" value is the best estimated 1RM logged
 // anywhere in this period. Its "baseline" is the estimated 1RM from the
-// very first non-warmup set of that exercise this user ever logged.
+// very first set of that exercise this user ever logged.
 // The index is currentBest / baseline * 100, averaged across every
 // exercise trained in that muscle group this period.
 interface SetWithExercise {
@@ -316,12 +321,15 @@ export async function computeStrengthIndex(
     const workoutIds = (workoutsInPeriod ?? []).map((w) => w.id)
     if (workoutIds.length === 0) return {}
 
-    const { data: periodSets } = await supabase
+    const { data: periodSets, error: periodSetsError } = await supabase
         .from('workout_sets')
         .select('exercise_id, reps, weight_kg')
         .eq('user_id', userId)
-        .eq('is_warmup', false)
         .in('workout_id', workoutIds)
+
+    if (periodSetsError) {
+        throw new Error(`Failed to fetch period sets: ${periodSetsError.message}`)
+    }
 
     const bestByExercise = new Map<string, number>()
     for (const s of (periodSets as SetWithExercise[]) ?? []) {
@@ -333,12 +341,15 @@ export async function computeStrengthIndex(
     const exerciseIds = [...bestByExercise.keys()]
     if (exerciseIds.length === 0) return {}
 
-    const { data: allTimeSets } = await supabase
+    const { data: allTimeSets, error: allTimeSetsError } = await supabase
         .from('workout_sets')
         .select('exercise_id, reps, weight_kg, workouts ( performed_at )')
         .eq('user_id', userId)
-        .eq('is_warmup', false)
         .in('exercise_id', exerciseIds)
+
+    if (allTimeSetsError) {
+        throw new Error(`Failed to fetch all-time sets: ${allTimeSetsError.message}`)
+    }
 
     const earliestByExercise = new Map<string, { date: string; oneRm: number }>()
     for (const s of (allTimeSets as unknown as AllTimeSetRow[]) ?? []) {
@@ -388,20 +399,4 @@ export async function computeStrengthIndex(
     }
 
     return result
-}
-
-export async function enqueuePdfGeneration(
-    queueUrl: string,
-    userId: string,
-    periodStart: string
-): Promise<void> {
-    const { SQSClient, SendMessageCommand } = await import('@aws-sdk/client-sqs')
-    const sqsClient = new SQSClient({})
-
-    await sqsClient.send(
-        new SendMessageCommand({
-            QueueUrl: queueUrl,
-            MessageBody: JSON.stringify({ userId, periodStart }),
-        })
-    )
 }

@@ -6,7 +6,11 @@ let cachedClient: Anthropic | null = null
 
 async function getClaudeClient(): Promise<Anthropic> {
     if (cachedClient) return cachedClient
-    const apiKey = await getSecret('gympro/anthropic-api-key')
+    const parameterName = process.env.ANTHROPIC_API_KEY_PARAM
+    if (!parameterName) {
+        throw new Error('ANTHROPIC_API_KEY_PARAM environment variable is not set')
+    }
+    const apiKey = await getSecret(parameterName)
     cachedClient = new Anthropic({ apiKey })
     return cachedClient
 }

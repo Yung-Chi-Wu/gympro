@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
+import { awsCredentialsProvider } from '@vercel/oidc-aws-credentials-provider'
 import { computeRegularCheckInWindow, computeProCheckInWindow } from '@/lib/checkin-window'
 import { toFriendlyError } from '@/lib/friendly-error'
 
@@ -86,8 +87,13 @@ export async function submitPeriodCheckIn(weightKg: number, userNote?: string): 
     }
 
     try {
-        const sqsClient = new SQSClient({ region: process.env.AWS_REGION })
-        await sqsClient.send(
+        // Short-lived credentials from Vercel OIDC — no stored AWS access key.
+        // AWS_REGION must be set explicitly in Vercel, or it defaults to the function's own region.
+        const sqsClient = new SQSClient({
+            region: process.env.AWS_REGION,
+            credentials: awsCredentialsProvider({ roleArn: process.env.AWS_ROLE_ARN! }),
+        })
+        const { MessageId } = await sqsClient.send(
             new SendMessageCommand({
                 QueueUrl: process.env.SQS_QUEUE_URL,
                 MessageBody: JSON.stringify({
@@ -99,7 +105,10 @@ export async function submitPeriodCheckIn(weightKg: number, userNote?: string): 
                 }),
             })
         )
-    } catch {
+        // The worker Lambda logs the same messageId, so this report can be traced in CloudWatch.
+        console.log(`Queued report for user ${user.id}, period ${window.periodStart} (messageId ${MessageId})`)
+    } catch (err) {
+        console.error(`Failed to queue report for user ${user.id}, period ${window.periodStart}:`, err)
         return { success: false, message: 'Failed to queue your report. Please try again.' }
     }
 

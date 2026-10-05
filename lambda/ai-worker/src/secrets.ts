@@ -1,29 +1,27 @@
-import {
-  SecretsManagerClient,
-  GetSecretValueCommand,
-} from '@aws-sdk/client-secrets-manager'
+import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm'
 
-const client = new SecretsManagerClient({})
+const client = new SSMClient({})
 
 // Module-level cache: persists across invocations within the same
 // warm Lambda execution environment, but resets on cold start.
 const secretCache = new Map<string, string>()
 
-export async function getSecret(secretName: string): Promise<string> {
-  const cached = secretCache.get(secretName)
+// Reads a SecureString parameter from SSM Parameter Store, decrypted.
+export async function getSecret(parameterName: string): Promise<string> {
+  const cached = secretCache.get(parameterName)
   if (cached) {
     return cached
   }
 
   const response = await client.send(
-    new GetSecretValueCommand({ SecretId: secretName })
+    new GetParameterCommand({ Name: parameterName, WithDecryption: true })
   )
 
-  const value = response.SecretString
+  const value = response.Parameter?.Value
   if (!value) {
-    throw new Error(`Secret ${secretName} has no string value`)
+    throw new Error(`Parameter ${parameterName} has no value`)
   }
 
-  secretCache.set(secretName, value)
+  secretCache.set(parameterName, value)
   return value
 }

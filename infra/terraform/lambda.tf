@@ -20,9 +20,9 @@ resource "aws_lambda_function" "ai_worker" {
 
   environment {
     variables = {
-      SUPABASE_URL          = var.supabase_url
-      ANTHROPIC_SECRET_NAME = "gympro/anthropic-api-key"
-      PDF_QUEUE_URL         = aws_sqs_queue.pdf_generation_queue.id
+      SUPABASE_URL                    = var.supabase_url
+      ANTHROPIC_API_KEY_PARAM         = local.anthropic_api_key_param
+      SUPABASE_SERVICE_ROLE_KEY_PARAM = local.supabase_service_role_key_param
     }
   }
 
