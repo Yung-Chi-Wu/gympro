@@ -1,10 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { getSecret } from './secrets'
+import { AiNarrativeSchema, describeIssues, RECOMMENDATION_INPUT_SCHEMA } from './narrative-schema'
 import type { AiNarrative, TrainingPeriodSummary } from './types'
 
 let cachedClient: Anthropic | null = null
 
-async function getClaudeClient(): Promise<Anthropic> {
+// Exported for the eval runner, which reuses the same key for its judge calls
+export async function getClaudeClient(): Promise<Anthropic> {
     if (cachedClient) return cachedClient
     const parameterName = process.env.ANTHROPIC_API_KEY_PARAM
     if (!parameterName) {
@@ -18,74 +20,7 @@ async function getClaudeClient(): Promise<Anthropic> {
 const RECOMMENDATION_TOOL = {
     name: 'submit_training_recommendation',
     description: 'Submit a structured training recommendation based on the provided data.',
-    input_schema: {
-        type: 'object' as const,
-        properties: {
-            headline: {
-                type: 'string',
-                description:
-                    'One short, plain-language sentence (max ~15 words) capturing the single most important takeaway. This is the only thing many users will read — no jargon, no numbers, just the headline.',
-            },
-            summary: {
-                type: 'string',
-                description: 'A brief, encouraging overall assessment of the period.',
-            },
-            progressiveOverload: {
-                type: 'object',
-                properties: {
-                    status: {
-                        type: 'string',
-                        enum: ['on_track', 'stalling', 'regressing', 'insufficient_data'],
-                    },
-                    notes: {
-                        type: 'string',
-                        description:
-                            'Explanation of whether specific lifts are progressing, referencing the strengthIndex data provided.',
-                    },
-                },
-                required: ['status', 'notes'],
-            },
-            muscleImbalances: {
-                type: 'array',
-                description:
-                    'List any imbalances you observe. Return an empty array if none are significant.',
-                items: {
-                    type: 'object',
-                    properties: {
-                        muscleGroup: { type: 'string' },
-                        severity: { type: 'string', enum: ['mild', 'moderate', 'severe'] },
-                        observation: { type: 'string' },
-                    },
-                    required: ['muscleGroup', 'severity', 'observation'],
-                },
-            },
-            deloadRecommended: { type: 'boolean' },
-            deloadReason: {
-                type: ['string', 'null'],
-                description: 'Required if deloadRecommended is true, otherwise null.',
-            },
-            actionItems: {
-                type: 'array',
-                items: { type: 'string' },
-                description: '2-4 concrete, specific suggestions for the next period.',
-            },
-            contextSummary: {
-                type: 'string',
-                description:
-                    "One sentence summarizing this period's key takeaway, written for future reference next period.",
-            },
-        },
-        required: [
-            'headline',
-            'summary',
-            'progressiveOverload',
-            'muscleImbalances',
-            'deloadRecommended',
-            'deloadReason',
-            'actionItems',
-            'contextSummary',
-        ],
-    },
+    input_schema: RECOMMENDATION_INPUT_SCHEMA,
 }
 
 function buildPrompt(
@@ -123,52 +58,90 @@ Analyze this data and submit a structured recommendation using the submit_traini
 ${languageInstruction} Every text field you submit must be plain prose only — no XML tags, no markdown formatting, no stray closing tags of any kind. The headline must stand completely on its own — write it as if it's the only sentence the user will ever read.`
 }
 
+export const DEFAULT_MODEL = 'claude-sonnet-4-6'
+
+// A malformed report gets one fresh attempt in the same invocation. Two Sonnet
+// calls (~35s each) fit inside the 120s Lambda timeout; if both fail, the error
+// goes to SQS, which retries later and finally lands in the DLQ alarm.
+const MAX_ATTEMPTS = 2
+
+export interface RecommendationResult {
+    narrative: AiNarrative
+    // The rest is for the eval runner: the exact prompt sent, plus what it cost
+    prompt: string
+    model: string
+    stopReason: string | null
+    // Summed over every attempt, so a retried report is billed in full
+    usage: Anthropic.Usage
+    attempts: number
+}
+
 export async function generateRecommendation(
     summary: TrainingPeriodSummary,
     previousContext: string | null,
     trainingGoal: string | null,
     userNote: string | null,
-    language: string
-): Promise<AiNarrative> {
+    language: string,
+    model: string = DEFAULT_MODEL
+): Promise<RecommendationResult> {
     const client = await getClaudeClient()
+    const prompt = buildPrompt(summary, previousContext, trainingGoal, userNote, language)
 
-    const startedAt = Date.now()
-    const response = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        // A full zh-TW report runs ~1,500 characters; 2048 left too little headroom
-        max_tokens: 4096,
-        tools: [RECOMMENDATION_TOOL],
-        tool_choice: { type: 'tool', name: 'submit_training_recommendation' },
-        messages: [
-            {
-                role: 'user',
-                content: buildPrompt(summary, previousContext, trainingGoal, userNote, language),
-            },
-        ],
-    })
+    let inputTokens = 0
+    let outputTokens = 0
+    let lastProblem = ''
 
-    // One JSON line per call so cost and latency can be queried in CloudWatch Logs Insights
-    console.log(
-        JSON.stringify({
-            event: 'claude_call',
-            model: response.model,
-            stopReason: response.stop_reason,
-            inputTokens: response.usage.input_tokens,
-            outputTokens: response.usage.output_tokens,
-            durationMs: Date.now() - startedAt,
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        const startedAt = Date.now()
+        const response = await client.messages.create({
+            model,
+            // A full zh-TW report runs ~1,500 characters; 2048 left too little headroom
+            max_tokens: 4096,
+            tools: [RECOMMENDATION_TOOL],
+            tool_choice: { type: 'tool', name: 'submit_training_recommendation' },
+            messages: [{ role: 'user', content: prompt }],
         })
-    )
+        inputTokens += response.usage.input_tokens
+        outputTokens += response.usage.output_tokens
 
-    // A truncated tool call would save an incomplete report — fail loudly instead
-    if (response.stop_reason === 'max_tokens') {
-        throw new Error(`Claude response hit max_tokens (${response.usage.output_tokens} output tokens)`)
+        // One JSON line per call so cost and latency can be queried in CloudWatch Logs Insights
+        console.log(
+            JSON.stringify({
+                event: 'claude_call',
+                model: response.model,
+                attempt,
+                stopReason: response.stop_reason,
+                inputTokens: response.usage.input_tokens,
+                outputTokens: response.usage.output_tokens,
+                durationMs: Date.now() - startedAt,
+            })
+        )
+
+        // A truncated tool call would save an incomplete report — fail loudly instead
+        if (response.stop_reason === 'max_tokens') {
+            throw new Error(`Claude response hit max_tokens (${response.usage.output_tokens} output tokens)`)
+        }
+
+        const toolUseBlock = response.content.find((block) => block.type === 'tool_use')
+        if (!toolUseBlock || toolUseBlock.type !== 'tool_use') {
+            lastProblem = 'no tool_use block in the response'
+        } else {
+            const parsed = AiNarrativeSchema.safeParse(toolUseBlock.input)
+            if (parsed.success) {
+                return {
+                    narrative: parsed.data,
+                    prompt,
+                    model: response.model,
+                    stopReason: response.stop_reason,
+                    usage: { ...response.usage, input_tokens: inputTokens, output_tokens: outputTokens },
+                    attempts: attempt,
+                }
+            }
+            lastProblem = describeIssues(parsed.error)
+        }
+
+        console.warn(JSON.stringify({ event: 'claude_invalid_output', model: response.model, attempt, problem: lastProblem }))
     }
 
-    const toolUseBlock = response.content.find((block) => block.type === 'tool_use')
-
-    if (!toolUseBlock || toolUseBlock.type !== 'tool_use') {
-        throw new Error('Claude did not return a tool_use response')
-    }
-
-    return toolUseBlock.input as AiNarrative
+    throw new Error(`Claude returned an invalid report ${MAX_ATTEMPTS} times: ${lastProblem}`)
 }

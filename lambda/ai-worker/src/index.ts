@@ -68,7 +68,7 @@ async function processMessage(record: SQSRecord): Promise<void> {
     )
     trainingSummary.volumeSplit = computeVolumeSplit(trainingSummary.targetPeriod)
 
-    const narrative = await generateRecommendation(
+    const { narrative } = await generateRecommendation(
       trainingSummary,
       previousPeriod.contextSummary,
       userProfile.trainingGoal,

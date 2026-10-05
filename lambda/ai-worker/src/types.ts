@@ -1,3 +1,5 @@
+import type { AiNarrative } from './narrative-schema'
+
 export interface AnalysisRequestMessage {
   userId: string
   periodStart: string
@@ -31,23 +33,8 @@ export interface TrainingPeriodSummary {
   }
 }
 
-export interface AiNarrative {
-  headline: string
-  summary: string
-  progressiveOverload: {
-    status: 'on_track' | 'stalling' | 'regressing' | 'insufficient_data'
-    notes: string
-  }
-  muscleImbalances: Array<{
-    muscleGroup: string
-    severity: 'mild' | 'moderate' | 'severe'
-    observation: string
-  }>
-  deloadRecommended: boolean
-  deloadReason: string | null
-  actionItems: string[]
-  contextSummary: string
-}
+// Defined by the Zod schema so the type, the tool schema and validation can't drift apart
+export type { AiNarrative }
 
 export interface AiRecommendation extends AiNarrative {
   weeklyVolume: {
