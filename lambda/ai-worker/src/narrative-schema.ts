@@ -1,8 +1,13 @@
 import { z } from 'zod'
 
-// The single source for the report format: the tool schema Claude is given is
+export const PROGRESS_STATUSES = ['on_track', 'stalling', 'regressing', 'insufficient_data'] as const
+export type ProgressStatus = (typeof PROGRESS_STATUSES)[number]
+
+// The single source for what Claude writes: the tool schema Claude is given is
 // generated from this, and the same schema validates what Claude sends back.
-export const AiNarrativeSchema = z.object({
+// The progress status is not in it - code computes that (progress-status.ts)
+// and Claude only explains it.
+export const ClaudeNarrativeSchema = z.object({
     headline: z
         .string()
         .describe(
@@ -10,7 +15,6 @@ export const AiNarrativeSchema = z.object({
         ),
     summary: z.string().describe('A brief, encouraging overall assessment of the period.'),
     progressiveOverload: z.object({
-        status: z.enum(['on_track', 'stalling', 'regressing', 'insufficient_data']),
         notes: z
             .string()
             .describe(
@@ -37,10 +41,15 @@ export const AiNarrativeSchema = z.object({
         .describe("One sentence summarizing this period's key takeaway, written for future reference next period."),
 })
 
-export type AiNarrative = z.infer<typeof AiNarrativeSchema>
+type ClaudeNarrative = z.infer<typeof ClaudeNarrativeSchema>
+
+// The saved report: Claude's text plus the status computed in code
+export type AiNarrative = Omit<ClaudeNarrative, 'progressiveOverload'> & {
+    progressiveOverload: ClaudeNarrative['progressiveOverload'] & { status: ProgressStatus }
+}
 
 // The tool API takes plain JSON Schema; the $schema dialect marker is not needed there
-const { $schema: _dialect, ...narrativeJsonSchema } = z.toJSONSchema(AiNarrativeSchema)
+const { $schema: _dialect, ...narrativeJsonSchema } = z.toJSONSchema(ClaudeNarrativeSchema)
 
 export const RECOMMENDATION_INPUT_SCHEMA = narrativeJsonSchema as {
     type: 'object'
