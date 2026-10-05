@@ -62,12 +62,12 @@ resource "aws_cloudwatch_metric_alarm" "ai_analysis_dlq_not_empty" {
 }
 
 # ---------- Alarm: requests are piling up and nobody is consuming them ----------
-# Three failed attempts take ~18 minutes with a 6-minute visibility timeout,
-# so 30 minutes means the worker isn't picking messages up at all
+# Three failed attempts take ~36 minutes with a 12-minute visibility timeout,
+# so an hour means the worker isn't picking messages up at all
 # (e.g. the event source mapping is disabled), not just retrying.
 resource "aws_cloudwatch_metric_alarm" "ai_analysis_queue_stuck" {
   alarm_name        = "gympro-ai-analysis-queue-stuck"
-  alarm_description = "A report request has waited over 30 minutes in gympro-ai-analysis-queue."
+  alarm_description = "A report request has waited over an hour in gympro-ai-analysis-queue."
 
   namespace   = "AWS/SQS"
   metric_name = "ApproximateAgeOfOldestMessage"
@@ -78,7 +78,7 @@ resource "aws_cloudwatch_metric_alarm" "ai_analysis_queue_stuck" {
   statistic           = "Maximum"
   period              = 300
   evaluation_periods  = 1
-  threshold           = 1800
+  threshold           = 3600
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
 

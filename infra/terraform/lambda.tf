@@ -15,7 +15,8 @@ resource "aws_lambda_function" "ai_worker" {
   filename         = data.archive_file.ai_worker_zip.output_path
   source_code_hash = data.archive_file.ai_worker_zip.output_base64sha256
 
-  timeout     = 60
+  # A Sonnet report takes ~35s; 120s leaves room for a slow response or an SDK retry
+  timeout     = 120
   memory_size = 256
 
   environment {

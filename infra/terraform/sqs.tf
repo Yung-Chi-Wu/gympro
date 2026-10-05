@@ -4,9 +4,9 @@ resource "aws_sqs_queue" "ai_analysis_queue" {
 
   # Once a worker picks up a message, other workers won't see it
   # again for this many seconds, preventing duplicate processing.
-  # AWS recommends at least 6x the Lambda timeout (60s) so a slow
+  # AWS recommends at least 6x the Lambda timeout (120s) so a slow
   # invocation isn't retried while it's still running.
-  visibility_timeout_seconds = 360
+  visibility_timeout_seconds = 720
 
   # Messages older than this are automatically discarded
   # to avoid unbounded buildup of stale tasks.

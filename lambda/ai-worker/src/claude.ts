@@ -132,9 +132,11 @@ export async function generateRecommendation(
 ): Promise<AiNarrative> {
     const client = await getClaudeClient()
 
+    const startedAt = Date.now()
     const response = await client.messages.create({
         model: 'claude-sonnet-4-6',
-        max_tokens: 2048,
+        // A full zh-TW report runs ~1,500 characters; 2048 left too little headroom
+        max_tokens: 4096,
         tools: [RECOMMENDATION_TOOL],
         tool_choice: { type: 'tool', name: 'submit_training_recommendation' },
         messages: [
@@ -144,6 +146,23 @@ export async function generateRecommendation(
             },
         ],
     })
+
+    // One JSON line per call so cost and latency can be queried in CloudWatch Logs Insights
+    console.log(
+        JSON.stringify({
+            event: 'claude_call',
+            model: response.model,
+            stopReason: response.stop_reason,
+            inputTokens: response.usage.input_tokens,
+            outputTokens: response.usage.output_tokens,
+            durationMs: Date.now() - startedAt,
+        })
+    )
+
+    // A truncated tool call would save an incomplete report — fail loudly instead
+    if (response.stop_reason === 'max_tokens') {
+        throw new Error(`Claude response hit max_tokens (${response.usage.output_tokens} output tokens)`)
+    }
 
     const toolUseBlock = response.content.find((block) => block.type === 'tool_use')
 
