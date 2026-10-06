@@ -4,7 +4,9 @@
 -- Prerequisite: create the auth user first in Supabase Dashboard >
 -- Authentication > Users > Add user, with email test-athlete@example.com
 -- and "Auto Confirm User" checked. Then run this file in the SQL Editor.
--- Re-running it wipes and re-seeds only this test user's data.
+-- Re-running it wipes and re-seeds only this test user's data. The user is
+-- looked up by that email alone; example.com is reserved for testing, so no
+-- real account can match it.
 --
 -- Three Mon–Sun weeks (2026-09-14, 09-21, 09-28), the same 4 sessions each week.
 -- Planted signals a correct report for the 2026-09-28 week should pick up:
@@ -16,7 +18,6 @@
 
 do $$
 declare
-  real_uid constant uuid := '7f3249b3-99f0-4f10-888b-a7e9a200a67c';
   test_uid uuid;
   ex_bench uuid; ex_ohp uuid; ex_tri uuid; ex_row uuid; ex_curl uuid; ex_squat uuid;
   w int;
@@ -26,9 +27,6 @@ begin
   select id into test_uid from auth.users where email = 'test-athlete@example.com';
   if test_uid is null then
     raise exception 'Create the auth user test-athlete@example.com first (Authentication > Users > Add user)';
-  end if;
-  if test_uid = real_uid then
-    raise exception 'Refusing to seed fake data into the real account';
   end if;
 
   -- Prefer the classic lift for each slot, fall back to any built-in exercise in that muscle group
