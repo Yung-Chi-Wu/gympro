@@ -29,7 +29,8 @@
     ],
     "expect": {
       "tools_forbidden": [
-        "remove_exercise_from_routine"
+        "remove_exercise_from_routine",
+        "propose_routine_change"
       ],
       "writes": [
         {

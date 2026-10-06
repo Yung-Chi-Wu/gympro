@@ -5,7 +5,7 @@ import { buildSystemPrompt } from '@/lib/ronnie/prompt'
 import { createSupabaseRonnieData } from '@/lib/ronnie/data'
 import { createRonnieExecutor } from '@/lib/ronnie/executor'
 import { runRonnieTurn } from '@/lib/ronnie/agent'
-import { localDateStr } from '@/lib/ronnie/time'
+import { dateGuide } from '@/lib/ronnie/time'
 
 // Ronnie lives in lib/ronnie so the eval can run the same agent against fixture
 // data; this route only authenticates and wires it to the user's Supabase data.
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
         todayRoutineName,
         weightUnit: profile?.weight_unit ?? 'kg',
         timezone: userTimezone,
-        todayDate: localDateStr(new Date(), userTimezone),
+        dates: dateGuide(new Date(), userTimezone),
     }
 
     const systemPrompt = buildSystemPrompt(language, userContext)
@@ -62,6 +62,8 @@ export async function POST(request: Request) {
         return NextResponse.json({
             message: turn.message,
             reloadDashboard: turn.reloadDashboard,
+            // Permanent routine changes waiting for the user's Confirm
+            pendingActions: executor.proposals.map((p) => ({ id: p.id, exerciseName: p.exerciseName, routineNames: p.routineNames })),
         })
     } catch (err) {
         console.error('Ronnie error:', err)

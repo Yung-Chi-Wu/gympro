@@ -1,9 +1,14 @@
-import type { RonnieData } from './data'
+import type { RonnieData, RoutineProposal } from './data'
+import { searchLibrary } from './search'
 import { localDateStr, localDateToUtcRange } from './time'
 
-// Ronnie's tool implementations, moved from app/api/ai/coach/route.ts. All
-// reads and writes go through RonnieData; the text returned to the model is
-// unchanged.
+// Ronnie's tool implementations. All reads and writes go through RonnieData.
+// Results carry exercise IDs wherever an exercise is listed, so the model never
+// has to guess one, and numbers (totals, counts) are computed here, not by the model.
+
+const MUSCLE_ZH: Record<string, string> = {
+    chest: '胸', back: '背', shoulders: '肩', biceps: '二頭', triceps: '三頭', legs: '腿', glutes: '臀', core: '核心',
+}
 
 export interface RonnieExecutorContext {
     data: RonnieData
@@ -17,6 +22,8 @@ export interface RonnieExecutor {
     executeTool(toolName: string, toolInput: Record<string, string>): Promise<string>
     /** True once a tool changed today's workout or a routine, so the dashboard should reload. */
     readonly needsDashboardReload: boolean
+    /** Routine changes proposed this turn, for the app to show Confirm buttons. */
+    readonly proposals: (RoutineProposal & { id: string })[]
 }
 
 export function createRonnieExecutor({
@@ -28,6 +35,10 @@ export function createRonnieExecutor({
 }: RonnieExecutorContext): RonnieExecutor {
     // 簡單 flag 追蹤是否需要 reload
     let needsDashboardReload = false
+    const proposals: (RoutineProposal & { id: string })[] = []
+    const zh = language === 'zh-TW'
+    const nameOf = (ex: { name: string; name_zh_tw: string | null } | null | undefined) =>
+        (zh && ex?.name_zh_tw ? ex.name_zh_tw : ex?.name) ?? 'Unknown'
 
     async function executeTool(toolName: string, toolInput: Record<string, string>): Promise<string> {
 
@@ -49,42 +60,59 @@ export function createRonnieExecutor({
                     : `"${routine.name}" has no exercises`
             }
 
-            const zh = language === 'zh-TW'
-            const list = exercises.map((ex) => {
-                const name = zh && ex.exercises?.name_zh_tw
-                    ? ex.exercises.name_zh_tw : ex.exercises?.name ?? 'Unknown'
-                return `${name}: ${ex.target_sets ?? '?'}組 × ${ex.target_reps ?? '?'}下`
-            }).join('\n')
+            const list = exercises.map((ex) =>
+                `ID: ${ex.exercise_id} | ${nameOf(ex.exercises)}: ${ex.target_sets ?? '?'}組 × ${ex.target_reps ?? '?'}下`
+            ).join('\n')
 
             return zh
                 ? `「${routine.name}」的動作：\n${list}`
                 : `"${routine.name}" exercises:\n${list}`
         }
 
-        if (toolName === 'remove_exercise_from_routine') {
-            // 從所有課表移除這個動作
-            const routineIds = await data.getUserRoutineIds()
-
-            if (!routineIds.length) {
-                return language === 'zh-TW' ? '你沒有固定課表' : 'No routines found'
+        if (toolName === 'propose_routine_change') {
+            // Permanent: only proposed here. The app executes it after the user taps Confirm.
+            const exercise = (await data.listExercises()).find((e) => e.id === toolInput.exercise_id)
+            if (!exercise) {
+                return zh ? '這個動作 ID 不存在，請先用 search_exercises 查詢' : 'Unknown exercise ID - look it up with search_exercises first'
             }
-
-            const error = await data.deleteExerciseFromRoutines(routineIds, toolInput.exercise_id)
-
-            if (error) return language === 'zh-TW' ? `移除失敗：${error}` : `Failed: ${error}`
-            needsDashboardReload = true
-            return language === 'zh-TW'
-                ? `✓ 已將「${toolInput.exercise_name}」從所有固定課表永久移除`
-                : `✓ Permanently removed "${toolInput.exercise_name}" from all your routines`
+            let routines = await data.findRoutinesWithExercise(exercise.id)
+            if (toolInput.routine_name) {
+                const wanted = toolInput.routine_name.toLowerCase()
+                routines = routines.filter((r) => r.name.toLowerCase().includes(wanted))
+            }
+            const exerciseName = nameOf(exercise)
+            if (!routines.length) {
+                const where = toolInput.routine_name ? `「${toolInput.routine_name}」` : (zh ? '任何固定課表' : 'any routine')
+                return zh ? `「${exerciseName}」不在${where}裡，不需要修改` : `"${exerciseName}" is not in ${where}; nothing to change`
+            }
+            const proposal: RoutineProposal = {
+                change: 'remove_exercise',
+                exerciseId: exercise.id,
+                exerciseName,
+                routineIds: routines.map((r) => r.id),
+                routineNames: routines.map((r) => r.name),
+            }
+            const saved = await data.createProposal(proposal)
+            if ('error' in saved) return zh ? `提議建立失敗：${saved.error}` : `Failed to create the proposal: ${saved.error}`
+            proposals.push({ ...proposal, id: saved.id })
+            const names = proposal.routineNames.map((n) => `「${n}」`).join(zh ? '、' : ', ')
+            return zh
+                ? `已提出提議：從${names}移除「${exerciseName}」。使用者在 app 裡按「確認」後才會生效，現在還沒有任何改變。`
+                : `Proposed: remove "${exerciseName}" from ${names}. Nothing has changed yet - it takes effect only after the user taps Confirm in the app.`
         }
 
         if (toolName === 'search_exercises') {
-            const results = await data.searchExercises(toolInput.query, toolInput.muscle_group)
-            if (!results?.length) return language === 'zh-TW' ? '找不到符合的動作' : 'No exercises found'
-            return results.map((ex) => {
-                const name = language === 'zh-TW' && ex.name_zh_tw ? ex.name_zh_tw : ex.name
-                return `ID: ${ex.id} | ${name} (${ex.muscle_group})`
-            }).join('\n')
+            const { exercises: results, exact } = searchLibrary(await data.listExercises(), toolInput.query, toolInput.muscle_group)
+            if (!results.length) {
+                return zh
+                    ? '找不到符合的動作。可以換個說法再查（英文或中文、較短的關鍵字，或用 muscle_group）'
+                    : 'No exercises found. Try other wording (English or Chinese, a shorter keyword, or a muscle_group)'
+            }
+            const lines = results.map((ex) => `ID: ${ex.id} | ${nameOf(ex)} (${ex.muscle_group})`).join('\n')
+            if (exact) return lines
+            return zh
+                ? `動作庫裡沒有完全符合「${toolInput.query}」的動作，以下是最接近的：\n${lines}`
+                : `No exercise in the library matches "${toolInput.query}" exactly. Closest matches:\n${lines}`
         }
 
         if (toolName === 'get_workout_history') {
@@ -124,12 +152,10 @@ export function createRonnieExecutor({
                 const todaySets = await data.getSets([workout.id])
 
                 const exercises = (workout.workout_planned_exercises ?? []).map((pe) => {
-                    const exName = language === 'zh-TW' && pe.exercises?.name_zh_tw
-                        ? pe.exercises.name_zh_tw : pe.exercises?.name ?? 'Unknown'
                     const sets = (todaySets ?? [])
                         .filter((s) => s.exercise_id === pe.exercise_id)
                         .map((s) => `${s.reps}×${s.weight_kg}kg`).join(', ')
-                    return `${exName}: ${sets || (language === 'zh-TW' ? '尚未記錄' : 'no sets yet')}`
+                    return `ID: ${pe.exercise_id} | ${nameOf(pe.exercises)}: ${sets || (zh ? '尚未記錄' : 'no sets yet')}`
                 }).join('\n')
                 return exercises || (language === 'zh-TW' ? '今天課表是空的' : 'No exercises today')
             }
@@ -140,12 +166,9 @@ export function createRonnieExecutor({
                 const routineExercises = await data.getRoutinePlan(routineId)
 
                 if (routineExercises?.length) {
-                    const zh = language === 'zh-TW'
-                    const list = routineExercises.map((re) => {
-                        const exName = zh && re.exercises?.name_zh_tw
-                            ? re.exercises.name_zh_tw : re.exercises?.name ?? 'Unknown'
-                        return `${exName}: ${re.target_sets ?? '?'}組 × ${re.target_reps ?? '?'}下（計畫）`
-                    }).join('\n')
+                    const list = routineExercises.map((re) =>
+                        `ID: ${re.exercise_id} | ${nameOf(re.exercises)}: ${re.target_sets ?? '?'}組 × ${re.target_reps ?? '?'}下（計畫）`
+                    ).join('\n')
                     return zh
                         ? `今天課表「${todayRoutineName}」（尚未開始記錄）：\n${list}`
                         : `Today's routine "${todayRoutineName}" (not started):\n${list}`
@@ -174,22 +197,100 @@ export function createRonnieExecutor({
             console.log('workoutId:', workoutId)
             if (!workoutId) return language === 'zh-TW' ? '建立今日訓練失敗' : 'Failed to create workout'
 
-            const error = await data.removePlannedExercise(workoutId, toolInput.exercise_id)
+            const { error, removed } = await data.removePlannedExercise(workoutId, toolInput.exercise_id)
 
             if (error) return language === 'zh-TW' ? `移除失敗：${error}` : `Failed: ${error}`
+            // Deleting by an unknown id removes nothing - report that instead of a false success
+            if (!removed) {
+                return zh
+                    ? '今天的課表裡沒有這個動作 ID，沒有移除任何東西。請用 get_today_workout 取得正確的 ID'
+                    : "That exercise ID is not in today's workout, so nothing was removed. Get the right ID from get_today_workout"
+            }
             needsDashboardReload = true
             return language === 'zh-TW'
                 ? `✓ 已將「${toolInput.exercise_name}」從今天課表移除（不影響固定課表）`
                 : `✓ Removed "${toolInput.exercise_name}" from today only (routine unchanged)`
         }
 
+        if (toolName === 'get_training_summary') {
+            return trainingSummary(toolInput.date_from, toolInput.date_to)
+        }
+
         return 'Tool not found'
+    }
+
+    // Weekly totals (Monday to Sunday) computed here, so the model never does the arithmetic
+    async function trainingSummary(dateFrom: string, dateTo: string): Promise<string> {
+        const workouts = await data.getWorkoutsBetween(
+            localDateToUtcRange(dateFrom, timeZone).start,
+            localDateToUtcRange(dateTo, timeZone).end
+        )
+        const sets = workouts.length ? await data.getSets(workouts.map((w) => w.id)) : []
+        const trained = workouts.filter((w) => sets.some((s) => s.workout_id === w.id))
+        if (!trained.length) return zh ? '這段期間沒有訓練記錄' : 'No workouts found'
+
+        const library = new Map((await data.listExercises()).map((e) => [e.id, e]))
+        const mondayOf = (iso: string) => {
+            const d = new Date(`${iso}T00:00:00Z`)
+            d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7))
+            return d.toISOString().slice(0, 10)
+        }
+        const addDays = (iso: string, n: number) => {
+            const d = new Date(`${iso}T00:00:00Z`)
+            d.setUTCDate(d.getUTCDate() + n)
+            return d.toISOString().slice(0, 10)
+        }
+        const weeks = new Map<string, typeof trained>()
+        for (const w of trained) {
+            const key = mondayOf(localDateStr(new Date(w.performed_at), timeZone))
+            weeks.set(key, [...(weeks.get(key) ?? []), w])
+        }
+
+        let bodyweightSets = false
+        const describe = (label: string, group: typeof trained) => {
+            const groupSets = sets.filter((s) => group.some((w) => w.id === s.workout_id))
+            const volume = groupSets.reduce((sum, s) => sum + s.reps * s.weight_kg, 0)
+            if (groupSets.some((s) => s.weight_kg === 0)) bodyweightSets = true
+            const muscles = new Map<string, { sets: number; sessions: Set<string> }>()
+            const best = new Map<string, { reps: number; weight_kg: number }>()
+            for (const st of groupSets) {
+                const muscle = library.get(st.exercise_id)?.muscle_group ?? 'other'
+                const m = muscles.get(muscle) ?? { sets: 0, sessions: new Set<string>() }
+                m.sets++
+                m.sessions.add(st.workout_id)
+                muscles.set(muscle, m)
+                const b = best.get(st.exercise_id)
+                if (!b || st.weight_kg > b.weight_kg || (st.weight_kg === b.weight_kg && st.reps > b.reps)) best.set(st.exercise_id, st)
+            }
+            const muscleText = [...muscles].map(([m, v]) => zh
+                ? `${MUSCLE_ZH[m] ?? m} ${v.sets} 組（${v.sessions.size} 次）`
+                : `${m} ${v.sets} sets (${v.sessions.size} sessions)`).join(zh ? '、' : ', ')
+            const bestText = [...best].map(([id, b]) => `${nameOf(library.get(id))} ${b.weight_kg}kg × ${b.reps}`).join(zh ? '、' : ', ')
+            const kg = Math.round(volume).toLocaleString('en-US')
+            return zh
+                ? `${label}：訓練 ${group.length} 次，共 ${groupSets.length} 組，總訓練量 ${kg} kg\n  各肌群：${muscleText}\n  最佳組：${bestText}`
+                : `${label}: ${group.length} sessions, ${groupSets.length} sets, volume ${kg} kg\n  By muscle group: ${muscleText}\n  Best sets: ${bestText}`
+        }
+
+        const sections = [...weeks.keys()].sort().map((monday) => {
+            // Clip the week to the requested range, so a partial week says so
+            const from = monday < dateFrom ? dateFrom : monday
+            const sunday = addDays(monday, 6)
+            const to = sunday > dateTo ? dateTo : sunday
+            return describe(zh ? `${from} ～ ${to}` : `${from} to ${to}`, weeks.get(monday)!)
+        })
+        if (weeks.size > 1) sections.push(describe(zh ? `合計 ${dateFrom} ～ ${dateTo}` : `Total ${dateFrom} to ${dateTo}`, trained))
+        if (bodyweightSets) sections.push(zh ? '（徒手動作重量記為 0，不計入訓練量）' : '(Bodyweight sets are logged at 0 kg and add nothing to volume)')
+        return sections.join('\n\n')
     }
 
     return {
         executeTool,
         get needsDashboardReload() {
             return needsDashboardReload
+        },
+        get proposals() {
+            return proposals
         },
     }
 }

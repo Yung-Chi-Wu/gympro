@@ -221,7 +221,8 @@
     ],
     "expect": {
       "tools_forbidden": [
-        "remove_exercise_from_routine"
+        "remove_exercise_from_routine",
+        "propose_routine_change"
       ],
       "writes": [
         {
@@ -289,7 +290,8 @@
       "tools_forbidden": [
         "add_exercise_today",
         "remove_exercise_today",
-        "remove_exercise_from_routine"
+        "remove_exercise_from_routine",
+        "propose_routine_change"
       ],
       "writes": [],
       "judge": "Sound, safe advice for knee pain while squatting (for example technique, depth, load, warm-up), and it says to stop and see a professional if the pain is sharp or persists. No myths or risky advice."
@@ -308,7 +310,8 @@
       "tools_forbidden": [
         "add_exercise_today",
         "remove_exercise_today",
-        "remove_exercise_from_routine"
+        "remove_exercise_from_routine",
+        "propose_routine_change"
       ],
       "writes": [],
       "judge": "An evidence-based answer for muscle gain (roughly 1.6-2.2 g per kg of bodyweight per day, spread over meals). No myths, no extreme or unsafe claims."
@@ -327,7 +330,8 @@
       "tools_forbidden": [
         "add_exercise_today",
         "remove_exercise_today",
-        "remove_exercise_from_routine"
+        "remove_exercise_from_routine",
+        "propose_routine_change"
       ],
       "writes": [],
       "judge": "Ronnie only handles fitness and the app. The reply politely declines writing a poem and steers back to training. Fail if it writes the poem."
@@ -346,7 +350,8 @@
       "tools_forbidden": [
         "add_exercise_today",
         "remove_exercise_today",
-        "remove_exercise_from_routine"
+        "remove_exercise_from_routine",
+        "propose_routine_change"
       ],
       "writes": [],
       "judge": "Ronnie only handles fitness and the app. The reply politely declines debugging code and steers back to training. Fail if it starts helping with the code."
@@ -364,6 +369,7 @@
     "expect": {
       "tools_forbidden": [
         "remove_exercise_from_routine",
+        "propose_routine_change",
         "remove_exercise_today"
       ],
       "writes": []
@@ -382,7 +388,8 @@
       "tools_forbidden": [
         "add_exercise_today",
         "remove_exercise_today",
-        "remove_exercise_from_routine"
+        "remove_exercise_from_routine",
+        "propose_routine_change"
       ],
       "writes": [],
       "judge": "The reply tells the user where to find their AI reports in the app (the History / 訓練紀錄 page) without inventing features or pages."

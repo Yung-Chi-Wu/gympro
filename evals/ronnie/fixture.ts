@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
-import type { PlannedExercise, RonnieData } from '../../lib/ronnie/data'
-import { localDateStr } from '../../lib/ronnie/time'
+import type { PlannedExercise, RonnieData, RoutineProposal } from '../../lib/ronnie/data'
+import { dateGuide, localDateStr } from '../../lib/ronnie/time'
 
 // One fictional user for the Ronnie eval. "Today" is Wednesday 2026-10-07 in
 // Taipei, day 1 (push) of a push/pull/legs cycle, with bench press already
@@ -121,8 +121,10 @@ interface SetRow {
 }
 
 /** A fresh copy of the fixture; one per eval case, shared across that case's turns. */
-export function createFixtureData(): { data: RonnieData; writes: FixtureWrite[] } {
+export function createFixtureData(): { data: RonnieData; writes: FixtureWrite[]; proposals: RoutineProposal[] } {
     const writes: FixtureWrite[] = []
+    // Proposals change nothing; they are recorded so the grader can see what was offered
+    const proposals: RoutineProposal[] = []
     const routineExercises = new Map(
         ROUTINES.map((r) => [r.id, ROUTINE_PLANS[r.name].map(([ex, sets, reps]) => ({ exercise_id: exerciseId(ex), target_sets: sets, target_reps: reps }))])
     )
@@ -165,7 +167,7 @@ export function createFixtureData(): { data: RonnieData; writes: FixtureWrite[] 
         async getRoutineExercises(routineId) {
             return (routineExercises.get(routineId) ?? []).map((re) => {
                 const e = EXERCISES.find((x) => x.id === re.exercise_id)!
-                return { target_sets: re.target_sets, target_reps: re.target_reps, exercises: { name: e.name, name_zh_tw: e.name_zh_tw, muscle_group: e.muscle_group } }
+                return { exercise_id: re.exercise_id, target_sets: re.target_sets, target_reps: re.target_reps, exercises: { name: e.name, name_zh_tw: e.name_zh_tw, muscle_group: e.muscle_group } }
             })
         },
         async getRoutinePlan(routineId) {
@@ -180,8 +182,11 @@ export function createFixtureData(): { data: RonnieData; writes: FixtureWrite[] 
         async getUserRoutineIds() {
             return ROUTINES.map((r) => r.id)
         },
-        async searchExercises(query, muscleGroup) {
-            return EXERCISES.filter((e) => (!query || ilike(e.name, query) || ilike(e.name_zh_tw, query)) && (!muscleGroup || e.muscle_group === muscleGroup)).slice(0, 10)
+        async findRoutinesWithExercise(id) {
+            return ROUTINES.filter((r) => (routineExercises.get(r.id) ?? []).some((re) => re.exercise_id === id))
+        },
+        async listExercises() {
+            return EXERCISES
         },
         async getWorkoutsBetween(startIso, endIso) {
             return workouts
@@ -208,8 +213,10 @@ export function createFixtureData(): { data: RonnieData; writes: FixtureWrite[] 
         },
         async removePlannedExercise(workoutId, id) {
             writes.push({ op: 'remove_today', exerciseId: id })
+            // Like a real DELETE, an id that isn't planned today removes nothing
+            const before = today.planned.length
             if (workoutId === today.id) today.planned = today.planned.filter((x) => x !== id)
-            return null
+            return { error: null, removed: before - today.planned.length }
         },
         async deleteExerciseFromRoutines(routineIds, id) {
             writes.push({ op: 'delete_from_routines', exerciseId: id, routineIds })
@@ -218,8 +225,12 @@ export function createFixtureData(): { data: RonnieData; writes: FixtureWrite[] 
             }
             return null
         },
+        async createProposal(proposal) {
+            proposals.push(proposal)
+            return { id: `proposal-${proposals.length}` }
+        },
     }
-    return { data, writes }
+    return { data, writes, proposals }
 }
 
 /** What the coach route puts in the system prompt for this user. */
@@ -229,5 +240,5 @@ export const FIXTURE_USER = {
     todayRoutineName: '推日',
     weightUnit: 'kg',
     timezone: FIXTURE_TIME_ZONE,
-    todayDate: '2026-10-07',
+    dates: dateGuide(FIXTURE_NOW, FIXTURE_TIME_ZONE),
 }

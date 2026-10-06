@@ -176,6 +176,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ronnie_pending_actions: {
+        Row: {
+          action: Json
+          created_at: string
+          expires_at: string
+          id: string
+          resolved_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          action: Json
+          created_at?: string
+          expires_at: string
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          action?: Json
+          created_at?: string
+          expires_at?: string
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       routine_exercises: {
         Row: {
           created_at: string

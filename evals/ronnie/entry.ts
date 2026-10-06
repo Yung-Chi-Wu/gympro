@@ -4,6 +4,7 @@ import { createRonnieExecutor } from '../../lib/ronnie/executor'
 import { runRonnieTurn, RONNIE_MODEL, type RonnieTurn } from '../../lib/ronnie/agent'
 import { getSecret } from '../../lambda/ai-worker/src/secrets'
 import { createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER, ROUTINES, type FixtureWrite } from './fixture'
+import type { RoutineProposal } from '../../lib/ronnie/data'
 
 // Bundled by `npm run eval:ronnie:build` into dist/ronnie.cjs for run-eval.mjs.
 // Runs the production Ronnie code (lib/ronnie) against the fixture user.
@@ -23,12 +24,13 @@ export interface ConversationResult {
     // writes: the changes made during that turn (an add before the user agreed shows up early)
     turns: (RonnieTurn & { user: string; writes: FixtureWrite[] })[]
     writes: FixtureWrite[]
+    proposals: RoutineProposal[]
 }
 
 /**
- * Plays the user's turns in order, the way RonnieWidget does: each request
- * carries the earlier turns as plain text only (tool calls and results are not
- * sent back), and the database state carries over between turns.
+ * Plays the user's turns in order. The history carries over between turns with
+ * tool calls and results included, as the server stores it, and so does the
+ * database state.
  */
 export async function runConversation({
     model = RONNIE_MODEL,
@@ -40,9 +42,9 @@ export async function runConversation({
     turns: string[]
 }): Promise<ConversationResult> {
     const anthropic = await getClient()
-    const { data, writes } = createFixtureData()
+    const { data, writes, proposals } = createFixtureData()
     const system = buildSystemPrompt(language, FIXTURE_USER)
-    const messages: Anthropic.MessageParam[] = []
+    let messages: Anthropic.MessageParam[] = []
     const results: ConversationResult['turns'] = []
 
     for (const user of turns) {
@@ -57,8 +59,8 @@ export async function runConversation({
         })
         const writesBefore = writes.length
         const turn = await runRonnieTurn({ client: anthropic, system, messages, executor, language, model })
-        messages.push({ role: 'assistant', content: turn.message })
+        messages = turn.messages
         results.push({ user, ...turn, writes: writes.slice(writesBefore) })
     }
-    return { system, turns: results, writes }
+    return { system, turns: results, writes, proposals }
 }
