@@ -91,6 +91,8 @@ export async function runRonnieTurn({
         }
     }
     const sorry = language === 'zh-TW' ? '抱歉，請再問一次。' : 'Sorry, please try again.'
+    // The model now and then ends a turn with no text at all; one fresh sample usually answers
+    let emptyRetries = 0
 
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
         // Out of tool rounds: one last call without tools, so the work done so far
@@ -108,6 +110,7 @@ export async function runRonnieTurn({
         servedModel = response.model
 
         if (response.stop_reason !== 'tool_use') {
+            if (!textOf(response.content).trim() && !lastRound && emptyRetries++ < 1) continue
             // end_turn, or a reply cut off by max_tokens: either way, answer with what there is
             return finish(response.content, sorry)
         }

@@ -48,7 +48,7 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
     },
     {
         name: 'add_exercise_today',
-        description: "Add an exercise to today's workout. Must use search_exercises first to get the ID.",
+        description: "Add an exercise to today's workout. Today only and easy to undo, so do it right away when the user asks - no need to confirm or question the choice. Get the ID with search_exercises first.",
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -60,7 +60,7 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
     },
     {
         name: 'remove_exercise_today',
-        description: "Remove an exercise from today's workout only. Does NOT affect the permanent routine.",
+        description: "Remove an exercise from today's workout only; the permanent routine is not affected. Today only, so do it right away when the user says they don't want to do it today - no need to confirm.",
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -72,7 +72,7 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
     },
     {
         name: 'recommend_exercise',
-        description: "Show the user one recommended exercise as a card with an 'Add to today' button they can tap. Use it whenever you recommend a specific exercise, with an ID from search_exercises; call it once per exercise when the user asked for options. It changes nothing by itself.",
+        description: "Show the user one recommended exercise as a card with an 'Add to today' button they can tap. Use it whenever you recommend a specific exercise, with an ID from search_exercises; call it once per exercise when the user asked for options. It changes nothing by itself. Not for explicit requests: when the user asks you to add a named exercise, add it with add_exercise_today.",
         input_schema: {
             type: 'object' as const,
             properties: {
