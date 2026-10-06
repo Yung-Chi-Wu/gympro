@@ -69,6 +69,7 @@ export function programmaticGrade(c, out, exercises) {
     if (exp.writes) {
         const problems = []
         let clarified = false
+        let alreadyPlanned = false
         const unmatched = [...actualWrites]
         for (const w of exp.writes) {
             let allowed
@@ -84,6 +85,16 @@ export function programmaticGrade(c, out, exercises) {
                     clarified = true
                     continue
                 }
+                // The recommended exercise is already in today's workout and the reply says so: nothing to add
+                const plannedToday = new Set(
+                    (out.turns[w.turn - 1]?.toolCalls ?? [])
+                        .filter((x) => x.name === 'get_today_workout')
+                        .flatMap((x) => [...String(x.result).matchAll(/ID: ([0-9a-f-]{36})/g)].map((m) => m[1]))
+                )
+                if (!wroteThisTurn && [...allowed].some((id) => plannedToday.has(id) && offered.has(id))) {
+                    alreadyPlanned = true
+                    continue
+                }
                 if (!allowed.size) problems.push(`第 ${w.turn - 1} 句回覆沒有推薦動作庫裡的任何動作`)
             } else allowed = new Set([idFor(w.exercise)])
             const i = unmatched.findIndex((a) => a.op === w.op && a.turn === w.turn && allowed.has(a.exerciseId))
@@ -93,7 +104,9 @@ export function programmaticGrade(c, out, exercises) {
         for (const a of unmatched) problems.push(`多做了：第 ${a.turn} 句${OP_ZH[a.op]}「${label(a.exerciseId)}」`)
         grade.writes_correct = problems.length ? 0 : 1
         explanation.writes_correct = problems.join('；')
-            || (clarified ? '推薦了不只一個動作，反問要加哪一個（合理）' : exp.writes.length ? '修改內容正確' : '沒有修改任何資料（正確）')
+            || (clarified ? '推薦了不只一個動作，反問要加哪一個（合理）'
+                : alreadyPlanned ? '推薦的動作本來就在今天的課表裡，回覆有說明（合理）'
+                : exp.writes.length ? '修改內容正確' : '沒有修改任何資料（正確）')
     } else grade.writes_correct = null
 
     if (actualWrites.length) {

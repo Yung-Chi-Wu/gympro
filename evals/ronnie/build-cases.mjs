@@ -70,7 +70,8 @@ const cases = [
         language: 'zh-TW',
         turns: ['比較我最近兩週每週的訓練量'],
         expect: {
-            tools_required: ['get_workout_history'],
+            // Totals come from the summary tool since 2c; adding up workout history by hand is what failed
+            tools_required: ['get_training_summary'],
             writes: [],
             judge: 'The reply actually compares the two weeks using numbers consistent with the tool results (sessions, sets or volume). It must not be an apology or a request to ask again, and must not invent figures.',
         },

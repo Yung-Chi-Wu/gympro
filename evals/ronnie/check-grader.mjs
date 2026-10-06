@@ -107,6 +107,16 @@ offeredQ.turns[0].message = 'Incline bench press is the king for upper chest.'
 offeredQ.turns[1].message = 'Do you want the Incline Barbell Press or the Incline Dumbbell Press?'
 check(programmaticGrade(enTwo, offeredQ, EXERCISES).grade.writes_correct === 1, 'a question offering two library exercises should count as clarifying')
 
+// Recommended exercise already in today's workout: saying so instead of adding passes,
+// but only when today's workout was actually checked and the reply names it
+const planned = structuredClone(asked)
+planned.turns[0].message = 'Try the Incline Dumbbell Press or the Incline Barbell Press.'
+planned.turns[1] = { ...planned.turns[1], toolCalls: [{ name: 'get_today_workout', input: {}, result: `ID: ${id('Incline Dumbbell Press')} | Incline Dumbbell Press: no sets yet` }], writes: [], message: 'Incline Dumbbell Press is already in today\'s workout!' }
+check(programmaticGrade(enTwo, planned, EXERCISES).grade.writes_correct === 1, 'already-planned recommendation should pass')
+const unchecked = structuredClone(planned)
+unchecked.turns[1].toolCalls = []
+check(programmatic_fail(enTwo, unchecked), 'claiming it is already planned without checking today should fail')
+
 // The English catchphrase must not make a Chinese reply count as English
 check(programmaticGrade(cases[0], { ...oracle(cases[0]), turns: oracle(cases[0]).turns.map((t) => ({ ...t, message: t.message + " Ain't nothin' but a peanut! 💪 衝吧 Alex！" })) }, EXERCISES).grade.language_correct === 1, 'catchphrase should not fail the language check')
 
