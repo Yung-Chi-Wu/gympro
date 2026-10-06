@@ -119,6 +119,13 @@ const unchecked = structuredClone(planned)
 unchecked.turns[1].toolCalls = []
 check(programmatic_fail(enTwo, unchecked), 'claiming it is already planned without checking today should fail')
 
+// Recommended through a card (short id in the tool call), then added on request: passes
+const carded = structuredClone(asked)
+carded.turns[0] = { ...carded.turns[0], toolCalls: [{ name: 'recommend_exercise', input: { exercise_id: id('Incline Barbell Press').slice(0, 8) }, result: 'ok' }], message: 'This one hits your upper chest best 💪' }
+carded.turns[1] = { ...carded.turns[1], toolCalls: [], writes: [{ op: 'add_today', exerciseId: id('Incline Barbell Press') }], message: 'Added!' }
+carded.writes = carded.turns.flatMap((t) => t.writes)
+check(overallPass(programmaticGrade(enTwo, carded, EXERCISES).grade) === 1, 'adding the exercise shown on the card should pass')
+
 // The English catchphrase must not make a Chinese reply count as English
 check(programmaticGrade(cases[0], { ...oracle(cases[0]), turns: oracle(cases[0]).turns.map((t) => ({ ...t, message: t.message + " Ain't nothin' but a peanut! 💪 衝吧 Alex！" })) }, EXERCISES).grade.language_correct === 1, 'catchphrase should not fail the language check')
 

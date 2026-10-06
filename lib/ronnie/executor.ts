@@ -24,6 +24,8 @@ export interface RonnieExecutor {
     readonly needsDashboardReload: boolean
     /** Routine changes proposed this turn, for the app to show Confirm buttons. */
     readonly proposals: (RoutineProposal & { id: string })[]
+    /** Exercises recommended this turn, for the app to show as cards with an Add button. */
+    readonly recommendations: { exerciseId: string; exerciseName: string }[]
 }
 
 // Exercise IDs are UUIDs, and the eval caught the model mis-copying one. Tool
@@ -41,6 +43,7 @@ export function createRonnieExecutor({
     // 簡單 flag 追蹤是否需要 reload
     let needsDashboardReload = false
     const proposals: (RoutineProposal & { id: string })[] = []
+    const recommendations: { exerciseId: string; exerciseName: string }[] = []
     const zh = language === 'zh-TW'
     const nameOf = (ex: { name: string; name_zh_tw: string | null } | null | undefined) =>
         (zh && ex?.name_zh_tw ? ex.name_zh_tw : ex?.name) ?? 'Unknown'
@@ -121,9 +124,10 @@ export function createRonnieExecutor({
             if ('error' in saved) return zh ? `提議建立失敗：${saved.error}` : `Failed to create the proposal: ${saved.error}`
             proposals.push({ ...proposal, id: saved.id })
             const names = proposal.routineNames.map((n) => `「${n}」`).join(zh ? '、' : ', ')
+            // The model echoes tool results, so hand it the wording: it kept opening with "Done!"
             return zh
-                ? `已提出提議：從${names}移除「${exerciseName}」。使用者在 app 裡按「確認」後才會生效，現在還沒有任何改變。`
-                : `Proposed: remove "${exerciseName}" from ${names}. Nothing has changed yet - it takes effect only after the user taps Confirm in the app.`
+                ? `已建立提議（尚未生效）：從${names}移除「${exerciseName}」。回覆使用者時說「已準備好，按確認後生效」，不要說完成或搞定。`
+                : `Proposal created, not applied yet: remove "${exerciseName}" from ${names}. Tell the user "Ready - tap Confirm to apply."; don't say it's done.`
         }
 
         if (toolName === 'search_exercises') {
@@ -237,6 +241,17 @@ export function createRonnieExecutor({
                 : `✓ Removed "${toolInput.exercise_name}" from today only (routine unchanged)`
         }
 
+        if (toolName === 'recommend_exercise') {
+            const exercise = (await data.listExercises()).find((e) => e.id === toolInput.exercise_id)
+            if (!exercise) {
+                return zh ? '這個動作 ID 不存在，請先用 search_exercises 查詢' : 'Unknown exercise ID - look it up with search_exercises first'
+            }
+            recommendations.push({ exerciseId: exercise.id, exerciseName: nameOf(exercise) })
+            return zh
+                ? `已顯示推薦卡片：「${nameOf(exercise)}」，使用者可以直接按「加入今天」，也可以叫你加入。`
+                : `Showing a recommendation card for "${nameOf(exercise)}"; the user can tap Add to today or ask you to add it.`
+        }
+
         if (toolName === 'get_training_summary') {
             return trainingSummary(toolInput.date_from, toolInput.date_to)
         }
@@ -316,6 +331,9 @@ export function createRonnieExecutor({
         },
         get proposals() {
             return proposals
+        },
+        get recommendations() {
+            return recommendations
         },
     }
 }

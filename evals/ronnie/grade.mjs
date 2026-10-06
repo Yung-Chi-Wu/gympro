@@ -77,7 +77,11 @@ export function programmaticGrade(c, out, exercises) {
         for (const w of exp.writes) {
             let allowed
             if (w.exercise === '$recommended') {
-                allowed = exercisesMentioned(out.turns[w.turn - 2]?.message, exercises)
+                // Named in the previous reply, or shown as a recommendation card (short ids are prefixes)
+                const carded = (out.turns[w.turn - 2]?.toolCalls ?? [])
+                    .filter((x) => x.name === 'recommend_exercise')
+                    .flatMap((x) => exercises.filter((e) => x.input?.exercise_id && e.id.startsWith(String(x.input.exercise_id).toLowerCase().slice(0, 8))).map((e) => e.id))
+                allowed = new Set([...exercisesMentioned(out.turns[w.turn - 2]?.message, exercises), ...carded])
                 // More than one was recommended, so "add it" is ambiguous and asking which one is right
                 // too. Recommended names aren't always library names ("incline bench press"), so a
                 // question that offers two or more library exercises also counts as clarifying.

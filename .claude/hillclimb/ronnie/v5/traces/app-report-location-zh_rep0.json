@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "我的 AI 報告在哪裡看？"
+  },
+  {
+    "role": "assistant",
+    "content": "AI 週報在「訓練紀錄」頁面！打開 GymPro APP，點進「訓練紀錄」就能看到系統自動生成的分析報告。💪\n\n有什麼想了解的部分嗎？"
+  }
+]

@@ -71,6 +71,18 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
         },
     },
     {
+        name: 'recommend_exercise',
+        description: "Show the user one recommended exercise as a card with an 'Add to today' button they can tap. Use it whenever you recommend a specific exercise, with an ID from search_exercises; call it once per exercise when the user asked for options. It changes nothing by itself.",
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                exercise_id: { type: 'string', description: 'Exercise ID exactly as shown by search_exercises' },
+                exercise_name: { type: 'string', description: 'Exercise name shown on the card' },
+            },
+            required: ['exercise_id', 'exercise_name'],
+        },
+    },
+    {
         name: 'get_training_summary',
         description: "Totals computed by the app for a date range, per week (Monday to Sunday): sessions, working sets, volume (kg x reps), sets and sessions per muscle group, and the best set per exercise. Use it for any count, total, average or comparison - never add up workout history yourself. Dates are YYYY-MM-DD in the user's time zone.",
         input_schema: {

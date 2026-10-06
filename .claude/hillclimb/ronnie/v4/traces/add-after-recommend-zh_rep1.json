@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個可以練後三角的動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle_group\":\"shoulders\",\"query\":\"後三角\"},\"result\":\"ID: 03810fd4 | 啞鈴後三角飛鳥 (shoulders)\\nID: 13841865 | 肩推 (shoulders)\\nID: 65d4104b | 側平舉 (shoulders)\\nID: cd6e3284 | 臉拉 (shoulders)\\nID: 7fb35f03 | 反向飛鳥機 (shoulders)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "根據你的推日課表，我最推薦啞鈴後三角飛鳥或反向飛鳥機 💪。\n\n啞鈴後三角飛鳥可以給你更多自由度和深層刺激，反向飛鳥機則更好控制、適合高重量。你想試試哪一個？"
+  },
+  {
+    "role": "user",
+    "content": "好，幫我加進今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | 槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | 上斜啞鈴臥推: 尚未記錄\\nID: 13841865 | 肩推: 尚未記錄\\nID: 697409e4 | 三頭下壓: 尚未記錄\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "你今天的推日課表已經有肩推了，啞鈴後三角飛鳥會放在哪個位置？要加在最後面，還是要調整課表結構？"
+  }
+]

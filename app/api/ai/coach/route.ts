@@ -52,7 +52,6 @@ export async function POST(request: Request) {
         weightUnit: profile?.weight_unit ?? 'kg',
         timezone: userTimezone,
         dates: dateGuide(new Date(), userTimezone),
-        library: await data.listExercises(),
     }
 
     const systemPrompt = buildSystemPrompt(language, userContext)
@@ -65,6 +64,8 @@ export async function POST(request: Request) {
             reloadDashboard: turn.reloadDashboard,
             // Permanent routine changes waiting for the user's Confirm
             pendingActions: executor.proposals.map((p) => ({ id: p.id, exerciseName: p.exerciseName, routineNames: p.routineNames })),
+            // Recommendation cards with an Add to today button
+            recommendations: executor.recommendations,
         })
     } catch (err) {
         console.error('Ronnie error:', err)

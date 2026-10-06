@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "Can you help me debug my Python code?"
+  },
+  {
+    "role": "assistant",
+    "content": "That's outside my wheelhouse, Alex. I'm here for your fitness training, routines, workout history, and technique questions—not coding! 💪\n\nLet's get back to crushing your goal: 100 kg bench press in 3 months. What's on the agenda today?"
+  }
+]

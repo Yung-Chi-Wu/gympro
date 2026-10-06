@@ -1,0 +1,38 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個可以練後三角的動作"
+  },
+  {
+    "role": "assistant",
+    "content": "後三角是打造飽滿肩膀的關鍵，我推薦幾個經典動作給你：\n\n1. 啞鈴反向飛鳥（Dumbbell Reverse Pec Deck Fly）- 孤立性強，很容易感受到後三角的收縮\n2. 槓鈴划船（Barbell Row）- 如果用寬握且上身更直立的姿勢，後三角參與度會更高\n3. 臉部拉力（Face Pull）- 用繩索滑輪做，對後三角刺激非常棒，而且對肩膀健康也有幫助\n\n你目前課表裡有練後三角嗎？要我查一下今天或固定課表的內容嗎？💪"
+  },
+  {
+    "role": "user",
+    "content": "好，幫我加進今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"臉部拉力\"},\"result\":\"找不到符合的動作。可以換個說法再查（英文或中文、較短的關鍵字，或用 muscle_group）\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"反向飛鳥\"},\"result\":\"ID: 7fb35f03 | 反向飛鳥機 (shoulders)\\nID: a726ab1a | 低位繩索飛鳥 (chest)\\nID: 03810fd4 | 啞鈴後三角飛鳥 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | 槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | 上斜啞鈴臥推: 尚未記錄\\nID: 13841865 | 肩推: 尚未記錄\\nID: 697409e4 | 三頭下壓: 尚未記錄\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"03810fd4\",\"exercise_name\":\"啞鈴後三角飛鳥\"},\"result\":\"✓ 已將「啞鈴後三角飛鳥」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "搞定！已經把啞鈴後三角飛鳥加進今天課表了 ✅ 建議放在肩推之後練，這樣可以先練多關節，再孤立後三角。"
+  }
+]

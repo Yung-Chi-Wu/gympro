@@ -1,0 +1,1 @@
+v4 plus: the exercise library (names by muscle group, no ids) in the system prompt, and principle 3 = recommend only library exercises, the single best one unless asked for options. Model claude-haiku-4-5.

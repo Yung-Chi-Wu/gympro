@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個可以練後三角的動作"
+  },
+  {
+    "role": "assistant",
+    "content": "根據妳的推日課表，我推薦「反向飛鳥機」💪\n\n這個動作是後三角的經典選擇，動作穩定、好控制，而且能有效孤立後三角肌。如果妳想要更多選擇，我還有「臉拉」和「啞鈴後三角飛鳥」可以考慮。\n\n要加到今天的課表裡嗎？"
+  },
+  {
+    "role": "user",
+    "content": "好，幫我加進今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"反向飛鳥機\"},\"result\":\"ID: 7fb35f03 | 反向飛鳥機 (shoulders)\\nID: a726ab1a | 低位繩索飛鳥 (chest)\\nID: 03810fd4 | 啞鈴後三角飛鳥 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"7fb35f03\",\"exercise_name\":\"反向飛鳥機\"},\"result\":\"✓ 已將「反向飛鳥機」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "完成 ✅ 反向飛鳥機已經加到今天的推日課表裡！Ain't nothin' but a peanut!"
+  }
+]

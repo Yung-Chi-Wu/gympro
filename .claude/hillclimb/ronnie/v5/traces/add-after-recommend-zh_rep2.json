@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個可以練後三角的動作"
+  },
+  {
+    "role": "assistant",
+    "content": "根據你的動作庫，我推薦「反向飛鳥機」，這是練後三角最直接、最安全的選擇 💪\n\n要加到今天的課表裡嗎？還是想看看其他選項？"
+  },
+  {
+    "role": "user",
+    "content": "好，幫我加進今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"反向飛鳥機\"},\"result\":\"ID: 7fb35f03 | 反向飛鳥機 (shoulders)\\nID: a726ab1a | 低位繩索飛鳥 (chest)\\nID: 03810fd4 | 啞鈴後三角飛鳥 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"7fb35f03\",\"exercise_name\":\"反向飛鳥機\"},\"result\":\"✓ 已將「反向飛鳥機」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "反向飛鳥機已經加入今天的推日課表了，開始練吧！"
+  }
+]
