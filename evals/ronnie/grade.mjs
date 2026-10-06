@@ -110,7 +110,7 @@ export function programmaticGrade(c, out, exercises) {
 
     if (exp.history_range) {
         const { cover: [from, to], earliest, latest } = exp.history_range
-        const ranges = calls.filter((x) => x.name === 'get_workout_history').map((x) => [x.input.date_from, x.input.date_to])
+        const ranges = calls.filter((x) => x.input?.date_from && x.input?.date_to).map((x) => [x.input.date_from, x.input.date_to])
         const ok = ranges.some(([a, b]) => a <= from && b >= to && a >= earliest && b <= latest)
         grade.date_range = ok ? 1 : 0
         explanation.date_range = `應涵蓋 ${from}～${to}（範圍在 ${earliest}～${latest} 內）；實際查詢：${ranges.map(([a, b]) => `${a}～${b}`).join('、') || '（沒有查）'}`

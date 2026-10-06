@@ -12,7 +12,8 @@ import { exercisesMentioned, overallPass, programmaticGrade } from './grade.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const { EXERCISES } = createRequire(import.meta.url)(join(here, 'dist', 'ronnie.cjs'))
-const cases = JSON.parse(readFileSync(join(here, 'cases.json'), 'utf8'))
+// The held-out cases are graded by the same rules, so their oracles are checked too
+const cases = ['cases.json', 'cases-holdout.json'].flatMap((f) => JSON.parse(readFileSync(join(here, f), 'utf8')))
 const id = (name) => EXERCISES.find((e) => e.name === name).id
 const OP_TOOL = { add_today: 'add_exercise_today', remove_today: 'remove_exercise_today', delete_from_routines: 'remove_exercise_from_routine' }
 // What an ideal reply names when a case says "add what you recommended"
@@ -32,6 +33,10 @@ function oracle(c) {
             ? { date_from: exp.history_range.cover[0], date_to: exp.history_range.cover[1] }
             : {}
         last.toolCalls.push({ name, input, result: 'ok' })
+    }
+    // A case may grade a date range without naming the tool; the ideal agent still queries it
+    if (exp.history_range && !last.toolCalls.some((x) => x.input.date_from)) {
+        last.toolCalls.push({ name: 'get_workout_history', input: { date_from: exp.history_range.cover[0], date_to: exp.history_range.cover[1] }, result: 'ok' })
     }
     for (const w of exp.writes ?? []) {
         let exerciseId

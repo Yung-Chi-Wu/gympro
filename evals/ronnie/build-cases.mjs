@@ -213,6 +213,61 @@ const cases = [
     },
 ]
 
+// Held out: written before the 2c fixes and never run while tuning. Run only for
+// final acceptance (RONNIE_CASES=holdout), to check the fixes generalise beyond
+// the 20 cases above. Same rules as above, different wording and situations.
+const holdout = [
+    {
+        id: 'holdout-month-legs-zh',
+        language: 'zh-TW',
+        turns: ['這個月我練了幾次腿？'],
+        expect: {
+            writes: [],
+            history_range: { cover: ['2026-10-01', '2026-10-07'], earliest: '2026-10-01', latest: '2026-10-31' },
+            judge: 'This month (October 2026, up to today 10-07) the user trained legs once, on 10-06; 10-03 was a planned leg day that was skipped. The reply must give that count from the tool results, without inventing sessions.',
+        },
+        why: '「這個月」是 10/1 起；10 月只練了一次腿（10/6），10/3 那次沒練。',
+    },
+    {
+        id: 'holdout-swap-today-en',
+        language: 'en',
+        turns: ["Swap today's overhead press for lateral raises."],
+        expect: {
+            tools_forbidden: ['remove_exercise_from_routine'],
+            writes: [{ op: 'remove_today', exercise: 'Overhead Press', turn: 1 }, { op: 'add_today', exercise: 'Lateral Raise', turn: 1 }],
+        },
+        why: '只改今天：移除肩推、加入側平舉，固定課表不動。',
+    },
+    {
+        id: 'holdout-remove-from-routine-zh',
+        language: 'zh-TW',
+        turns: ['把三頭下壓從推日的固定課表拿掉'],
+        expect: {
+            writes: [],
+            confirm: true,
+            judge: 'Taking triceps pushdowns out of the push-day routine is a permanent change, so the reply must ask the user to confirm (or present the change for confirmation) before doing it. Fail if it says the change is already done, refuses, or only tells the user to edit the routine themselves.',
+        },
+        why: '改固定課表是永久修改，要先問你。',
+    },
+    {
+        id: 'holdout-core-recommend-add-zh',
+        language: 'zh-TW',
+        turns: ['推薦一個不用器材的核心動作', '可以，加到今天的課表'],
+        expect: { writes: [{ op: 'add_today', exercise: '$recommended', turn: 2 }] },
+        why: '兩句對話：加入的要是剛才推薦的那個動作，ID 要正確。',
+    },
+    {
+        id: 'holdout-add-two-plural-en',
+        language: 'en',
+        turns: ["Add hammer curls and lateral raises to today's workout"],
+        expect: {
+            tools_required: ['search_exercises'],
+            writes: [{ op: 'add_today', exercise: 'Hammer Curl', turn: 1 }, { op: 'add_today', exercise: 'Lateral Raise', turn: 1 }],
+        },
+        why: '一次加兩個，而且都是複數寫法（動作庫裡是單數）。',
+    },
+]
+
 writeFileSync(join(here, 'cases.json'), JSON.stringify(cases.map(({ why, ...c }) => ({ ...c, meta: { why } })), null, 2) + '\n')
 
 const md = [
@@ -225,5 +280,8 @@ const md = [
     ...cases.map((c, i) => `| ${i + 1} | ${c.id} | ${c.turns.map((t) => `「${t}」`).join(' → ')} | ${c.why} |`),
     '',
 ]
+writeFileSync(join(here, 'cases-holdout.json'), JSON.stringify(holdout.map(({ why, ...c }) => ({ ...c, meta: { why } })), null, 2) + '\n')
+md.push('## 保留題（只在最後驗收時跑）', '', '| # | id | 對話 | 正確的做法 |', '|---|---|---|---|',
+    ...holdout.map((c, i) => `| H${i + 1} | ${c.id} | ${c.turns.map((t) => `「${t}」`).join(' → ')} | ${c.why} |`), '')
 writeFileSync(join(here, 'cases.md'), md.join('\n'))
-console.log(`wrote ${cases.length} cases to cases.json and cases.md`)
+console.log(`wrote ${cases.length} cases to cases.json, ${holdout.length} held-out cases to cases-holdout.json, and cases.md`)

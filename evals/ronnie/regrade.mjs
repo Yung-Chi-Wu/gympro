@@ -16,7 +16,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const { EXERCISES } = createRequire(import.meta.url)(join(here, 'dist', 'ronnie.cjs'))
 const [flow = '.claude/hillclimb/ronnie', variant = 'baseline'] = process.argv.slice(2)
 const vdir = join(flow, variant)
-const cases = new Map(JSON.parse(readFileSync(join(here, 'cases.json'), 'utf8')).map((c) => [c.id, c]))
+const cases = new Map(['cases.json', 'cases-holdout.json'].flatMap((f) => JSON.parse(readFileSync(join(here, f), 'utf8'))).map((c) => [c.id, c]))
 const WRITE_OPS = { add_exercise_today: 'add_today', remove_exercise_today: 'remove_today', remove_exercise_from_routine: 'delete_from_routines' }
 
 function rebuild(trace) {

@@ -150,8 +150,9 @@ function loadRonnie() {
 }
 
 /** Return the list of input cases. Each must have a stable `id`. */
+// RONNIE_CASES=holdout runs the held-out set, for final acceptance only
 async function loadCases() {
-  return JSON.parse(readFileSync(join(HERE, 'cases.json'), 'utf8'));
+  return JSON.parse(readFileSync(join(HERE, process.env.RONNIE_CASES === 'holdout' ? 'cases-holdout.json' : 'cases.json'), 'utf8'));
 }
 
 /** Play the case's user turns through Ronnie, the way the chat widget does. */
