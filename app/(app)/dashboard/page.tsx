@@ -4,11 +4,11 @@ import { getTranslations } from 'next-intl/server'
 import { getEffectiveLanguage } from '@/lib/get-language'
 import { RecommendationPanel } from '@/components/RecommendationPanel'
 import { TodayWorkoutCard } from '@/components/TodayWorkoutCard'
-import { PeriodCheckInCard } from '@/components/PeriodCheckInCard'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import { DashboardClientShell } from '@/components/DashboardClientShell'
+import { currentPeriod } from '@/lib/periods'
 
 export interface TodayExercise {
   exerciseId: string
@@ -86,6 +86,10 @@ export default async function DashboardPage() {
   const weightUnit = (profile?.weight_unit as WeightUnit) ?? 'kg'
 
   const hasCycle = !!cycle
+  const period = currentPeriod(
+    timezone,
+    cycle ? { cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null
+  )
   const todayParts = getLocalDateParts(timezone)
   const { startOfDay, endOfDay } = getTodayRangeUtc(todayParts, timezone)
 
@@ -93,7 +97,7 @@ export default async function DashboardPage() {
   let routineIdForToday: string | null = null
   let isRestDay = false
 
-  const [cycleDayResult, existingWorkoutResult] = await Promise.all([
+  const [cycleDayResult, existingWorkoutResult, periodNoteResult] = await Promise.all([
     cycle
       ? (() => {
         const daysSinceStart = daysBetween(cycle.start_date, todayParts)
@@ -117,6 +121,14 @@ export default async function DashboardPage() {
       .order('performed_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
+    period
+      ? supabase
+        .from('period_notes')
+        .select('note')
+        .eq('user_id', user.id)
+        .eq('period_start', period.periodStart)
+        .maybeSingle()
+      : Promise.resolve({ data: null }),
   ])
 
   routineIdForToday = cycleDayResult.data?.routine_id ?? null
@@ -212,6 +224,8 @@ export default async function DashboardPage() {
             weightUnit={weightUnit}
             routineName={routineName}
             latestWeightKg={latestWeightKg}
+            period={period}
+            periodNote={periodNoteResult.data?.note ?? ''}
           />
 
           {/* 桌面版 AI 報告 */}

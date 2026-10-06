@@ -16,7 +16,7 @@ import {
 } from 'recharts'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
-import { getReportPdfUrl } from '@/app/(app)/dashboard/pdf-actions'
+import { retryFailedReport } from '@/app/(app)/dashboard/period-actions'
 import type { AiRecommendation } from './types'
 
 interface RecommendationPanelProps {
@@ -45,7 +45,9 @@ export function RecommendationPanel({ userId, language }: RecommendationPanelPro
     const [status, setStatus] = useState<Status>('idle')
     const [recommendation, setRecommendation] = useState<AiRecommendation | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [latestPeriodStart, setLatestPeriodStart] = useState<string | null>(null)
+    const [periodStart, setPeriodStart] = useState<string | null>(null)
+    const [retrying, setRetrying] = useState(false)
+    const [retryError, setRetryError] = useState<string | null>(null)
     const [strengthHistory, setStrengthHistory] = useState<StrengthHistoryPoint[]>([])
     const [muscleGroupsInHistory, setMuscleGroupsInHistory] = useState<string[]>([])
 
@@ -61,7 +63,7 @@ export function RecommendationPanel({ userId, language }: RecommendationPanelPro
         if (!data) return
 
         setStatus(data.status as Status)
-        setLatestPeriodStart(data.period_start)
+        setPeriodStart(data.period_start)
         if (data.status === 'completed') {
             setRecommendation(data.recommendation as unknown as AiRecommendation)
         }
@@ -106,10 +108,24 @@ export function RecommendationPanel({ userId, language }: RecommendationPanelPro
         }
     }, [status, loadStrengthHistory])
 
+    async function handleRetry() {
+        if (!periodStart) return
+        setRetrying(true)
+        setRetryError(null)
+        const result = await retryFailedReport(periodStart)
+        setRetrying(false)
+        if (!result.success) setRetryError(result.message ?? null)
+        // On success the row is 'pending' again, which restarts the polling below
+        await checkStatus()
+    }
+
+    // The worker finishes in seconds, but nothing pushes its result back to
+    // the browser — keep checking until the report leaves 'pending'.
     useEffect(() => {
-        window.addEventListener('period-checkin-success', checkStatus)
-        return () => window.removeEventListener('period-checkin-success', checkStatus)
-    }, [checkStatus])
+        if (status !== 'pending') return
+        const timer = setInterval(checkStatus, 5000)
+        return () => clearInterval(timer)
+    }, [status, checkStatus])
 
     return (
         <div className="rounded-xl border border-ink/10 bg-white p-6 space-y-4">
@@ -124,10 +140,9 @@ export function RecommendationPanel({ userId, language }: RecommendationPanelPro
                 </div>
             )}
 
-            {status === 'completed' && recommendation && latestPeriodStart && (
+            {status === 'completed' && recommendation && (
                 <RecommendationDisplay
                     recommendation={recommendation}
-                    periodStart={latestPeriodStart}
                     strengthHistory={strengthHistory}
                     muscleGroups={muscleGroupsInHistory}
                     language={language}
@@ -139,7 +154,19 @@ export function RecommendationPanel({ userId, language }: RecommendationPanelPro
             )}
 
             {status === 'failed' && (
-                <p className="text-red-600">{errorMessage ?? 'Something went wrong.'}</p>
+                // error_message holds the technical cause for debugging; users get a plain message
+                <div className="space-y-2">
+                    <p className="text-red-600">{t('failed')}</p>
+                    <button
+                        type="button"
+                        onClick={handleRetry}
+                        disabled={retrying}
+                        className="rounded-md border border-ink/20 px-3 py-1.5 text-sm hover:bg-ink/5 disabled:opacity-50"
+                    >
+                        {retrying ? t('retrying') : t('retry')}
+                    </button>
+                    {retryError && <p className="text-sm text-red-600">{retryError}</p>}
+                </div>
             )}
         </div>
     )
@@ -147,31 +174,17 @@ export function RecommendationPanel({ userId, language }: RecommendationPanelPro
 
 function RecommendationDisplay({
     recommendation,
-    periodStart,
     strengthHistory,
     muscleGroups,
     language,
 }: {
     recommendation: AiRecommendation
-    periodStart: string
     strengthHistory: StrengthHistoryPoint[]
     muscleGroups: string[]
     language: string
 }) {
     const t = useTranslations('report')
-    const [pdfState, setPdfState] = useState<'idle' | 'loading' | 'error'>('idle')
     const [showMore, setShowMore] = useState(false)
-
-    async function handleDownloadPdf() {
-        setPdfState('loading')
-        const result = await getReportPdfUrl(periodStart)
-        if (result.success && result.url) {
-            window.open(result.url, '_blank', 'noopener,noreferrer')
-            setPdfState('idle')
-        } else {
-            setPdfState('error')
-        }
-    }
 
     const pieData = Object.entries(recommendation.volumeSplit ?? {}).map(([name, value]) => ({
         name,
@@ -360,21 +373,6 @@ function RecommendationDisplay({
                             {t('showLess')}
                         </button>
                     </div>
-                )}
-            </div>
-
-            {/* ---------- Download PDF ---------- */}
-            <div className="pt-2">
-                <button
-                    type="button"
-                    onClick={handleDownloadPdf}
-                    disabled={pdfState === 'loading'}
-                    className="rounded-md border px-4 py-2 text-sm disabled:opacity-50"
-                >
-                    {pdfState === 'loading' ? t('preparing') : t('downloadPdf')}
-                </button>
-                {pdfState === 'error' && (
-                    <p className="mt-2 text-sm text-ink/60">{t('pdfNotReady')}</p>
                 )}
             </div>
         </div>

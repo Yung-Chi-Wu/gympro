@@ -43,7 +43,7 @@ export default async function HistoryPage() {
     const [reportsResult, weightResult, workoutsResult] = await Promise.all([
         supabase
             .from('period_reports')
-            .select('period_start, status, recommendation, pdf_status, error_message, created_at')
+            .select('period_start, status, recommendation, error_message, created_at')
             .eq('user_id', user.id)
             .gte('period_start', getOneYearAgo())
             .order('period_start', { ascending: false }),

@@ -30,15 +30,6 @@ data "aws_iam_policy_document" "ai_worker_permissions" {
     resources = [aws_sqs_queue.ai_analysis_queue.arn]
   }
 
-  # Allow enqueueing PDF generation requests once a recommendation is done
-  statement {
-    effect = "Allow"
-    actions = [
-      "sqs:SendMessage",
-    ]
-    resources = [aws_sqs_queue.pdf_generation_queue.arn]
-  }
-
   # Allow writing logs to CloudWatch, so we can debug failures
   statement {
     effect = "Allow"
@@ -50,16 +41,31 @@ data "aws_iam_policy_document" "ai_worker_permissions" {
     resources = ["arn:aws:logs:*:*:*"]
   }
 
-  # Allow reading the Anthropic API key from Secrets Manager
+  # Allow reading the API keys from SSM Parameter Store
   statement {
-    effect = "Allow"
-    actions = [
-      "secretsmanager:GetSecretValue",
-    ]
-    resources = [
-      aws_secretsmanager_secret.anthropic_api_key.arn,
-      aws_secretsmanager_secret.supabase_service_role_key.arn,
-    ]
+    effect    = "Allow"
+    actions   = ["ssm:GetParameter"]
+    resources = local.secret_param_arns
+  }
+
+  # Decrypting a SecureString needs kms:Decrypt. Scoped to calls SSM makes
+  # on the Lambda's behalf, for these two parameters only.
+  statement {
+    effect    = "Allow"
+    actions   = ["kms:Decrypt"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["ssm.${data.aws_region.current.name}.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:EncryptionContext:PARAMETER_ARN"
+      values   = local.secret_param_arns
+    }
   }
 }
 

@@ -32,22 +32,25 @@
         "switchUnit": "Switch unit",
         "dayOf": "Day {day} of {total}"
     },
-    "checkin": {
-        "title": "Period Check-In",
-        "description": "Confirm your weight to close out this period and generate your AI report.",
-        "weightPlaceholderKg": "Weight (kg)",
-        "weightPlaceholderLb": "Weight (lb)",
-        "weightHint": "Pre-filled from your last check-in — update if needed.",
+    "periodLog": {
+        "title": "This Period",
+        "reportSchedule": "Your AI report is generated automatically after this period ends ({end}).",
+        "weightLabel": "Body weight",
+        "logWeight": "Log",
+        "weightSaved": "Weight logged.",
+        "weightError": "Enter a valid weight.",
+        "noteLabel": "Anything to tell your AI coach this period? (optional)",
         "notePlaceholder": "e.g. My shoulder felt tight this week, or I want to focus more on legs...",
-        "noteLabel": "Anything you want to tell your AI coach this period? (optional)",
-        "submit": "Check In",
-        "submitting": "Submitting...",
-        "weightError": "Enter a valid weight."
+        "noteHint": "You can edit this until the period ends.",
+        "saveNote": "Save note",
+        "noteSaved": "Note saved — it will be included in this period's report.",
+        "saving": "Saving..."
     },
     "report": {
         "sectionTitle": "AI Coach Report",
-        "idle": "Your latest report will appear here once you check in.",
+        "idle": "Your first AI report will appear here automatically after your current period ends.",
         "pending": "Analyzing your training data...",
+        "failed": "Report generation failed.",
         "trainingSplit": "Training Split",
         "bodyMetrics": "Body Metrics",
         "strengthTrend": "Strength Trend",
@@ -58,15 +61,14 @@
         "summary": "Summary",
         "progressiveOverload": "Progressive Overload",
         "whatToDoNext": "What To Do Next",
-        "downloadPdf": "Download PDF",
-        "preparing": "Preparing...",
-        "pdfNotReady": "PDF isn't ready yet — check back in a moment.",
         "noData": "No data yet.",
         "weight": "Weight",
         "height": "Height",
         "bmi": "BMI",
         "ageSex": "Age / Sex",
-        "deloadRecommended": "Deload recommended:"
+        "deloadRecommended": "Deload recommended:",
+        "retry": "Try again",
+        "retrying": "Retrying..."
     },
     "routines": {
         "title": "Routines",
@@ -123,7 +125,7 @@
         "title": "Training History",
         "noWorkouts": "No workouts logged this period.",
         "weightTrend": "Weight Trend",
-        "noWeightData": "No weight data yet — your weight is recorded at each check-in."
+        "noWeightData": "No weight data yet — log your weight on the dashboard any time."
     },
     "auth": {
         "loginTitle": "Log in to GymPro",

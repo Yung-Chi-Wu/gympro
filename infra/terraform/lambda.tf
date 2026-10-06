@@ -15,14 +15,15 @@ resource "aws_lambda_function" "ai_worker" {
   filename         = data.archive_file.ai_worker_zip.output_path
   source_code_hash = data.archive_file.ai_worker_zip.output_base64sha256
 
-  timeout     = 60
+  # A Sonnet report takes ~35s; 120s leaves room for a slow response or an SDK retry
+  timeout     = 120
   memory_size = 256
 
   environment {
     variables = {
-      SUPABASE_URL          = var.supabase_url
-      ANTHROPIC_SECRET_NAME = "gympro/anthropic-api-key"
-      PDF_QUEUE_URL         = aws_sqs_queue.pdf_generation_queue.id
+      SUPABASE_URL                    = var.supabase_url
+      ANTHROPIC_API_KEY_PARAM         = local.anthropic_api_key_param
+      SUPABASE_SERVICE_ROLE_KEY_PARAM = local.supabase_service_role_key_param
     }
   }
 

@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars (gitignored) and fill in.
+# No secrets belong here — API keys live in SSM Parameter Store (see parameters.tf).
+
+supabase_url        = "https://your-project-ref.supabase.co"
+alert_email         = "you@example.com"
+vercel_team_slug    = "your-team-slug"
+vercel_project_name = "gympro"
+
+# Optional
+# monthly_budget_usd  = 5
+# vercel_environments = ["production"]

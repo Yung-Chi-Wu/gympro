@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "esbuild src/index.ts --bundle --platform=node --target=node22 --outfile=dist/index.js"
+    "build": "esbuild src/index.ts src/scheduler.ts --bundle --platform=node --target=node22 --outdir=dist",
+    "eval:build": "esbuild src/claude.ts --bundle --platform=node --target=node20 --format=cjs --outfile=evals/report/dist/claude.cjs"
   },
   "keywords": [],
   "author": "",
@@ -13,11 +14,12 @@
   "type": "commonjs",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
-    "@aws-sdk/client-secrets-manager": "^3.1112.0",
-    "@supabase/supabase-js": "^2.112.3"
+    "@aws-sdk/client-sqs": "^3.1146.0",
+    "@aws-sdk/client-ssm": "^3.1146.0",
+    "@supabase/supabase-js": "^2.112.3",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@aws-sdk/client-sqs": "^3.1112.0",
     "@types/aws-lambda": "^8.10.162",
     "@types/node": "^26.2.0",
     "esbuild": "^0.28.2",

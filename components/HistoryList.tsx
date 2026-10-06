@@ -6,7 +6,6 @@ import {
     PieChart, Pie, Cell,
     Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { getReportPdfUrl } from '@/app/(app)/dashboard/pdf-actions'
 import { WeightTrendCard } from '@/components/WeightTrendCard'
 import type { PeriodOption } from '@/app/(app)/history/page'
 import type { AiRecommendation } from './types'
@@ -21,7 +20,6 @@ interface ReportRow {
     period_start: string
     status: string
     recommendation: unknown
-    pdf_status: string | null
     error_message: string | null
     created_at: string
 }
@@ -192,19 +190,6 @@ function ReportSection({ report, language }: { report: ReportRow | null; languag
     const t = useTranslations('report')
     const [isOpen, setIsOpen] = useState(false)
     const [showMore, setShowMore] = useState(false)
-    const [pdfState, setPdfState] = useState<'idle' | 'loading' | 'error'>('idle')
-
-    async function handleDownloadPdf() {
-        if (!report) return
-        setPdfState('loading')
-        const result = await getReportPdfUrl(report.period_start)
-        if (result.success && result.url) {
-            window.open(result.url, '_blank', 'noopener,noreferrer')
-            setPdfState('idle')
-        } else {
-            setPdfState('error')
-        }
-    }
 
     const isCompleted = report?.status === 'completed'
     const rec = isCompleted ? (report.recommendation as unknown as AiRecommendation) : null
@@ -350,22 +335,6 @@ function ReportSection({ report, language }: { report: ReportRow | null; languag
                                     >
                                         {t('showLess')}
                                     </button>
-                                </div>
-                            )}
-
-                            {report.pdf_status === 'completed' && (
-                                <div>
-                                    <button
-                                        type="button"
-                                        onClick={handleDownloadPdf}
-                                        disabled={pdfState === 'loading'}
-                                        className="rounded-md border px-4 py-2 text-sm disabled:opacity-50"
-                                    >
-                                        {pdfState === 'loading' ? t('preparing') : t('downloadPdf')}
-                                    </button>
-                                    {pdfState === 'error' && (
-                                        <p className="mt-1 text-xs text-ink/60">{t('pdfNotReady')}</p>
-                                    )}
                                 </div>
                             )}
                         </div>

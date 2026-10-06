@@ -32,22 +32,25 @@
         "switchUnit": "切換單位",
         "dayOf": "第 {day} 天 / 共 {total} 天"
     },
-    "checkin": {
-        "title": "週期打卡",
-        "description": "確認體重來結算這個週期，並生成你的訓練報告。",
-        "weightPlaceholderKg": "體重（公斤）",
-        "weightPlaceholderLb": "體重（磅）",
-        "weightHint": "已自動帶入上次打卡體重——如有變化請修改。",
-        "notePlaceholder": "例如：這週肩膀有點緊，或是我想多練背...",
+    "periodLog": {
+        "title": "本週期紀錄",
+        "reportSchedule": "這個週期結束後（{end}），AI 報告會自動產生。",
+        "weightLabel": "體重",
+        "logWeight": "記錄",
+        "weightSaved": "體重已記錄。",
+        "weightError": "請輸入有效的體重。",
         "noteLabel": "這個週期有什麼想告訴 AI 教練的？（選填）",
-        "submit": "打卡",
-        "submitting": "送出中...",
-        "weightError": "請輸入有效的體重。"
+        "notePlaceholder": "例如：這週肩膀有點緊，或是我想多練背...",
+        "noteHint": "週期結束前都可以修改。",
+        "saveNote": "儲存備註",
+        "noteSaved": "備註已儲存，會放進這個週期的報告。",
+        "saving": "儲存中..."
     },
     "report": {
         "sectionTitle": "AI 教練報告",
-        "idle": "打卡後，你的最新訓練報告會出現在這裡。",
+        "idle": "目前的週期結束後，你的第一份 AI 報告會自動出現在這裡。",
         "pending": "正在分析你的訓練數據...",
+        "failed": "報告生成失敗。",
         "trainingSplit": "訓練分配",
         "bodyMetrics": "身體數據",
         "strengthTrend": "力量趨勢",
@@ -58,15 +61,14 @@
         "summary": "摘要",
         "progressiveOverload": "漸進式超負荷",
         "whatToDoNext": "下一步建議",
-        "downloadPdf": "下載 PDF 報告",
-        "preparing": "準備中...",
-        "pdfNotReady": "PDF 還沒準備好，請稍後再試。",
         "noData": "尚無資料。",
         "weight": "體重",
         "height": "身高",
         "bmi": "BMI",
         "ageSex": "年齡 / 性別",
-        "deloadRecommended": "建議減量訓練："
+        "deloadRecommended": "建議減量訓練：",
+        "retry": "重新產生",
+        "retrying": "重新產生中..."
     },
     "routines": {
         "title": "訓練課表",
@@ -123,7 +125,7 @@
         "title": "訓練紀錄",
         "noWorkouts": "這個週期沒有訓練紀錄。",
         "weightTrend": "體重趨勢",
-        "noWeightData": "還沒有體重資料——每次打卡時會自動記錄你的體重。"
+        "noWeightData": "還沒有體重資料——隨時可以在主頁記錄體重。"
     },
     "auth": {
         "loginTitle": "登入 GymPro",
