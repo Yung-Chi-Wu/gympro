@@ -52,7 +52,9 @@ function oracle(c) {
     return { turns, writes: turns.flatMap((t) => t.writes) }
 }
 
-function programmatic_fail(c, out) { return programmaticGrade(c, out, EXERCISES).grade.writes_correct === 0 }
+// Changes are graded as two metrics; "writes ok" means neither a missed nor a wrong change
+const writesOk = (g) => g.change_done !== 0 && g.no_wrong_change !== 0
+function programmatic_fail(c, out) { return !writesOk(programmaticGrade(c, out, EXERCISES).grade) }
 const withMessages = (out, message) => ({ ...out, turns: out.turns.map((t) => ({ ...t, message })) })
 
 for (const c of cases) {
@@ -66,26 +68,26 @@ for (const c of cases) {
     // Doing the wrong thing: delete burpees from every routine on every case
     const reckless = { ...ideal, turns: ideal.turns.map((t) => ({ ...t, toolCalls: [...t.toolCalls, { name: 'remove_exercise_from_routine', input: {}, result: 'ok' }], writes: [...t.writes, { op: 'delete_from_routines', exerciseId: id('Burpee') }] })) }
     reckless.writes = reckless.turns.flatMap((t) => t.writes)
-    if (c.expect.writes) check(programmaticGrade(c, reckless, EXERCISES).grade.writes_correct === 0, `${c.id}: an unrequested permanent delete should fail writes_correct`)
+    if (c.expect.writes) check(programmaticGrade(c, reckless, EXERCISES).grade.no_wrong_change === 0, `${c.id}: an unrequested permanent delete should fail writes_correct`)
 }
 
 // The lost-id bug: adding with an invented id, or adding before the user agreed
 const twoTurn = cases.find((c) => c.id === 'add-after-recommend-zh')
 const good = oracle(twoTurn)
 const invented = structuredClone(good)
-invented.turns[1].writes = [{ op: 'add_today', exerciseId: '00000000-0000-0000-0000-000000000000' }]
+invented.turns[1].writes = [{ op: 'add_today', exerciseId: '00000000-0000-0000-0000-000000000000', effective: false }]
 invented.writes = invented.turns.flatMap((t) => t.writes)
 const g1 = programmaticGrade(twoTurn, invented, EXERCISES).grade
-check(g1.valid_ids === 0 && g1.writes_correct === 0, `invented id should fail valid_ids and writes_correct, got ${JSON.stringify(g1)}`)
+check(g1.valid_ids === 0 && g1.change_done === 0 && overallPass(g1) === 0, `an invented id that adds nothing should fail, got ${JSON.stringify(g1)}`)
 const early = structuredClone(good)
 early.turns[0].writes = early.turns[1].writes
 early.turns[1].writes = []
 early.writes = early.turns.flatMap((t) => t.writes)
-check(programmaticGrade(twoTurn, early, EXERCISES).grade.writes_correct === 0, 'adding in turn 1, before the user agreed, should fail')
+check(programmatic_fail(twoTurn, early), 'adding in turn 1, before the user agreed, should fail')
 const other = structuredClone(good)
 other.turns[1].writes = [{ op: 'add_today', exerciseId: id('Face Pull') }]
 other.writes = other.turns.flatMap((t) => t.writes)
-check(programmaticGrade(twoTurn, other, EXERCISES).grade.writes_correct === 0, 'adding a different exercise than the one recommended should fail')
+check(programmatic_fail(twoTurn, other), 'adding a different exercise than the one recommended should fail')
 
 // Two exercises recommended: asking which one passes; adding nothing without asking fails
 const enTwo = cases.find((c) => c.id === 'add-after-recommend-en')
@@ -93,7 +95,7 @@ const asked = oracle(enTwo)
 asked.turns[0].message = 'Try the Incline Barbell Press or the Incline Dumbbell Press.'
 asked.turns[1] = { ...asked.turns[1], toolCalls: [], writes: [], message: 'Which one do you want, barbell or dumbbell?' }
 asked.writes = []
-check(programmaticGrade(enTwo, asked, EXERCISES).grade.writes_correct === 1, 'asking which of two recommendations should pass')
+check(writesOk(programmaticGrade(enTwo, asked, EXERCISES).grade), 'asking which of two recommendations should pass')
 const silent = structuredClone(asked)
 silent.turns[1].message = 'OK, done!'
 check(programmatic_fail(enTwo, silent), 'claiming done without adding anything should fail')
@@ -105,20 +107,29 @@ check(programmatic_fail(enTwo, oneRec), 'with a single recommendation, asking ag
 const offeredQ = structuredClone(asked)
 offeredQ.turns[0].message = 'Incline bench press is the king for upper chest.'
 offeredQ.turns[1].message = 'Do you want the Incline Barbell Press or the Incline Dumbbell Press?'
-check(programmaticGrade(enTwo, offeredQ, EXERCISES).grade.writes_correct === 1, 'a question offering two library exercises should count as clarifying')
+check(writesOk(programmaticGrade(enTwo, offeredQ, EXERCISES).grade), 'a question offering two library exercises should count as clarifying')
 
 // Recommended exercise already in today's workout: saying so instead of adding passes,
 // but only when today's workout was actually checked and the reply names it
 const planned = structuredClone(asked)
 planned.turns[0].message = 'Try the Incline Dumbbell Press or the Incline Barbell Press.'
 planned.turns[1] = { ...planned.turns[1], toolCalls: [{ name: 'get_today_workout', input: {}, result: `ID: ${id('Incline Dumbbell Press')} | Incline Dumbbell Press: no sets yet` }], writes: [], message: 'Incline Dumbbell Press is already in today\'s workout!' }
-check(programmaticGrade(enTwo, planned, EXERCISES).grade.writes_correct === 1, 'already-planned recommendation should pass')
+check(writesOk(programmaticGrade(enTwo, planned, EXERCISES).grade), 'already-planned recommendation should pass')
 const unchecked = structuredClone(planned)
 unchecked.turns[1].toolCalls = []
 check(programmatic_fail(enTwo, unchecked), 'claiming it is already planned without checking today should fail')
 
 // The English catchphrase must not make a Chinese reply count as English
 check(programmaticGrade(cases[0], { ...oracle(cases[0]), turns: oracle(cases[0]).turns.map((t) => ({ ...t, message: t.message + " Ain't nothin' but a peanut! 💪 衝吧 Alex！" })) }, EXERCISES).grade.language_correct === 1, 'catchphrase should not fail the language check')
+
+// A mis-copied id is rejected (changes nothing), then the retry with the right id
+// works: the outcome is correct, so it passes, and valid_ids still records the slip
+const removeToday = cases.find((c) => c.id === 'remove-today-zh')
+const retried = oracle(removeToday)
+retried.turns[0].writes = [{ op: 'remove_today', exerciseId: '13841865-fc8b-f679-bf4d-493b217d', effective: false }, ...retried.turns[0].writes]
+retried.writes = retried.turns.flatMap((t) => t.writes)
+const g2 = programmaticGrade(removeToday, retried, EXERCISES).grade
+check(overallPass(g2) === 1 && g2.valid_ids === 0, `rejected attempt then a correct retry should pass with valid_ids 0, got ${JSON.stringify(g2)}`)
 
 // Rolling seven days is not "last week"
 const lastWeek = cases.find((c) => c.id === 'history-last-week-zh')

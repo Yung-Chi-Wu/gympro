@@ -52,7 +52,7 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
         input_schema: {
             type: 'object' as const,
             properties: {
-                exercise_id: { type: 'string', description: 'Exercise ID from search_exercises' },
+                exercise_id: { type: 'string', description: 'Exercise ID exactly as shown by search_exercises' },
                 exercise_name: { type: 'string', description: 'Exercise name for confirmation' },
             },
             required: ['exercise_id', 'exercise_name'],
@@ -64,7 +64,7 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
         input_schema: {
             type: 'object' as const,
             properties: {
-                exercise_id: { type: 'string', description: 'Exercise ID to remove' },
+                exercise_id: { type: 'string', description: 'Exercise ID exactly as shown by get_today_workout' },
                 exercise_name: { type: 'string', description: 'Exercise name for confirmation' },
             },
             required: ['exercise_id', 'exercise_name'],
@@ -88,7 +88,7 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
         input_schema: {
             type: 'object' as const,
             properties: {
-                exercise_id: { type: 'string', description: 'Exercise ID from search_exercises, get_routine_exercises or get_today_workout' },
+                exercise_id: { type: 'string', description: 'Exercise ID exactly as shown by search_exercises, get_routine_exercises or get_today_workout' },
                 exercise_name: { type: 'string', description: 'Exercise name for confirmation' },
                 routine_name: { type: 'string', description: 'Only this routine; omit to remove it from every routine' },
             },

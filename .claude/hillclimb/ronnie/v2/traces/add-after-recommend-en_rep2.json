@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"upper chest\",\"muscle_group\":\"chest\"},\"result\":\"No exercise in the library matches \\\"upper chest\\\" exactly. Closest matches:\\nID: d988a60a-ba54-d7db-cb0b-a977ca45c6b6 | Barbell Bench Press (chest)\\nID: 41290ea9-f8d5-d3c4-6ce9-8523bc6922cc | Incline Dumbbell Press (chest)\\nID: 6fc5ead6-1bea-025c-c9c7-eac7ebb4d82a | Incline Barbell Press (chest)\\nID: d486b05a-e771-e7d4-99a5-7b89d2390aeb | Dumbbell Bench Press (chest)\\nID: a726ab1a-cfbc-2170-5647-cb0136fb6c81 | Low-to-High Cable Fly (chest)\\nID: 23bc61ff-e3aa-d5cb-c295-0ee54bd2a539 | Push-Up (chest)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "For upper chest, your best bets are Incline Dumbbell Press or Incline Barbell Press—they target the upper chest more directly than flat bench work. Want to add one to today's workout, or just need the info?"
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a-ba54-d7db-cb0b-a977ca45c6b6 | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9-f8d5-d3c4-6ce9-8523bc6922cc | Incline Dumbbell Press: no sets yet\\nID: 13841865-fc8b-f679-bf4d-493b252e680b | Overhead Press: no sets yet\\nID: 697409e4-0b0a-464f-8ad1-054aa7b2117d | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Actually, good news—Incline Dumbbell Press is already in today's workout! It's on your Push Day routine. You're all set. 💪"
+  }
+]

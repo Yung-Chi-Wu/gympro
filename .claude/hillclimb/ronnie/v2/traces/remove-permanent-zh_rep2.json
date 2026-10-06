@@ -1,0 +1,25 @@
+[
+  {
+    "role": "user",
+    "content": "以後都不要再排波比跳了"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"波比跳\"},\"result\":\"ID: c6e49af8-190d-6847-3c46-11751dfe4d50 | 波比跳 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"burpee\"},\"result\":\"ID: c6e49af8-190d-6847-3c46-11751dfe4d50 | 波比跳 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "propose_routine_change",
+    "content": "{\"input\":{\"exercise_id\":\"c6e49af8-190d-6847-3c46-11751dfe4d50\",\"exercise_name\":\"波比跳\"},\"result\":\"已提出提議：從「腿日」移除「波比跳」。使用者在 app 裡按「確認」後才會生效，現在還沒有任何改變。\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "搞定！波比跳會從你的「腿日」課表移除，不過要在 app 裡按「確認」才會正式生效。以後就沒有波比跳了！ ✅"
+  }
+]

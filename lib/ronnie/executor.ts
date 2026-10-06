@@ -26,6 +26,11 @@ export interface RonnieExecutor {
     readonly proposals: (RoutineProposal & { id: string })[]
 }
 
+// Exercise IDs are UUIDs, and the eval caught the model mis-copying one. Tool
+// results show the first 8 characters instead, and inputs are resolved back to
+// the full ID (a full UUID still works). A prefix shared by two exercises is shown in full.
+const SHORT_ID_LENGTH = 8
+
 export function createRonnieExecutor({
     data,
     language,
@@ -40,7 +45,27 @@ export function createRonnieExecutor({
     const nameOf = (ex: { name: string; name_zh_tw: string | null } | null | undefined) =>
         (zh && ex?.name_zh_tw ? ex.name_zh_tw : ex?.name) ?? 'Unknown'
 
-    async function executeTool(toolName: string, toolInput: Record<string, string>): Promise<string> {
+    let libraryIds: string[] | null = null
+    async function allIds(): Promise<string[]> {
+        libraryIds ??= (await data.listExercises()).map((e) => e.id)
+        return libraryIds
+    }
+    async function shortId(id: string): Promise<string> {
+        const prefix = id.slice(0, SHORT_ID_LENGTH)
+        return (await allIds()).filter((x) => x.startsWith(prefix)).length > 1 ? id : prefix
+    }
+    /** A full UUID, or the short form shown in tool results, back to the full ID. */
+    async function resolveId(raw: string | undefined): Promise<string> {
+        const value = String(raw ?? '').trim().toLowerCase()
+        const ids = await allIds()
+        if (ids.includes(value)) return value
+        const prefix = value.slice(0, SHORT_ID_LENGTH)
+        const matches = prefix.length === SHORT_ID_LENGTH ? ids.filter((x) => x.startsWith(prefix)) : []
+        return matches.length === 1 ? matches[0] : value
+    }
+
+    async function executeTool(toolName: string, rawInput: Record<string, string>): Promise<string> {
+        const toolInput = rawInput.exercise_id ? { ...rawInput, exercise_id: await resolveId(rawInput.exercise_id) } : rawInput
 
         if (toolName === 'get_routine_exercises') {
             const routines = await data.findRoutinesByName(toolInput.routine_name)
@@ -60,9 +85,9 @@ export function createRonnieExecutor({
                     : `"${routine.name}" has no exercises`
             }
 
-            const list = exercises.map((ex) =>
-                `ID: ${ex.exercise_id} | ${nameOf(ex.exercises)}: ${ex.target_sets ?? '?'}組 × ${ex.target_reps ?? '?'}下`
-            ).join('\n')
+            const list = (await Promise.all(exercises.map(async (ex) =>
+                `ID: ${await shortId(ex.exercise_id)} | ${nameOf(ex.exercises)}: ${ex.target_sets ?? '?'}組 × ${ex.target_reps ?? '?'}下`
+            ))).join('\n')
 
             return zh
                 ? `「${routine.name}」的動作：\n${list}`
@@ -108,7 +133,7 @@ export function createRonnieExecutor({
                     ? '找不到符合的動作。可以換個說法再查（英文或中文、較短的關鍵字，或用 muscle_group）'
                     : 'No exercises found. Try other wording (English or Chinese, a shorter keyword, or a muscle_group)'
             }
-            const lines = results.map((ex) => `ID: ${ex.id} | ${nameOf(ex)} (${ex.muscle_group})`).join('\n')
+            const lines = (await Promise.all(results.map(async (ex) => `ID: ${await shortId(ex.id)} | ${nameOf(ex)} (${ex.muscle_group})`))).join('\n')
             if (exact) return lines
             return zh
                 ? `動作庫裡沒有完全符合「${toolInput.query}」的動作，以下是最接近的：\n${lines}`
@@ -151,12 +176,12 @@ export function createRonnieExecutor({
             if (workout) {
                 const todaySets = await data.getSets([workout.id])
 
-                const exercises = (workout.workout_planned_exercises ?? []).map((pe) => {
+                const exercises = (await Promise.all((workout.workout_planned_exercises ?? []).map(async (pe) => {
                     const sets = (todaySets ?? [])
                         .filter((s) => s.exercise_id === pe.exercise_id)
                         .map((s) => `${s.reps}×${s.weight_kg}kg`).join(', ')
-                    return `ID: ${pe.exercise_id} | ${nameOf(pe.exercises)}: ${sets || (zh ? '尚未記錄' : 'no sets yet')}`
-                }).join('\n')
+                    return `ID: ${await shortId(pe.exercise_id)} | ${nameOf(pe.exercises)}: ${sets || (zh ? '尚未記錄' : 'no sets yet')}`
+                }))).join('\n')
                 return exercises || (language === 'zh-TW' ? '今天課表是空的' : 'No exercises today')
             }
 
@@ -166,9 +191,9 @@ export function createRonnieExecutor({
                 const routineExercises = await data.getRoutinePlan(routineId)
 
                 if (routineExercises?.length) {
-                    const list = routineExercises.map((re) =>
-                        `ID: ${re.exercise_id} | ${nameOf(re.exercises)}: ${re.target_sets ?? '?'}組 × ${re.target_reps ?? '?'}下（計畫）`
-                    ).join('\n')
+                    const list = (await Promise.all(routineExercises.map(async (re) =>
+                        `ID: ${await shortId(re.exercise_id)} | ${nameOf(re.exercises)}: ${re.target_sets ?? '?'}組 × ${re.target_reps ?? '?'}下（計畫）`
+                    ))).join('\n')
                     return zh
                         ? `今天課表「${todayRoutineName}」（尚未開始記錄）：\n${list}`
                         : `Today's routine "${todayRoutineName}" (not started):\n${list}`

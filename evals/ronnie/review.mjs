@@ -20,8 +20,9 @@ const rows = readFileSync(join(vdir, 'results.jsonl'), 'utf8').split('\n').filte
 
 const LABELS = {
     right_tools: '用對工具',
-    writes_correct: '修改正確',
-    valid_ids: '動作 ID 存在',
+    change_done: '該改的有改',
+    no_wrong_change: '沒有改錯',
+    valid_ids: 'ID 沒抄錯（參考）',
     mentions_expected: '內容完整',
     date_range: '日期範圍',
     no_fallback: '沒有放棄回答',
@@ -44,11 +45,11 @@ const out = [
     '',
     `${rows.length} 次對話，全部通過 ${passed} 次。每一題請看：評分理由合不合理？你會給不同的分數嗎？`,
     '',
-    '| 題目 | 全部通過 | 工具 | 修改 | ID | 內容 | 日期 | 沒放棄 | 語言 | 評審 | 先問 |',
-    '|---|---|---|---|---|---|---|---|---|---|---|',
+    '| 題目 | 全部通過 | 工具 | 該改有改 | 沒改錯 | ID | 內容 | 日期 | 沒放棄 | 語言 | 評審 | 先問 |',
+    '|---|---|---|---|---|---|---|---|---|---|---|---|',
     ...rows.map((r) => {
         const g = r.grade
-        return `| ${r.prompt_id}（第 ${r.rep + 1} 次） | ${mark(g.pass)} | ${mark(g.right_tools)} | ${mark(g.writes_correct)} | ${mark(g.valid_ids)} | ${mark(g.mentions_expected)} | ${mark(g.date_range)} | ${mark(g.no_fallback)} | ${mark(g.language_correct)} | ${mark(g.judge_ok)} | ${mark(g.asks_first)} |`
+        return `| ${r.prompt_id}（第 ${r.rep + 1} 次） | ${mark(g.pass)} | ${mark(g.right_tools)} | ${mark(g.change_done)} | ${mark(g.no_wrong_change)} | ${mark(g.valid_ids)} | ${mark(g.mentions_expected)} | ${mark(g.date_range)} | ${mark(g.no_fallback)} | ${mark(g.language_correct)} | ${mark(g.judge_ok)} | ${mark(g.asks_first)} |`
     }),
     '',
 ]

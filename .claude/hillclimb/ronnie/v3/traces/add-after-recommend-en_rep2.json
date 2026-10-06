@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "assistant",
+    "content": "Upper chest responds best to incline pressing movements – think incline barbell bench press, incline dumbbell press, or machine variations. The key is that 30–45° angle: anything steeper hits shoulders more, anything flatter shifts load to mid-chest.\n\nAre you looking to add something to today's workout, or just gathering ideas? 💪"
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "assistant",
+    "content": "Which one do you want – incline barbell bench press, incline dumbbell press, or a machine variation? Let me search and get you set up."
+  }
+]

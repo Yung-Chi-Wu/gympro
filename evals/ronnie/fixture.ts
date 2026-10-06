@@ -103,10 +103,11 @@ const TRAINED_DATES = [
     '2026-10-05', '2026-10-06',
 ]
 
+// effective: the write changed something (a rejected id or a no-op removal did not)
 export type FixtureWrite =
-    | { op: 'add_today'; exerciseId: string }
-    | { op: 'remove_today'; exerciseId: string }
-    | { op: 'delete_from_routines'; exerciseId: string; routineIds: string[] }
+    | { op: 'add_today'; exerciseId: string; effective: boolean }
+    | { op: 'remove_today'; exerciseId: string; effective: boolean }
+    | { op: 'delete_from_routines'; exerciseId: string; routineIds: string[]; effective: boolean }
 
 interface WorkoutRow {
     id: string
@@ -205,21 +206,23 @@ export function createFixtureData(): { data: RonnieData; writes: FixtureWrite[];
             return today.id
         },
         async addPlannedExercise(workoutId, id) {
-            writes.push({ op: 'add_today', exerciseId: id })
             // Like the real table, a row must reference an existing exercise
-            if (!EXERCISES.some((e) => e.id === id)) return 'insert or update on table "workout_planned_exercises" violates foreign key constraint'
+            const exists = EXERCISES.some((e) => e.id === id)
+            writes.push({ op: 'add_today', exerciseId: id, effective: exists })
+            if (!exists) return 'insert or update on table "workout_planned_exercises" violates foreign key constraint'
             if (workoutId === today.id && !today.planned.includes(id)) today.planned.push(id)
             return null
         },
         async removePlannedExercise(workoutId, id) {
-            writes.push({ op: 'remove_today', exerciseId: id })
             // Like a real DELETE, an id that isn't planned today removes nothing
             const before = today.planned.length
             if (workoutId === today.id) today.planned = today.planned.filter((x) => x !== id)
-            return { error: null, removed: before - today.planned.length }
+            const removed = before - today.planned.length
+            writes.push({ op: 'remove_today', exerciseId: id, effective: removed > 0 })
+            return { error: null, removed }
         },
         async deleteExerciseFromRoutines(routineIds, id) {
-            writes.push({ op: 'delete_from_routines', exerciseId: id, routineIds })
+            writes.push({ op: 'delete_from_routines', exerciseId: id, routineIds, effective: true })
             for (const rid of routineIds) {
                 routineExercises.set(rid, (routineExercises.get(rid) ?? []).filter((re) => re.exercise_id !== id))
             }

@@ -13,13 +13,18 @@
       "kind": "binary"
     },
     {
-      "id": "writes_correct",
-      "label": "修改正確",
+      "id": "change_done",
+      "label": "該改的有改",
+      "kind": "binary"
+    },
+    {
+      "id": "no_wrong_change",
+      "label": "沒有改錯",
       "kind": "binary"
     },
     {
       "id": "valid_ids",
-      "label": "動作 ID 存在",
+      "label": "ID 沒抄錯（參考）",
       "kind": "binary"
     },
     {
@@ -99,5 +104,5 @@
     "evals/ronnie/entry.ts",
     "evals/ronnie/cases-holdout.json"
   ],
-  "harness_sha": "ae26caf051a3bf92da3e238249868ce1b69e285a32a6bcfdc416f09a9f0d4cc8"
+  "harness_sha": "de9952d1f9e0c8edce8a29c3cd3b3f9be7cebb1df94263e91e5e9881191d4cc9"
 }

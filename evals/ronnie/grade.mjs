@@ -67,10 +67,13 @@ export function programmaticGrade(c, out, exercises) {
     } else grade.right_tools = null
 
     if (exp.writes) {
-        const problems = []
+        // Only writes that changed something count as changes; a write the app rejected
+        // (unknown id, nothing to remove) is tracked by valid_ids instead
+        const effective = actualWrites.filter((a) => a.effective !== false)
+        const missing = []
+        const unmatched = [...effective]
         let clarified = false
         let alreadyPlanned = false
-        const unmatched = [...actualWrites]
         for (const w of exp.writes) {
             let allowed
             if (w.exercise === '$recommended') {
@@ -79,40 +82,48 @@ export function programmaticGrade(c, out, exercises) {
                 // too. Recommended names aren't always library names ("incline bench press"), so a
                 // question that offers two or more library exercises also counts as clarifying.
                 const reply = out.turns[w.turn - 1]?.message ?? ''
-                const wroteThisTurn = actualWrites.some((a) => a.turn === w.turn)
+                const wroteThisTurn = effective.some((a) => a.turn === w.turn)
                 const offered = exercisesMentioned(reply, exercises)
                 if ((allowed.size >= 2 || offered.size >= 2) && !wroteThisTurn && /[?？]/.test(reply)) {
                     clarified = true
                     continue
                 }
-                // The recommended exercise is already in today's workout and the reply says so: nothing to add
-                const plannedToday = new Set(
-                    (out.turns[w.turn - 1]?.toolCalls ?? [])
-                        .filter((x) => x.name === 'get_today_workout')
-                        .flatMap((x) => [...String(x.result).matchAll(/ID: ([0-9a-f-]{36})/g)].map((m) => m[1]))
-                )
-                if (!wroteThisTurn && [...allowed].some((id) => plannedToday.has(id) && offered.has(id))) {
+                // The recommended exercise is already in today's workout and the reply says so: nothing to add.
+                // Tool results show short (8-character) ids, so match them as prefixes.
+                const shownToday = (out.turns[w.turn - 1]?.toolCalls ?? [])
+                    .filter((x) => x.name === 'get_today_workout')
+                    .flatMap((x) => [...String(x.result).matchAll(/ID: ([0-9a-f-]{8,36})/g)].map((m) => m[1]))
+                const plannedToday = (id) => shownToday.some((shown) => id.startsWith(shown))
+                if (!wroteThisTurn && [...allowed].some((id) => plannedToday(id) && offered.has(id))) {
                     alreadyPlanned = true
                     continue
                 }
-                if (!allowed.size) problems.push(`第 ${w.turn - 1} 句回覆沒有推薦動作庫裡的任何動作`)
+                if (!allowed.size) missing.push(`第 ${w.turn - 1} 句回覆沒有推薦動作庫裡的任何動作`)
             } else allowed = new Set([idFor(w.exercise)])
             const i = unmatched.findIndex((a) => a.op === w.op && a.turn === w.turn && allowed.has(a.exerciseId))
             if (i >= 0) unmatched.splice(i, 1)
-            else problems.push(`第 ${w.turn} 句應該${OP_ZH[w.op]}：${w.exercise === '$recommended' ? '剛才推薦的動作' : label(idFor(w.exercise))}`)
+            else missing.push(`第 ${w.turn} 句應該${OP_ZH[w.op]}：${w.exercise === '$recommended' ? '剛才推薦的動作' : label(idFor(w.exercise))}`)
         }
-        for (const a of unmatched) problems.push(`多做了：第 ${a.turn} 句${OP_ZH[a.op]}「${label(a.exerciseId)}」`)
-        grade.writes_correct = problems.length ? 0 : 1
-        explanation.writes_correct = problems.join('；')
-            || (clarified ? '推薦了不只一個動作，反問要加哪一個（合理）'
-                : alreadyPlanned ? '推薦的動作本來就在今天的課表裡，回覆有說明（合理）'
-                : exp.writes.length ? '修改內容正確' : '沒有修改任何資料（正確）')
-    } else grade.writes_correct = null
+        grade.change_done = exp.writes.length ? (missing.length ? 0 : 1) : null
+        if (exp.writes.length) {
+            explanation.change_done = missing.join('；')
+                || (clarified ? '推薦了不只一個動作，反問要加哪一個（合理）'
+                    : alreadyPlanned ? '推薦的動作本來就在今天的課表裡，回覆有說明（合理）'
+                    : '該改的都改了')
+        }
+        grade.no_wrong_change = unmatched.length ? 0 : 1
+        explanation.no_wrong_change = unmatched.length
+            ? unmatched.map((a) => `改錯：第 ${a.turn} 句${OP_ZH[a.op]}「${label(a.exerciseId)}」`).join('；')
+            : '沒有改到不該改的東西'
+    } else {
+        grade.change_done = null
+        grade.no_wrong_change = null
+    }
 
     if (actualWrites.length) {
         const invented = actualWrites.filter((a) => !byId.has(a.exerciseId))
         grade.valid_ids = invented.length ? 0 : 1
-        explanation.valid_ids = invented.length ? `用了動作庫裡不存在的 ID（${invented.length} 次）：模型自己編的` : '用到的動作 ID 都存在'
+        explanation.valid_ids = invented.length ? `用了動作庫裡不存在的 ID（${invented.length} 次），已被擋下，沒有改到資料` : '用到的動作 ID 都存在'
     } else grade.valid_ids = null
 
     if (exp.mentions) {
@@ -139,7 +150,11 @@ export function programmaticGrade(c, out, exercises) {
     return { grade, explanation }
 }
 
+// Tracked but not part of the overall pass: an id the app rejected changed nothing,
+// and what matters to the user (wrong or missed changes) is graded separately
+const DIAGNOSTIC = new Set(['valid_ids'])
+
 /** Every applicable check passed. */
 export function overallPass(grade) {
-    return Object.values(grade).filter((v) => v != null).every((v) => v === 1) ? 1 : 0
+    return Object.entries(grade).filter(([k, v]) => v != null && !DIAGNOSTIC.has(k)).every(([, v]) => v === 1) ? 1 : 0
 }
