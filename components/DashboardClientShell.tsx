@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { TodayWorkoutCard } from './TodayWorkoutCard'
-import { PeriodCheckInCard } from './PeriodCheckInCard'
+import { PeriodLogCard } from './PeriodLogCard'
 import type { ExerciseOption } from './log-types'
 import type { TodayExercise } from '@/app/(app)/dashboard/page'
 import type { WeightUnit } from '@/lib/weight-unit'
+import type { Period } from '@/lib/periods'
 
 interface DashboardClientShellProps {
     // TodayWorkoutCard props
@@ -21,8 +22,10 @@ interface DashboardClientShellProps {
     language: string
     weightUnit: WeightUnit
     routineName: string | null
-    // PeriodCheckInCard props
+    // PeriodLogCard props
     latestWeightKg: number | null
+    period: Period | null
+    periodNote: string
 }
 
 export function DashboardClientShell({
@@ -39,6 +42,8 @@ export function DashboardClientShell({
     weightUnit: initialWeightUnit,
     routineName,
     latestWeightKg,
+    period,
+    periodNote,
 }: DashboardClientShellProps) {
     const [weightUnit, setWeightUnit] = useState<WeightUnit>(initialWeightUnit)
 
@@ -59,10 +64,12 @@ export function DashboardClientShell({
                 routineName={routineName}
                 onWeightUnitChange={setWeightUnit}
             />
-            <PeriodCheckInCard
+            <PeriodLogCard
                 language={language}
                 latestWeightKg={latestWeightKg}
                 weightUnit={weightUnit}
+                period={period}
+                initialNote={periodNote}
             />
         </>
     )

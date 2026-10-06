@@ -240,10 +240,10 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
                     <div className="text-center space-y-3">
                         <div className="text-5xl">⚖️</div>
                         <h2 className="text-xl font-bold text-[#1A1814] dark:text-[#EAE7E0]">
-                            {zh ? '週期結束時打卡' : 'Check In at Period End'}
+                            {zh ? '記錄體重和心得' : 'Log Weight and Notes'}
                         </h2>
                         <p className="text-sm text-black/50 dark:text-white/50 leading-relaxed">
-                            {zh ? '確認體重並打卡，這會觸發 AI 分析你這期的訓練。' : 'Confirm your weight and check in — this triggers your AI analysis.'}
+                            {zh ? '週期中隨時記錄體重，也可以留一句話給 AI 教練，例如「肩膀有點緊」。' : 'Log your weight any time, and leave your AI coach a note — like "my shoulder felt tight".'}
                         </p>
                     </div>
                 )}
@@ -256,7 +256,7 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
                             {zh ? '閱讀 AI 教練報告' : 'Read Your AI Report'}
                         </h2>
                         <p className="text-sm text-black/50 dark:text-white/50 leading-relaxed">
-                            {zh ? '每次打卡後，AI 教練會給你具體的下一期建議。' : 'Your AI coach gives specific recommendations after each check-in.'}
+                            {zh ? '每個週期結束後，AI 教練會自動給你下一期的具體建議。' : 'When each period ends, your AI coach automatically gives you specific recommendations for the next one.'}
                         </p>
                     </div>
                 )}

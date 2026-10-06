@@ -16,6 +16,7 @@ import {
 } from 'recharts'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
+import { retryFailedReport } from '@/app/(app)/dashboard/period-actions'
 import type { AiRecommendation } from './types'
 
 interface RecommendationPanelProps {
@@ -44,13 +45,16 @@ export function RecommendationPanel({ userId, language }: RecommendationPanelPro
     const [status, setStatus] = useState<Status>('idle')
     const [recommendation, setRecommendation] = useState<AiRecommendation | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [periodStart, setPeriodStart] = useState<string | null>(null)
+    const [retrying, setRetrying] = useState(false)
+    const [retryError, setRetryError] = useState<string | null>(null)
     const [strengthHistory, setStrengthHistory] = useState<StrengthHistoryPoint[]>([])
     const [muscleGroupsInHistory, setMuscleGroupsInHistory] = useState<string[]>([])
 
     const checkStatus = useCallback(async () => {
         const { data } = await supabase
             .from('period_reports')
-            .select('status, recommendation, error_message')
+            .select('status, recommendation, error_message, period_start')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .limit(1)
@@ -59,6 +63,7 @@ export function RecommendationPanel({ userId, language }: RecommendationPanelPro
         if (!data) return
 
         setStatus(data.status as Status)
+        setPeriodStart(data.period_start)
         if (data.status === 'completed') {
             setRecommendation(data.recommendation as unknown as AiRecommendation)
         }
@@ -103,10 +108,16 @@ export function RecommendationPanel({ userId, language }: RecommendationPanelPro
         }
     }, [status, loadStrengthHistory])
 
-    useEffect(() => {
-        window.addEventListener('period-checkin-success', checkStatus)
-        return () => window.removeEventListener('period-checkin-success', checkStatus)
-    }, [checkStatus])
+    async function handleRetry() {
+        if (!periodStart) return
+        setRetrying(true)
+        setRetryError(null)
+        const result = await retryFailedReport(periodStart)
+        setRetrying(false)
+        if (!result.success) setRetryError(result.message ?? null)
+        // On success the row is 'pending' again, which restarts the polling below
+        await checkStatus()
+    }
 
     // The worker finishes in seconds, but nothing pushes its result back to
     // the browser — keep checking until the report leaves 'pending'.
@@ -144,7 +155,18 @@ export function RecommendationPanel({ userId, language }: RecommendationPanelPro
 
             {status === 'failed' && (
                 // error_message holds the technical cause for debugging; users get a plain message
-                <p className="text-red-600">{t('failed')}</p>
+                <div className="space-y-2">
+                    <p className="text-red-600">{t('failed')}</p>
+                    <button
+                        type="button"
+                        onClick={handleRetry}
+                        disabled={retrying}
+                        className="rounded-md border border-ink/20 px-3 py-1.5 text-sm hover:bg-ink/5 disabled:opacity-50"
+                    >
+                        {retrying ? t('retrying') : t('retry')}
+                    </button>
+                    {retryError && <p className="text-sm text-red-600">{retryError}</p>}
+                </div>
             )}
         </div>
     )
