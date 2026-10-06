@@ -39,6 +39,30 @@ resource "aws_cloudwatch_metric_alarm" "ai_worker_errors" {
   ok_actions    = [aws_sns_topic.alerts.arn]
 }
 
+# ---------- Alarm: the hourly report scheduler failed ----------
+# A failed run is retried by the next hourly run, but a persistent failure
+# (bad Supabase key, queue permissions) means nobody gets a report.
+resource "aws_cloudwatch_metric_alarm" "report_scheduler_errors" {
+  alarm_name        = "gympro-report-scheduler-errors"
+  alarm_description = "The hourly report scheduler Lambda threw an error. Check /aws/lambda/gympro-report-scheduler."
+
+  namespace   = "AWS/Lambda"
+  metric_name = "Errors"
+  dimensions = {
+    FunctionName = aws_lambda_function.report_scheduler.function_name
+  }
+
+  statistic           = "Sum"
+  period              = 3600
+  evaluation_periods  = 1
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
+}
+
 # ---------- Alarm: a report request gave up and landed in the DLQ ----------
 resource "aws_cloudwatch_metric_alarm" "ai_analysis_dlq_not_empty" {
   alarm_name        = "gympro-ai-analysis-dlq-not-empty"

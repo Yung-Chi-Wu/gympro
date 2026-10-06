@@ -113,6 +113,27 @@ export type Database = {
         }
         Relationships: []
       }
+      period_notes: {
+        Row: {
+          note: string
+          period_start: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          note: string
+          period_start: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          note?: string
+          period_start?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       period_reports: {
         Row: {
           completed_at: string | null
