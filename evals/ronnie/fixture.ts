@@ -244,4 +244,5 @@ export const FIXTURE_USER = {
     weightUnit: 'kg',
     timezone: FIXTURE_TIME_ZONE,
     dates: dateGuide(FIXTURE_NOW, FIXTURE_TIME_ZONE),
+    library: EXERCISES,
 }

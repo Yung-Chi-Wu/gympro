@@ -52,6 +52,7 @@ export async function POST(request: Request) {
         weightUnit: profile?.weight_unit ?? 'kg',
         timezone: userTimezone,
         dates: dateGuide(new Date(), userTimezone),
+        library: await data.listExercises(),
     }
 
     const systemPrompt = buildSystemPrompt(language, userContext)
