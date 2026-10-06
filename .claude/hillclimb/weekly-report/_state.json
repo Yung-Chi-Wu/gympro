@@ -88,5 +88,5 @@
     "lambda/ai-worker/evals/report/judge.mjs",
     "lambda/ai-worker/evals/report/cases.json"
   ],
-  "harness_sha": "007de79910325db2fd486681e5dc15db2aa1f488751cc7814de85e72702b4a49"
+  "harness_sha": "0cf0782d4d12ced6e80bdfba3c412d4fecf1395007a42a3b1936f4240350c748"
 }

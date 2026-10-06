@@ -1,23 +1,23 @@
-id	split	baseline	v1
-balanced-all-progress-en	all	0.667	0.333
-multi-regression-fatigue-zh	all	1.000	0.333
-missing-body-metrics-en	all	1.000	1.000
-seed-week3-shoulder-note-zh	all	0.000	0.000
-first-report-progress-zh	all	0.000	0.000
-balanced-all-progress-zh	all	1.000	0.333
-balanced-stalling-en	all	0.000	0.000
-stalling-busy-note-zh	all	0.667	0.000
-threshold-up-plus2-en	all	0.000	0.000
-goal-lift-up-back-down-en	all	0.000	0.000
-threshold-down-minus2-zh	all	1.000	0.000
-overreaching-high-volume-en	all	1.000	0.667
-multi-regression-no-note-en	all	1.000	0.000
-leg-neglect-en	all	0.667	0.667
-push-pull-imbalance-zh	all	1.000	0.000
-pull-heavy-en	all	0.667	0.667
-balanced-mixed-control-zh	all	1.000	0.000
-fat-loss-goal-zh	all	0.333	0.000
-missed-routines-en	all	1.000	0.000
-older-female-progress-en	all	1.000	1.000
-empty-strength-index-en	all	0.667	0.000
-borderline-11-sets-zh	all	0.000	0.000
+id	split	baseline	v1	v2
+balanced-all-progress-en	all	0.667	0.333	1.000
+multi-regression-fatigue-zh	all	1.000	0.333	1.000
+missing-body-metrics-en	all	1.000	1.000	1.000
+seed-week3-shoulder-note-zh	all	0.000	0.000	0.667
+first-report-progress-zh	all	0.000	0.000	1.000
+balanced-all-progress-zh	all	1.000	0.333	0.000
+balanced-stalling-en	all	0.000	0.000	1.000
+stalling-busy-note-zh	all	0.667	0.000	1.000
+threshold-up-plus2-en	all	0.000	0.000	1.000
+goal-lift-up-back-down-en	all	0.000	0.000	0.667
+threshold-down-minus2-zh	all	1.000	0.000	1.000
+overreaching-high-volume-en	all	1.000	0.667	0.333
+multi-regression-no-note-en	all	1.000	0.000	1.000
+leg-neglect-en	all	0.667	0.667	0.333
+push-pull-imbalance-zh	all	1.000	0.000	0.667
+pull-heavy-en	all	0.667	0.667	0.667
+balanced-mixed-control-zh	all	1.000	0.000	0.333
+fat-loss-goal-zh	all	0.333	0.000	1.000
+missed-routines-en	all	1.000	0.000	0.667
+older-female-progress-en	all	1.000	1.000	0.667
+empty-strength-index-en	all	0.667	0.000	1.000
+borderline-11-sets-zh	all	0.000	0.000	0.667
