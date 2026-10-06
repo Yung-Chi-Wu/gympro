@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "Take burpees out of all my routines for good."
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"burpees\"},\"result\":\"No exercises found\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Hmm, I couldn't find \"burpees\" in the exercise database, so it may not exist in your routines under that name. Can you double-check the exact name in your GymPro routine, Alex? 💪"
+  }
+]

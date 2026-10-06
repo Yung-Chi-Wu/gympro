@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "以後都不要再排波比跳了"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"波比跳\"},\"result\":\"ID: c6e49af8-190d-6847-3c46-11751dfe4d50 | 波比跳 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "remove_exercise_from_routine",
+    "content": "{\"input\":{\"exercise_id\":\"c6e49af8-190d-6847-3c46-11751dfe4d50\",\"exercise_name\":\"波比跳\"},\"result\":\"✓ 已將「波比跳」從所有固定課表永久移除\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "完成！波比跳以後都不會出現在你的課表裡了 ✅ Ain't nothin' but a peanut！"
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "Take burpees out of all my routines for good."
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"burpees\"},\"result\":\"No exercises found\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Looks like burpees aren't in your routines, Alex. Maybe you're thinking of a different exercise? What's the exercise name you want removed? 💪"
+  }
+]

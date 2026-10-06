@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "eval:ronnie:build": "lambda/ai-worker/node_modules/.bin/esbuild evals/ronnie/entry.ts --bundle --platform=node --target=node20 --format=cjs --outfile=evals/ronnie/dist/ronnie.cjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",

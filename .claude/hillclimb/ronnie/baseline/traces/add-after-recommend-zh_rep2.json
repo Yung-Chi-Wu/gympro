@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個可以練後三角的動作"
+  },
+  {
+    "role": "assistant",
+    "content": "後三角是推日的重點之一！我推薦 面拉（Face Pull） - 這動作能直接刺激後三角肌，還能保護肩膀。\n\n你想加到今天課表裡嗎？💪"
+  },
+  {
+    "role": "user",
+    "content": "好，幫我加進今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"face pull\"},\"result\":\"ID: cd6e3284-218f-a781-910b-8fe9ecc575aa | 臉拉 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"cd6e3284-218f-a781-910b-8fe9ecc575aa\",\"exercise_name\":\"臉拉\"},\"result\":\"✓ 已將「臉拉」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "搞定！臉拉已經加到你的推日課表裡了 ✅ 記得每組都要感受後三角的收縮，Ain't nothin' but a peanut！"
+  }
+]

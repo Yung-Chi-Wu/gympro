@@ -19,6 +19,7 @@ export interface RonnieTurn {
     // For the eval runner: every tool call made this turn, and what each API call used
     toolCalls: RonnieToolCall[]
     usage: Anthropic.Usage[]
+    servedModel: string | null
 }
 
 export async function runRonnieTurn({
@@ -38,6 +39,7 @@ export async function runRonnieTurn({
 }): Promise<RonnieTurn> {
     const toolCalls: RonnieToolCall[] = []
     const usage: Anthropic.Usage[] = []
+    let servedModel: string | null = null
     let currentMessages = [...messages]
 
     for (let i = 0; i < 5; i++) {
@@ -49,6 +51,7 @@ export async function runRonnieTurn({
             messages: currentMessages,
         })
         usage.push(response.usage)
+        servedModel = response.model
 
         if (response.stop_reason === 'end_turn') {
             const rawText = response.content
@@ -60,6 +63,7 @@ export async function runRonnieTurn({
                 reloadDashboard: executor.needsDashboardReload,
                 toolCalls,
                 usage,
+                servedModel,
             }
         }
 
@@ -99,5 +103,6 @@ export async function runRonnieTurn({
         reloadDashboard: false,
         toolCalls,
         usage,
+        servedModel,
     }
 }

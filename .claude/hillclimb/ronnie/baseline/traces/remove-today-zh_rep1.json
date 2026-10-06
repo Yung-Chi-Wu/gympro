@@ -1,0 +1,25 @@
+[
+  {
+    "role": "user",
+    "content": "今天不想做肩推"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\n上斜啞鈴臥推: 尚未記錄\\n肩推: 尚未記錄\\n三頭下壓: 尚未記錄\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"肩推\"},\"result\":\"ID: 13841865-fc8b-f679-bf4d-493b252e680b | 肩推 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "remove_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"13841865-fc8b-f679-bf4d-493b252e680b\",\"exercise_name\":\"肩推\"},\"result\":\"✓ 已將「肩推」從今天課表移除（不影響固定課表）\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "搞定！今天不做肩推，固定課表還是有的。💪"
+  }
+]

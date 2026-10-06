@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "assistant",
+    "content": "Incline Barbell Press or Incline Dumbbell Press are your best bets for upper chest development, Alex! 💪 The incline angle (30–45°) shifts the focus to the clavicular head of the pec for that thick upper chest look. Want me to add either of these to today's Push Day workout?"
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "assistant",
+    "content": "Which one do you want to add — Incline Barbell Press or Incline Dumbbell Press?"
+  }
+]

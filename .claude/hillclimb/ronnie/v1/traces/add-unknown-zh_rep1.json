@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個 Jefferson curl"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson curl\"},\"result\":\"找不到符合的動作\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "資料庫裡找不到 Jefferson curl 這個動作，沒辦法幫你加到今天課表 😅\n\nJefferson curl 是很小眾的脊椎活動度訓練，可能還沒收錄進來。你要換個類似的動作嗎？"
+  }
+]

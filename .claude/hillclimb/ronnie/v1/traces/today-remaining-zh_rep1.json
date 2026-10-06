@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "我今天還剩哪些動作沒做？"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\n上斜啞鈴臥推: 尚未記錄\\n肩推: 尚未記錄\\n三頭下壓: 尚未記錄\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Alex，你臥推已經搞定了 💪 還剩這三個動作沒做：\n\n上斜啞鈴臥推\n肩推\n三頭下壓\n\nAin't nothin' but a peanut！衝吧！"
+  }
+]

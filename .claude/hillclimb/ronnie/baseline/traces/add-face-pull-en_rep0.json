@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "Add face pulls to today's workout"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"face pulls\"},\"result\":\"No exercises found\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Face pulls aren't in the database, Alex. Try \"rear delt flyes\" or \"cable rear delt\" instead—they hit the same posterior shoulder muscles and are great for shoulder health. Want me to add one of those?"
+  }
+]

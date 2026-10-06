@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "assistant",
+    "content": "Incline Barbell Bench Press is the king for upper chest — it directly targets the clavicular head of the pecs and will carry over nicely to your flat bench 100kg goal! You could also do Incline Dumbbell Press or Low-to-High Cable Flyes as solid alternatives. Want me to add any of these to today's workout? 💪"
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Incline Barbell Bench Press\"},\"result\":\"No exercises found\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle_group\":\"chest\"},\"result\":\"ID: d988a60a-ba54-d7db-cb0b-a977ca45c6b6 | Barbell Bench Press (chest)\\nID: 41290ea9-f8d5-d3c4-6ce9-8523bc6922cc | Incline Dumbbell Press (chest)\\nID: 6fc5ead6-1bea-025c-c9c7-eac7ebb4d82a | Incline Barbell Press (chest)\\nID: d486b05a-e771-e7d4-99a5-7b89d2390aeb | Dumbbell Bench Press (chest)\\nID: a726ab1a-cfbc-2170-5647-cb0136fb6c81 | Low-to-High Cable Fly (chest)\\nID: 23bc61ff-e3aa-d5cb-c295-0ee54bd2a539 | Push-Up (chest)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"6fc5ead6-1bea-025c-c9c7-eac7ebb4d82a\",\"exercise_name\":\"Incline Barbell Press\"},\"result\":\"✓ Added \\\"Incline Barbell Press\\\" to today's workout\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Incline Barbell Press is added to today's 推日, Alex! Ain't nothin' but a peanut! 💪"
+  }
+]

@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "assistant",
+    "content": "For upper chest, incline bench press or incline dumbbell press are your go-to moves 💪 They hit that upper pec area hard and are perfect for building that shelf you want. Want me to add one to today's workout, or just curious?"
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"incline bench press\",\"muscle_group\":\"chest\"},\"result\":\"No exercises found\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"incline\",\"muscle_group\":\"chest\"},\"result\":\"ID: 41290ea9-f8d5-d3c4-6ce9-8523bc6922cc | Incline Dumbbell Press (chest)\\nID: 6fc5ead6-1bea-025c-c9c7-eac7ebb4d82a | Incline Barbell Press (chest)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Perfect! You want the Incline Barbell Press or Incline Dumbbell Press? The barbell lets you load heavier for your 100kg bench goal, but which one fits your push day better?"
+  }
+]

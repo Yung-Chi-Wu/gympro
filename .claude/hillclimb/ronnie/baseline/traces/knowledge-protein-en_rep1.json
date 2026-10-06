@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "How much protein should I eat to build muscle?"
+  },
+  {
+    "role": "assistant",
+    "content": "For muscle building, aim for 0.7-1g of protein per pound of bodyweight daily (or 1.6-2.2g per kg). Since you're chasing that 100kg bench in 3 months, hit the higher end—consistency matters more than perfection. 💪\n\nWhat's your current bodyweight? That'll help me dial in a more specific target for you."
+  }
+]

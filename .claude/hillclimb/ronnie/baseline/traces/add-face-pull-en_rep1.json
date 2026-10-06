@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "Add face pulls to today's workout"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"face pulls\"},\"result\":\"No exercises found\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Face pulls aren't in the GymPro database, Alex. Try searching for \"cable rear delt fly\" or \"reverse pec deck\" instead - they hit similar shoulder health benefits 💪"
+  }
+]

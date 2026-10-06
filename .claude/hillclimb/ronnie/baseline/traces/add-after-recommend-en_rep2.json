@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "assistant",
+    "content": "For upper chest, incline bench press is the king 💪 — whether barbell, dumbbell, or machine, the incline angle hits the clavicular head hard. Incline dumbbell flyes are another solid finisher if you want isolation work.\n\nWant me to add one of these to today's workout, or just looking for info?"
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"incline bench press\"},\"result\":\"No exercises found\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"incline press\",\"muscle_group\":\"chest\"},\"result\":\"No exercises found\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Looks like incline variations aren't in the database right now, Alex. What about a regular bench press instead, or would you prefer dumbbell press? ⚠️"
+  }
+]

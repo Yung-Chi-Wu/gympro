@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個槓鈴划船"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"槓鈴划船\"},\"result\":\"ID: 650646da-9072-5839-6235-ce6357955325 | 槓鈴划船 (back)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"650646da-9072-5839-6235-ce6357955325\",\"exercise_name\":\"槓鈴划船\"},\"result\":\"✓ 已將「槓鈴划船」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "搞定！槓鈴划船已經加到今天推日課表裡，Ain't nothin' but a peanut! 💪"
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "拉日有什麼動作？"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_routine_exercises",
+    "content": "{\"input\":{\"routine_name\":\"拉日\"},\"result\":\"「拉日」的動作：\\n引體向上: 4組 × 8下\\n槓鈴划船: 4組 × 8下\\n滑輪下拉: 3組 × 10下\\n二頭彎舉: 3組 × 10下\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "你的拉日課表有以下 4 個動作 💪\n\n引體向上：4組 × 8下\n槓鈴划船：4組 × 8下\n滑輪下拉：3組 × 10下\n二頭彎舉：3組 × 10下\n\n有需要調整嗎？"
+  }
+]

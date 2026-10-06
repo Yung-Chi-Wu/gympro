@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個可以練後三角的動作"
+  },
+  {
+    "role": "assistant",
+    "content": "後三角是推日的關鍵肌群！我推薦 Face Pull（臉前上拉），這個動作用繩索或帶子做，可以很好地孤立後三角，還能改善肩膀穩定度。\n\n你要加到今天課表嗎？💪"
+  },
+  {
+    "role": "user",
+    "content": "好，幫我加進今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Face Pull\"},\"result\":\"ID: cd6e3284-218f-a781-910b-8fe9ecc575aa | 臉拉 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"cd6e3284-218f-a781-910b-8fe9ecc575aa\",\"exercise_name\":\"臉拉\"},\"result\":\"✓ 已將「臉拉」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "完成！臉拉已加到你今天的推日課表，好好練後三角吧！💪✅"
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個槓鈴划船"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"槓鈴划船\"},\"result\":\"ID: 650646da-9072-5839-6235-ce6357955325 | 槓鈴划船 (back)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"650646da-9072-5839-6235-ce6357955325\",\"exercise_name\":\"槓鈴划船\"},\"result\":\"✓ 已將「槓鈴划船」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "槓鈴划船加好了！雖然這通常是背日的動作，但用來熱身背肌也不錯，等等推日時背肌會更有感覺 💪"
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個 Jefferson curl"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson curl\"},\"result\":\"找不到符合的動作\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "資料庫裡沒有 Jefferson curl 這個動作。你要不要試試其他核心或脊椎靈活度的動作？比如 Cat-Cow Stretch 或 Spinal Twist？告訴我你的目的，我幫你找最適合的替代方案 ✅"
+  }
+]
