@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "My lower back hurts after deadlifts, should I keep going?"
+  },
+  {
+    "role": "assistant",
+    "content": "⚠️ Alex, pain comes first. Cut the load now and keep every rep within a pain-free range. Make sure your back stays neutral and the bar stays close to your body. If the pain is sharp, lingers for days, or comes with numbness or tingling down your leg, stop deadlifting and see a doctor or physio. I can't diagnose it, but I don't want you grinding through it.\n\nIf it's just mild soreness, you can drop to a lighter weight or swap in a lower-stress option for now. Want me to find one for your routine?"
+  }
+]

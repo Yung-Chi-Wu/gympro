@@ -204,9 +204,14 @@ export function createRonnieExecutor({
             // The turn's reply says these fixed words (see agent.ts): told the wording,
             // the model still opened with "Done!" now and then
             confirmations.push(zh ? `已準備好：${what}，在 app 裡按「確認」後生效。` : `Ready: ${what} - tap Confirm in the app to apply.`)
+            // Said outright, not left to inference: the model guessed at it, and a guess about the
+            // user's routines counts as invented
+            const scope = proposal.change === 'remove_exercise' && !toolInput.routine_name
+                ? (zh ? `（只有這${proposal.routineNames.length > 1 ? '些' : '個'}課表有這個動作，其他課表沒有）` : ` (the only routine${proposal.routineNames.length > 1 ? 's' : ''} with this exercise; no other routine has it)`)
+                : ''
             return zh
-                ? `已建立提議（尚未生效）：${what}，使用者在 app 裡確認後才會生效。`
-                : `Proposal created, not applied yet: ${what}; it takes effect when the user confirms it in the app.`
+                ? `已建立提議（尚未生效）：${what}${scope}，使用者在 app 裡確認後才會生效。`
+                : `Proposal created, not applied yet: ${what}${scope}; it takes effect when the user confirms it in the app.`
         }
 
         if (toolName === 'search_exercises') {
