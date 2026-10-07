@@ -1,0 +1,35 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個 Jefferson curl"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson curl\"},\"result\":\"動作庫裡沒有完全符合「Jefferson curl」的動作，以下是最接近的：\\nID: 0cb907f9 | 二頭彎舉 (biceps)\\nID: d9911659 | 錘式彎舉 (biceps)\\nID: 995b5a70 | 腿彎舉 (legs)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"傑佛遜\"},\"result\":\"找不到符合的動作。可以換個說法再查（英文或中文、較短的關鍵字，或用 muscle_group）\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson\"},\"result\":\"找不到符合的動作。可以換個說法再查（英文或中文、較短的關鍵字，或用 muscle_group）\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"硬舉\"},\"result\":\"ID: 0f6a6808 | 硬舉 (back)\\nID: 07bccaa6 | 羅馬尼亞硬舉 (legs)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"07bccaa6\",\"exercise_name\":\"羅馬尼亞硬舉\"},\"result\":\"已顯示推薦卡片：「羅馬尼亞硬舉」，使用者可以直接按「加入今天」，也可以叫你加入。\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "動作庫裡沒有 Jefferson curl，所以我沒辦法加進今天的訓練。我已經把羅馬尼亞硬舉的推薦卡片放在上面，它是最接近的替代動作。想加的話，按「加入今天」就可以。"
+  }
+]

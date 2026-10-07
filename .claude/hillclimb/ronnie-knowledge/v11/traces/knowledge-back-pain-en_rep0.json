@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "My lower back hurts after deadlifts, should I keep going?"
+  },
+  {
+    "role": "assistant",
+    "content": "⚠️ Alex, don't push through pain. Drop the load (or pause deadlifts) and stay in a pain-free range of motion. If the pain is sharp, shooting, travels down your leg, or lingers for days, stop and see a doctor or physio.\n\nIf it's just mild muscle soreness, check your form: keep a neutral spine, keep the bar close, and brace your core before each pull. Also make sure you're not adding weight too fast. Where exactly does it hurt, and is it sharp or more of a dull ache? 💪"
+  }
+]

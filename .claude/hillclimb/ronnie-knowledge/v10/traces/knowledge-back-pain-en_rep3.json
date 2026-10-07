@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "My lower back hurts after deadlifts, should I keep going?"
+  },
+  {
+    "role": "assistant",
+    "content": "Stop and assess first. Lower back pain after deadlifts is a warning sign—sharp or persistent pain means stop immediately and see a professional. Even if it's just soreness, check your form: deadlifts demand a neutral spine, proper hip hinge, and core bracing. If form looks good and it's mild, try lighter weight and stay within a pain-free range of motion to build tolerance safely.\n\nAre you feeling sharp pain or just general soreness?"
+  }
+]
