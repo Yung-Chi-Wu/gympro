@@ -56,7 +56,8 @@ export async function runRonnieTurn({
                 .map((b) => (b as { type: 'text'; text: string }).text)
                 .join('')
             return {
-                message: stripMarkdown(rawText),
+                // The model now and then ends a turn with no text; never send back an empty reply
+                message: stripMarkdown(rawText) || (language === 'zh-TW' ? '抱歉，請再問一次。' : 'Sorry, please try again.'),
                 reloadDashboard: executor.needsDashboardReload,
                 toolCalls,
                 usage,
