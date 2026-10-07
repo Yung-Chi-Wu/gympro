@@ -61,23 +61,6 @@ export function createRonnieExecutor({
                 : `"${routine.name}" exercises:\n${list}`
         }
 
-        if (toolName === 'remove_exercise_from_routine') {
-            // 從所有課表移除這個動作
-            const routineIds = await data.getUserRoutineIds()
-
-            if (!routineIds.length) {
-                return language === 'zh-TW' ? '你沒有固定課表' : 'No routines found'
-            }
-
-            const error = await data.deleteExerciseFromRoutines(routineIds, toolInput.exercise_id)
-
-            if (error) return language === 'zh-TW' ? `移除失敗：${error}` : `Failed: ${error}`
-            needsDashboardReload = true
-            return language === 'zh-TW'
-                ? `✓ 已將「${toolInput.exercise_name}」從所有固定課表永久移除`
-                : `✓ Permanently removed "${toolInput.exercise_name}" from all your routines`
-        }
-
         if (toolName === 'search_exercises') {
             const results = await data.searchExercises(toolInput.query, toolInput.muscle_group)
             if (!results?.length) return language === 'zh-TW' ? '找不到符合的動作' : 'No exercises found'
