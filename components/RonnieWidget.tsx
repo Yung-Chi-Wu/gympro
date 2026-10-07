@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { DisplayItem, ProposalCard, ProposalStatus, RecommendationCard } from '@/lib/ronnie/conversation'
 import { describeProposal } from '@/lib/ronnie/events'
+import { isSubmitEnter } from '@/lib/keyboard'
 
 // Ronnie's chat window. The conversation lives on the server (one per day); this
 // shows it, sends one message at a time, and handles the cards' buttons:
@@ -353,7 +354,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                                     value={editingText}
                                                     onChange={(e) => setEditingText(e.target.value)}
                                                     onKeyDown={(e) => {
-                                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                                        if (isSubmitEnter(e) && !e.shiftKey) {
                                                             e.preventDefault()
                                                             handleEditSubmit(i)
                                                         }
@@ -426,7 +427,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !isLoading) handleSend()
+                                    if (isSubmitEnter(e) && !isLoading) handleSend()
                                 }}
                                 placeholder={zh ? '問 Ronnie...' : 'Ask Ronnie...'}
                                 className="flex-1 rounded-xl border border-ink/20 dark:border-white/20 px-3 py-2 text-sm bg-transparent"

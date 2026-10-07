@@ -9,6 +9,7 @@ import { toFriendlyError } from '@/lib/friendly-error'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import type { ExerciseOption } from './log-types'
 import type { RoutineWithExercises, RoutineExerciseRow } from '@/app/(app)/routines/page'
+import { isSubmitEnter } from '@/lib/keyboard'
 
 interface RoutineBuilderProps {
     userId: string
@@ -356,7 +357,7 @@ function RoutineRenameButton({ currentName, language, onSave }: RoutineRenameBut
                 onChange={(e) => setName(e.target.value)}
                 onBlur={commit}
                 onKeyDown={(e) => {
-                    if (e.key === 'Enter') commit()
+                    if (isSubmitEnter(e)) commit()
                     if (e.key === 'Escape') { setName(currentName); setIsEditing(false) }
                 }}
                 className="w-32 rounded border px-2 py-0.5 text-sm font-medium"

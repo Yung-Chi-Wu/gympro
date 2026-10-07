@@ -9,33 +9,7 @@ import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import { DashboardClientShell } from '@/components/DashboardClientShell'
 import { currentPeriod } from '@/lib/periods'
-
-export interface TodayExercise {
-  exerciseId: string
-  name: string
-  muscleGroup: string
-  plannedRowId: string | null
-  loggedSets: { id: string; reps: number; weightKg: number }[]
-}
-
-interface RoutineExerciseRow {
-  exercise_id: string
-  order_index: number
-  exercises: { name: string; name_zh_tw: string | null; muscle_group: string } | null
-}
-
-interface PlannedExerciseRow {
-  id: string
-  exercise_id: string
-  exercises: { name: string; name_zh_tw: string | null; muscle_group: string } | null
-}
-
-interface WorkoutSetRow {
-  id: string
-  exercise_id: string
-  reps: number
-  weight_kg: number
-}
+import { loadTodayWorkout } from '@/lib/today-workout'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -97,7 +71,7 @@ export default async function DashboardPage() {
   let routineIdForToday: string | null = null
   let isRestDay = false
 
-  const [cycleDayResult, existingWorkoutResult, periodNoteResult] = await Promise.all([
+  const [cycleDayResult, periodNoteResult] = await Promise.all([
     cycle
       ? (() => {
         const daysSinceStart = daysBetween(cycle.start_date, todayParts)
@@ -112,15 +86,6 @@ export default async function DashboardPage() {
           .maybeSingle()
       })()
       : Promise.resolve({ data: null }),
-    supabase
-      .from('workouts')
-      .select('id')
-      .eq('user_id', user.id)
-      .gte('performed_at', startOfDay)
-      .lte('performed_at', endOfDay)
-      .order('performed_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
     period
       ? supabase
         .from('period_notes')
@@ -133,64 +98,14 @@ export default async function DashboardPage() {
 
   routineIdForToday = cycleDayResult.data?.routine_id ?? null
   isRestDay = hasCycle && routineIdForToday === null
-  const existingWorkout = existingWorkoutResult.data
-
-  // 查今天課表名稱
-  let routineName: string | null = null
-  if (routineIdForToday) {
-    const { data: routineData } = await supabase
-      .from('routines')
-      .select('name')
-      .eq('id', routineIdForToday)
-      .maybeSingle()
-    routineName = routineData?.name ?? null
-  }
-
-  let todayExercises: TodayExercise[] = []
-
-  if (existingWorkout) {
-    const [plannedResult, setsResult] = await Promise.all([
-      supabase
-        .from('workout_planned_exercises')
-        .select('id, exercise_id, exercises ( name, name_zh_tw, muscle_group )')
-        .eq('workout_id', existingWorkout.id),
-      supabase
-        .from('workout_sets')
-        .select('id, exercise_id, reps, weight_kg')
-        .eq('workout_id', existingWorkout.id),
-    ])
-
-    const planned = (plannedResult.data as PlannedExerciseRow[]) ?? []
-    const sets = (setsResult.data as WorkoutSetRow[]) ?? []
-
-    todayExercises = planned.map((p) => ({
-      exerciseId: p.exercise_id,
-      name: language === 'zh-TW' && p.exercises?.name_zh_tw
-        ? p.exercises.name_zh_tw
-        : p.exercises?.name ?? 'Unknown exercise',
-      muscleGroup: p.exercises?.muscle_group ?? 'other',
-      plannedRowId: p.id,
-      loggedSets: sets
-        .filter((s) => s.exercise_id === p.exercise_id)
-        .map((s) => ({ id: s.id, reps: s.reps, weightKg: s.weight_kg })),
-    }))
-  } else if (routineIdForToday) {
-    const { data: routineExercises } = await supabase
-      .from('routine_exercises')
-      .select('exercise_id, order_index, exercises ( name, name_zh_tw, muscle_group )')
-      .eq('routine_id', routineIdForToday)
-      .order('order_index')
-
-    todayExercises = ((routineExercises as RoutineExerciseRow[]) ?? []).map((re) => ({
-      exerciseId: re.exercise_id,
-      name: language === 'zh-TW' && re.exercises?.name_zh_tw
-        ? re.exercises.name_zh_tw
-        : re.exercises?.name ?? 'Unknown exercise',
-      muscleGroup: re.exercises?.muscle_group ?? 'other',
-      plannedRowId: null,
-      loggedSets: [],
-    }))
-  }
+  const todayRange = { start: startOfDay, end: endOfDay }
+  const [routineResult, today] = await Promise.all([
+    routineIdForToday
+      ? supabase.from('routines').select('name').eq('id', routineIdForToday).maybeSingle()
+      : Promise.resolve({ data: null }),
+    loadTodayWorkout(supabase, { userId: user.id, range: todayRange, routineId: routineIdForToday, language }),
+  ])
+  const routineName = routineResult.data?.name ?? null
 
   return (
     <div className="py-8 space-y-6">
@@ -210,15 +125,16 @@ export default async function DashboardPage() {
         {/* 左欄：今天 + 桌面版 AI 報告 */}
         <div className="space-y-6">
           <DashboardClientShell
-            key={existingWorkout?.id ?? 'no-workout'}
+            key={today.workoutId ?? 'no-workout'}
             userId={user.id}
-            initialWorkoutId={existingWorkout?.id ?? null}
+            initialWorkoutId={today.workoutId}
+            todayRange={todayRange}
             routineIdForToday={routineIdForToday}
             isRestDay={isRestDay}
             hasCycle={hasCycle}
             dayIndex={dayIndex}
             cycleLength={cycle?.cycle_length ?? 0}
-            initialExercises={todayExercises}
+            initialExercises={today.exercises}
             allExercises={(allExercisesResult.data ?? []) as ExerciseOption[]}
             language={language}
             weightUnit={weightUnit}

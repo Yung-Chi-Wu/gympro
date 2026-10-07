@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { isSubmitEnter } from '@/lib/keyboard'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -279,7 +280,7 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                 <div className="flex gap-2">
                     <input type="text" value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && input.trim()) handleAnswer(input.trim()) }}
+                        onKeyDown={(e) => { if (isSubmitEnter(e) && input.trim()) handleAnswer(input.trim()) }}
                         placeholder={
                             isGenerating
                                 ? (zh ? '課表設計中...' : 'Designing routine...')

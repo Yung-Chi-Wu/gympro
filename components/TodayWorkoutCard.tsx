@@ -8,11 +8,12 @@ import { toFriendlyError } from '@/lib/friendly-error'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { toDisplayWeight, toStorageKg, formatWeight, type WeightUnit } from '@/lib/weight-unit'
 import type { ExerciseOption } from './log-types'
-import type { TodayExercise } from '@/app/(app)/dashboard/page'
+import { loadTodayWorkout, type TodayExercise } from '@/lib/today-workout'
 
 interface TodayWorkoutCardProps {
     userId: string
     initialWorkoutId: string | null
+    todayRange: { start: string; end: string }
     routineIdForToday: string | null
     isRestDay: boolean
     hasCycle: boolean
@@ -25,21 +26,10 @@ interface TodayWorkoutCardProps {
     routineName: string | null
     onWeightUnitChange?: (unit: WeightUnit) => void
 }
-interface PlannedExerciseRow {
-    id: string
-    exercise_id: string
-    exercises: { name: string; name_zh_tw: string | null; muscle_group: string } | null
-}
-
-interface WorkoutSetRow {
-    id: string
-    exercise_id: string
-    reps: number
-    weight_kg: number
-}
 export function TodayWorkoutCard({
     userId,
     initialWorkoutId,
+    todayRange,
     routineIdForToday,
     isRestDay,
     hasCycle,
@@ -62,49 +52,18 @@ export function TodayWorkoutCard({
     const [weightUnit, setWeightUnit] = useState<WeightUnit>(initialWeightUnit)
     const [isCollapsed, setIsCollapsed] = useState(false)
 
-    // 監聽 Ronnie 修改今天課表的事件
+    // Ronnie changed today's workout or a routine: reload today the way the page does,
+    // which also finds a workout Ronnie started before the user logged anything
     useEffect(() => {
-        async function refetchExercises() {
-            if (!workoutId) return
-            const [plannedResult, setsResult] = await Promise.all([
-                supabase
-                    .from('workout_planned_exercises')
-                    .select('id, exercise_id, exercises(name, name_zh_tw, muscle_group)')
-                    .eq('workout_id', workoutId),
-                supabase
-                    .from('workout_sets')
-                    .select('id, exercise_id, reps, weight_kg')
-                    .eq('workout_id', workoutId),
-            ])
-
-            const planned = (plannedResult.data ?? []) as Array<{
-                id: string
-                exercise_id: string
-                exercises: { name: string; name_zh_tw: string | null; muscle_group: string } | null
-            }>
-            const sets = (setsResult.data ?? []) as Array<{
-                id: string
-                exercise_id: string
-                reps: number
-                weight_kg: number
-            }>
-
-            setExercises(planned.map((p) => ({
-                exerciseId: p.exercise_id,
-                name: language === 'zh-TW' && p.exercises?.name_zh_tw
-                    ? p.exercises.name_zh_tw
-                    : p.exercises?.name ?? 'Unknown',
-                muscleGroup: p.exercises?.muscle_group ?? 'other',
-                plannedRowId: p.id,
-                loggedSets: sets
-                    .filter((s) => s.exercise_id === p.exercise_id)
-                    .map((s) => ({ id: s.id, reps: s.reps, weightKg: s.weight_kg })),
-            })))
+        async function reload() {
+            const today = await loadTodayWorkout(supabase, { userId, range: todayRange, routineId: routineIdForToday, language })
+            setWorkoutId(today.workoutId)
+            setExercises(today.exercises)
         }
 
-        window.addEventListener('ronnie-workout-changed', refetchExercises)
-        return () => window.removeEventListener('ronnie-workout-changed', refetchExercises)
-    }, [workoutId, language])
+        window.addEventListener('ronnie-workout-changed', reload)
+        return () => window.removeEventListener('ronnie-workout-changed', reload)
+    }, [userId, todayRange, routineIdForToday, language])
 
     function showToast(message: string) {
         setToast(message)
