@@ -68,16 +68,4 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
             required: ['exercise_id', 'exercise_name'],
         },
     },
-    {
-        name: 'remove_exercise_from_routine',
-        description: 'Permanently remove an exercise from all of the user\'s routines. Use this when user says they never want to do an exercise again or want to remove it from their permanent schedule.',
-        input_schema: {
-            type: 'object' as const,
-            properties: {
-                exercise_id: { type: 'string', description: 'Exercise ID to remove from all routines' },
-                exercise_name: { type: 'string', description: 'Exercise name for confirmation' },
-            },
-            required: ['exercise_id', 'exercise_name'],
-        },
-    },
 ]

@@ -49,8 +49,7 @@ export function buildSystemPrompt(language: string, userContext: RonnieUserConte
 - 推薦完如果使用者同意新增，直接用剛才搜尋結果的 exercise_id 新增，不要再搜尋一次
 - 如果沒有先搜尋就推薦，然後使用者要新增，你必須先搜尋取得 exercise_id 才能新增
 - 「今天不想做某動作」→ 只從今天課表移除，不動固定課表
-- 「以後都不要做某動作」→ 告訴使用者去「訓練課表」頁面手動修改
-- 「以後都不要做X」、「從課表永久移除X」、「所有課表都拿掉X」→ 使用 remove_exercise_from_routine 工具直接執行，不要叫使用者自己去設定
+- 「以後都不要做X」、「從課表永久移除X」這類固定課表的永久修改，你目前不能執行：說明這個功能正在更新（之後會加上確認按鈕），請他先到「訓練課表」頁面調整；不要說已經改好
 - 使用者問「某個課表有什麼動作」→ 使用 get_routine_exercises 工具，不要用 get_today_workout
 
 互動規則：
@@ -84,8 +83,7 @@ Critical rules:
 - After recommending, if user agrees to add, use the exercise_id from that search result directly.
 - If you recommended without searching first and user wants to add, search now to get the exercise_id.
 - "Don't want to do X today" → remove from today only, never touch the routine
-- "Remove X permanently" → tell user to edit in Routines page
-- "Never do X again", "remove X from my routine permanently", "take X out of all routines" → use remove_exercise_from_routine tool directly, do NOT redirect user to settings
+- "Never do X again", "remove X from my routine permanently" and other permanent routine changes are not something you can do yet: say the feature is being updated (a Confirm button is coming) and ask the user to change it on the Routines page for now; never say it is done
 - User asks "what's in [routine name]" or "what exercises does [routine] have" → use get_routine_exercises, NOT get_today_workout
 
 Conversation rules:
