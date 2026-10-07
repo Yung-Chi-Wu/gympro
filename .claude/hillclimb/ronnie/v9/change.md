@@ -1,0 +1,2 @@
+v8 plus (a02249f): a turn that proposes a routine change ends with fixed words from the code; remove_exercise_today takes a name matched against today's exercises; an empty reply after a change answers with what was changed; 0 kg sets read "bodyweight". 5 reps. Model claude-haiku-4-5.
+Result: pass 97%, no wrong change, asks_first 100% (10/10), judge 97%. Left: remove-today-zh 1/5 claimed a removal it never made (looked up today's workout, then said it was removed); knee myth 1/5; report location embellished 1/5.

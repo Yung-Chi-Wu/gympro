@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個不用器材的核心動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"bodyweight core\",\"muscle_group\":\"core\"},\"result\":\"動作庫裡沒有完全符合「bodyweight core」的動作，以下是最接近的：\\nID: f04af209 | 棒式 (core)\\nID: 3f4394d3 | 懸吊舉腿 (core)\\nID: c6e49af8 | 波比跳 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\",\"exercise_name\":\"棒式\"},\"result\":\"已顯示推薦卡片：「棒式」，使用者可以直接按「加入今天」，也可以叫你加入。\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "棒式是打造鋼鐵核心的基礎，保持肩膀穩定、腹部收緊、臀部不下沉，對你的臥推目標也很有幫助！你想加入今天的課表嗎？"
+  },
+  {
+    "role": "user",
+    "content": "可以，加到今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\",\"exercise_name\":\"棒式\"},\"result\":\"✓ 已將「棒式」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "搞定！棒式已經加入今天的推日課表了 ✅ 推日最後來幾組棒式，核心穩定度會直接反映在臥推的穩定性上。Ain't nothin' but a peanut! 💪"
+  }
+]

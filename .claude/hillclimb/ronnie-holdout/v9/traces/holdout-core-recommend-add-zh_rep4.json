@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個不用器材的核心動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"bodyweight core\",\"muscle_group\":\"core\"},\"result\":\"動作庫裡沒有完全符合「bodyweight core」的動作，以下是最接近的：\\nID: f04af209 | 棒式 (core)\\nID: 3f4394d3 | 懸吊舉腿 (core)\\nID: c6e49af8 | 波比跳 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\",\"exercise_name\":\"棒式\"},\"result\":\"已顯示推薦卡片：「棒式」，使用者可以直接按「加入今天」，也可以叫你加入。\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "如果你想要更動態的選擇，也可以考慮波比跳，或懸吊舉腿（如果有單槓）。"
+  },
+  {
+    "role": "user",
+    "content": "可以，加到今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\",\"exercise_name\":\"棒式\"},\"result\":\"✓ 已將「棒式」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "搞定！棒式已加入推日課表 ✅ 記得維持身體一直線，核心全程緊繃。"
+  }
+]

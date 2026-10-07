@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個不用器材的核心動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"bodyweight core\",\"muscle_group\":\"core\"},\"result\":\"動作庫裡沒有完全符合「bodyweight core」的動作，以下是最接近的：\\nID: f04af209 | 棒式 (core)\\nID: 3f4394d3 | 懸吊舉腿 (core)\\nID: c6e49af8 | 波比跳 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\",\"exercise_name\":\"棒式\"},\"result\":\"已顯示推薦卡片：「棒式」，使用者可以直接按「加入今天」，也可以叫你加入。\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "棒式沒有器材要求，靠核心穩定身體就行，而且對增加臥推力量很有幫助——穩定的軀幹是大重量的基礎。"
+  },
+  {
+    "role": "user",
+    "content": "可以，加到今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\",\"exercise_name\":\"棒式\"},\"result\":\"✓ 已將「棒式」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "完成！棒式已經加到今天推日的課表裡 💪 建議在主要推舉動作之後加個 3-4 組，每組撐 30-60 秒。"
+  }
+]
