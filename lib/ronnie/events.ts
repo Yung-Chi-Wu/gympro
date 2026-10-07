@@ -60,6 +60,19 @@ export function eventForModel(e: RonnieEvent, zh: boolean): string {
     return zh ? `${prefix} 使用者確認了提議，已套用：${what}（${rows}）。` : `${prefix} The user confirmed the proposal and it was applied: ${what} (${rows}).`
 }
 
+/**
+ * The exercises an app event says were changed - only for a change that was applied
+ * (a confirmed proposal, or an Add to today), not a cancelled or expired one. Reads the
+ * wording eventForModel writes, so the two stay together here.
+ */
+export function appliedExercises(text: string): string[] {
+    const applied = text.startsWith(`${EVENT_PREFIX.zh} 使用者確認了提議，已套用：`) || text.startsWith(`${EVENT_PREFIX.zh} 使用者按了推薦卡片`)
+        || text.startsWith(`${EVENT_PREFIX.en} The user confirmed the proposal and it was applied:`) || text.startsWith(`${EVENT_PREFIX.en} The user tapped Add to today`)
+    if (!applied) return []
+    const patterns = [/移除「([^」]+)」/g, /把「([^」]+)」加到/g, /：「([^」]+)」已加入/g, /(?:remove|add) "([^"]+)"/g, /: "([^"]+)" is now in/g]
+    return patterns.flatMap((p) => [...text.matchAll(p)].map((m) => m[1]))
+}
+
 /** For the chat window: one short line under the card. */
 export function eventForDisplay(e: RonnieEvent, zh: boolean): string {
     if (e.kind === 'recommendation_added') return zh ? `✓ 已把「${e.exerciseName}」加入今天的訓練` : `✓ Added "${e.exerciseName}" to today's workout`

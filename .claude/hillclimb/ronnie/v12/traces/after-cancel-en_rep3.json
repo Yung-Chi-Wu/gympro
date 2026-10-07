@@ -1,0 +1,37 @@
+[
+  {
+    "role": "user",
+    "content": "Take burpees out of all my routines for good."
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"burpee\"},\"result\":\"ID: c6e49af8 | Burpee (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "propose_routine_change",
+    "content": "{\"input\":{\"exercise_id\":\"c6e49af8\",\"exercise_name\":\"Burpee\",\"change\":\"remove\"},\"result\":\"Proposal created, not applied yet: remove \\\"Burpee\\\" from 「腿日」; it takes effect when the user confirms it in the app.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Ready: remove \"Burpee\" from 「腿日」 - tap Confirm in the app to apply."
+  },
+  {
+    "role": "app_event",
+    "content": "[App event] The user cancelled the proposal (remove \"Burpee\" from 「腿日」); the routines are unchanged."
+  },
+  {
+    "role": "user",
+    "content": "Are burpees still on my leg day?"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_routine_exercises",
+    "content": "{\"input\":{\"routine_name\":\"腿日\"},\"result\":\"\\\"腿日\\\" exercises:\\nID: 5866803c | Back Squat: 4組 × 6下\\nID: 07bccaa6 | Romanian Deadlift: 3組 × 8下\\nID: 68be0377 | Leg Press: 3組 × 10下\\nID: c6e49af8 | Burpee: 3組 × 10下\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Yes, Burpee is still on your leg day (3 sets × 10 reps), since you cancelled the removal. The full list is:\n- Back Squat: 4×6\n- Romanian Deadlift: 3×8\n- Leg Press: 3×10\n- Burpee: 3×10\n\nDo you still want it removed for good? 💪"
+  }
+]

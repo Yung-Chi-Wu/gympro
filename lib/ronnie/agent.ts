@@ -2,6 +2,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { stripMarkdown } from './prompt'
 import { RONNIE_TOOLS } from './tools'
 import type { RonnieExecutor } from './executor'
+import { appliedExercises } from './events'
 
 // Ronnie's agent loop. The caller passes the full history - tool calls and
 // results included - and stores the `messages` returned, so an ID Ronnie looked
@@ -81,6 +82,13 @@ const CLAIMS_CHANGE = {
     zh: /已(經)?[^。！？，,\n]{0,15}(移除|加入|加進|拿掉|刪除|刪掉|新增|換成|換掉|替換|改好|改成|更新)/,
     en: /^\s*(done|all set)\b|\bI(?:'ve| have)?\s+(added|removed|swapped|dropped|replaced|updated|taken)\b|\b(added|removed|swapped|dropped)\b[^.!?,\n]{0,40}\b(to|from)\b[^.!?,\n]{0,30}\b(today|workout|routine)/i,
 }
+// A change the user made with a button (confirming a proposal, Add to today) is recorded as
+// an app event; a reply saying that exercise was changed is reporting it, not claiming it
+function explainedByEvents(text: string, history: Anthropic.MessageParam[]): boolean {
+    const changed = history.flatMap((m) => (m.role === 'user' && typeof m.content === 'string' ? appliedExercises(m.content) : []))
+    return changed.some((name) => text.includes(name))
+}
+
 export const claimsChange = (text: string, language: string) =>
     CLAIMS_CHANGE[language === 'zh-TW' ? 'zh' : 'en'].test(text.replace(/「[^」]*」|"[^"]*"/g, ''))
 
@@ -157,7 +165,7 @@ export async function runRonnieTurn({
         if (response.stop_reason !== 'tool_use') {
             const text = textOf(response.content)
             if (!text.trim() && !lastRound && emptyRetries++ < 1) continue
-            if (!executor.confirmations.length && claimsChange(text, language) && !lastRound && claimRetries++ < 1) {
+            if (!executor.confirmations.length && claimsChange(text, language) && !explainedByEvents(text, history) && !lastRound && claimRetries++ < 1) {
                 correction = [{ role: 'assistant', content: text }, { role: 'user', content: claimNote }]
                 continue
             }

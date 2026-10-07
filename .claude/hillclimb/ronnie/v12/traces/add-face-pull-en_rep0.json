@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "Add face pulls to today's workout"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"face pull\"},\"result\":\"ID: cd6e3284 | Face Pull (shoulders)\\nID: 1ca807a6 | Pull-Up (back)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"cd6e3284\",\"exercise_name\":\"Face Pull\"},\"result\":\"✓ Added \\\"Face Pull\\\" to today's workout\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Face Pull is now in today's push workout ✅ It's good for rear delts and shoulder health, and that helps your bench. Keep the reps strict and controlled. 💪"
+  }
+]
