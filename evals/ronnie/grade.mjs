@@ -9,6 +9,10 @@ const OP_ZH = { add_today: '加入今天', remove_today: '從今天移除', dele
 // Ronnie's catchphrase is English by design, so it doesn't count against a Chinese reply
 const CATCHPHRASE = /ain['’]?t\s+nothin['’]?\s+but\s+a\s+peanut!?/gi
 
+// A half-width , ; : ? ! touching a Chinese character: the English system prompt (2026-10-07)
+// made Chinese replies use them in 36 of 95 replies, and the share check alone missed it
+const HALF_WIDTH_PUNCT = /[一-鿿][,;:?!]|[,;:?!][一-鿿]/
+
 export function languageCorrect(text, language) {
     text = String(text).replace(CATCHPHRASE, '')
     const cjk = (text.match(/[一-鿿]/g) ?? []).length
@@ -17,7 +21,7 @@ export function languageCorrect(text, language) {
     const share = cjk / (cjk + latin)
     // Chinese replies keep English exercise names now and then, and English ones quote the
     // user's Chinese routine names (推日), so both bars leave room for names
-    if (language === 'zh-TW') return share > 0.4 && (text.match(SIMPLIFIED_ONLY) ?? []).length <= 2
+    if (language === 'zh-TW') return share > 0.4 && (text.match(SIMPLIFIED_ONLY) ?? []).length <= 2 && !HALF_WIDTH_PUNCT.test(text)
     return share < 0.1
 }
 
@@ -149,7 +153,7 @@ export function programmaticGrade(c, out, exercises) {
     explanation.no_fallback = fellBack.length ? `有 ${fellBack.length} 句回覆是空的，或是「抱歉，請再問一次」（迴圈用完）` : '每句都有正常回覆'
 
     grade.language_correct = out.turns.every((t) => languageCorrect(t.message, c.language)) ? 1 : 0
-    explanation.language_correct = grade.language_correct ? `回覆語言符合 ${c.language}` : `有回覆不是 ${c.language}`
+    explanation.language_correct = grade.language_correct ? `回覆語言符合 ${c.language}` : `有回覆不是 ${c.language}（中文回覆也要用全形標點）`
 
     return { grade, explanation }
 }

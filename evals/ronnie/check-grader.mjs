@@ -129,6 +129,8 @@ check(overallPass(programmaticGrade(enTwo, carded, EXERCISES).grade) === 1, 'add
 
 // The English catchphrase must not make a Chinese reply count as English
 check(programmaticGrade(cases[0], { ...oracle(cases[0]), turns: oracle(cases[0]).turns.map((t) => ({ ...t, message: t.message + " Ain't nothin' but a peanut! 💪 衝吧 Alex！" })) }, EXERCISES).grade.language_correct === 1, 'catchphrase should not fail the language check')
+check(programmaticGrade(cases[0], { ...oracle(cases[0]), turns: oracle(cases[0]).turns.map((t) => ({ ...t, message: '拉日有引體向上,槓鈴划船和滑輪下拉,要調整嗎?' })) }, EXERCISES).grade.language_correct === 0, 'half-width punctuation in a Chinese reply should fail the language check')
+check(programmaticGrade(cases[0], { ...oracle(cases[0]), turns: oracle(cases[0]).turns.map((t) => ({ ...t, message: '每公斤 1.6–2.2 克，臥推 8×82.5kg，對吧？' })) }, EXERCISES).grade.language_correct === 1, 'decimals and full-width punctuation should pass the language check')
 
 // A mis-copied id is rejected (changes nothing), then the retry with the right id
 // works: the outcome is correct, so it passes, and valid_ids still records the slip

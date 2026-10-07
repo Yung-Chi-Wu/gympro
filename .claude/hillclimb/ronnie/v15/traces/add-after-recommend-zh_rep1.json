@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個可以練後三角的動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"反向飛鳥\",\"muscle_group\":\"shoulders\"},\"result\":\"ID: 7fb35f03 | 反向飛鳥機 (shoulders)\\nID: 03810fd4 | 啞鈴後三角飛鳥 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"03810fd4\"},\"result\":\"Showing a card for \\\"啞鈴後三角飛鳥\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "推薦你「啞鈴後三角飛鳥」💪 用輕重量、控制速度，頂點停一下，避免用身體晃動借力。很適合放在推日最後，幫肩膀前後平衡，也有助於穩定臥推。"
+  },
+  {
+    "role": "user",
+    "content": "好，幫我加進今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"03810fd4\"},\"result\":\"✓ 已將「啞鈴後三角飛鳥」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "已把「啞鈴後三角飛鳥」加進今天的課表了 ✅ 建議排在推日最後，做 3 組、每組 12–15 下。"
+  }
+]

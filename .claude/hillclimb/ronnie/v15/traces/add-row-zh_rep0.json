@@ -1,0 +1,25 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個槓鈴划船"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"槓鈴划船\"},\"result\":\"ID: 650646da | 槓鈴划船 (back)\\nID: d1302cd0 | 單臂啞鈴划船 (back)\\nID: d988a60a | 槓鈴臥推 (chest)\\nID: 6fc5ead6 | 上斜槓鈴臥推 (chest)\\nID: 461557d5 | 坐姿繩索划船 (back)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | 槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | 上斜啞鈴臥推: no sets yet\\nID: 13841865 | 肩推: no sets yet\\nID: 697409e4 | 三頭下壓: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"650646da\"},\"result\":\"✓ 已將「槓鈴划船」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 槓鈴划船已加進今天的課表。今天是推日,它會當作拉的動作來平衡訓練,對臥推也有幫助 💪"
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "My lower back hurts after deadlifts, should I keep going?"
+  },
+  {
+    "role": "assistant",
+    "content": "⚠️ Lower back pain after deadlifts is a signal to back off, so don't push through it. Drop the load a lot (or pause deadlifts for now), keep every rep pain-free, and check that your form is solid: neutral spine, bar close to you, and no rounding at the bottom. If the pain is sharp, radiates down a leg, or lasts more than a few days, stop and see a doctor or physio.\n\nWant me to suggest a back-friendlier alternative, like a hip thrust or a Romanian deadlift with lighter weight?"
+  }
+]

@@ -1,0 +1,1 @@
+Knowledge set, code be3dc15 (simplified prompt), claude-sonnet-5-5, 5 reps. Judge 88% (v12 95%, within noise: two "your squats and deadlifts" without looking, one misread summary, two missing details). Regraded with the punctuation check: 73% (7 replies with half-width punctuation; v12 0).

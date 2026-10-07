@@ -23,6 +23,8 @@ const cases = new Map(['cases.json', 'cases-holdout.json', 'cases-knowledge.json
 const KNOWN = new Set(EXERCISES.map((e) => e.id))
 const WRITE_OPS = { add_exercise_today: 'add_today', remove_exercise_today: 'remove_today', remove_exercise_from_routine: 'delete_from_routines' }
 
+// Results show 8-character IDs (since v4); a write's input may carry one
+const fullId = (id) => (id && id.length < 36 ? [...KNOWN].find((k) => k.startsWith(String(id).toLowerCase())) : id)
 const idFromResult = (result) => {
     const name = String(result).match(/[「"](.+?)[」"]/)?.[1]
     return EXERCISES.find((e) => e.name === name || e.name_zh_tw === name)?.id
@@ -44,17 +46,19 @@ function rebuild(trace) {
             // Took effect only if the tool reported success for an exercise that exists
             // (older runs reported "✓ removed" even for an invented id that removed nothing)
             // A removal can name the exercise without an ID; the result then names the one removed
-            const exerciseId = input.exercise_id ?? idFromResult(result)
+            const exerciseId = fullId(input.exercise_id) ?? idFromResult(result)
             if (WRITE_OPS[m.name]) turns.at(-1).writes.push({ op: WRITE_OPS[m.name], exerciseId, effective: String(result).startsWith('✓') && KNOWN.has(exerciseId) })
         }
     }
     return { turns, writes: turns.flatMap((t) => t.writes) }
 }
 
+// Regrades the current file, so judge verdicts from an earlier rejudge= are kept;
+// the first run keeps the original as results.before-regrade.jsonl
 const resultsPath = join(vdir, 'results.jsonl')
 const backup = join(vdir, 'results.before-regrade.jsonl')
 if (!existsSync(backup)) copyFileSync(resultsPath, backup)
-const rows = readFileSync(backup, 'utf8').split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l))
+const rows = readFileSync(resultsPath, 'utf8').split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l))
 
 let changed = 0
 const out = []

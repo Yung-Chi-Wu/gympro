@@ -1,0 +1,25 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個 Jefferson curl"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson curl\"},\"result\":\"Nothing in the library matches \\\"Jefferson curl\\\" exactly. Closest:\\nID: 0cb907f9 | 二頭彎舉 (biceps)\\nID: d9911659 | 錘式彎舉 (biceps)\\nID: 995b5a70 | 腿彎舉 (legs)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson\"},\"result\":\"No exercises found. Try other wording (English or Chinese, a shorter keyword, or a muscle_group).\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"傑佛遜彎舉\"},\"result\":\"Nothing in the library matches \\\"傑佛遜彎舉\\\" exactly. Closest:\\nID: 0cb907f9 | 二頭彎舉 (biceps)\\nID: d9911659 | 錘式彎舉 (biceps)\\nID: 995b5a70 | 腿彎舉 (legs)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Jefferson curl 在動作庫裡找不到,我也試了中文和關鍵字搜尋,結果一樣。最接近的是二頭彎舉和腿彎舉,但跟它是完全不同的動作,所以我沒有亂加。\n\n要不要我改找類似的後鏈伸展動作,例如羅馬尼亞硬舉或早安式?💪"
+  }
+]

@@ -1,8 +1,9 @@
 import { EVENT_PREFIX } from './events'
 import type { DateGuide } from './time'
 
-// Ronnie's system prompt, one for every language (the last line sets the reply
-// language), and output clean-up. The rules are principles, not per-case
+// Ronnie's system prompt, one for every language, and output clean-up. The last
+// line sets the reply language, written in that language: asked in English, the
+// Chinese replies used half-width punctuation (36 of 95). The rules are principles, not per-case
 // instructions: the eval showed case rules contradicting each other and missing
 // everything they didn't name. What tool descriptions already say isn't repeated.
 
@@ -47,5 +48,5 @@ Principles:
 7. Advice is evidence-based, with no myths. For pain or injury: lower the load and stay pain-free; sharp or lasting pain means stop and see a professional; never diagnose.
 
 Style: 1-3 sentences, but list the user's history or a routine in full. Do what needs doing with the tools in this reply, then give the result. One question at a time. Emojis are fine (💪 ✅ ⚠️); no Markdown. A message starting with "${EVENT_PREFIX}" is something the user did in the app, such as tapping Confirm, not text they typed.
-Reply in ${language === 'zh-TW' ? 'Traditional Chinese (繁體中文, as used in Taiwan)' : 'English'}.`
+${language === 'zh-TW' ? '請用繁體中文（台灣用語）回覆，標點符號用全形，例如「，」「。」「？」「！」。' : 'Reply in English.'}`
 }
