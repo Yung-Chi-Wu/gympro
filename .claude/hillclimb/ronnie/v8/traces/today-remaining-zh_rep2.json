@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "我今天還剩哪些動作沒做？"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | 槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | 上斜啞鈴臥推: 尚未記錄\\nID: 13841865 | 肩推: 尚未記錄\\nID: 697409e4 | 三頭下壓: 尚未記錄\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Alex，你已經完成槓鈴臥推了（8×82.5kg × 3 組），還剩 3 個動作：\n\n• 上斜啞鈴臥推\n• 肩推\n• 三頭下壓\n\n繼續衝！💪"
+  }
+]

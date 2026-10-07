@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"incline bench press\",\"muscle_group\":\"chest\"},\"result\":\"No exercise in the library matches \\\"incline bench press\\\" exactly. Closest matches:\\nID: d988a60a | Barbell Bench Press (chest)\\nID: 41290ea9 | Incline Dumbbell Press (chest)\\nID: 6fc5ead6 | Incline Barbell Press (chest)\\nID: d486b05a | Dumbbell Bench Press (chest)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Perfect—Incline Barbell Press is in the library and that's your best bet for upper chest strength. Want me to show it as a card to add to today's workout, or you just asking for knowledge?"
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"6fc5ead6\",\"exercise_name\":\"Incline Barbell Press\"},\"result\":\"✓ Added \\\"Incline Barbell Press\\\" to today's workout\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Done! Incline Barbell Press is on your push day now. Crush it, Alex. 💪"
+  }
+]
