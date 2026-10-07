@@ -3,9 +3,9 @@ import type { DateGuide } from './time'
 
 // Ronnie's system prompt, one for every language, and output clean-up. The last
 // line sets the reply language, written in that language: asked in English, the
-// Chinese replies used half-width punctuation (36 of 95). The rules are principles, not per-case
-// instructions: the eval showed case rules contradicting each other and missing
-// everything they didn't name. What tool descriptions already say isn't repeated.
+// Chinese replies used half-width punctuation (36 of 95). The rules are principles,
+// not per-case instructions: the eval showed case rules contradicting each other and
+// missing everything they didn't name. What tool descriptions say isn't repeated.
 
 export interface RonnieUserContext {
     displayName: string | null
