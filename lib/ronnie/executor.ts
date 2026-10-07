@@ -124,10 +124,11 @@ export function createRonnieExecutor({
             if ('error' in saved) return zh ? `提議建立失敗：${saved.error}` : `Failed to create the proposal: ${saved.error}`
             proposals.push({ ...proposal, id: saved.id })
             const names = proposal.routineNames.map((n) => `「${n}」`).join(zh ? '、' : ', ')
-            // The model echoes tool results, so hand it the wording: it kept opening with "Done!"
+            // The model echoes tool results, so hand it the wording - and only that: it kept
+            // opening with "Done!", and naming the words to avoid made it say them (搞定)
             return zh
-                ? `已建立提議（尚未生效）：從${names}移除「${exerciseName}」。回覆使用者時說「已準備好，按確認後生效」，不要說完成或搞定。`
-                : `Proposal created, not applied yet: remove "${exerciseName}" from ${names}. Tell the user "Ready - tap Confirm to apply."; don't say it's done.`
+                ? `已建立提議（尚未生效）：從${names}移除「${exerciseName}」。這樣回覆使用者：已準備好，在 app 裡按「確認」後生效。`
+                : `Proposal created, not applied yet: remove "${exerciseName}" from ${names}. Reply to the user: Ready - tap Confirm in the app to apply.`
         }
 
         if (toolName === 'search_exercises') {
@@ -221,9 +222,7 @@ export function createRonnieExecutor({
         }
 
         if (toolName === 'remove_exercise_today') {
-            console.log('remove_exercise_today called with:', toolInput)
             const workoutId = await data.ensureTodayWorkout()
-            console.log('workoutId:', workoutId)
             if (!workoutId) return language === 'zh-TW' ? '建立今日訓練失敗' : 'Failed to create workout'
 
             const { error, removed } = await data.removePlannedExercise(workoutId, toolInput.exercise_id)
