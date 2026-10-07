@@ -111,8 +111,9 @@ export async function runRonnieTurn({
 
         if (response.stop_reason !== 'tool_use') {
             if (!textOf(response.content).trim() && !lastRound && emptyRetries++ < 1) continue
-            // end_turn, or a reply cut off by max_tokens: either way, answer with what there is
-            return finish(response.content, sorry)
+            // end_turn, or a reply cut off by max_tokens: either way, answer with what there is -
+            // if still empty, with what the tools changed
+            return finish(response.content, executor.confirmations.join('\n') || sorry)
         }
 
         const toolUseBlocks = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use')
@@ -125,6 +126,9 @@ export async function runRonnieTurn({
             })
         )
         history.push({ role: 'assistant', content: response.content }, { role: 'user', content: toolResults })
+        // A routine change is only proposed, so whether it's applied must be stated exactly:
+        // the reply is fixed words from the code. Given the wording, the model still opened with "Done!" now and then
+        if (executor.proposals.length) return finish([], executor.confirmations.join('\n'))
     }
 
     // Unreachable: the last round runs with tool_choice none

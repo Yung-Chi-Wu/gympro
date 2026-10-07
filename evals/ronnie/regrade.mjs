@@ -20,6 +20,11 @@ const cases = new Map(['cases.json', 'cases-holdout.json'].flatMap((f) => JSON.p
 const KNOWN = new Set(EXERCISES.map((e) => e.id))
 const WRITE_OPS = { add_exercise_today: 'add_today', remove_exercise_today: 'remove_today', remove_exercise_from_routine: 'delete_from_routines' }
 
+const idFromResult = (result) => {
+    const name = String(result).match(/[「"](.+?)[」"]/)?.[1]
+    return EXERCISES.find((e) => e.name === name || e.name_zh_tw === name)?.id
+}
+
 function rebuild(trace) {
     const turns = []
     for (const m of trace) {
@@ -30,7 +35,9 @@ function rebuild(trace) {
             turns.at(-1).toolCalls.push({ name: m.name, input, result })
             // Took effect only if the tool reported success for an exercise that exists
             // (older runs reported "✓ removed" even for an invented id that removed nothing)
-            if (WRITE_OPS[m.name]) turns.at(-1).writes.push({ op: WRITE_OPS[m.name], exerciseId: input.exercise_id, effective: String(result).startsWith('✓') && KNOWN.has(input.exercise_id) })
+            // A removal can name the exercise without an ID; the result then names the one removed
+            const exerciseId = input.exercise_id ?? idFromResult(result)
+            if (WRITE_OPS[m.name]) turns.at(-1).writes.push({ op: WRITE_OPS[m.name], exerciseId, effective: String(result).startsWith('✓') && KNOWN.has(exerciseId) })
         }
     }
     return { turns, writes: turns.flatMap((t) => t.writes) }

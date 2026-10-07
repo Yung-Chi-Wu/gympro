@@ -60,14 +60,14 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
     },
     {
         name: 'remove_exercise_today',
-        description: "Remove an exercise from today's workout only; the permanent routine is not affected. Today only, so do it right away when the user says they don't want to do it today - no need to confirm.",
+        description: "Remove an exercise from today's workout only; the permanent routine is not affected. Today only, so do it right away when the user says they don't want to do it today - no need to confirm. The name is enough, no lookup first: it is matched against today's exercises, and if it matches none or several you get today's list with IDs to call again with exercise_id.",
         input_schema: {
             type: 'object' as const,
             properties: {
-                exercise_id: { type: 'string', description: 'Exercise ID exactly as shown by get_today_workout' },
-                exercise_name: { type: 'string', description: 'Exercise name for confirmation' },
+                exercise_name: { type: 'string', description: 'The exercise to remove, as the user named it' },
+                exercise_id: { type: 'string', description: 'Optional: the ID from get_today_workout, if you already have it' },
             },
-            required: ['exercise_id', 'exercise_name'],
+            required: ['exercise_name'],
         },
     },
     {
@@ -96,7 +96,7 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
     },
     {
         name: 'propose_routine_change',
-        description: "Propose removing an exercise from the user's permanent routines - one routine (routine_name) or all of them. Nothing changes until the user taps Confirm in the app, so after calling this tell the user what will change and that they need to confirm. Use this for every permanent routine change; never tell the user to edit routines themselves.",
+        description: "Propose removing an exercise from the user's permanent routines - one routine (routine_name) or all of them. Nothing changes until the user taps Confirm in the app. The app then tells the user what will change and ends your turn, so make any other changes first. Use this for every permanent routine change; never tell the user to edit routines themselves.",
         input_schema: {
             type: 'object' as const,
             properties: {

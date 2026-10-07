@@ -1,5 +1,5 @@
 import type { RonnieData, RoutineProposal } from './data'
-import { searchLibrary } from './search'
+import { latinTokens, searchLibrary } from './search'
 import { localDateStr, localDateToUtcRange } from './time'
 
 // Ronnie's tool implementations. All reads and writes go through RonnieData.
@@ -26,12 +26,34 @@ export interface RonnieExecutor {
     readonly proposals: (RoutineProposal & { id: string })[]
     /** Exercises recommended this turn, for the app to show as cards with an Add button. */
     readonly recommendations: { exerciseId: string; exerciseName: string }[]
+    /** What this turn changed or proposed, in fixed words: the reply when the model's own can't be used. */
+    readonly confirmations: string[]
 }
 
 // Exercise IDs are UUIDs, and the eval caught the model mis-copying one. Tool
 // results show the first 8 characters instead, and inputs are resolved back to
 // the full ID (a full UUID still works). A prefix shared by two exercises is shown in full.
 const SHORT_ID_LENGTH = 8
+
+type Named = { exercise_id: string; exercises: { name: string; name_zh_tw: string | null } | null }
+
+/**
+ * Today's exercises a name refers to: an exact name, else names containing it, comparing English
+ * by singular words ("tricep pushdowns" → Triceps Pushdown). Never the other way round: "side plank"
+ * must not remove Plank. No single match means the caller lists today's exercises instead of guessing.
+ */
+function matchByName<T extends Named>(planned: T[], query: string | undefined): T[] {
+    const q = String(query ?? '').trim().toLowerCase()
+    if (!q) return []
+    const qWords = latinTokens(q)
+    const names = (pe: T) => [pe.exercises?.name, pe.exercises?.name_zh_tw].filter((n): n is string => !!n).map((n) => n.toLowerCase())
+    const exact = planned.filter((pe) => names(pe).includes(q))
+    const found = exact.length ? exact : planned.filter((pe) => names(pe).some((n) => {
+        const words = latinTokens(n)
+        return n.includes(q) || (qWords.length > 0 && qWords.every((w) => words.includes(w)))
+    }))
+    return found.filter((pe, i) => found.findIndex((x) => x.exercise_id === pe.exercise_id) === i)
+}
 
 export function createRonnieExecutor({
     data,
@@ -44,9 +66,17 @@ export function createRonnieExecutor({
     let needsDashboardReload = false
     const proposals: (RoutineProposal & { id: string })[] = []
     const recommendations: { exerciseId: string; exerciseName: string }[] = []
+    const confirmations: string[] = []
     const zh = language === 'zh-TW'
     const nameOf = (ex: { name: string; name_zh_tw: string | null } | null | undefined) =>
         (zh && ex?.name_zh_tw ? ex.name_zh_tw : ex?.name) ?? 'Unknown'
+    // The app logs a bodyweight set at 0 kg; spelled out, because the model read 8×0kg as an assisted machine
+    const setText = (s: { reps: number; weight_kg: number }) =>
+        s.weight_kg === 0 ? (zh ? `${s.reps}下（自體重）` : `${s.reps} reps (bodyweight)`) : `${s.reps}×${s.weight_kg}kg`
+    const confirm = (line: string) => {
+        confirmations.push(line)
+        return line
+    }
 
     let libraryIds: string[] | null = null
     async function allIds(): Promise<string[]> {
@@ -124,11 +154,14 @@ export function createRonnieExecutor({
             if ('error' in saved) return zh ? `提議建立失敗：${saved.error}` : `Failed to create the proposal: ${saved.error}`
             proposals.push({ ...proposal, id: saved.id })
             const names = proposal.routineNames.map((n) => `「${n}」`).join(zh ? '、' : ', ')
-            // The model echoes tool results, so hand it the wording - and only that: it kept
-            // opening with "Done!", and naming the words to avoid made it say them (搞定)
+            // The reply after a proposal is these fixed words (see agent.ts): told the wording,
+            // the model still opened with "Done!" now and then
+            confirmations.push(zh
+                ? `已準備好：從${names}移除「${exerciseName}」，在 app 裡按「確認」後生效。`
+                : `Ready: remove "${exerciseName}" from ${names} - tap Confirm in the app to apply.`)
             return zh
-                ? `已建立提議（尚未生效）：從${names}移除「${exerciseName}」。這樣回覆使用者：已準備好，在 app 裡按「確認」後生效。`
-                : `Proposal created, not applied yet: remove "${exerciseName}" from ${names}. Reply to the user: Ready - tap Confirm in the app to apply.`
+                ? `已建立提議（尚未生效）：從${names}移除「${exerciseName}」，使用者在 app 裡按「確認」後才會生效。`
+                : `Proposal created, not applied yet: remove "${exerciseName}" from ${names}; it takes effect when the user taps Confirm in the app.`
         }
 
         if (toolName === 'search_exercises') {
@@ -165,7 +198,7 @@ export function createRonnieExecutor({
                         ? pe.exercises.name_zh_tw : pe.exercises?.name ?? 'Unknown'
                     const sets = (allSets ?? [])
                         .filter((s) => s.workout_id === w.id && s.exercise_id === pe.exercise_id)
-                        .map((s) => `${s.reps}×${s.weight_kg}kg`).join(', ')
+                        .map(setText).join(', ')
                     return `  ${exName}: ${sets || '(no sets logged)'}`
                 }).join('\n')
                 return `${date}:\n${exercises}`
@@ -184,7 +217,7 @@ export function createRonnieExecutor({
                 const exercises = (await Promise.all((workout.workout_planned_exercises ?? []).map(async (pe) => {
                     const sets = (todaySets ?? [])
                         .filter((s) => s.exercise_id === pe.exercise_id)
-                        .map((s) => `${s.reps}×${s.weight_kg}kg`).join(', ')
+                        .map(setText).join(', ')
                     return `ID: ${await shortId(pe.exercise_id)} | ${nameOf(pe.exercises)}: ${sets || (zh ? '尚未記錄' : 'no sets yet')}`
                 }))).join('\n')
                 return exercises || (language === 'zh-TW' ? '今天課表是空的' : 'No exercises today')
@@ -216,16 +249,35 @@ export function createRonnieExecutor({
 
             if (error) return language === 'zh-TW' ? `新增失敗：${error}` : `Failed: ${error}`
             needsDashboardReload = true
-            return language === 'zh-TW'
+            return confirm(language === 'zh-TW'
                 ? `✓ 已將「${toolInput.exercise_name}」加入今天的課表`
-                : `✓ Added "${toolInput.exercise_name}" to today's workout`
+                : `✓ Added "${toolInput.exercise_name}" to today's workout`)
         }
 
         if (toolName === 'remove_exercise_today') {
             const workoutId = await data.ensureTodayWorkout()
             if (!workoutId) return language === 'zh-TW' ? '建立今日訓練失敗' : 'Failed to create workout'
 
-            const { error, removed } = await data.removePlannedExercise(workoutId, toolInput.exercise_id)
+            // A name is enough, matched here against today's exercises: needing an ID meant a
+            // lookup first, and the model sometimes stopped after the lookup without removing
+            let exerciseId = toolInput.exercise_id
+            let exerciseName = toolInput.exercise_name
+            if (!exerciseId) {
+                const range = localDateToUtcRange(localDateStr(now(), timeZone), timeZone)
+                const planned = (await data.getLatestWorkoutBetween(range.start, range.end))?.workout_planned_exercises ?? []
+                const matches = matchByName(planned, exerciseName)
+                if (matches.length !== 1) {
+                    if (!planned.length) return zh ? '今天的課表是空的，沒有可以移除的動作' : "Today's workout is empty; nothing to remove"
+                    const list = (await Promise.all(planned.map(async (pe) => `ID: ${await shortId(pe.exercise_id)} | ${nameOf(pe.exercises)}`))).join('\n')
+                    return zh
+                        ? `${matches.length ? `今天有不只一個動作符合「${exerciseName}」` : `今天的訓練裡找不到「${exerciseName}」`}，沒有移除任何東西。今天的動作：\n${list}\n用 exercise_id 再呼叫一次；分不出是哪一個就問使用者。`
+                        : `${matches.length ? `Several of today's exercises match "${exerciseName}"` : `"${exerciseName}" is not in today's workout`}, so nothing was removed. Today's exercises:\n${list}\nCall again with exercise_id; if you can't tell which one, ask the user.`
+                }
+                exerciseId = matches[0].exercise_id
+                exerciseName = nameOf(matches[0].exercises)
+            }
+
+            const { error, removed } = await data.removePlannedExercise(workoutId, exerciseId)
 
             if (error) return language === 'zh-TW' ? `移除失敗：${error}` : `Failed: ${error}`
             // Deleting by an unknown id removes nothing - report that instead of a false success
@@ -235,9 +287,9 @@ export function createRonnieExecutor({
                     : "That exercise ID is not in today's workout, so nothing was removed. Get the right ID from get_today_workout"
             }
             needsDashboardReload = true
-            return language === 'zh-TW'
-                ? `✓ 已將「${toolInput.exercise_name}」從今天課表移除（不影響固定課表）`
-                : `✓ Removed "${toolInput.exercise_name}" from today only (routine unchanged)`
+            return confirm(language === 'zh-TW'
+                ? `✓ 已將「${exerciseName}」從今天課表移除（不影響固定課表）`
+                : `✓ Removed "${exerciseName}" from today only (routine unchanged)`)
         }
 
         if (toolName === 'recommend_exercise') {
@@ -304,7 +356,7 @@ export function createRonnieExecutor({
             const muscleText = [...muscles].map(([m, v]) => zh
                 ? `${MUSCLE_ZH[m] ?? m} ${v.sets} 組（${v.sessions.size} 次）`
                 : `${m} ${v.sets} sets (${v.sessions.size} sessions)`).join(zh ? '、' : ', ')
-            const bestText = [...best].map(([id, b]) => `${nameOf(library.get(id))} ${b.weight_kg}kg × ${b.reps}`).join(zh ? '、' : ', ')
+            const bestText = [...best].map(([id, b]) => `${nameOf(library.get(id))} ${setText(b)}`).join(zh ? '、' : ', ')
             const kg = Math.round(volume).toLocaleString('en-US')
             return zh
                 ? `${label}：訓練 ${group.length} 次，共 ${groupSets.length} 組，總訓練量 ${kg} kg\n  各肌群：${muscleText}\n  最佳組：${bestText}`
@@ -319,7 +371,7 @@ export function createRonnieExecutor({
             return describe(zh ? `${from} ～ ${to}` : `${from} to ${to}`, weeks.get(monday)!)
         })
         if (weeks.size > 1) sections.push(describe(zh ? `合計 ${dateFrom} ～ ${dateTo}` : `Total ${dateFrom} to ${dateTo}`, trained))
-        if (bodyweightSets) sections.push(zh ? '（徒手動作重量記為 0，不計入訓練量）' : '(Bodyweight sets are logged at 0 kg and add nothing to volume)')
+        if (bodyweightSets) sections.push(zh ? '（自體重的組不計入訓練量）' : '(Bodyweight sets add nothing to volume)')
         return sections.join('\n\n')
     }
 
@@ -333,6 +385,9 @@ export function createRonnieExecutor({
         },
         get recommendations() {
             return recommendations
+        },
+        get confirmations() {
+            return confirmations
         },
     }
 }

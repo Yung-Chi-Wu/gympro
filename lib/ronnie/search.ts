@@ -27,7 +27,7 @@ function singular(word: string): string {
     return word
 }
 
-function latinTokens(text: string): string[] {
+export function latinTokens(text: string): string[] {
     return text
         .toLowerCase()
         .split(/[^a-z0-9]+/)
