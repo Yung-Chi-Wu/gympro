@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { PlannedExercise, RonnieData, RoutineProposal } from '../../lib/ronnie/data'
+import type { ResolvedRow } from '../../lib/ronnie/events'
 import { dateGuide, localDateStr } from '../../lib/ronnie/time'
 
 // One fictional user for the Ronnie eval. "Today" is Wednesday 2026-10-07 in
@@ -122,7 +123,12 @@ interface SetRow {
 }
 
 /** A fresh copy of the fixture; one per eval case, shared across that case's turns. */
-export function createFixtureData(): { data: RonnieData; writes: FixtureWrite[]; proposals: RoutineProposal[] } {
+export function createFixtureData(): {
+    data: RonnieData
+    writes: FixtureWrite[]
+    proposals: RoutineProposal[]
+    applyProposal: (p: RoutineProposal) => ResolvedRow[]
+} {
     const writes: FixtureWrite[] = []
     // Proposals change nothing; they are recorded so the grader can see what was offered
     const proposals: RoutineProposal[] = []
@@ -233,7 +239,27 @@ export function createFixtureData(): { data: RonnieData; writes: FixtureWrite[];
             return { id: `proposal-${proposals.length}` }
         },
     }
-    return { data, writes, proposals }
+
+    // What resolve_ronnie_action does when the user confirms a proposal, for the eval's
+    // app-event turns. Not one of Ronnie's writes: the user made this change.
+    function applyProposal(p: RoutineProposal): ResolvedRow[] {
+        const rows: ResolvedRow[] = []
+        for (const rid of p.routineIds) {
+            const list = routineExercises.get(rid) ?? []
+            const routineName = ROUTINES.find((r) => r.id === rid)?.name ?? ''
+            if (p.change === 'remove_exercise') {
+                const i = list.findIndex((re) => re.exercise_id === p.exerciseId)
+                if (i < 0) continue
+                rows.push({ routineName, targetSets: list[i].target_sets, targetReps: list[i].target_reps, position: i + 1 })
+                routineExercises.set(rid, list.filter((re) => re.exercise_id !== p.exerciseId))
+            } else if (!list.some((re) => re.exercise_id === p.exerciseId)) {
+                rows.push({ routineName, targetSets: p.targetSets, targetReps: p.targetReps, position: list.length + 1 })
+                routineExercises.set(rid, [...list, { exercise_id: p.exerciseId, target_sets: p.targetSets, target_reps: p.targetReps }])
+            }
+        }
+        return rows
+    }
+    return { data, writes, proposals, applyProposal }
 }
 
 /** What the coach route puts in the system prompt for this user. */

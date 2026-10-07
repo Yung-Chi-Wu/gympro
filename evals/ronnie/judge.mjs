@@ -28,7 +28,8 @@ export function renderConversation(out) {
             const tools = t.toolCalls.length
                 ? t.toolCalls.map((x) => `[tool ${x.name}] input: ${JSON.stringify(x.input)}\nresult:\n${x.result}`).join('\n\n')
                 : '[no tool calls]'
-            return `--- turn ${i + 1} ---\nUser: ${t.user}\n\n${tools}\n\nRonnie: ${t.message}`
+            const events = (t.events ?? []).map((e) => `App event (the user tapped a button; Ronnie did not reply to it): ${e}\n\n`).join('')
+            return `--- turn ${i + 1} ---\n${events}User: ${t.user}\n\n${tools}\n\nRonnie: ${t.message}`
         })
         .join('\n\n')
 }

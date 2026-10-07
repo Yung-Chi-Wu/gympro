@@ -167,6 +167,7 @@ async function runCase(c, ctx) {
   return {
     output: out,
     transcript: out.turns.flatMap((t) => [
+      ...(t.events ?? []).map((e) => ({ role: 'app_event', content: e })),
       { role: 'user', content: t.user },
       ...t.toolCalls.map((x) => ({ role: 'tool_call', name: x.name, content: JSON.stringify({ input: x.input, result: x.result }) })),
       { role: 'assistant', content: t.message },

@@ -46,8 +46,13 @@ Write the reason in Traditional Chinese (繁體中文), one or two sentences, be
 // Rebuild the conversation from a trace, in the shape renderConversation reads
 function fromTrace(trace) {
     const turns = []
+    let events = []
     for (const m of trace) {
-        if (m.role === 'user') turns.push({ user: m.content, toolCalls: [], message: '' })
+        if (m.role === 'app_event') events.push(m.content)
+        else if (m.role === 'user') {
+            turns.push({ user: m.content, events, toolCalls: [], message: '' })
+            events = []
+        }
         else if (m.role === 'assistant') turns.at(-1).message = m.content
         else turns.at(-1).toolCalls.push({ name: m.name, ...JSON.parse(m.content) })
     }

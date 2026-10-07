@@ -27,8 +27,13 @@ const idFromResult = (result) => {
 
 function rebuild(trace) {
     const turns = []
+    let events = []
     for (const m of trace) {
-        if (m.role === 'user') turns.push({ user: m.content, toolCalls: [], writes: [], message: '' })
+        if (m.role === 'app_event') events.push(m.content)
+        else if (m.role === 'user') {
+            turns.push({ user: m.content, events, toolCalls: [], writes: [], message: '' })
+            events = []
+        }
         else if (m.role === 'assistant') turns.at(-1).message = m.content
         else {
             const { input, result } = JSON.parse(m.content)

@@ -66,6 +66,7 @@ for (const r of rows) {
     const trace = join(vdir, 'traces', `${r.prompt_id}_rep${r.rep}.json`)
     if (existsSync(trace)) {
         const lines = JSON.parse(readFileSync(trace, 'utf8')).map((m) => {
+            if (m.role === 'app_event') return `（使用者按了按鈕）${m.content}`
             if (m.role === 'user') return `你：${m.content}`
             if (m.role === 'assistant') return `羅尼：${m.content}\n`
             const { input, result } = JSON.parse(m.content)

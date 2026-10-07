@@ -26,7 +26,8 @@ const check = (cond, msg) => { if (!cond) { failures++; console.log(`FAIL ${msg}
 function oracle(c) {
     const exp = c.expect
     const zh = c.language === 'zh-TW'
-    const turns = c.turns.map((user) => ({ user, toolCalls: [], writes: [], message: zh ? '好的，沒問題，這是你要的資訊。' : 'Sure, here is what you asked for.' }))
+    // App-event steps are not turns: the user tapped a button, Ronnie didn't reply
+    const turns = c.turns.filter((t) => typeof t === 'string').map((user) => ({ user, toolCalls: [], writes: [], message: zh ? '好的，沒問題，這是你要的資訊。' : 'Sure, here is what you asked for.' }))
     const last = turns.at(-1)
     for (const name of exp.tools_required ?? []) {
         const input = name === 'get_workout_history' && exp.history_range

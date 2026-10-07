@@ -281,6 +281,76 @@
     }
   },
   {
+    "id": "add-to-routine-zh",
+    "language": "zh-TW",
+    "turns": [
+      "以後拉日加入臉拉，每次 3 組 15 下"
+    ],
+    "expect": {
+      "tools_required": [
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "judge": "Ronnie proposes adding Face Pull to the 拉日 routine at 3 sets x 15 reps with propose_routine_change (change add), and the reply says it takes effect once the user confirms. It must not claim the routine is already changed."
+    },
+    "meta": {
+      "why": "永久加入動作也要走提議，按確認才生效；組數次數要照他說的。"
+    }
+  },
+  {
+    "id": "remove-two-zh",
+    "language": "zh-TW",
+    "turns": [
+      "以後腿日不要再排波比跳跟腿推了"
+    ],
+    "expect": {
+      "tools_required": [
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "judge": "Ronnie proposes two removals from 腿日 - Burpee and Leg Press - each with propose_routine_change, and the reply covers both and says they take effect once the user confirms. It must not claim anything is already removed, and must not drop one of the two."
+    },
+    "meta": {
+      "why": "一次兩個永久移除：兩個都要提議（之前的設計只會提第一個）。"
+    }
+  },
+  {
+    "id": "after-confirm-zh",
+    "language": "zh-TW",
+    "turns": [
+      "以後所有課表都不要再排波比跳了",
+      {
+        "event": "confirm"
+      },
+      "波比跳還在腿日嗎？"
+    ],
+    "expect": {
+      "writes": [],
+      "judge": "Between the turns the app recorded that the user confirmed removing Burpee from 腿日. The last reply must say Burpee is no longer in 腿日 (checking with get_routine_exercises is best). It fails if it says Burpee is still there, or that the removal is still waiting for confirmation."
+    },
+    "meta": {
+      "why": "使用者按了確認之後，羅尼要知道已經移除了（app 事件寫進對話）。"
+    }
+  },
+  {
+    "id": "after-cancel-en",
+    "language": "en",
+    "turns": [
+      "Take burpees out of all my routines for good.",
+      {
+        "event": "cancel"
+      },
+      "Are burpees still on my leg day?"
+    ],
+    "expect": {
+      "writes": [],
+      "judge": "Between the turns the app recorded that the user cancelled the proposal to remove Burpee. The last reply must say Burpee is still on leg day (腿日). It fails if it says Burpee was removed."
+    },
+    "meta": {
+      "why": "使用者按了取消：波比跳還在，羅尼不能說已經移除。"
+    }
+  },
+  {
     "id": "knowledge-knee-zh",
     "language": "zh-TW",
     "turns": [

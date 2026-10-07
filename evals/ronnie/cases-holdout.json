@@ -1,24 +1,24 @@
 [
   {
-    "id": "holdout-month-legs-zh",
-    "language": "zh-TW",
+    "id": "holdout-back-sets-en",
+    "language": "en",
     "turns": [
-      "這個月我練了幾次腿？"
+      "How many sets did I do for back last week?"
     ],
     "expect": {
       "writes": [],
       "history_range": {
         "cover": [
-          "2026-10-01",
-          "2026-10-07"
+          "2026-09-28",
+          "2026-10-04"
         ],
-        "earliest": "2026-10-01",
-        "latest": "2026-10-31"
+        "earliest": "2026-09-21",
+        "latest": "2026-10-07"
       },
-      "judge": "This month (October 2026, up to today 10-07) the user trained legs once, on 10-06; 10-03 was a planned leg day that was skipped. The reply must give that count from the tool results, without inventing sessions."
+      "judge": "Last week (2026-09-28 to 2026-10-04) the user did 22 working sets for back, over two pull sessions. The number must come from the tool results (get_training_summary reports it per muscle group); the reply fails if the number is wrong or worked out some other way that disagrees with the tools."
     },
     "meta": {
-      "why": "「這個月」是 10/1 起；10 月只練了一次腿（10/6），10/3 那次沒練。"
+      "why": "上週（9/28–10/4）背部 22 組、兩次拉日；數字要來自工具。"
     }
   },
   {

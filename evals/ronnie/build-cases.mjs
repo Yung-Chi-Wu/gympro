@@ -157,6 +157,49 @@ const cases = [
         },
         why: '沒講清楚是一次還是永久（而且今天是推日，沒有深蹲），要先問清楚。',
     },
+    // ---------- proposals and app events (Phase B) ----------
+    {
+        id: 'add-to-routine-zh',
+        language: 'zh-TW',
+        turns: ['以後拉日加入臉拉，每次 3 組 15 下'],
+        expect: {
+            tools_required: ['propose_routine_change'],
+            writes: [],
+            judge: 'Ronnie proposes adding Face Pull to the 拉日 routine at 3 sets x 15 reps with propose_routine_change (change add), and the reply says it takes effect once the user confirms. It must not claim the routine is already changed.',
+        },
+        why: '永久加入動作也要走提議，按確認才生效；組數次數要照他說的。',
+    },
+    {
+        id: 'remove-two-zh',
+        language: 'zh-TW',
+        turns: ['以後腿日不要再排波比跳跟腿推了'],
+        expect: {
+            tools_required: ['propose_routine_change'],
+            writes: [],
+            judge: 'Ronnie proposes two removals from 腿日 - Burpee and Leg Press - each with propose_routine_change, and the reply covers both and says they take effect once the user confirms. It must not claim anything is already removed, and must not drop one of the two.',
+        },
+        why: '一次兩個永久移除：兩個都要提議（之前的設計只會提第一個）。',
+    },
+    {
+        id: 'after-confirm-zh',
+        language: 'zh-TW',
+        turns: ['以後所有課表都不要再排波比跳了', { event: 'confirm' }, '波比跳還在腿日嗎？'],
+        expect: {
+            writes: [],
+            judge: 'Between the turns the app recorded that the user confirmed removing Burpee from 腿日. The last reply must say Burpee is no longer in 腿日 (checking with get_routine_exercises is best). It fails if it says Burpee is still there, or that the removal is still waiting for confirmation.',
+        },
+        why: '使用者按了確認之後，羅尼要知道已經移除了（app 事件寫進對話）。',
+    },
+    {
+        id: 'after-cancel-en',
+        language: 'en',
+        turns: ['Take burpees out of all my routines for good.', { event: 'cancel' }, 'Are burpees still on my leg day?'],
+        expect: {
+            writes: [],
+            judge: 'Between the turns the app recorded that the user cancelled the proposal to remove Burpee. The last reply must say Burpee is still on leg day (腿日). It fails if it says Burpee was removed.',
+        },
+        why: '使用者按了取消：波比跳還在，羅尼不能說已經移除。',
+    },
     // ---------- fitness knowledge ----------
     {
         id: 'knowledge-knee-zh',
@@ -220,16 +263,17 @@ const cases = [
 // final acceptance (RONNIE_CASES=holdout), to check the fixes generalise beyond
 // the 20 cases above. Same rules as above, different wording and situations.
 const holdout = [
+    // Replaced holdout-month-legs-zh on 2026-10-07: its failure was read while fixing (seen, so no longer held out)
     {
-        id: 'holdout-month-legs-zh',
-        language: 'zh-TW',
-        turns: ['這個月我練了幾次腿？'],
+        id: 'holdout-back-sets-en',
+        language: 'en',
+        turns: ['How many sets did I do for back last week?'],
         expect: {
             writes: [],
-            history_range: { cover: ['2026-10-01', '2026-10-07'], earliest: '2026-10-01', latest: '2026-10-31' },
-            judge: 'This month (October 2026, up to today 10-07) the user trained legs once, on 10-06; 10-03 was a planned leg day that was skipped. The reply must give that count from the tool results, without inventing sessions.',
+            history_range: { cover: ['2026-09-28', '2026-10-04'], earliest: '2026-09-21', latest: '2026-10-07' },
+            judge: 'Last week (2026-09-28 to 2026-10-04) the user did 22 working sets for back, over two pull sessions. The number must come from the tool results (get_training_summary reports it per muscle group); the reply fails if the number is wrong or worked out some other way that disagrees with the tools.',
         },
-        why: '「這個月」是 10/1 起；10 月只練了一次腿（10/6），10/3 那次沒練。',
+        why: '上週（9/28–10/4）背部 22 組、兩次拉日；數字要來自工具。',
     },
     {
         id: 'holdout-swap-today-en',
@@ -273,6 +317,7 @@ const holdout = [
 
 // Fitness knowledge (RONNIE_CASES=knowledge): how good the coaching is, for choosing
 // the model. Graded by the judge, and compared answer against answer (compare.mjs).
+const turnText = (t) => (typeof t === 'string' ? `「${t}」` : t.event === 'confirm' ? '〔按了確認〕' : '〔按了取消〕')
 const KNOWLEDGE_NO_CHANGES = { tools_forbidden: WRITE_TOOLS, writes: [] }
 const knowledge = [
     {
@@ -367,13 +412,13 @@ const md = [
     '',
     '| # | id | 對話 | 正確的做法 |',
     '|---|---|---|---|',
-    ...cases.map((c, i) => `| ${i + 1} | ${c.id} | ${c.turns.map((t) => `「${t}」`).join(' → ')} | ${c.why} |`),
+    ...cases.map((c, i) => `| ${i + 1} | ${c.id} | ${c.turns.map(turnText).join(' → ')} | ${c.why} |`),
     '',
 ]
 writeFileSync(join(here, 'cases-holdout.json'), JSON.stringify(holdout.map(({ why, ...c }) => ({ ...c, meta: { why } })), null, 2) + '\n')
 md.push('## 保留題（只在最後驗收時跑）', '', '| # | id | 對話 | 正確的做法 |', '|---|---|---|---|',
-    ...holdout.map((c, i) => `| H${i + 1} | ${c.id} | ${c.turns.map((t) => `「${t}」`).join(' → ')} | ${c.why} |`), '')
+    ...holdout.map((c, i) => `| H${i + 1} | ${c.id} | ${c.turns.map(turnText).join(' → ')} | ${c.why} |`), '')
 md.push('## 健身知識題（RONNIE_CASES=knowledge，用來選模型）', '', '| # | id | 對話 | 好的回答 |', '|---|---|---|---|',
-    ...knowledge.map((c, i) => `| K${i + 1} | ${c.id} | ${c.turns.map((t) => `「${t}」`).join(' → ')} | ${c.why} |`), '')
+    ...knowledge.map((c, i) => `| K${i + 1} | ${c.id} | ${c.turns.map(turnText).join(' → ')} | ${c.why} |`), '')
 writeFileSync(join(here, 'cases.md'), md.join('\n'))
 console.log(`wrote ${cases.length} cases to cases.json, ${holdout.length} held-out cases to cases-holdout.json, ${knowledge.length} knowledge cases to cases-knowledge.json, and cases.md`)
