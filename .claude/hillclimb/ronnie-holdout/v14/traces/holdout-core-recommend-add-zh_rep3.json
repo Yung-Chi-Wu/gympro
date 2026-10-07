@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個不用器材的核心動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"plank\",\"muscle_group\":\"core\"},\"result\":\"ID: f04af209 | 棒式 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\",\"exercise_name\":\"棒式\"},\"result\":\"已顯示推薦卡片：「棒式」，使用者可以直接按「加入今天」，也可以叫你加入。\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "推薦你做棒式 💪 完全不用器材，練的是核心的抗伸展能力。身體維持一直線，臀部夾緊、肋骨收下，不要塌腰。每組撐 30～60 秒就好，品質比時間重要。想加進今天的推日，按卡片上的「加入」就行。"
+  },
+  {
+    "role": "user",
+    "content": "可以，加到今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\",\"exercise_name\":\"棒式\"},\"result\":\"✓ 已將「棒式」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 棒式已加進今天的推日課表。建議放在最後收尾，做 3 組，每組撐 30～60 秒。Ain't nothin' but a peanut! 💪"
+  }
+]

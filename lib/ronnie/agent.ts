@@ -8,7 +8,10 @@ import { appliedExercises } from './events'
 // results included - and stores the `messages` returned, so an ID Ronnie looked
 // up stays available in later turns.
 
-export const RONNIE_MODEL = 'claude-haiku-4-5'
+// Chosen by the eval (2026-10-07): on the knowledge set Sonnet 5.5 passed 88% to Haiku 4.5's 48%
+// and won 39 of 40 side-by-side comparisons, with no wrong changes on the dev set. With prompt
+// caching a conversation costs about 1.5x Haiku's.
+export const RONNIE_MODEL = 'claude-sonnet-5-5'
 
 const MAX_TOOL_ROUNDS = 5
 // Tool results longer than this, from before the last two user turns, are

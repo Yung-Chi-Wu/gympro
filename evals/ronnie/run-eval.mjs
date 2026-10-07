@@ -173,9 +173,12 @@ async function runCase(c, ctx) {
       { role: 'assistant', content: t.message },
     ]),
     model: out.turns.at(-1)?.servedModel ?? null,
+    // Cache tokens too: with prompt caching on, input_tokens is only the uncached part
     usage: {
       input_tokens: calls.reduce((a, u) => a + u.input_tokens, 0),
       output_tokens: calls.reduce((a, u) => a + u.output_tokens, 0),
+      cache_creation_input_tokens: calls.reduce((a, u) => a + (u.cache_creation_input_tokens ?? 0), 0),
+      cache_read_input_tokens: calls.reduce((a, u) => a + (u.cache_read_input_tokens ?? 0), 0),
     },
     stop_reason: null,
     api_calls: calls.length,

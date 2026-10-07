@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個不用器材的核心動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"plank\",\"muscle_group\":\"core\"},\"result\":\"ID: f04af209 | 棒式 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\",\"exercise_name\":\"棒式\"},\"result\":\"已顯示推薦卡片：「棒式」，使用者可以直接按「加入今天」，也可以叫你加入。\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "推薦你做棒式 💪 完全不用器材，練的是核心的抗伸展能力。身體從頭到腳保持一直線，收緊腹部和臀部，不要塌腰。想加入今天的推日當收尾動作，按卡片上的「加入」就行。"
+  },
+  {
+    "role": "user",
+    "content": "可以，加到今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\",\"exercise_name\":\"棒式\"},\"result\":\"✓ 已將「棒式」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 棒式已經加進今天的課表了。推日練完最後做，撐到姿勢開始跑掉就停，Ain't nothin' but a peanut! 💪"
+  }
+]
