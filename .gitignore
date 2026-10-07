@@ -47,6 +47,8 @@ next-env.d.ts
 *.tfstate
 *.tfstate.*
 *.tfvars
+# Saved plans embed resolved values, including sensitive ones
+*.tfplan
 crash.log
 override.tf
 override.tf.json
@@ -58,3 +60,6 @@ infra/terraform/out.json
 
 # Supabase CLI local cache
 supabase/.temp/
+
+# Claude Code per-machine settings (permissions, local paths)
+.claude/settings.local.json
