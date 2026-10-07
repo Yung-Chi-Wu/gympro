@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "今天不想做肩推"
+  },
+  {
+    "role": "tool_call",
+    "name": "remove_exercise_today",
+    "content": "{\"input\":{\"exercise_name\":\"肩推\"},\"result\":\"✓ 已將「肩推」從今天課表移除（不影響固定課表）\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "搞定！✅ 今天先跳過肩推，固定課表裡還有。把力氣留給其他推日的動作吧 💪"
+  }
+]
