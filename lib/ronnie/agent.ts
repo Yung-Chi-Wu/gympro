@@ -106,10 +106,14 @@ export async function runRonnieTurn({
     const options = modelOptions(model)
 
     const finish = (content: Anthropic.ContentBlock[], fallback: string): RonnieTurn => {
-        const text = stripMarkdown(textOf(content)) || fallback
+        // A turn that proposed a routine change answers in fixed words from the code: whether a
+        // change is applied must be stated exactly, and given the wording the model still
+        // opened with "Done!" now and then
+        const proposed = executor.proposals.length > 0
+        const text = proposed ? executor.confirmations.join('\n') : stripMarkdown(textOf(content)) || fallback
         // A reply cut off by max_tokens can end in a half-written tool call; stored
         // without its result, it would make the next request invalid
-        const kept = content.filter((b) => b.type !== 'tool_use')
+        const kept = proposed ? [] : content.filter((b) => b.type !== 'tool_use')
         return {
             message: text,
             reloadDashboard: executor.needsDashboardReload,
@@ -136,7 +140,11 @@ export async function runRonnieTurn({
         const response = await client.messages.create({
             model,
             max_tokens: 1024,
-            system,
+            // Cached: the system prompt and tools are the same on every call of the day, and the
+            // automatic breakpoint lets each tool round reuse the conversation so far. Below the
+            // model's minimum (4096 tokens on Haiku 4.5, 512 on Sonnet 5.5) it simply isn't cached.
+            system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+            cache_control: { type: 'ephemeral' },
             tools: RONNIE_TOOLS,
             ...(lastRound ? { tool_choice: { type: 'none' as const } } : {}),
             messages: [...compactHistory(history), ...correction],
@@ -168,9 +176,6 @@ export async function runRonnieTurn({
             })
         )
         history.push({ role: 'assistant', content: response.content }, { role: 'user', content: toolResults })
-        // A routine change is only proposed, so whether it's applied must be stated exactly:
-        // the reply is fixed words from the code. Given the wording, the model still opened with "Done!" now and then
-        if (executor.proposals.length) return finish([], executor.confirmations.join('\n'))
     }
 
     // Unreachable: the last round runs with tool_choice none

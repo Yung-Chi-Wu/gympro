@@ -96,13 +96,16 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
     },
     {
         name: 'propose_routine_change',
-        description: "Propose removing an exercise from the user's permanent routines - one routine (routine_name) or all of them. Nothing changes until the user taps Confirm in the app. The app then tells the user what will change and ends your turn, so make any other changes first. Use this for every permanent routine change; never tell the user to edit routines themselves.",
+        description: "Propose a permanent change to the user's routines: remove an exercise (from one routine, or from every routine when routine_name is omitted) or add one to a routine. Nothing changes until the user confirms it in the app, and the app tells the user what will change, so you don't need to describe it again. Call it once per exercise. Use this for every permanent routine change; never tell the user to edit routines themselves. Not for clearing routines or removing many exercises at once - that is a redesign (see the principles).",
         input_schema: {
             type: 'object' as const,
             properties: {
+                change: { type: 'string', enum: ['remove', 'add'], description: 'remove (the default) or add' },
                 exercise_id: { type: 'string', description: 'Exercise ID exactly as shown by search_exercises, get_routine_exercises or get_today_workout' },
                 exercise_name: { type: 'string', description: 'Exercise name for confirmation' },
-                routine_name: { type: 'string', description: 'Only this routine; omit to remove it from every routine' },
+                routine_name: { type: 'string', description: 'remove: only this routine (omit for every routine). add: the routine to add it to (required).' },
+                target_sets: { type: 'integer', description: 'add only: sets per session (default 3)' },
+                target_reps: { type: 'integer', description: 'add only: reps per set (default 10)' },
             },
             required: ['exercise_id', 'exercise_name'],
         },

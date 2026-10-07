@@ -1,4 +1,5 @@
 import type { RonnieData, RoutineProposal } from './data'
+import { describeProposal } from './events'
 import { latinTokens, searchLibrary } from './search'
 import { localDateStr, localDateToUtcRange } from './time'
 
@@ -35,6 +36,15 @@ export interface RonnieExecutor {
 // the full ID (a full UUID still works). A prefix shared by two exercises is shown in full.
 const SHORT_ID_LENGTH = 8
 
+// More removals than this in one turn is a redesign, not a tweak (see propose_routine_change)
+export const MAX_REMOVALS_PER_TURN = 3
+
+/** A whole number from 1 to 100 (the model may send it as a string), else the default. */
+function positiveInt(value: unknown, fallback: number): number {
+    const n = Number(value)
+    return Number.isInteger(n) && n >= 1 && n <= 100 ? n : fallback
+}
+
 type Named = { exercise_id: string; exercises: { name: string; name_zh_tw: string | null } | null }
 
 /**
@@ -67,6 +77,7 @@ export function createRonnieExecutor({
     const proposals: (RoutineProposal & { id: string })[] = []
     const recommendations: { exerciseId: string; exerciseName: string }[] = []
     const confirmations: string[] = []
+    let removalAttempts = 0
     const zh = language === 'zh-TW'
     const nameOf = (ex: { name: string; name_zh_tw: string | null } | null | undefined) =>
         (zh && ex?.name_zh_tw ? ex.name_zh_tw : ex?.name) ?? 'Unknown'
@@ -128,40 +139,74 @@ export function createRonnieExecutor({
         }
 
         if (toolName === 'propose_routine_change') {
-            // Permanent: only proposed here. The app executes it after the user taps Confirm.
+            // Permanent: only proposed here. The change happens when the user confirms it in the app.
+            // The cap on removals is enforced here, not only asked for in the prompt: emptying
+            // routines is a redesign, and one mistaken confirmation would wipe them. Counted
+            // before any await, so parallel calls in one response can't all slip under it.
+            if (toolInput.change !== 'add' && removalAttempts++ >= MAX_REMOVALS_PER_TURN) {
+                return zh
+                    ? `一次最多提議移除 ${MAX_REMOVALS_PER_TURN} 個動作，這個沒有建立。要大幅修改課表，請問使用者要不要到「訓練課表」用 Coach G 重新設計。`
+                    : `At most ${MAX_REMOVALS_PER_TURN} removals can be proposed at once; this one was not created. For a big change, ask whether the user wants to redesign with Coach G in Routines.`
+            }
             const exercise = (await data.listExercises()).find((e) => e.id === toolInput.exercise_id)
             if (!exercise) {
                 return zh ? '這個動作 ID 不存在，請先用 search_exercises 查詢' : 'Unknown exercise ID - look it up with search_exercises first'
             }
-            let routines = await data.findRoutinesWithExercise(exercise.id)
-            if (toolInput.routine_name) {
-                const wanted = toolInput.routine_name.toLowerCase()
-                routines = routines.filter((r) => r.name.toLowerCase().includes(wanted))
-            }
             const exerciseName = nameOf(exercise)
-            if (!routines.length) {
-                const where = toolInput.routine_name ? `「${toolInput.routine_name}」` : (zh ? '任何固定課表' : 'any routine')
-                return zh ? `「${exerciseName}」不在${where}裡，不需要修改` : `"${exerciseName}" is not in ${where}; nothing to change`
+            const containing = await data.findRoutinesWithExercise(exercise.id)
+            let proposal: RoutineProposal
+
+            if (toolInput.change === 'add') {
+                if (!toolInput.routine_name) return zh ? '加入動作要指定課表（routine_name）' : 'Adding needs routine_name: the routine to add it to'
+                const found = await data.findRoutinesByName(toolInput.routine_name)
+                const wanted = toolInput.routine_name.toLowerCase()
+                const routine = found.find((r) => r.name.toLowerCase() === wanted) ?? (found.length === 1 ? found[0] : null)
+                if (!routine) {
+                    return found.length
+                        ? (zh ? `不只一個課表符合「${toolInput.routine_name}」：${found.map((r) => `「${r.name}」`).join('、')}，請指定一個` : `Several routines match "${toolInput.routine_name}": ${found.map((r) => r.name).join(', ')}; pick one`)
+                        : (zh ? `找不到叫「${toolInput.routine_name}」的課表` : `No routine named "${toolInput.routine_name}"`)
+                }
+                if (containing.some((r) => r.id === routine.id)) {
+                    return zh ? `「${exerciseName}」已經在「${routine.name}」裡，不需要加入` : `"${exerciseName}" is already in "${routine.name}"; nothing to add`
+                }
+                proposal = {
+                    change: 'add_exercise',
+                    exerciseId: exercise.id,
+                    exerciseName,
+                    routineIds: [routine.id],
+                    routineNames: [routine.name],
+                    targetSets: positiveInt(toolInput.target_sets, 3),
+                    targetReps: positiveInt(toolInput.target_reps, 10),
+                }
+            } else {
+                let routines = containing
+                if (toolInput.routine_name) {
+                    const wanted = toolInput.routine_name.toLowerCase()
+                    routines = routines.filter((r) => r.name.toLowerCase().includes(wanted))
+                }
+                if (!routines.length) {
+                    const where = toolInput.routine_name ? `「${toolInput.routine_name}」` : (zh ? '任何固定課表' : 'any routine')
+                    return zh ? `「${exerciseName}」不在${where}裡，不需要修改` : `"${exerciseName}" is not in ${where}; nothing to change`
+                }
+                proposal = {
+                    change: 'remove_exercise',
+                    exerciseId: exercise.id,
+                    exerciseName,
+                    routineIds: routines.map((r) => r.id),
+                    routineNames: routines.map((r) => r.name),
+                }
             }
-            const proposal: RoutineProposal = {
-                change: 'remove_exercise',
-                exerciseId: exercise.id,
-                exerciseName,
-                routineIds: routines.map((r) => r.id),
-                routineNames: routines.map((r) => r.name),
-            }
+
             const saved = await data.createProposal(proposal)
             if ('error' in saved) return zh ? `提議建立失敗：${saved.error}` : `Failed to create the proposal: ${saved.error}`
             proposals.push({ ...proposal, id: saved.id })
-            const names = proposal.routineNames.map((n) => `「${n}」`).join(zh ? '、' : ', ')
-            // The reply after a proposal is these fixed words (see agent.ts): told the wording,
+            const what = describeProposal(proposal, zh)
+            // The turn's reply says these fixed words (see agent.ts): told the wording,
             // the model still opened with "Done!" now and then
-            confirmations.push(zh
-                ? `已準備好：從${names}移除「${exerciseName}」，在 app 裡按「確認」後生效。`
-                : `Ready: remove "${exerciseName}" from ${names} - tap Confirm in the app to apply.`)
+            confirmations.push(zh ? `已準備好：${what}，在 app 裡按「確認」後生效。` : `Ready: ${what} - tap Confirm in the app to apply.`)
             return zh
-                ? `已建立提議（尚未生效）：從${names}移除「${exerciseName}」，使用者在 app 裡按「確認」後才會生效。`
-                : `Proposal created, not applied yet: remove "${exerciseName}" from ${names}; it takes effect when the user taps Confirm in the app.`
+                ? `已建立提議（尚未生效）：${what}，使用者在 app 裡確認後才會生效。`
+                : `Proposal created, not applied yet: ${what}; it takes effect when the user confirms it in the app.`
         }
 
         if (toolName === 'search_exercises') {

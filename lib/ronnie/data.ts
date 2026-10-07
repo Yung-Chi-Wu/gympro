@@ -23,14 +23,21 @@ export interface LibraryExercise {
     muscle_group: string
 }
 
-/** A permanent routine change waiting for the user to tap Confirm in the app. */
-export interface RoutineProposal {
-    change: 'remove_exercise'
-    exerciseId: string
-    exerciseName: string
-    routineIds: string[]
-    routineNames: string[]
-}
+/**
+ * A permanent routine change waiting for the user to confirm it in the app (a removal
+ * asks twice). resolve_ronnie_action in the database applies it.
+ */
+export type RoutineProposal =
+    | { change: 'remove_exercise'; exerciseId: string; exerciseName: string; routineIds: string[]; routineNames: string[] }
+    | {
+        change: 'add_exercise'
+        exerciseId: string
+        exerciseName: string
+        routineIds: string[]
+        routineNames: string[]
+        targetSets: number
+        targetReps: number
+    }
 
 export interface RonnieData {
     // ---------- reads ----------
