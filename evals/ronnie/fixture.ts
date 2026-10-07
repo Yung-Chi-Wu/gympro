@@ -177,17 +177,11 @@ export function createFixtureData(): {
                 return { exercise_id: re.exercise_id, target_sets: re.target_sets, target_reps: re.target_reps, exercises: { name: e.name, name_zh_tw: e.name_zh_tw, muscle_group: e.muscle_group } }
             })
         },
-        async getRoutinePlan(routineId) {
-            return (routineExercises.get(routineId) ?? []).map((re) => ({ ...re, exercises: exerciseNames(re.exercise_id) }))
-        },
         async getRoutineName(routineId) {
             return ROUTINES.find((r) => r.id === routineId)?.name ?? null
         },
         async getTodayRoutineId() {
             return routineByName.get(routineForDate(localDateStr(FIXTURE_NOW, FIXTURE_TIME_ZONE)))!.id
-        },
-        async getUserRoutineIds() {
-            return ROUTINES.map((r) => r.id)
         },
         async findRoutinesWithExercise(id) {
             return ROUTINES.filter((r) => (routineExercises.get(r.id) ?? []).some((re) => re.exercise_id === id))
@@ -226,13 +220,6 @@ export function createFixtureData(): {
             const removed = before - today.planned.length
             writes.push({ op: 'remove_today', exerciseId: id, effective: removed > 0 })
             return { error: null, removed }
-        },
-        async deleteExerciseFromRoutines(routineIds, id) {
-            writes.push({ op: 'delete_from_routines', exerciseId: id, routineIds, effective: true })
-            for (const rid of routineIds) {
-                routineExercises.set(rid, (routineExercises.get(rid) ?? []).filter((re) => re.exercise_id !== id))
-            }
-            return null
         },
         async createProposal(proposal) {
             proposals.push(proposal)

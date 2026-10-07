@@ -57,9 +57,8 @@ export async function POST(request: Request) {
     const language = body?.language === 'zh-TW' ? 'zh-TW' : 'en'
     let message = typeof body?.message === 'string' ? body.message.trim().slice(0, MAX_MESSAGE_CHARS) : ''
     if (!message) return NextResponse.json({ error: 'Empty message' }, { status: 400 })
-    // Messages starting with the app-event prefix are trusted by Ronnie as app actions;
-    // a typed one is the user's words, so it loses the prefix
-    message = message.replace(/^\[(app 事件|App event)\]/i, '($1)')
+    // Ronnie trusts a message with the app-event prefix as a button tap; typed, it loses the prefix
+    message = message.replace(/^\[App event\]/i, '(App event)')
 
     const ctx = await loadRonnieContext(supabase, user.id)
     let conv = await loadConversation(supabase, user.id, ctx.today)

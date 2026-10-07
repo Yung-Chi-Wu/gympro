@@ -62,7 +62,7 @@ export async function runConversation({
             const proposal = proposals.at(-1)
             if (!proposal) throw new Error(`app event "${user.event}" but Ronnie made no proposal to act on`)
             const rows = user.event === 'confirm' ? applyProposal(proposal) : []
-            const text = eventForModel({ kind: 'proposal', status: user.event === 'confirm' ? 'confirmed' : 'cancelled', proposal, rows }, language === 'zh-TW')
+            const text = eventForModel({ kind: 'proposal', status: user.event === 'confirm' ? 'confirmed' : 'cancelled', proposal, rows })
             messages.push({ role: 'user', content: text })
             events.push(text)
             continue

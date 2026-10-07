@@ -76,8 +76,7 @@ export async function deleteOldConversations(supabase: Client, userId: string, t
 }
 
 // A message the user typed: an app event is also a user-role string, but carries the prefix
-const isTyped = (m: Anthropic.MessageParam) =>
-    m.role === 'user' && typeof m.content === 'string' && !m.content.startsWith(EVENT_PREFIX.zh) && !m.content.startsWith(EVENT_PREFIX.en)
+const isTyped = (m: Anthropic.MessageParam) => m.role === 'user' && typeof m.content === 'string' && !m.content.startsWith(EVENT_PREFIX)
 
 /**
  * Cuts the conversation before the user's n-th message (0-based), for editing an

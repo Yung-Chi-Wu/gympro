@@ -45,12 +45,8 @@ export interface RonnieData {
     getRoutineExercises(routineId: string): Promise<
         { exercise_id: string; target_sets: number | null; target_reps: number | null; exercises: (ExerciseNames & { muscle_group: string }) | null }[]
     >
-    getRoutinePlan(routineId: string): Promise<
-        { exercise_id: string; target_sets: number | null; target_reps: number | null; exercises: ExerciseNames | null }[]
-    >
     getRoutineName(routineId: string): Promise<string | null>
     getTodayRoutineId(): Promise<string | null>
-    getUserRoutineIds(): Promise<string[]>
     /** The user's routines that contain this exercise. */
     findRoutinesWithExercise(exerciseId: string): Promise<{ id: string; name: string }[]>
     /** Every exercise the user can see; search ranking happens in code (see search.ts). */
@@ -69,8 +65,6 @@ export interface RonnieData {
     addPlannedExercise(workoutId: string, exerciseId: string): Promise<string | null>
     /** removed = rows actually deleted, so an unknown id is reported instead of a false success */
     removePlannedExercise(workoutId: string, exerciseId: string): Promise<{ error: string | null; removed: number }>
-    /** Used only after the user confirms a proposal, never directly by a tool. */
-    deleteExerciseFromRoutines(routineIds: string[], exerciseId: string): Promise<string | null>
     createProposal(proposal: RoutineProposal): Promise<{ id: string } | { error: string }>
 }
 
@@ -123,15 +117,6 @@ export function createSupabaseRonnieData(
             return (data ?? []) as Awaited<ReturnType<RonnieData['getRoutineExercises']>>
         },
 
-        async getRoutinePlan(routineId) {
-            const { data } = await supabase
-                .from('routine_exercises')
-                .select('exercise_id, target_sets, target_reps, exercises(name, name_zh_tw)')
-                .eq('routine_id', routineId)
-                .order('order_index')
-            return (data ?? []) as Awaited<ReturnType<RonnieData['getRoutinePlan']>>
-        },
-
         async getRoutineName(routineId) {
             const { data: routine } = await supabase
                 .from('routines')
@@ -142,11 +127,6 @@ export function createSupabaseRonnieData(
         },
 
         getTodayRoutineId,
-
-        async getUserRoutineIds() {
-            const { data } = await supabase.from('routines').select('id').eq('user_id', userId)
-            return (data ?? []).map((r) => r.id)
-        },
 
         async findRoutinesWithExercise(exerciseId) {
             const { data } = await supabase
@@ -256,15 +236,6 @@ export function createSupabaseRonnieData(
                 .eq('exercise_id', exerciseId)
                 .select('id')
             return { error: error?.message ?? null, removed: data?.length ?? 0 }
-        },
-
-        async deleteExerciseFromRoutines(routineIds, exerciseId) {
-            const { error } = await supabase
-                .from('routine_exercises')
-                .delete()
-                .in('routine_id', routineIds)
-                .eq('exercise_id', exerciseId)
-            return error?.message ?? null
         },
 
         async createProposal(proposal) {

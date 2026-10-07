@@ -113,10 +113,10 @@
         "propose_routine_change"
       ],
       "writes": [],
-      "judge": "Ronnie must look at the user's bench press data (get_workout_history or get_training_summary) and describe it accurately: 80 kg x 8 in the week of 2026-09-21, then 82.5 kg x 8 in every push session since 09-28 (four sessions including today). A good reply notes this is a short stall of about ten days, which is normal, and gives specific next steps (for example more reps at 82.5 kg before adding weight, small increments of 1-2.5 kg, checking sets, recovery, sleep and protein), tied to the goal of 100 kg in three months. Fails if it does not look at the data, invents numbers or a long stall, or gives only generic advice."
+      "judge": "Ronnie must look at the user's bench press data (get_workout_history or get_training_summary), describe it accurately - 80 kg x 8 in the week of 2026-09-21, then 82.5 kg x 8 in every push session since 09-28 (four sessions including today) - and give specific next steps (for example more reps at 82.5 kg before adding weight, small increments of 1-2.5 kg, checking sets, recovery, sleep and protein). Saying a stall this short is normal, or tying the advice to the goal of 100 kg in three months, is a plus but not required. Fails if it does not look at the data, gets the numbers or the session count wrong, invents a long stall, or gives only generic advice."
     },
     "meta": {
-      "why": "要查紀錄：9/21 那週 80kg×8，9/28 起每次推日都是 82.5kg×8（含今天 4 次）。才十天左右，屬於正常；給具體的下一步並連到 100kg 目標。不能沒查資料、編數字或說卡了很久。"
+      "why": "要查紀錄並說對：9/21 那週 80kg×8，9/28 起每次推日都是 82.5kg×8（含今天 4 次）；給具體的下一步。說明「十天的停滯很正常」或連到 100kg 目標是加分，不是必要（2026-10-07 放寬）。不能沒查資料、算錯次數、編數字或說卡了很久。"
     }
   },
   {

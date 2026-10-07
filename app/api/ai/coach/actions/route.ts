@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     const text = eventForDisplay(event, zh)
     const { today } = await loadUserToday(supabase, user.id)
     const saveError = await appendConversation(supabase, today, {
-        messages: [{ role: 'user', content: eventForModel(event, zh) }],
+        messages: [{ role: 'user', content: eventForModel(event) }],
         display: [{ kind: 'event', text }],
     })
     if (saveError) console.error('Ronnie event not saved:', saveError)

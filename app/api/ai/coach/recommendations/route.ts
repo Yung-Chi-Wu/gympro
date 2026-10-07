@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const event = { kind: 'recommendation_added' as const, exerciseName }
     const text = eventForDisplay(event, zh)
     const saveError = await appendConversation(supabase, ctx.today, {
-        messages: [{ role: 'user', content: eventForModel(event, zh) }],
+        messages: [{ role: 'user', content: eventForModel(event) }],
         display: [{ kind: 'event', text }],
     })
     if (saveError) console.error('Ronnie event not saved:', saveError)
