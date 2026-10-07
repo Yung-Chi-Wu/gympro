@@ -15,6 +15,14 @@ interface RonnieWidgetProps {
 
 const STORAGE_KEY_PREFIX = 'ronnie_chat_'
 
+// Keeps only entries with text. An error reply used to be stored without content,
+// which crashed the widget when rendered - and again on every later load that day.
+function validMessages(value: unknown): Message[] {
+    if (!Array.isArray(value)) return []
+    return value.filter((m): m is Message =>
+        (m?.role === 'user' || m?.role === 'assistant') && typeof m.content === 'string' && m.content.trim() !== '')
+}
+
 export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
     const zh = language === 'zh-TW'
     const router = useRouter()
@@ -34,7 +42,7 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
     useEffect(() => {
         try {
             const saved = localStorage.getItem(todayKey)
-            if (saved) setMessages(JSON.parse(saved))
+            if (saved) setMessages(validMessages(JSON.parse(saved)))
         } catch { /* ignore */ }
     }, [todayKey])
 
@@ -73,7 +81,11 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
                 }),
                 signal: abortRef.current.signal,
             })
-            const data = await res.json()
+            const data = await res.json().catch(() => null)
+            // An error response has no message: show the error text below instead of an empty reply
+            if (!res.ok || typeof data?.message !== 'string' || !data.message.trim()) {
+                throw new Error(`Ronnie request failed: ${res.status} ${data?.error ?? ''}`)
+            }
             setMessages((prev) => [...prev, { role: 'assistant', content: data.message }])
 
             if (data.reloadDashboard) {
@@ -82,6 +94,7 @@ export function RonnieWidget({ language, userId }: RonnieWidgetProps) {
             }
         } catch (err: unknown) {
             if (err instanceof Error && err.name === 'AbortError') return
+            console.error(err)
             setMessages((prev) => [...prev, {
                 role: 'assistant',
                 content: zh ? '發生錯誤，請再試一次。' : 'Something went wrong.',
