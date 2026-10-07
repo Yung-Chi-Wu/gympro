@@ -1,0 +1,7 @@
+{
+  "//": "The Ronnie eval, type-checked on its own (npm run typecheck:evals): the app's tsconfig leaves evals out, since entry.ts reads the API key through lambda/ai-worker, whose dependencies are installed only there - not on Vercel.",
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": ["./**/*.ts"],
+  "exclude": ["dist"]
+}
