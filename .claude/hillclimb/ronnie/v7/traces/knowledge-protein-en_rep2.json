@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "How much protein should I eat to build muscle?"
+  },
+  {
+    "role": "assistant",
+    "content": "For muscle growth, aim for 1.6–2.2g of protein per kg of body weight daily. The exact amount depends on your training intensity, age, and recovery—higher end if you're doing heavy resistance work like your push day today.\n\nProtein alone won't cut it though: you need a calorie surplus, progressive overload on your lifts, and solid recovery. Since your goal is 100kg bench press in 3 months, dial in your nutrition, hit those compound lifts hard, and track your progress. 💪\n\nWhat's your current body weight? That'll help you calculate your target."
+  }
+]

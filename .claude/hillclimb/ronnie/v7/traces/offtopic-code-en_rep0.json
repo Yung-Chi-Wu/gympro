@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "Can you help me debug my Python code?"
+  },
+  {
+    "role": "assistant",
+    "content": "Hey Alex, that's outside my wheelhouse! 💪 I'm your fitness coach here at GymPro – I help with training, routines, exercises, and hitting that 100kg bench press goal in three months.\n\nFor Python debugging, you'll need a developer or coding assistant. But if you've got questions about your workouts, today's push session, or how to program your way to that bench PR, I'm your guy. What's on your mind for training?"
+  }
+]

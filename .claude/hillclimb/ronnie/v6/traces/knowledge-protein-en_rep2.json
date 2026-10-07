@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "How much protein should I eat to build muscle?"
+  },
+  {
+    "role": "assistant",
+    "content": "Good question, Alex. The solid evidence backs 0.7–1.0 grams of protein per pound of body weight (roughly 1.6–2.2g per kg) daily when you're in a calorie surplus and training hard – that's your sweet spot for muscle growth.\n\nWhat's your current body weight? That'll help me give you a specific number."
+  }
+]

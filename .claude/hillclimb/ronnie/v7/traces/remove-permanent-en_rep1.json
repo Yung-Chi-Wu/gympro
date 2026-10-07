@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "Take burpees out of all my routines for good."
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"burpees\"},\"result\":\"ID: c6e49af8 | Burpee (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "propose_routine_change",
+    "content": "{\"input\":{\"exercise_id\":\"c6e49af8\",\"exercise_name\":\"Burpee\"},\"result\":\"Proposal created, not applied yet: remove \\\"Burpee\\\" from 「腿日」. Tell the user \\\"Ready - tap Confirm to apply.\\\"; don't say it's done.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Ready to remove Burpee from your 腿日 routine—tap Confirm in the app and it's gone. 💪"
+  }
+]
