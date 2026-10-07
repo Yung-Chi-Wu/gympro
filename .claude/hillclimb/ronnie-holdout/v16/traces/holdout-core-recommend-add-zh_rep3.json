@@ -1,0 +1,38 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個不用器材的核心動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"平板支撐\",\"muscle_group\":\"core\"},\"result\":\"No exercises found. Try other wording (English or Chinese, a shorter keyword, or a muscle_group).\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"plank\"},\"result\":\"ID: f04af209 | 棒式 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\"},\"result\":\"Showing a card for \\\"棒式\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "我推薦棒式 💪 這個動作不用器材，練的是核心的抗伸展能力，對臥推時穩住身體也有幫助。每組撐 30 到 60 秒，身體保持一直線，腰不要塌。想加進今天的訓練，點卡片上的按鈕就行。"
+  },
+  {
+    "role": "user",
+    "content": "可以，加到今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\"},\"result\":\"✓ 已將「棒式」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 已把棒式加進今天的課表。建議排在推日最後，做 3 組，每組 30 到 60 秒。Ain't nothin' but a peanut!"
+  }
+]
