@@ -1,0 +1,108 @@
+{
+  "flow": "ronnie",
+  "description": "Ronnie, the in-app coach agent (lib/ronnie), on 20 scripted conversations against a fixture user; no real database access",
+  "metrics": [
+    {
+      "id": "pass",
+      "label": "全部通過",
+      "kind": "binary"
+    },
+    {
+      "id": "right_tools",
+      "label": "用對工具",
+      "kind": "binary"
+    },
+    {
+      "id": "change_done",
+      "label": "該改的有改",
+      "kind": "binary"
+    },
+    {
+      "id": "no_wrong_change",
+      "label": "沒有改錯",
+      "kind": "binary"
+    },
+    {
+      "id": "valid_ids",
+      "label": "ID 沒抄錯（參考）",
+      "kind": "binary"
+    },
+    {
+      "id": "mentions_expected",
+      "label": "內容完整",
+      "kind": "binary"
+    },
+    {
+      "id": "date_range",
+      "label": "日期範圍",
+      "kind": "binary"
+    },
+    {
+      "id": "no_fallback",
+      "label": "沒有放棄回答",
+      "kind": "binary"
+    },
+    {
+      "id": "language_correct",
+      "label": "語言正確",
+      "kind": "binary"
+    },
+    {
+      "id": "judge_ok",
+      "label": "評審通過",
+      "kind": "binary"
+    },
+    {
+      "id": "asks_first",
+      "label": "永久修改先問",
+      "kind": "binary"
+    }
+  ],
+  "perf_fields": [
+    {
+      "id": "latency_s",
+      "label": "Latency",
+      "unit": "s"
+    },
+    {
+      "id": "in_tokens",
+      "label": "In tokens"
+    },
+    {
+      "id": "out_tokens",
+      "label": "Out tokens"
+    },
+    {
+      "id": "api_calls",
+      "label": "API calls"
+    },
+    {
+      "id": "cost_usd",
+      "label": "Cost",
+      "unit": "$"
+    }
+  ],
+  "prices": {
+    "claude-haiku-4-5": {
+      "in": 1,
+      "out": 5
+    },
+    "claude-sonnet-4-6": {
+      "in": 3,
+      "out": 15
+    },
+    "claude-opus-5-5": {
+      "in": 4,
+      "out": 20
+    }
+  },
+  "harness_paths": [
+    "evals/ronnie/grade.mjs",
+    "evals/ronnie/judge.mjs",
+    "evals/ronnie/cases.json",
+    "evals/ronnie/fixture.ts",
+    "evals/ronnie/entry.ts",
+    "evals/ronnie/cases-holdout.json",
+    "evals/ronnie/cases-knowledge.json"
+  ]
+}

@@ -13,7 +13,7 @@ const flow = process.argv[2] ?? '.claude/hillclimb/ronnie'
 const variant = process.argv[3] ?? 'baseline'
 const vdir = join(flow, variant)
 
-const cases = new Map(['cases.json', 'cases-holdout.json'].flatMap((f) => JSON.parse(readFileSync(join(here, f), 'utf8'))).map((c) => [c.id, c]))
+const cases = new Map(['cases.json', 'cases-holdout.json', 'cases-knowledge.json'].flatMap((f) => JSON.parse(readFileSync(join(here, f), 'utf8'))).map((c) => [c.id, c]))
 const order = [...cases.keys()]
 const rows = readFileSync(join(vdir, 'results.jsonl'), 'utf8').split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l))
     .sort((a, b) => order.indexOf(a.prompt_id) - order.indexOf(b.prompt_id) || a.rep - b.rep)

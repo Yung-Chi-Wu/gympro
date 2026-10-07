@@ -22,7 +22,7 @@ polish. A reply that is empty, an apology, or a request to ask again fails.
 
 Write the reason in Traditional Chinese (繁體中文), one or two sentences, before the verdict.`
 
-function renderConversation(out) {
+export function renderConversation(out) {
     return out.turns
         .map((t, i) => {
             const tools = t.toolCalls.length

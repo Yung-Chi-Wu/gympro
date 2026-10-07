@@ -53,6 +53,23 @@ export function compactHistory(messages: Anthropic.MessageParam[]): Anthropic.Me
     })
 }
 
+// Sonnet 5.5 thinks by default; at low effort it skips thinking on most simple turns, which keeps
+// replies quick. Its thinking blocks are bound to the exact history before them, and both
+// compactHistory and the claim check below change that history, so a mismatched block is dropped
+// instead of failing the request. Thinking counts toward max_tokens, hence the higher limit.
+function modelOptions(model: string): { params: Partial<Anthropic.MessageCreateParamsNonStreaming>; headers?: Record<string, string> } {
+    if (!model.startsWith('claude-sonnet-5-5')) return { params: {} }
+    return {
+        params: {
+            max_tokens: 4096,
+            output_config: { effort: 'low' },
+            // block_binding is not in the SDK types yet
+            thinking: { type: 'adaptive', block_binding: { prefix_mismatch_behavior: 'drop_block' } } as unknown as Anthropic.ThinkingConfigParam,
+        },
+        headers: { 'anthropic-beta': 'thinking-binding-controls-2026-08-01' },
+    }
+}
+
 const textOf = (content: Anthropic.ContentBlock[]) =>
     content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map((b) => b.text).join('')
 
@@ -86,6 +103,7 @@ export async function runRonnieTurn({
     const usage: Anthropic.Usage[] = []
     let servedModel: string | null = null
     const history = [...messages]
+    const options = modelOptions(model)
 
     const finish = (content: Anthropic.ContentBlock[], fallback: string): RonnieTurn => {
         const text = stripMarkdown(textOf(content)) || fallback
@@ -122,7 +140,8 @@ export async function runRonnieTurn({
             tools: RONNIE_TOOLS,
             ...(lastRound ? { tool_choice: { type: 'none' as const } } : {}),
             messages: [...compactHistory(history), ...correction],
-        })
+            ...options.params,
+        }, options.headers ? { headers: options.headers } : undefined)
         usage.push(response.usage)
         servedModel = response.model
         correction = []

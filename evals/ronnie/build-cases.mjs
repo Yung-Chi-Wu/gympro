@@ -271,7 +271,94 @@ const holdout = [
     },
 ]
 
+// Fitness knowledge (RONNIE_CASES=knowledge): how good the coaching is, for choosing
+// the model. Graded by the judge, and compared answer against answer (compare.mjs).
+const KNOWLEDGE_NO_CHANGES = { tools_forbidden: WRITE_TOOLS, writes: [] }
+const knowledge = [
+    {
+        id: 'knowledge-volume-zh',
+        language: 'zh-TW',
+        turns: ['想增肌，每個肌群一週要練幾組？'],
+        expect: {
+            ...KNOWLEDGE_NO_CHANGES,
+            judge: 'An evidence-based weekly volume for muscle gain: roughly 10-20 hard sets per muscle group per week as a common range (starting lower and adding sets as needed is fine), sets taken close to failure, spread over two or more sessions a week. Fails if it gives one exact number as the rule, says more is always better, or invents facts about the user.',
+        },
+        why: '約 10–20 組是常見的實證範圍，每組接近力竭，分兩天以上練；不能給單一神奇數字或說越多越好。',
+    },
+    {
+        id: 'knowledge-heavy-en',
+        language: 'en',
+        turns: ['Do I need to lift heavy to build muscle?'],
+        expect: {
+            ...KNOWLEDGE_NO_CHANGES,
+            judge: "Muscle grows across a wide range of loads (roughly 5-30 reps) when sets are taken close to failure; heavier loads matter more for maximal strength, which is relevant to this user's bench press goal. Fails if it says only a specific rep range (such as 8-12) builds muscle, or that light weights cannot.",
+        },
+        why: '5–30 下接近力竭都能增肌；大重量對最大肌力（他的臥推目標）比較重要；不能說只有 8–12 下有效。',
+    },
+    {
+        id: 'knowledge-spot-reduction-zh',
+        language: 'zh-TW',
+        turns: ['我想瘦肚子，每天做仰臥起坐有用嗎？'],
+        expect: {
+            ...KNOWLEDGE_NO_CHANGES,
+            judge: 'Says spot reduction does not work: crunches train the abdominal muscles but do not burn belly fat in particular; losing fat needs an overall calorie deficit (mainly diet, with training and daily activity helping). Fails if it endorses crunches or ab work as a way to lose belly fat.',
+        },
+        why: '局部減脂無效；腹肌訓練練肌肉，減脂靠熱量赤字；不能支持仰臥起坐瘦肚子。',
+    },
+    {
+        id: 'knowledge-cardio-zh',
+        language: 'zh-TW',
+        turns: ['我在增肌，做有氧會不會掉肌肉？'],
+        expect: {
+            ...KNOWLEDGE_NO_CHANGES,
+            judge: 'Moderate cardio does not meaningfully hinder muscle gain (any interference is small, mostly with large amounts, especially running, or done right before leg training); practical advice such as keeping it moderate, away from leg sessions, and eating enough. Fails if it says cardio burns muscle or should be avoided while building muscle.',
+        },
+        why: '適量有氧對增肌影響很小，跟腿日錯開、吃夠；不能說有氧會吃掉肌肉。',
+    },
+    {
+        id: 'knowledge-knees-toes-zh',
+        language: 'zh-TW',
+        turns: ['深蹲膝蓋可以超過腳尖嗎？'],
+        expect: {
+            ...KNOWLEDGE_NO_CHANGES,
+            judge: 'Yes: knees travelling past the toes is normal in a deep squat and generally safe; how far depends on limb length and ankle mobility, and blocking it shifts stress to the hips and lower back. What matters is the knees tracking in line with the toes and moving without pain. Fails if it says the knees should not pass the toes.',
+        },
+        why: '可以，很正常；硬限制會把負擔轉到髖和下背；重點是膝蓋朝腳尖方向、不痛。（Haiku 曾說錯的迷思）',
+    },
+    {
+        id: 'knowledge-bench-plateau-zh',
+        language: 'zh-TW',
+        turns: ['我臥推好像卡住了，怎麼辦？'],
+        expect: {
+            ...KNOWLEDGE_NO_CHANGES,
+            judge: "Ronnie must look at the user's bench press data (get_workout_history or get_training_summary) and describe it accurately: 80 kg x 8 in the week of 2026-09-21, then 82.5 kg x 8 in every push session since 09-28 (four sessions including today). A good reply notes this is a short stall of about ten days, which is normal, and gives specific next steps (for example more reps at 82.5 kg before adding weight, small increments of 1-2.5 kg, checking sets, recovery, sleep and protein), tied to the goal of 100 kg in three months. Fails if it does not look at the data, invents numbers or a long stall, or gives only generic advice.",
+        },
+        why: '要查紀錄：9/21 那週 80kg×8，9/28 起每次推日都是 82.5kg×8（含今天 4 次）。才十天左右，屬於正常；給具體的下一步並連到 100kg 目標。不能沒查資料、編數字或說卡了很久。',
+    },
+    {
+        id: 'knowledge-back-pain-en',
+        language: 'en',
+        turns: ['My lower back hurts after deadlifts, should I keep going?'],
+        expect: {
+            ...KNOWLEDGE_NO_CHANGES,
+            judge: 'Separates ordinary muscle soreness from warning signs: sharp pain, pain that radiates down the leg, numbness or tingling, or pain that persists means stop deadlifting and see a professional. Otherwise reduce the load and check technique (bracing, neutral spine, bar close to the body). Fails if it says to push through the pain, or names a specific injury as the cause.',
+        },
+        why: '分辨痠痛和警訊（尖銳、放射、麻、持續）→ 停止並就醫；否則降重量、檢查技術；不能叫他忍、不能診斷。',
+    },
+    {
+        id: 'knowledge-creatine-zh',
+        language: 'zh-TW',
+        turns: ['肌酸有用嗎？要吃多少？'],
+        expect: {
+            ...KNOWLEDGE_NO_CHANGES,
+            judge: 'Creatine monohydrate is one of the best-supported supplements for strength and muscle gain; 3-5 g a day, a loading phase optional; safe for healthy people, and it may add some water weight. Fails if it says creatine damages healthy kidneys, recommends very large daily doses, or presents creatine as essential.',
+        },
+        why: '單水肌酸證據最多；每天 3–5 克，負荷期非必要；健康的人安全；不能說傷腎或建議超高劑量。',
+    },
+]
+
 writeFileSync(join(here, 'cases.json'), JSON.stringify(cases.map(({ why, ...c }) => ({ ...c, meta: { why } })), null, 2) + '\n')
+writeFileSync(join(here, 'cases-knowledge.json'), JSON.stringify(knowledge.map(({ why, ...c }) => ({ ...c, meta: { why } })), null, 2) + '\n')
 
 const md = [
     '# 羅尼測試題',
@@ -286,5 +373,7 @@ const md = [
 writeFileSync(join(here, 'cases-holdout.json'), JSON.stringify(holdout.map(({ why, ...c }) => ({ ...c, meta: { why } })), null, 2) + '\n')
 md.push('## 保留題（只在最後驗收時跑）', '', '| # | id | 對話 | 正確的做法 |', '|---|---|---|---|',
     ...holdout.map((c, i) => `| H${i + 1} | ${c.id} | ${c.turns.map((t) => `「${t}」`).join(' → ')} | ${c.why} |`), '')
+md.push('## 健身知識題（RONNIE_CASES=knowledge，用來選模型）', '', '| # | id | 對話 | 好的回答 |', '|---|---|---|---|',
+    ...knowledge.map((c, i) => `| K${i + 1} | ${c.id} | ${c.turns.map((t) => `「${t}」`).join(' → ')} | ${c.why} |`), '')
 writeFileSync(join(here, 'cases.md'), md.join('\n'))
-console.log(`wrote ${cases.length} cases to cases.json, ${holdout.length} held-out cases to cases-holdout.json, and cases.md`)
+console.log(`wrote ${cases.length} cases to cases.json, ${holdout.length} held-out cases to cases-holdout.json, ${knowledge.length} knowledge cases to cases-knowledge.json, and cases.md`)

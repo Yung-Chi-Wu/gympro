@@ -150,9 +150,13 @@ function loadRonnie() {
 }
 
 /** Return the list of input cases. Each must have a stable `id`. */
-// RONNIE_CASES=holdout runs the held-out set, for final acceptance only
+// RONNIE_CASES=holdout runs the held-out set, for final acceptance only;
+// RONNIE_CASES=knowledge the fitness-knowledge set, for choosing the model
+const CASE_FILES = { holdout: 'cases-holdout.json', knowledge: 'cases-knowledge.json' };
 async function loadCases() {
-  return JSON.parse(readFileSync(join(HERE, process.env.RONNIE_CASES === 'holdout' ? 'cases-holdout.json' : 'cases.json'), 'utf8'));
+  const set = process.env.RONNIE_CASES;
+  if (set && !CASE_FILES[set]) throw new Error(`RONNIE_CASES must be one of: ${Object.keys(CASE_FILES).join(', ')}`);
+  return JSON.parse(readFileSync(join(HERE, set ? CASE_FILES[set] : 'cases.json'), 'utf8'));
 }
 
 /** Play the case's user turns through Ronnie, the way the chat widget does. */
