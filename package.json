@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1148.0",
     "@aws-sdk/client-sqs": "^3.1112.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",

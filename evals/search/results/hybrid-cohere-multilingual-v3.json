@@ -1,10 +1,10 @@
 {
-  "variant": "keyword",
+  "variant": "hybrid:cohere-multilingual-v3",
   "summary": {
     "n": 46,
-    "hit1": 0.6304347826086957,
-    "hit5": 0.6956521739130435,
-    "mrr": 0.667632850241546
+    "hit1": 0.6956521739130435,
+    "hit5": 0.9130434782608695,
+    "mrr": 0.7887681159420289
   },
   "results": [
     {
@@ -20,7 +20,7 @@
         "Close Grip Lat Pulldown / 窄握滑輪下拉",
         "Reverse Grip Lat Pulldown / 反握滑輪下拉",
         "Straight-Arm Pulldown / 直臂下拉",
-        "Assisted Pull-up / 輔助引體向上"
+        "Pull-up / 引體向上"
       ]
     },
     {
@@ -35,7 +35,8 @@
         "Lat Pulldown / 滑輪下拉",
         "Close Grip Lat Pulldown / 窄握滑輪下拉",
         "Reverse Grip Lat Pulldown / 反握滑輪下拉",
-        "Straight-Arm Pulldown / 直臂下拉"
+        "Straight-Arm Pulldown / 直臂下拉",
+        "Decline Crunch / 下斜捲腹"
       ]
     },
     {
@@ -64,10 +65,10 @@
       "rank": 1,
       "top": [
         "Romanian Deadlift / 羅馬尼亞硬舉",
-        "Deadlift / 硬舉",
         "Romanian Split Squat / 羅馬尼亞分腿蹲",
+        "Deadlift / 硬舉",
         "Sumo Deadlift / 相撲硬舉",
-        "Stiff Leg Deadlift / 直腿硬舉"
+        "Trap Bar Deadlift / 六角槓硬舉"
       ]
     },
     {
@@ -80,10 +81,10 @@
       "rank": 1,
       "top": [
         "Face Pull / 繩索臉拉",
-        "Assisted Pull-up / 輔助引體向上",
-        "Pull-up / 引體向上",
         "Rack Pull / 架拉",
-        "Cable Pull Through / 繩索 Pull Through"
+        "Pull-up / 引體向上",
+        "Assisted Pull-up / 輔助引體向上",
+        "Behind The Neck Press / 頸後槓鈴推舉"
       ]
     },
     {
@@ -98,8 +99,8 @@
         "Lateral Raise / 側平舉",
         "Cable Lateral Raise / 繩索側平舉",
         "Machine Lateral Raise / 器械側平舉",
-        "Landmine Lateral Raise / 地雷管側平舉",
-        "Front Raise / 前平舉"
+        "Front Raise / 前平舉",
+        "Landmine Lateral Raise / 地雷管側平舉"
       ]
     },
     {
@@ -115,7 +116,7 @@
         "Dumbbell Hip Thrust / 啞鈴臀推",
         "Hip Thrust Machine / 臀推機",
         "Hip Abduction Machine / 髖外展機",
-        "Hip Adduction Machine / 髖內收機"
+        "Push-up / 伏地挺身"
       ]
     },
     {
@@ -128,7 +129,10 @@
       "rank": 1,
       "top": [
         "Plank / 棒式",
-        "Side Plank / 側棒式"
+        "Side Plank / 側棒式",
+        "Dead Bug / 死蟲式",
+        "Burpee / 波比跳",
+        "Board Press / 墊板臥推"
       ]
     },
     {
@@ -143,9 +147,9 @@
       "rank": 1,
       "top": [
         "Barbell Bench Press / 槓鈴臥推",
-        "Decline Barbell Bench Press / 下斜槓鈴臥推",
-        "Dumbbell Bench Press / 啞鈴臥推",
         "Incline Barbell Bench Press / 上斜槓鈴臥推",
+        "Dumbbell Bench Press / 啞鈴臥推",
+        "Decline Barbell Bench Press / 下斜槓鈴臥推",
         "Incline Dumbbell Bench Press / 上斜啞鈴臥推"
       ]
     },
@@ -159,10 +163,10 @@
       "rank": 1,
       "top": [
         "Face Pull / 繩索臉拉",
-        "Assisted Pull-up / 輔助引體向上",
-        "Pull-up / 引體向上",
         "Rack Pull / 架拉",
-        "Cable Pull Through / 繩索 Pull Through"
+        "Pull-up / 引體向上",
+        "Assisted Pull-up / 輔助引體向上",
+        "Behind The Neck Press / 頸後槓鈴推舉"
       ]
     },
     {
@@ -177,10 +181,10 @@
       "rank": 1,
       "top": [
         "Cable Lateral Raise / 繩索側平舉",
-        "Landmine Lateral Raise / 地雷管側平舉",
         "Lateral Raise / 側平舉",
+        "Landmine Lateral Raise / 地雷管側平舉",
         "Machine Lateral Raise / 器械側平舉",
-        "Hanging Leg Raise / 懸吊抬腿"
+        "Leg Raise / 仰臥抬腿"
       ]
     },
     {
@@ -208,13 +212,13 @@
         "Dumbbell Bench Press",
         "Smith Machine Bench Press"
       ],
-      "rank": 1,
+      "rank": 2,
       "top": [
-        "Barbell Bench Press / 槓鈴臥推",
-        "Dumbbell Bench Press / 啞鈴臥推",
         "Board Press / 墊板臥推",
+        "Dumbbell Bench Press / 啞鈴臥推",
+        "Barbell Bench Press / 槓鈴臥推",
         "Close-Grip Bench Press / 窄握臥推",
-        "Decline Barbell Bench Press / 下斜槓鈴臥推"
+        "Incline Dumbbell Bench Press / 上斜啞鈴臥推"
       ]
     },
     {
@@ -231,10 +235,10 @@
       "rank": 1,
       "top": [
         "Barbell Back Squat / 槓鈴深蹲",
-        "Bodyweight Squat / 徒手深蹲",
-        "Hack Squat / 哈克深蹲",
         "Sissy Squat / 西西深蹲",
-        "Goblet Squat / 高腳杯深蹲"
+        "Bodyweight Squat / 徒手深蹲",
+        "Goblet Squat / 高腳杯深蹲",
+        "Hack Squat / 哈克深蹲"
       ]
     },
     {
@@ -249,8 +253,8 @@
         "Assisted Pull-up / 輔助引體向上",
         "Pull-up / 引體向上",
         "Chin-up / 反握引體向上",
-        "Rack Pull / 架拉",
-        "Push-up / 伏地挺身"
+        "Push-up / 伏地挺身",
+        "Rack Pull / 架拉"
       ]
     },
     {
@@ -265,8 +269,8 @@
         "Bulgarian Split Squat / 保加利亞分腿蹲",
         "Romanian Split Squat / 羅馬尼亞分腿蹲",
         "Barbell Back Squat / 槓鈴深蹲",
-        "Bodyweight Squat / 徒手深蹲",
-        "Front Squat / 前蹲舉"
+        "Front Squat / 前蹲舉",
+        "Goblet Squat / 高腳杯深蹲"
       ]
     },
     {
@@ -278,8 +282,14 @@
         "Dumbbell Bench Press",
         "Smith Machine Bench Press"
       ],
-      "rank": 0,
-      "top": []
+      "rank": 2,
+      "top": [
+        "Incline Barbell Bench Press / 上斜槓鈴臥推",
+        "Barbell Bench Press / 槓鈴臥推",
+        "Close-Grip Bench Press / 窄握臥推",
+        "Incline Dumbbell Bench Press / 上斜啞鈴臥推",
+        "Dumbbell Bench Press / 啞鈴臥推"
+      ]
     },
     {
       "id": "typo-latpulldown",
@@ -288,8 +298,14 @@
       "relevant": [
         "Lat Pulldown"
       ],
-      "rank": 0,
-      "top": []
+      "rank": 1,
+      "top": [
+        "Lat Pulldown / 滑輪下拉",
+        "Close Grip Lat Pulldown / 窄握滑輪下拉",
+        "Reverse Grip Lat Pulldown / 反握滑輪下拉",
+        "Straight-Arm Pulldown / 直臂下拉",
+        "Rack Pull / 架拉"
+      ]
     },
     {
       "id": "typo-romanain",
@@ -298,11 +314,11 @@
       "relevant": [
         "Romanian Deadlift"
       ],
-      "rank": 3,
+      "rank": 2,
       "top": [
         "Deadlift / 硬舉",
-        "Sumo Deadlift / 相撲硬舉",
         "Romanian Deadlift / 羅馬尼亞硬舉",
+        "Sumo Deadlift / 相撲硬舉",
         "Stiff Leg Deadlift / 直腿硬舉",
         "Trap Bar Deadlift / 六角槓硬舉"
       ]
@@ -314,13 +330,13 @@
       "relevant": [
         "Hammer Curl"
       ],
-      "rank": 9,
+      "rank": 4,
       "top": [
-        "21s Curl / 21響禮炮彎舉",
-        "Barbell Curl / 槓鈴彎舉",
         "Cable Curl / 繩索彎舉",
         "Cable Rope Curl / 繩索錘式彎舉",
-        "Concentration Curl / 專注彎舉"
+        "Cross Body Hammer Curl / 交叉錘式彎舉",
+        "Hammer Curl / 錘式彎舉",
+        "Barbell Curl / 槓鈴彎舉"
       ]
     },
     {
@@ -330,8 +346,14 @@
       "relevant": [
         "Skull Crusher"
       ],
-      "rank": 0,
-      "top": []
+      "rank": 1,
+      "top": [
+        "Skull Crusher / 仰臥三頭伸展",
+        "Cross Body Hammer Curl / 交叉錘式彎舉",
+        "Hammer Curl / 錘式彎舉",
+        "Bicycle Crunch / 腳踏車捲腹",
+        "Spider Curl / 蜘蛛彎舉"
+      ]
     },
     {
       "id": "typo-chinup",
@@ -340,8 +362,14 @@
       "relevant": [
         "Chin-up"
       ],
-      "rank": 0,
-      "top": []
+      "rank": 1,
+      "top": [
+        "Chin-up / 反握引體向上",
+        "Diamond Push-up / 鑽石伏地挺身",
+        "Hammer Curl / 錘式彎舉",
+        "Pull-up / 引體向上",
+        "Step Up / 登階"
+      ]
     },
     {
       "id": "alias-rdl",
@@ -350,8 +378,14 @@
       "relevant": [
         "Romanian Deadlift"
       ],
-      "rank": 0,
-      "top": []
+      "rank": 1,
+      "top": [
+        "Romanian Deadlift / 羅馬尼亞硬舉",
+        "Rack Pull / 架拉",
+        "Deadlift / 硬舉",
+        "Stiff Leg Deadlift / 直腿硬舉",
+        "Lat Pulldown / 滑輪下拉"
+      ]
     },
     {
       "id": "alias-ohp",
@@ -360,8 +394,14 @@
       "relevant": [
         "Overhead Press"
       ],
-      "rank": 0,
-      "top": []
+      "rank": 3,
+      "top": [
+        "Burpee / 波比跳",
+        "Overhead Triceps Extension / 過頭三頭伸展",
+        "Overhead Press / 槓鈴肩推",
+        "Hollow Body Hold / 空心體撐",
+        "Dip / 雙槓撐體"
+      ]
     },
     {
       "id": "alias-military-press",
@@ -372,11 +412,11 @@
       ],
       "rank": 0,
       "top": [
-        "Barbell Bench Press / 槓鈴臥推",
-        "Decline Barbell Bench Press / 下斜槓鈴臥推",
-        "Dumbbell Bench Press / 啞鈴臥推",
-        "Incline Barbell Bench Press / 上斜槓鈴臥推",
-        "Incline Dumbbell Bench Press / 上斜啞鈴臥推"
+        "Svend Press / 夾片推胸",
+        "Machine Chest Press / 器械推胸",
+        "Arnold Press / 阿諾德推舉",
+        "Pallof Press / 帕洛夫推舉",
+        "Dumbbell Bench Press / 啞鈴臥推"
       ]
     },
     {
@@ -389,10 +429,10 @@
       "rank": 1,
       "top": [
         "Pec Deck Fly / 蝴蝶機夾胸",
+        "Dip / 雙槓撐體",
+        "Decline Barbell Bench Press / 下斜槓鈴臥推",
         "Barbell Bench Press / 槓鈴臥推",
-        "Cable Fly / 繩索夾胸",
-        "Chest Dip Machine / 胸部雙槓機",
-        "Decline Barbell Bench Press / 下斜槓鈴臥推"
+        "Chest Supported Row / 俯臥支撐划船"
       ]
     },
     {
@@ -404,7 +444,11 @@
       ],
       "rank": 1,
       "top": [
-        "Glute Ham Raise / 臀腿抬升（GHR）"
+        "Glute Ham Raise / 臀腿抬升（GHR）",
+        "Hammer Curl / 錘式彎舉",
+        "Hip Thrust Machine / 臀推機",
+        "Rack Pull / 架拉",
+        "Hack Squat / 哈克深蹲"
       ]
     },
     {
@@ -420,7 +464,9 @@
       "top": [
         "Pull-up / 引體向上",
         "Assisted Pull-up / 輔助引體向上",
-        "Chin-up / 反握引體向上"
+        "Chin-up / 反握引體向上",
+        "Rack Pull / 架拉",
+        "Deadlift / 硬舉"
       ]
     },
     {
@@ -433,7 +479,10 @@
       "rank": 0,
       "top": [
         "Romanian Deadlift / 羅馬尼亞硬舉",
-        "Romanian Split Squat / 羅馬尼亞分腿蹲"
+        "Romanian Split Squat / 羅馬尼亞分腿蹲",
+        "Meadows Row / 梅多斯划船",
+        "Decline Sit Up / 下斜仰臥起坐",
+        "Seated Cable Row / 坐姿繩索划船"
       ]
     },
     {
@@ -451,7 +500,7 @@
         "Rope Pushdown / 麻繩三頭下壓",
         "Single Arm Cable Pushdown / 單臂三頭下壓",
         "Dumbbell Kickback / 啞鈴三頭後踢",
-        "Machine Triceps Extension / 器械三頭伸展"
+        "Skull Crusher / 仰臥三頭伸展"
       ]
     },
     {
@@ -464,10 +513,10 @@
       "rank": 1,
       "top": [
         "Barbell Row / 槓鈴划船",
-        "Chest Supported Row / 俯臥支撐划船",
-        "Inverted Row / 反向划船",
-        "Machine Row / 器械划船",
-        "Meadows Row / 梅多斯划船"
+        "Meadows Row / 梅多斯划船",
+        "T-Bar Row / T槓划船",
+        "Dumbbell Upright Row / 啞鈴直立划船",
+        "Single-Arm Dumbbell Row / 單臂啞鈴划船"
       ]
     },
     {
@@ -481,9 +530,9 @@
       "top": [
         "Dumbbell Bench Press / 啞鈴臥推",
         "Incline Dumbbell Bench Press / 上斜啞鈴臥推",
-        "Dumbbell Shrug / 啞鈴聳肩",
-        "Single-Arm Dumbbell Row / 單臂啞鈴划船",
-        "Dumbbell Curl / 啞鈴彎舉"
+        "Incline Dumbbell Curl / 上斜啞鈴彎舉",
+        "Dumbbell Curl / 啞鈴彎舉",
+        "Dumbbell Pullover / 啞鈴仰臥拉舉"
       ]
     },
     {
@@ -497,9 +546,9 @@
       "top": [
         "Goblet Squat / 高腳杯深蹲",
         "Barbell Back Squat / 槓鈴深蹲",
+        "Sissy Squat / 西西深蹲",
         "Bodyweight Squat / 徒手深蹲",
-        "Hack Squat / 哈克深蹲",
-        "Sissy Squat / 西西深蹲"
+        "Pendulum Squat / 鐘擺深蹲機"
       ]
     },
     {
@@ -515,10 +564,10 @@
       "rank": 1,
       "top": [
         "Dumbbell Shoulder Press / 啞鈴肩推",
-        "Machine Shoulder Press / 器械肩推",
         "Overhead Press / 槓鈴肩推",
-        "Arnold Press / 阿諾德推舉",
-        "Barbell Front Raise / 槓鈴前平舉"
+        "Machine Shoulder Press / 器械肩推",
+        "Behind The Neck Press / 頸後槓鈴推舉",
+        "Arnold Press / 阿諾德推舉"
       ]
     },
     {
@@ -532,9 +581,9 @@
       "top": [
         "Leg Press / 腿推機",
         "Leg Press Calf Raise / 腿推機提踵",
-        "Barbell Back Squat / 槓鈴深蹲",
         "Bodyweight Squat / 徒手深蹲",
-        "Box Jump / 跳箱"
+        "Front Squat / 前蹲舉",
+        "Barbell Back Squat / 槓鈴深蹲"
       ]
     },
     {
@@ -546,7 +595,11 @@
       ],
       "rank": 1,
       "top": [
-        "Front Squat / 前蹲舉"
+        "Front Squat / 前蹲舉",
+        "Front Raise / 前平舉",
+        "Barbell Back Squat / 槓鈴深蹲",
+        "Sissy Squat / 西西深蹲",
+        "Leg Raise / 仰臥抬腿"
       ]
     },
     {
@@ -558,13 +611,13 @@
         "Incline Barbell Bench Press",
         "Low Cable Fly"
       ],
-      "rank": 10,
+      "rank": 2,
       "top": [
-        "Barbell Bench Press / 槓鈴臥推",
-        "Cable Fly / 繩索夾胸",
-        "Chest Dip Machine / 胸部雙槓機",
-        "Decline Barbell Bench Press / 下斜槓鈴臥推",
-        "Dip / 雙槓撐體"
+        "Dumbbell Pullover / 啞鈴仰臥拉舉",
+        "Incline Dumbbell Bench Press / 上斜啞鈴臥推",
+        "Incline Barbell Bench Press / 上斜槓鈴臥推",
+        "Dumbbell Fly / 啞鈴飛鳥",
+        "Barbell Bench Press / 槓鈴臥推"
       ]
     },
     {
@@ -576,13 +629,13 @@
         "Incline Barbell Bench Press",
         "Low Cable Fly"
       ],
-      "rank": 0,
+      "rank": 5,
       "top": [
-        "Chest Dip Machine / 胸部雙槓機",
         "Machine Chest Press / 器械推胸",
-        "Chest Supported Row / 俯臥支撐划船",
         "Barbell Bench Press / 槓鈴臥推",
-        "Cable Fly / 繩索夾胸"
+        "Dumbbell Bench Press / 啞鈴臥推",
+        "Chest Dip Machine / 胸部雙槓機",
+        "Incline Dumbbell Bench Press / 上斜啞鈴臥推"
       ]
     },
     {
@@ -595,13 +648,13 @@
         "Rear Delt Machine",
         "Face Pull"
       ],
-      "rank": 6,
+      "rank": 0,
       "top": [
         "Arnold Press / 阿諾德推舉",
+        "Dumbbell Kickback / 啞鈴三頭後踢",
         "Barbell Front Raise / 槓鈴前平舉",
-        "Behind The Neck Press / 頸後槓鈴推舉",
-        "Cable Front Raise / 繩索前平舉",
-        "Cable Lateral Raise / 繩索側平舉"
+        "Chin-up / 反握引體向上",
+        "Behind The Neck Press / 頸後槓鈴推舉"
       ]
     },
     {
@@ -620,9 +673,9 @@
       "top": [
         "Nordic Hamstring Curl / 北歐腿彎舉",
         "Barbell Back Squat / 槓鈴深蹲",
-        "Bodyweight Squat / 徒手深蹲",
-        "Box Jump / 跳箱",
-        "Bulgarian Split Squat / 保加利亞分腿蹲"
+        "Front Squat / 前蹲舉",
+        "Hack Squat / 哈克深蹲",
+        "Hip Adduction Machine / 髖內收機"
       ]
     },
     {
@@ -640,11 +693,11 @@
       ],
       "rank": 1,
       "top": [
-        "Assisted Pull-up / 輔助引體向上",
-        "Back Extension / 背部伸展",
-        "Barbell Row / 槓鈴划船",
+        "Chin-up / 反握引體向上",
+        "Deadlift / 硬舉",
         "Barbell Shrug / 槓鈴聳肩",
-        "Chest Supported Row / 俯臥支撐划船"
+        "Back Extension / 背部伸展",
+        "Pull-up / 引體向上"
       ]
     },
     {
@@ -659,11 +712,11 @@
       ],
       "rank": 2,
       "top": [
-        "Barbell Back Squat / 槓鈴深蹲",
+        "Front Squat / 前蹲舉",
         "Bodyweight Squat / 徒手深蹲",
-        "Box Jump / 跳箱",
-        "Bulgarian Split Squat / 保加利亞分腿蹲",
-        "Front Squat / 前蹲舉"
+        "Goblet Squat / 高腳杯深蹲",
+        "Barbell Back Squat / 槓鈴深蹲",
+        "Box Jump / 跳箱"
       ]
     },
     {
@@ -679,10 +732,10 @@
       "rank": 1,
       "top": [
         "Back Extension / 背部伸展",
-        "Assisted Pull-up / 輔助引體向上",
-        "Barbell Row / 槓鈴划船",
+        "Deadlift / 硬舉",
         "Barbell Shrug / 槓鈴聳肩",
-        "Chest Supported Row / 俯臥支撐划船"
+        "Pull-up / 引體向上",
+        "Inverted Row / 反向划船"
       ]
     },
     {
@@ -696,8 +749,14 @@
         "Rowing Machine",
         "Stair Climber"
       ],
-      "rank": 0,
-      "top": []
+      "rank": 1,
+      "top": [
+        "Treadmill / 跑步機",
+        "Elliptical / 橢圓機",
+        "Rowing Machine / 划船機",
+        "Stationary Bike / 健身車",
+        "Stair Climber / 爬梯機"
+      ]
     },
     {
       "id": "desc-anti-rotation",
@@ -726,13 +785,13 @@
         "Glute Bridge",
         "Frog Pump"
       ],
-      "rank": 1,
+      "rank": 2,
       "top": [
-        "Cable Glute Kickback / 繩索臀部後踢",
-        "Cable Pull Through / 繩索 Pull Through",
-        "Donkey Kick / 驢踢腿",
         "Dumbbell Hip Thrust / 啞鈴臀推",
-        "Frog Pump / 青蛙臀橋"
+        "Cable Glute Kickback / 繩索臀部後踢",
+        "Hip Thrust / 臀推",
+        "Frog Pump / 青蛙臀橋",
+        "Glute Bridge / 臀橋"
       ]
     }
   ]
