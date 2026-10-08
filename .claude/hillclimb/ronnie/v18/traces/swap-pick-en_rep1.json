@@ -1,0 +1,35 @@
+[
+  {
+    "role": "user",
+    "content": "My elbow's bugging me today. What should I do instead of triceps pushdowns?"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"low elbow stress triceps alternative\",\"muscle_group\":\"triceps\"},\"result\":\"Nothing in the library matches \\\"low elbow stress triceps alternative\\\" exactly. Closest:\\nID: 697409e4 | Triceps Pushdown (triceps)\\nID: 03bae642 | Dips (triceps)\\nID: ad5d9bcc | Overhead Triceps Extension (triceps)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"chest fly machine\",\"muscle_group\":\"chest\"},\"result\":\"Nothing in the library matches \\\"chest fly machine\\\" exactly. Closest:\\nID: a726ab1a | Low-to-High Cable Fly (chest)\\nID: d988a60a | Barbell Bench Press (chest)\\nID: d486b05a | Dumbbell Bench Press (chest)\\nID: 41290ea9 | Incline Dumbbell Press (chest)\\nID: 6fc5ead6 | Incline Barbell Press (chest)\\nID: 23bc61ff | Push-Up (chest)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "remove_exercise_today",
+    "content": "{\"input\":{\"exercise_name\":\"Triceps Pushdown\",\"exercise_id\":\"697409e4\"},\"result\":\"✓ Removed \\\"Triceps Pushdown\\\" from today only (routines unchanged)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"a726ab1a\"},\"result\":\"✓ Added \\\"Low-to-High Cable Fly\\\" to today's workout\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "I swapped Triceps Pushdown for Low-to-High Cable Fly in today's workout only, so your routine is unchanged. Flies put much less strain on the elbow. I skipped Dips and Overhead Triceps Extension because both load the elbow heavily. 💪\n\nKeep everything pain-free, and drop the weight on presses if the elbow twinges. If the pain is sharp or sticks around, stop and get it checked by a professional."
+  }
+]

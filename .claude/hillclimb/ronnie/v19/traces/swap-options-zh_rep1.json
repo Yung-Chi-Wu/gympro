@@ -1,0 +1,30 @@
+[
+  {
+    "role": "user",
+    "content": "我肩膀不舒服要換肩推有什麼動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | 槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | 上斜啞鈴臥推: no sets yet\\nID: 13841865 | 肩推: no sets yet\\nID: 697409e4 | 三頭下壓: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"肩推替代 低肩負擔 胸部或肩膀 推\",\"muscle_group\":\"shoulders\"},\"result\":\"ID: 13841865 | 肩推 (shoulders)\\nID: 65d4104b | 側平舉 (shoulders)\\nID: cd6e3284 | 臉拉 (shoulders)\\nID: 7fb35f03 | 反向飛鳥機 (shoulders)\\nID: 03810fd4 | 啞鈴後三角飛鳥 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "remove_exercise_today",
+    "content": "{\"input\":{\"exercise_name\":\"肩推\",\"exercise_id\":\"13841865\"},\"result\":\"✓ 已將「肩推」從今天課表移除（不影響固定課表）\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"cd6e3284\"},\"result\":\"✓ 已將「臉拉」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 我已把今天的肩推換成臉拉，固定課表沒有動。臉拉是拉的動作，對肩膀比較友善，也能練後三角和肩部穩定。請用輕重量、動作放慢，全程不痛才做。如果痛感變尖銳或一直沒消，請停下來找專業人員評估。💪"
+  }
+]

@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個可以練後三角的動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"後三角 rear delt\",\"muscle_group\":\"shoulders\"},\"result\":\"ID: 03810fd4 | 啞鈴後三角飛鳥 (shoulders)\\nID: 65d4104b | 側平舉 (shoulders)\\nID: 13841865 | 肩推 (shoulders)\\nID: 7fb35f03 | 反向飛鳥機 (shoulders)\\nID: cd6e3284 | 臉拉 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"03810fd4\"},\"result\":\"Showing a card for \\\"啞鈴後三角飛鳥\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "推薦「啞鈴後三角飛鳥」💪 用輕一點的重量，身體前傾，手肘微彎往兩側打開，頂端停一下，不要用甩的。每組 12～20 下效果不錯，也能幫你的臥推穩定肩膀。想加進今天的推日，按卡片上的按鈕就行。"
+  },
+  {
+    "role": "user",
+    "content": "好，幫我加進今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"03810fd4\"},\"result\":\"✓ 已將「啞鈴後三角飛鳥」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 已把「啞鈴後三角飛鳥」加進今天的推日。建議放在最後做，3 組 12～20 下。"
+  }
+]
