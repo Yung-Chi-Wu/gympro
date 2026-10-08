@@ -30,9 +30,16 @@ import type { LibraryExercise } from '../../lib/ronnie/data'
 //
 // Usage:
 //   npm run eval:search -- keyword hybrid:titan-v2 ...
-// Each variant's results are saved to results/<variant>.json.
+//   SEARCH_CASES=holdout npm run eval:search -- ...   the holdout set
+// The dev set (cases.json) is for trying ideas. The holdout set
+// (cases-holdout.json) checks the chosen one: its first 10 queries were written
+// by the user without seeing the dev set. Each variant's results are saved to
+// results/[holdout/]<variant>.json.
 
 const HERE = join(process.cwd(), 'evals', 'search')
+const CASE_SET = process.env.SEARCH_CASES === 'holdout' ? 'holdout' : 'dev'
+const CASES_FILE = CASE_SET === 'holdout' ? 'cases-holdout.json' : 'cases.json'
+const RESULTS_DIR = join(HERE, 'results', ...(CASE_SET === 'holdout' ? ['holdout'] : []))
 const TOP = 10
 // Each list contributes 1 / (RRF_K + rank). 60 is the usual constant: a high rank in
 // one list counts, but an exercise ranked well in both lists comes first.
@@ -129,7 +136,7 @@ async function makeSearch(variant: string, library: Exercise[], cases: Case[], c
 async function main() {
     const variants = process.argv.slice(2).length ? process.argv.slice(2) : ['keyword']
     const library = loadLibrary()
-    const cases: Case[] = JSON.parse(readFileSync(join(HERE, 'cases.json'), 'utf8'))
+    const cases: Case[] = JSON.parse(readFileSync(join(HERE, CASES_FILE), 'utf8'))
     const client = new BedrockRuntimeClient({ region: 'us-east-1' })
 
     // A label naming an exercise the library doesn't have would silently count as a miss
@@ -155,8 +162,8 @@ async function main() {
         }))
         table[variant] = Object.fromEntries([...kinds.map((k) => [k, summarise(results.filter((r) => r.kind === k))]), ['ALL', summarise(results)]])
 
-        mkdirSync(join(HERE, 'results'), { recursive: true })
-        writeFileSync(join(HERE, 'results', `${variant.replace(/:/g, '-')}.json`), JSON.stringify({ variant, summary: table[variant].ALL, results }, null, 2) + '\n')
+        mkdirSync(RESULTS_DIR, { recursive: true })
+        writeFileSync(join(RESULTS_DIR, `${variant.replace(/:/g, '-')}.json`), JSON.stringify({ variant, summary: table[variant].ALL, results }, null, 2) + '\n')
 
         const misses = results.filter((r) => !r.rank || r.rank > 5)
         console.log(`\n${variant}: not in the top 5 (${misses.length})`)
@@ -165,7 +172,7 @@ async function main() {
 
     const pct = (x: number) => `${Math.round(x * 100)}%`
     const width = Math.max(...variants.map((v) => v.length), 8) + 2
-    console.log(`\nhit@5 by kind (${library.length} exercises, ${cases.length} queries)\n`)
+    console.log(`\nhit@5 by kind (${CASE_SET}: ${library.length} exercises, ${cases.length} queries)\n`)
     console.log('kind'.padEnd(16) + variants.map((v) => v.padStart(width)).join(''))
     for (const k of [...kinds, 'ALL']) console.log(k.padEnd(16) + variants.map((v) => pct(table[v][k].hit5).padStart(width)).join(''))
     console.log('\n' + 'ALL hit@1'.padEnd(16) + variants.map((v) => pct(table[v].ALL.hit1).padStart(width)).join(''))
