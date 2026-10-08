@@ -8,10 +8,13 @@
     "start": "next start",
     "lint": "eslint",
     "eval:ronnie:build": "lambda/ai-worker/node_modules/.bin/esbuild evals/ronnie/entry.ts --bundle --platform=node --target=node20 --format=cjs --outfile=evals/ronnie/dist/ronnie.cjs",
-    "typecheck:evals": "tsc --noEmit -p evals/ronnie"
+    "typecheck:evals": "tsc --noEmit -p evals/ronnie && tsc --noEmit -p evals/search && tsc --noEmit -p scripts",
+    "eval:search": "lambda/ai-worker/node_modules/.bin/esbuild evals/search/run.ts --bundle --platform=node --target=node20 --format=cjs --outfile=evals/search/dist/run.cjs --log-level=warning && node evals/search/dist/run.cjs",
+    "index:exercises": "lambda/ai-worker/node_modules/.bin/esbuild scripts/index-exercise-embeddings.ts --bundle --platform=node --target=node20 --format=cjs --outfile=scripts/dist/index-exercise-embeddings.cjs --log-level=warning && AWS_REGION=${AWS_REGION:-us-east-1} node --experimental-websocket scripts/dist/index-exercise-embeddings.cjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1148.0",
     "@aws-sdk/client-sqs": "^3.1112.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",

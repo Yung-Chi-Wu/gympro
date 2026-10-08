@@ -18,11 +18,11 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
     },
     {
         name: 'search_exercises',
-        description: "Search the exercise library (not the user's routines). Tolerates plurals, word order and partial names, and says when it only found close matches. If it finds nothing, try other wording - English or Chinese, a shorter keyword, or muscle_group - before saying it isn't there.",
+        description: "Search the exercise library (not the user's routines). Matches by meaning as well as by name, so a short description works (\"upper chest\", \"bodyweight legs\"), in English or Chinese, typos included, and it says when no name matched exactly. If the results don't fit, try other wording or muscle_group before saying it isn't there.",
         input_schema: {
             type: 'object',
             properties: {
-                query: { type: 'string', description: 'Exercise name' },
+                query: { type: 'string', description: 'An exercise name or a short description' },
                 muscle_group: { type: 'string', description: 'chest, back, shoulders, biceps, triceps, legs, glutes or core' },
             },
             required: [],

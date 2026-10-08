@@ -1,0 +1,22 @@
+[
+  {"id": "user-lower-back", "kind": "user", "query": "我今天想練有關下背的的動作", "relevant": ["Back Extension", "Good Morning", "Deadlift", "Rack Pull"]},
+  {"id": "user-cable-triceps", "kind": "user", "query": "我想要找一個可以用繩索練三頭的動作", "relevant": ["Triceps Pushdown", "Rope Pushdown", "Single Arm Cable Pushdown", "Cable Overhead Triceps Extension"]},
+  {"id": "user-plank-substitute", "kind": "user", "query": "我想要請你找一個可以替代棒式的動作", "relevant": ["Side Plank", "Dead Bug", "Hollow Body Hold", "Ab Wheel Rollout", "Pallof Press"]},
+  {"id": "user-side-delts", "kind": "user", "query": "我想找一個可以刺激肩膀中束的動作", "relevant": ["Lateral Raise", "Cable Lateral Raise", "Machine Lateral Raise", "Landmine Lateral Raise", "Dumbbell Upright Row"]},
+  {"id": "user-quads", "kind": "user", "query": "我想做一個可以增強股四頭的動作", "relevant": ["Leg Extension", "Front Squat", "Barbell Back Squat", "Hack Squat", "Leg Press", "Bulgarian Split Squat", "Sissy Squat", "Goblet Squat", "Pendulum Squat", "Smith Machine Squat"]},
+  {"id": "user-lateral-raise-substitute", "kind": "user", "query": "我想替換側平舉", "relevant": ["Cable Lateral Raise", "Machine Lateral Raise", "Landmine Lateral Raise", "Dumbbell Upright Row"]},
+  {"id": "user-lower-chest", "kind": "user", "query": "我想加強下胸有什麼動作推薦", "relevant": ["Decline Barbell Bench Press", "Dip", "Chest Dip Machine", "High Cable Fly"]},
+  {"id": "user-glutes", "kind": "user", "query": "我想讓我的屁股有型有什麼動作", "relevant": ["Cable Glute Kickback", "Cable Pull Through", "Donkey Kick", "Dumbbell Hip Thrust", "Frog Pump", "Glute Bridge", "Glute Ham Raise", "Hip Abduction Machine", "Hip Thrust", "Hip Thrust Machine", "Kettlebell Swing", "Monster Walk", "Romanian Split Squat", "Sumo Deadlift", "Bulgarian Split Squat", "Romanian Deadlift"]},
+  {"id": "user-calves", "kind": "user", "query": "針對小腿有什麼動作？", "relevant": ["Standing Calf Raise", "Seated Calf Raise", "Leg Press Calf Raise"]},
+  {"id": "user-squat-plateau", "kind": "user", "query": "我深蹲卡關了有什麼可以提升深蹲的動作？", "relevant": ["Front Squat", "Bulgarian Split Squat", "Leg Press", "Hack Squat", "Pendulum Squat", "Good Morning", "Romanian Deadlift"]},
+  {"id": "ho-exact-seated-calf", "kind": "exact", "query": "Seated Calf Raise", "relevant": ["Seated Calf Raise"]},
+  {"id": "ho-exact-dumbbell-curl-zh", "kind": "exact", "query": "啞鈴彎舉", "relevant": ["Dumbbell Curl"]},
+  {"id": "ho-partial-incline-press", "kind": "partial", "query": "incline press", "relevant": ["Incline Dumbbell Bench Press", "Incline Barbell Bench Press"]},
+  {"id": "ho-partial-hip-thrusts", "kind": "partial", "query": "hip thrusts", "relevant": ["Hip Thrust", "Hip Thrust Machine", "Dumbbell Hip Thrust"]},
+  {"id": "ho-typo-extention", "kind": "typo", "query": "tricep extention", "relevant": ["Overhead Triceps Extension", "Cable Overhead Triceps Extension", "Machine Triceps Extension"]},
+  {"id": "ho-typo-bulgarain", "kind": "typo", "query": "bulgarain split squat", "relevant": ["Bulgarian Split Squat"]},
+  {"id": "ho-alias-sldl", "kind": "alias", "query": "SLDL", "relevant": ["Stiff Leg Deadlift"]},
+  {"id": "ho-alias-fly-zh", "kind": "alias", "query": "飛鳥", "relevant": ["Dumbbell Fly", "Cable Fly", "Pec Deck Fly", "High Cable Fly", "Low Cable Fly"]},
+  {"id": "ho-cross-cable-biceps", "kind": "cross-language", "query": "cable 二頭", "relevant": ["Cable Curl", "Cable Rope Curl"]},
+  {"id": "ho-desc-bodyweight-chest", "kind": "descriptive", "query": "徒手練胸", "relevant": ["Push-up", "Diamond Push-up"]}
+]

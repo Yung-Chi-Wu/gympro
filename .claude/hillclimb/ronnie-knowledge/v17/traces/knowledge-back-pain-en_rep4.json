@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "My lower back hurts after deadlifts, should I keep going?"
+  },
+  {
+    "role": "assistant",
+    "content": "Lower back soreness after deadlifts is common, but I can't diagnose it. Here's how to handle it:\n\n- Sharp, shooting, or lasting pain, or pain with numbness or tingling in your legs: stop deadlifting and see a doctor or physio. ⚠️\n- Dull muscle soreness that fades within 1-2 days: you can keep training. Drop the weight 20-30% and stay pain-free.\n- Check your form: keep a neutral spine, brace your core, keep the bar close to your legs, and don't let your hips shoot up first.\n- Swaps that load the back less: Romanian deadlifts, trap-bar deadlifts, or hip thrusts.\n\nWould you like me to look at your recent deadlift history to see if the load or volume jumped?"
+  }
+]

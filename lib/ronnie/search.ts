@@ -1,4 +1,5 @@
 import type { LibraryExercise } from './data'
+import { MUSCLE_GROUP_LABELS } from '../exercise-display'
 
 // Exercise search, ranked in code. The eval found exact-substring search failing
 // on ordinary requests: "face pulls" (library: Face Pull), "burpees", "incline
@@ -104,4 +105,57 @@ export function searchLibrary(
             .map((x) => x.e),
         exact,
     }
+}
+
+// Reciprocal rank fusion: each list adds 1 / (RRF_K + rank) to an exercise's score. With
+// the usual 60, an exercise ranked well in both lists beats one ranked first in only one.
+const RRF_K = 60
+
+export function fuseRanks(lists: LibraryExercise[][]): LibraryExercise[] {
+    const scores = new Map<string, { e: LibraryExercise; score: number }>()
+    for (const list of lists) {
+        list.forEach((e, i) => {
+            const entry = scores.get(e.id) ?? { e, score: 0 }
+            entry.score += 1 / (RRF_K + i + 1)
+            scores.set(e.id, entry)
+        })
+    }
+    return [...scores.values()].sort((a, b) => b.score - a.score).map((x) => x.e)
+}
+
+/**
+ * Keyword results combined with the nearest exercises by meaning (vector search), as the
+ * search eval chose (evals/search):
+ * - The keyword search matched a name: both rankings are fused, so a typed name stays on top.
+ * - It didn't: meaning alone decides. A partial keyword match ranks by accident -
+ *   "hamer curl" listed every curl alphabetically - and fusing it pushed the right
+ *   answer from first to third.
+ * - No vectors (no query, or Bedrock unavailable): the keyword results as they are.
+ */
+export function gatedSearch(
+    library: LibraryExercise[],
+    keyword: SearchResult,
+    nearestIds: string[] | null,
+    limit = 10
+): SearchResult {
+    if (!nearestIds?.length) return { exercises: keyword.exercises.slice(0, limit), exact: keyword.exact }
+    const byId = new Map(library.map((e) => [e.id, e]))
+    const nearest = nearestIds.map((id) => byId.get(id)).filter((e): e is LibraryExercise => !!e)
+    const ranked = keyword.exact ? fuseRanks([keyword.exercises, nearest]) : nearest
+    return { exercises: ranked.slice(0, limit), exact: keyword.exact }
+}
+
+const EQUIPMENT_ZH: Record<string, string> = {
+    barbell: '槓鈴', dumbbell: '啞鈴', cable: '繩索', machine: '器械',
+    bodyweight: '徒手', plates: '槓片', kettlebell: '壺鈴', other: '其他',
+}
+
+/**
+ * The text embedded for an exercise in vector search: both names, plus muscle group and
+ * equipment in both languages, so "練胸的啞鈴動作" can match on more than the name.
+ */
+export function exerciseDocument(e: LibraryExercise & { equipment?: string | null }): string {
+    const group = `${MUSCLE_GROUP_LABELS.en[e.muscle_group] ?? e.muscle_group} ${MUSCLE_GROUP_LABELS['zh-TW'][e.muscle_group] ?? ''}`.trim()
+    const equipment = e.equipment ? `${e.equipment} ${EQUIPMENT_ZH[e.equipment] ?? ''}`.trim() : ''
+    return [e.name, e.name_zh_tw, group, equipment].filter(Boolean).join(' | ')
 }

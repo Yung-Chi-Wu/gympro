@@ -63,3 +63,5 @@ supabase/.temp/
 
 # Claude Code per-machine settings (permissions, local paths)
 .claude/settings.local.json
+evals/search/.cache/
+evals/ronnie/.cache/

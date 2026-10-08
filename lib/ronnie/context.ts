@@ -3,6 +3,7 @@ import type { Database } from '../types/database.types'
 import { createSupabaseRonnieData, type RonnieData } from './data'
 import type { RonnieUserContext } from './prompt'
 import { dateGuide } from './time'
+import { vercelQueryEmbedder } from '../embeddings'
 
 export interface RonnieContext {
     data: RonnieData
@@ -35,7 +36,7 @@ export async function loadRonnieContext(supabase: SupabaseClient<Database>, user
     const profile = profileResult.data
     const cycle = cycleResult.data
     const timeZone = profile?.timezone ?? 'America/New_York'
-    const data = createSupabaseRonnieData(supabase, userId, timeZone, cycle)
+    const data = createSupabaseRonnieData(supabase, userId, timeZone, cycle, { embedQuery: vercelQueryEmbedder() })
 
     const routineId = cycle ? await data.getTodayRoutineId() : null
     const todayRoutineName = routineId ? await data.getRoutineName(routineId) : null
