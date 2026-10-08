@@ -1,9 +1,8 @@
-import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime'
-import { dot, embed, EMBEDDING_MODELS, type EmbeddingModel } from '../../lib/embeddings'
-import { exerciseDocument, searchLibrary } from '../../lib/ronnie/search'
+import { dot, EMBEDDING_MODELS, type EmbeddingModel } from '../../lib/embeddings'
+import { cachedEmbedder } from '../shared/embedding-cache'
+import { exerciseDocument, fuseRanks, gatedSearch, searchLibrary } from '../../lib/ronnie/search'
 import type { LibraryExercise } from '../../lib/ronnie/data'
 
 // Exercise-search eval. Each case is a query that a user, or Ronnie, would send to
@@ -25,8 +24,8 @@ import type { LibraryExercise } from '../../lib/ronnie/data'
 //   gated:<model>[:names]       hybrid only when the keyword search matched a name
 //                               (its exact flag); otherwise vector alone. A partial
 //                               keyword match ("romanain deadlift" -> Deadlift) is noise.
-// Embeddings come from Bedrock (AWS_PROFILE, us-east-1) and are cached in .cache/,
-// so a rerun costs nothing.
+// Embeddings come from Bedrock (AWS_PROFILE, us-east-1) and are cached in .cache/
+// (evals/shared/embedding-cache.ts), so a rerun costs nothing.
 //
 // Usage:
 //   npm run eval:search -- keyword hybrid:titan-v2 ...
@@ -41,9 +40,6 @@ const CASE_SET = process.env.SEARCH_CASES === 'holdout' ? 'holdout' : 'dev'
 const CASES_FILE = CASE_SET === 'holdout' ? 'cases-holdout.json' : 'cases.json'
 const RESULTS_DIR = join(HERE, 'results', ...(CASE_SET === 'holdout' ? ['holdout'] : []))
 const TOP = 10
-// Each list contributes 1 / (RRF_K + rank). 60 is the usual constant: a high rank in
-// one list counts, but an exercise ranked well in both lists comes first.
-const RRF_K = 60
 const POOL = 20
 
 interface Case {
@@ -76,45 +72,16 @@ function loadLibrary(): Exercise[] {
     }))
 }
 
-/** Embeddings by model and text, kept on disk so each text is paid for once. */
-async function cachedEmbed(client: BedrockRuntimeClient, model: EmbeddingModel, texts: string[], kind: 'document' | 'query') {
-    const dir = join(HERE, '.cache')
-    const file = join(dir, `${model}.json`)
-    const cache: Record<string, number[]> = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {}
-    const key = (t: string) => createHash('sha1').update(`${kind}\n${t}`).digest('hex')
-    const missing = [...new Set(texts.filter((t) => !cache[key(t)]))]
-    if (missing.length) {
-        const vectors = await embed(client, model, missing, kind)
-        missing.forEach((t, i) => (cache[key(t)] = vectors[i]))
-        mkdirSync(dir, { recursive: true })
-        writeFileSync(file, JSON.stringify(cache))
-        console.log(`  embedded ${missing.length} ${kind} texts with ${model}`)
-    }
-    return texts.map((t) => cache[key(t)])
-}
-
-/** Reciprocal rank fusion: each list adds 1 / (RRF_K + rank) to an exercise's score. */
-function fuse(lists: LibraryExercise[][]): LibraryExercise[] {
-    const scores = new Map<string, { e: LibraryExercise; score: number }>()
-    for (const list of lists) {
-        list.forEach((e, i) => {
-            const entry = scores.get(e.id) ?? { e, score: 0 }
-            entry.score += 1 / (RRF_K + i + 1)
-            scores.set(e.id, entry)
-        })
-    }
-    return [...scores.values()].sort((a, b) => b.score - a.score).map((x) => x.e)
-}
-
-async function makeSearch(variant: string, library: Exercise[], cases: Case[], client: BedrockRuntimeClient): Promise<Search> {
+async function makeSearch(variant: string, library: Exercise[], cases: Case[]): Promise<Search> {
     const keyword: Search = async (q, mg) => searchLibrary(library, q, mg, POOL).exercises
     if (variant === 'keyword') return keyword
 
     const [mode, model, format] = variant.split(':') as [string, EmbeddingModel, string | undefined]
     if (!['vector', 'hybrid', 'gated'].includes(mode) || !(model in EMBEDDING_MODELS)) throw new Error(`Unknown variant ${variant}`)
     const documents = library.map((e) => (format === 'names' ? [e.name, e.name_zh_tw].filter(Boolean).join(' | ') : exerciseDocument(e)))
-    const docVectors = await cachedEmbed(client, model, documents, 'document')
-    const queryVectors = new Map((await cachedEmbed(client, model, cases.map((c) => c.query), 'query')).map((v, i) => [cases[i].query, v]))
+    const embedTexts = cachedEmbedder(join(HERE, '.cache'), model)
+    const docVectors = await embedTexts(documents, 'document')
+    const queryVectors = new Map((await embedTexts(cases.map((c) => c.query), 'query')).map((v, i) => [cases[i].query, v]))
 
     const vector: Search = async (q, mg) => {
         const qv = queryVectors.get(q)!
@@ -126,18 +93,15 @@ async function makeSearch(variant: string, library: Exercise[], cases: Case[], c
             .map((x) => x.e)
     }
     if (mode === 'vector') return vector
-    if (mode === 'hybrid') return async (q, mg) => fuse([await keyword(q, mg), await vector(q, mg)])
-    return async (q, mg) => {
-        const k = searchLibrary(library, q, mg, POOL)
-        return k.exact ? fuse([k.exercises, await vector(q, mg)]) : vector(q, mg)
-    }
+    if (mode === 'hybrid') return async (q, mg) => fuseRanks([await keyword(q, mg), await vector(q, mg)])
+    // What Ronnie runs (lib/ronnie/search.ts)
+    return async (q, mg) => gatedSearch(library, searchLibrary(library, q, mg, POOL), (await vector(q, mg)).map((e) => e.id), POOL).exercises
 }
 
 async function main() {
     const variants = process.argv.slice(2).length ? process.argv.slice(2) : ['keyword']
     const library = loadLibrary()
     const cases: Case[] = JSON.parse(readFileSync(join(HERE, CASES_FILE), 'utf8'))
-    const client = new BedrockRuntimeClient({ region: 'us-east-1' })
 
     // A label naming an exercise the library doesn't have would silently count as a miss
     const names = new Set(library.map((e) => e.name))
@@ -154,7 +118,7 @@ async function main() {
     const table: Record<string, Record<string, ReturnType<typeof summarise>>> = {}
 
     for (const variant of variants) {
-        const search = await makeSearch(variant, library, cases, client)
+        const search = await makeSearch(variant, library, cases)
         const results = await Promise.all(cases.map(async (c) => {
             const found = (await search(c.query, c.muscle_group)).slice(0, TOP)
             const rank = found.findIndex((e) => c.relevant.includes(e.name)) + 1 // 0 = not found

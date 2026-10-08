@@ -51,6 +51,12 @@ export interface RonnieData {
     findRoutinesWithExercise(exerciseId: string): Promise<{ id: string; name: string }[]>
     /** Every exercise the user can see; search ranking happens in code (see search.ts). */
     listExercises(): Promise<LibraryExercise[]>
+    /**
+     * IDs of the exercises nearest in meaning to the query, closest first (vector search).
+     * Null when vectors aren't available - no embedder, or Bedrock failed or timed out -
+     * so the search falls back to keywords instead of failing the turn.
+     */
+    nearestExercises(query: string, muscleGroup?: string): Promise<string[] | null>
     getWorkoutsBetween(startIso: string, endIso: string): Promise<
         { id: string; performed_at: string; workout_planned_exercises: PlannedExercise[] | null }[]
     >
@@ -80,7 +86,11 @@ export function createSupabaseRonnieData(
     userId: string,
     timeZone: string,
     cycle: CycleRow | null,
-    now: () => Date = () => new Date()
+    { now = () => new Date(), embedQuery = null }: {
+        now?: () => Date
+        /** Turns a search query into a vector (lib/embeddings.ts); null disables vector search */
+        embedQuery?: ((text: string) => Promise<number[]>) | null
+    } = {}
 ): RonnieData {
     async function getTodayRoutineId(): Promise<string | null> {
         if (!cycle) return null
@@ -141,6 +151,24 @@ export function createSupabaseRonnieData(
             // RLS already limits custom exercises to the user who created them
             const { data } = await supabase.from('exercises').select('id, name, name_zh_tw, muscle_group')
             return data ?? []
+        },
+
+        async nearestExercises(query, muscleGroup) {
+            if (!embedQuery) return null
+            try {
+                const embedding = await embedQuery(query)
+                // RLS applies (security invoker), so another user's custom exercises never match
+                const { data, error } = await supabase.rpc('match_exercises', {
+                    p_embedding: JSON.stringify(embedding),
+                    p_count: 20,
+                    p_muscle_group: muscleGroup ?? undefined,
+                })
+                if (error) throw error
+                return (data ?? []).map((row) => row.id)
+            } catch (err) {
+                console.warn('Ronnie vector search unavailable, using keywords:', err)
+                return null
+            }
         },
 
         async getWorkoutsBetween(startIso, endIso) {

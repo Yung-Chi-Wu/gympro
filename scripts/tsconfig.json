@@ -1,0 +1,13 @@
+{
+  "//": "Scripts run by hand, type-checked on their own (npm run typecheck:evals): they import lambda/ai-worker code, whose dependencies are installed only there - not on Vercel.",
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": [
+    "./**/*.ts"
+  ],
+  "exclude": [
+    "dist"
+  ]
+}

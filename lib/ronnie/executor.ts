@@ -1,6 +1,6 @@
 import type { LibraryExercise, RonnieData, RoutineProposal } from './data'
 import { describeProposal } from './events'
-import { latinTokens, searchLibrary } from './search'
+import { gatedSearch, latinTokens, searchLibrary } from './search'
 import { localDateStr, localDateToUtcRange } from './time'
 
 // Ronnie's tools. Results are for the model, so they are in English whatever the
@@ -121,7 +121,10 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         },
 
         async search_exercises(input) {
-            const { exercises: found, exact } = searchLibrary(await exercises(), input.query, input.muscle_group)
+            const library = await exercises()
+            const query = input.query?.trim()
+            const nearest = query ? await data.nearestExercises(query, input.muscle_group) : null
+            const { exercises: found, exact } = gatedSearch(library, searchLibrary(library, query, input.muscle_group, 20), nearest)
             if (!found.length) return 'No exercises found. Try other wording (English or Chinese, a shorter keyword, or a muscle_group).'
             const lines = (await Promise.all(found.map((e) => listLine(e.id, `${nameOf(e)} (${e.muscle_group})`)))).join('\n')
             return exact ? lines : `Nothing in the library matches "${input.query}" exactly. Closest:\n${lines}`

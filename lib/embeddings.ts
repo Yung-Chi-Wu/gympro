@@ -1,4 +1,5 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime'
+import { awsCredentialsProvider } from '@vercel/oidc-aws-credentials-provider'
 
 // Text embeddings on Amazon Bedrock, for the exercise search. A model turns a text into
 // a vector, and texts that mean the same thing land close together in any language
@@ -9,6 +10,15 @@ import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedroc
 
 export type EmbeddingModel = 'titan-v2' | 'cohere-multilingual-v3' | 'cohere-v4'
 export type EmbedKind = 'document' | 'query'
+
+/**
+ * The model Ronnie's exercise search uses, chosen by the search eval (evals/search).
+ * On the 20 holdout queries it reached 90% hit@5, against 75% for keyword search and
+ * 70% for Titan V2. The database column must have the same dimensions.
+ */
+export const SEARCH_EMBEDDING_MODEL: EmbeddingModel = 'cohere-v4'
+export const SEARCH_EMBEDDING_DIMENSIONS = 1536
+const BEDROCK_REGION = 'us-east-1'
 
 interface ModelSpec {
     id: string
@@ -52,7 +62,13 @@ export function dot(a: number[], b: number[]): number {
     return s
 }
 
-export async function embed(client: BedrockRuntimeClient, model: EmbeddingModel, texts: string[], kind: EmbedKind): Promise<number[][]> {
+export async function embed(
+    client: BedrockRuntimeClient,
+    model: EmbeddingModel,
+    texts: string[],
+    kind: EmbedKind,
+    signal?: AbortSignal,
+): Promise<number[][]> {
     const spec = EMBEDDING_MODELS[model]
     const batches: string[][] = []
     for (let i = 0; i < texts.length; i += spec.batch) batches.push(texts.slice(i, i + spec.batch))
@@ -68,9 +84,20 @@ export async function embed(client: BedrockRuntimeClient, model: EmbeddingModel,
                 contentType: 'application/json',
                 accept: 'application/json',
                 body: JSON.stringify(spec.body(batches[i], kind)),
-            }))
+            }), { abortSignal: signal })
             out[i] = spec.read(JSON.parse(new TextDecoder().decode(response.body))).map(unit)
         }
     }))
     return out.flat()
+}
+
+/**
+ * Embeds one search query on Vercel, with the deployment's OIDC role, or null where
+ * there is no role (local dev). Callers fall back to keyword search on null or on an error.
+ */
+export function vercelQueryEmbedder(timeoutMs = 2000): ((text: string) => Promise<number[]>) | null {
+    const roleArn = process.env.AWS_ROLE_ARN
+    if (!roleArn) return null
+    const client = new BedrockRuntimeClient({ region: BEDROCK_REGION, credentials: awsCredentialsProvider({ roleArn }) })
+    return async (text) => (await embed(client, SEARCH_EMBEDDING_MODEL, [text], 'query', AbortSignal.timeout(timeoutMs)))[0]
 }

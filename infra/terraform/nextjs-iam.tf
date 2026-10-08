@@ -58,6 +58,23 @@ resource "aws_iam_role_policy" "nextjs_sqs_send_only" {
   policy = data.aws_iam_policy_document.nextjs_sqs_send_only.json
 }
 
+# ---------- Permissions: embed Ronnie's exercise-search queries ----------
+# Each search_exercises call turns the query into a vector with Cohere Embed v4
+# (lib/embeddings.ts), the model the search eval chose. Scoped to that one model.
+data "aws_iam_policy_document" "nextjs_bedrock_embed" {
+  statement {
+    effect    = "Allow"
+    actions   = ["bedrock:InvokeModel"]
+    resources = ["arn:aws:bedrock:us-east-1::foundation-model/cohere.embed-v4:0"]
+  }
+}
+
+resource "aws_iam_role_policy" "nextjs_bedrock_embed" {
+  name   = "gympro-nextjs-bedrock-embed"
+  role   = aws_iam_role.nextjs.id
+  policy = data.aws_iam_policy_document.nextjs_bedrock_embed.json
+}
+
 # ---------- Values to copy into Vercel environment variables ----------
 output "nextjs_role_arn" {
   description = "Set as AWS_ROLE_ARN in Vercel"

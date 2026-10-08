@@ -84,6 +84,8 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          embedding: string | null
+          embedding_text: string | null
           equipment: string | null
           id: string
           is_custom: boolean
@@ -94,6 +96,8 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          embedding?: string | null
+          embedding_text?: string | null
           equipment?: string | null
           id?: string
           is_custom?: boolean
@@ -104,6 +108,8 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          embedding?: string | null
+          embedding_text?: string | null
           equipment?: string | null
           id?: string
           is_custom?: boolean
@@ -501,6 +507,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      match_exercises: {
+        Args: {
+          p_count?: number
+          p_embedding: string
+          p_muscle_group?: string
+        }
+        Returns: {
+          id: string
+          similarity: number
+        }[]
+      }
       append_ronnie_conversation: {
         Args: {
           p_date: string

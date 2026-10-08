@@ -6,6 +6,10 @@ import { getSecret } from '../../lambda/ai-worker/src/secrets'
 import { createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER, ROUTINES, type FixtureWrite } from './fixture'
 import type { RoutineProposal } from '../../lib/ronnie/data'
 import { eventForModel } from '../../lib/ronnie/events'
+import { dot, SEARCH_EMBEDDING_MODEL } from '../../lib/embeddings'
+import { exerciseDocument } from '../../lib/ronnie/search'
+import { cachedEmbedder } from '../shared/embedding-cache'
+import { join } from 'node:path'
 
 // Bundled by `npm run eval:ronnie:build` into dist/ronnie.cjs for run-eval.mjs.
 // Runs the production Ronnie code (lib/ronnie) against the fixture user.
@@ -18,6 +22,31 @@ let client: Anthropic | null = null
 export async function getClient(): Promise<Anthropic> {
     client ??= new Anthropic({ apiKey: await getSecret(process.env.ANTHROPIC_API_KEY_PARAM ?? '/gympro/anthropic-api-key') })
     return client
+}
+
+/**
+ * Vector search over the fixture library with the production model. The production
+ * RPC does the same thing in SQL. Embeddings are cached in .cache/, so a query Ronnie
+ * repeats across reps is paid for once.
+ */
+let embedTexts: ReturnType<typeof cachedEmbedder> | null = null
+let docVectors: Promise<number[][]> | null = null
+
+function fixtureNearest() {
+    // One embedder for the whole run, so parallel conversations share one cache
+    embedTexts ??= cachedEmbedder(join(process.cwd(), 'evals', 'ronnie', '.cache'), SEARCH_EMBEDDING_MODEL)
+    const embedder = embedTexts
+    return async (query: string, muscleGroup?: string) => {
+        docVectors ??= embedder(EXERCISES.map((e) => exerciseDocument(e)), 'document')
+        const docs = await docVectors
+        const [q] = await embedder([query], 'query')
+        return EXERCISES
+            .map((e, i) => ({ id: e.id, group: e.muscle_group, score: dot(q, docs[i]) }))
+            .filter((x) => !muscleGroup || x.group === muscleGroup)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 20)
+            .map((x) => x.id)
+    }
 }
 
 /** A user message, or the user tapping Confirm / Cancel on the latest proposal card. */
@@ -42,15 +71,18 @@ export async function runConversation({
     language,
     turns,
     client: injectedClient,
+    vectors = !injectedClient,
 }: {
     model?: string
     language: string
     turns: CaseTurn[]
     /** For tests: a stand-in for the Claude client */
     client?: Anthropic
+    /** Vector search as in production; off for offline tests, which make no AWS calls */
+    vectors?: boolean
 }): Promise<ConversationResult> {
     const anthropic = injectedClient ?? await getClient()
-    const { data, writes, proposals, applyProposal } = createFixtureData()
+    const { data, writes, proposals, applyProposal } = createFixtureData({ nearest: vectors ? fixtureNearest() : undefined })
     const system = buildSystemPrompt(language, FIXTURE_USER)
     let messages: Anthropic.MessageParam[] = []
     const results: ConversationResult['turns'] = []
