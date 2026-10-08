@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "My lower back hurts after deadlifts, should I keep going?"
+  },
+  {
+    "role": "assistant",
+    "content": "Alex, if it's a mild muscular ache that eases within a day or two, you can keep deadlifting. Lower the weight, stop well short of failure, and keep your form strict: neutral spine, bar close to you, no grinding reps. Pain that is sharp, radiates down the leg, causes numbness or tingling, or lasts more than a few days is different. In that case, stop and see a doctor or physio. ⚠️\n\nIs it a dull soreness or something sharp? And does it go away within 48 hours?"
+  }
+]
