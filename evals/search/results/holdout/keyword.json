@@ -1,0 +1,371 @@
+{
+  "variant": "keyword",
+  "summary": {
+    "n": 20,
+    "hit1": 0.4,
+    "hit5": 0.75,
+    "mrr": 0.5391666666666667
+  },
+  "results": [
+    {
+      "id": "user-lower-back",
+      "kind": "user",
+      "query": "我今天想練有關下背的的動作",
+      "relevant": [
+        "Back Extension",
+        "Good Morning",
+        "Deadlift",
+        "Rack Pull"
+      ],
+      "rank": 2,
+      "top": [
+        "Assisted Pull-up / 輔助引體向上",
+        "Back Extension / 背部伸展",
+        "Barbell Row / 槓鈴划船",
+        "Barbell Shrug / 槓鈴聳肩",
+        "Chest Supported Row / 俯臥支撐划船"
+      ]
+    },
+    {
+      "id": "user-cable-triceps",
+      "kind": "user",
+      "query": "我想要找一個可以用繩索練三頭的動作",
+      "relevant": [
+        "Triceps Pushdown",
+        "Rope Pushdown",
+        "Single Arm Cable Pushdown",
+        "Cable Overhead Triceps Extension"
+      ],
+      "rank": 1,
+      "top": [
+        "Cable Overhead Triceps Extension / 繩索過頭三頭伸展",
+        "Dumbbell Kickback / 啞鈴三頭後踢",
+        "Machine Triceps Extension / 器械三頭伸展",
+        "Overhead Triceps Extension / 過頭三頭伸展",
+        "Rope Pushdown / 麻繩三頭下壓"
+      ]
+    },
+    {
+      "id": "user-plank-substitute",
+      "kind": "user",
+      "query": "我想要請你找一個可以替代棒式的動作",
+      "relevant": [
+        "Side Plank",
+        "Dead Bug",
+        "Hollow Body Hold",
+        "Ab Wheel Rollout",
+        "Pallof Press"
+      ],
+      "rank": 2,
+      "top": [
+        "Plank / 棒式",
+        "Side Plank / 側棒式"
+      ]
+    },
+    {
+      "id": "user-side-delts",
+      "kind": "user",
+      "query": "我想找一個可以刺激肩膀中束的動作",
+      "relevant": [
+        "Lateral Raise",
+        "Cable Lateral Raise",
+        "Machine Lateral Raise",
+        "Landmine Lateral Raise",
+        "Dumbbell Upright Row"
+      ],
+      "rank": 5,
+      "top": [
+        "Arnold Press / 阿諾德推舉",
+        "Barbell Front Raise / 槓鈴前平舉",
+        "Behind The Neck Press / 頸後槓鈴推舉",
+        "Cable Front Raise / 繩索前平舉",
+        "Cable Lateral Raise / 繩索側平舉"
+      ]
+    },
+    {
+      "id": "user-quads",
+      "kind": "user",
+      "query": "我想做一個可以增強股四頭的動作",
+      "relevant": [
+        "Leg Extension",
+        "Front Squat",
+        "Barbell Back Squat",
+        "Hack Squat",
+        "Leg Press",
+        "Bulgarian Split Squat",
+        "Sissy Squat",
+        "Goblet Squat",
+        "Pendulum Squat",
+        "Smith Machine Squat"
+      ],
+      "rank": 0,
+      "top": []
+    },
+    {
+      "id": "user-lateral-raise-substitute",
+      "kind": "user",
+      "query": "我想替換側平舉",
+      "relevant": [
+        "Cable Lateral Raise",
+        "Machine Lateral Raise",
+        "Landmine Lateral Raise",
+        "Dumbbell Upright Row"
+      ],
+      "rank": 2,
+      "top": [
+        "Lateral Raise / 側平舉",
+        "Cable Lateral Raise / 繩索側平舉",
+        "Landmine Lateral Raise / 地雷管側平舉",
+        "Machine Lateral Raise / 器械側平舉",
+        "Barbell Front Raise / 槓鈴前平舉"
+      ]
+    },
+    {
+      "id": "user-lower-chest",
+      "kind": "user",
+      "query": "我想加強下胸有什麼動作推薦",
+      "relevant": [
+        "Decline Barbell Bench Press",
+        "Dip",
+        "Chest Dip Machine",
+        "High Cable Fly"
+      ],
+      "rank": 3,
+      "top": [
+        "Barbell Bench Press / 槓鈴臥推",
+        "Cable Fly / 繩索夾胸",
+        "Chest Dip Machine / 胸部雙槓機",
+        "Decline Barbell Bench Press / 下斜槓鈴臥推",
+        "Dip / 雙槓撐體"
+      ]
+    },
+    {
+      "id": "user-glutes",
+      "kind": "user",
+      "query": "我想讓我的屁股有型有什麼動作",
+      "relevant": [
+        "Cable Glute Kickback",
+        "Cable Pull Through",
+        "Donkey Kick",
+        "Dumbbell Hip Thrust",
+        "Frog Pump",
+        "Glute Bridge",
+        "Glute Ham Raise",
+        "Hip Abduction Machine",
+        "Hip Thrust",
+        "Hip Thrust Machine",
+        "Kettlebell Swing",
+        "Monster Walk",
+        "Romanian Split Squat",
+        "Sumo Deadlift",
+        "Bulgarian Split Squat",
+        "Romanian Deadlift"
+      ],
+      "rank": 0,
+      "top": []
+    },
+    {
+      "id": "user-calves",
+      "kind": "user",
+      "query": "針對小腿有什麼動作？",
+      "relevant": [
+        "Standing Calf Raise",
+        "Seated Calf Raise",
+        "Leg Press Calf Raise"
+      ],
+      "rank": 0,
+      "top": [
+        "Barbell Back Squat / 槓鈴深蹲",
+        "Bodyweight Squat / 徒手深蹲",
+        "Box Jump / 跳箱",
+        "Bulgarian Split Squat / 保加利亞分腿蹲",
+        "Front Squat / 前蹲舉"
+      ]
+    },
+    {
+      "id": "user-squat-plateau",
+      "kind": "user",
+      "query": "我深蹲卡關了有什麼可以提升深蹲的動作？",
+      "relevant": [
+        "Front Squat",
+        "Bulgarian Split Squat",
+        "Leg Press",
+        "Hack Squat",
+        "Pendulum Squat",
+        "Good Morning",
+        "Romanian Deadlift"
+      ],
+      "rank": 4,
+      "top": [
+        "Barbell Back Squat / 槓鈴深蹲",
+        "Bodyweight Squat / 徒手深蹲",
+        "Goblet Squat / 高腳杯深蹲",
+        "Hack Squat / 哈克深蹲",
+        "Pendulum Squat / 鐘擺深蹲機"
+      ]
+    },
+    {
+      "id": "ho-exact-seated-calf",
+      "kind": "exact",
+      "query": "Seated Calf Raise",
+      "relevant": [
+        "Seated Calf Raise"
+      ],
+      "rank": 1,
+      "top": [
+        "Seated Calf Raise / 坐姿提踵",
+        "Leg Press Calf Raise / 腿推機提踵",
+        "Standing Calf Raise / 站姿提踵",
+        "Seated Cable Row / 坐姿繩索划船",
+        "Hanging Leg Raise / 懸吊抬腿"
+      ]
+    },
+    {
+      "id": "ho-exact-dumbbell-curl-zh",
+      "kind": "exact",
+      "query": "啞鈴彎舉",
+      "relevant": [
+        "Dumbbell Curl"
+      ],
+      "rank": 1,
+      "top": [
+        "Dumbbell Curl / 啞鈴彎舉",
+        "Incline Dumbbell Curl / 上斜啞鈴彎舉",
+        "Barbell Curl / 槓鈴彎舉",
+        "Dumbbell Shrug / 啞鈴聳肩",
+        "Cable Curl / 繩索彎舉"
+      ]
+    },
+    {
+      "id": "ho-partial-incline-press",
+      "kind": "partial",
+      "query": "incline press",
+      "relevant": [
+        "Incline Dumbbell Bench Press",
+        "Incline Barbell Bench Press"
+      ],
+      "rank": 1,
+      "top": [
+        "Incline Barbell Bench Press / 上斜槓鈴臥推",
+        "Incline Dumbbell Bench Press / 上斜啞鈴臥推",
+        "Incline Dumbbell Curl / 上斜啞鈴彎舉",
+        "Barbell Bench Press / 槓鈴臥推",
+        "Decline Barbell Bench Press / 下斜槓鈴臥推"
+      ]
+    },
+    {
+      "id": "ho-partial-hip-thrusts",
+      "kind": "partial",
+      "query": "hip thrusts",
+      "relevant": [
+        "Hip Thrust",
+        "Hip Thrust Machine",
+        "Dumbbell Hip Thrust"
+      ],
+      "rank": 1,
+      "top": [
+        "Dumbbell Hip Thrust / 啞鈴臀推",
+        "Hip Thrust / 臀推",
+        "Hip Thrust Machine / 臀推機",
+        "Hip Abduction Machine / 髖外展機",
+        "Hip Adduction Machine / 髖內收機"
+      ]
+    },
+    {
+      "id": "ho-typo-extention",
+      "kind": "typo",
+      "query": "tricep extention",
+      "relevant": [
+        "Overhead Triceps Extension",
+        "Cable Overhead Triceps Extension",
+        "Machine Triceps Extension"
+      ],
+      "rank": 1,
+      "top": [
+        "Cable Overhead Triceps Extension / 繩索過頭三頭伸展",
+        "Machine Triceps Extension / 器械三頭伸展",
+        "Overhead Triceps Extension / 過頭三頭伸展",
+        "Triceps Dip / 三頭雙槓撐體",
+        "Triceps Pushdown / 三頭下壓"
+      ]
+    },
+    {
+      "id": "ho-typo-bulgarain",
+      "kind": "typo",
+      "query": "bulgarain split squat",
+      "relevant": [
+        "Bulgarian Split Squat"
+      ],
+      "rank": 2,
+      "top": [
+        "Romanian Split Squat / 羅馬尼亞分腿蹲",
+        "Bulgarian Split Squat / 保加利亞分腿蹲",
+        "Barbell Back Squat / 槓鈴深蹲",
+        "Bodyweight Squat / 徒手深蹲",
+        "Front Squat / 前蹲舉"
+      ]
+    },
+    {
+      "id": "ho-alias-sldl",
+      "kind": "alias",
+      "query": "SLDL",
+      "relevant": [
+        "Stiff Leg Deadlift"
+      ],
+      "rank": 0,
+      "top": []
+    },
+    {
+      "id": "ho-alias-fly-zh",
+      "kind": "alias",
+      "query": "飛鳥",
+      "relevant": [
+        "Dumbbell Fly",
+        "Cable Fly",
+        "Pec Deck Fly",
+        "High Cable Fly",
+        "Low Cable Fly"
+      ],
+      "rank": 1,
+      "top": [
+        "Dumbbell Fly / 啞鈴飛鳥",
+        "Rear Delt Fly / 後束飛鳥",
+        "Cable Rear Delt Fly / 繩索後束飛鳥"
+      ]
+    },
+    {
+      "id": "ho-cross-cable-biceps",
+      "kind": "cross-language",
+      "query": "cable 二頭",
+      "relevant": [
+        "Cable Curl",
+        "Cable Rope Curl"
+      ],
+      "rank": 1,
+      "top": [
+        "Cable Curl / 繩索彎舉",
+        "Cable Rope Curl / 繩索錘式彎舉",
+        "Seated Cable Row / 坐姿繩索划船",
+        "Wide Grip Cable Row / 寬握繩索划船",
+        "Cable Fly / 繩索夾胸"
+      ]
+    },
+    {
+      "id": "ho-desc-bodyweight-chest",
+      "kind": "descriptive",
+      "query": "徒手練胸",
+      "relevant": [
+        "Push-up",
+        "Diamond Push-up"
+      ],
+      "rank": 0,
+      "top": [
+        "Barbell Bench Press / 槓鈴臥推",
+        "Cable Fly / 繩索夾胸",
+        "Chest Dip Machine / 胸部雙槓機",
+        "Decline Barbell Bench Press / 下斜槓鈴臥推",
+        "Dip / 雙槓撐體"
+      ]
+    }
+  ]
+}
