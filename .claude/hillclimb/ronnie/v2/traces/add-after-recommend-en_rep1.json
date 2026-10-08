@@ -1,0 +1,23 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"upper chest\",\"muscle_group\":\"chest\"},\"result\":\"No exercise in the library matches \\\"upper chest\\\" exactly. Closest matches:\\nID: d988a60a-ba54-d7db-cb0b-a977ca45c6b6 | Barbell Bench Press (chest)\\nID: 41290ea9-f8d5-d3c4-6ce9-8523bc6922cc | Incline Dumbbell Press (chest)\\nID: 6fc5ead6-1bea-025c-c9c7-eac7ebb4d82a | Incline Barbell Press (chest)\\nID: d486b05a-e771-e7d4-99a5-7b89d2390aeb | Dumbbell Bench Press (chest)\\nID: a726ab1a-cfbc-2170-5647-cb0136fb6c81 | Low-to-High Cable Fly (chest)\\nID: 23bc61ff-e3aa-d5cb-c295-0ee54bd2a539 | Push-Up (chest)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "For upper chest, Incline Barbell Press and Incline Dumbbell Press are your best bets—the incline targets that area hard. Since you're chasing 100kg on flat bench in 3 months, the flat Barbell Bench Press is still king, but mixing in incline work builds the upper chest and helps your main lift 💪\n\nWant to add one of these to today's workout, or just curious?"
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "assistant",
+    "content": "Which one—Incline Barbell Press or Incline Dumbbell Press? Or do you want both?"
+  }
+]

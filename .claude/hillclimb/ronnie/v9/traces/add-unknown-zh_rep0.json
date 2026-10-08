@@ -1,0 +1,25 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個 Jefferson curl"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson curl\"},\"result\":\"動作庫裡沒有完全符合「Jefferson curl」的動作，以下是最接近的：\\nID: 0cb907f9 | 二頭彎舉 (biceps)\\nID: d9911659 | 錘式彎舉 (biceps)\\nID: 995b5a70 | 腿彎舉 (legs)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"척추 굴곡\"},\"result\":\"找不到符合的動作。可以換個說法再查（英文或中文、較短的關鍵字，或用 muscle_group）\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"curl\",\"muscle_group\":\"core\"},\"result\":\"找不到符合的動作。可以換個說法再查（英文或中文、較短的關鍵字，或用 muscle_group）\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "抱歉 Alex，Jefferson curl 在 GymPro 的動作庫裡還沒有。不過這個動作主要是脊椎柔軟度訓練，如果你要加核心或伸展類的動作，我可以幫你在庫裡找找有什麼替代選項 💪 要我推薦嗎？"
+  }
+]

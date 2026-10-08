@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "我不想做深蹲了"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\n上斜啞鈴臥推: 尚未記錄\\n肩推: 尚未記錄\\n三頭下壓: 尚未記錄\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "今天推日的課表裡沒有深蹲，都是胸肩三頭的動作。你是想說今天還是以後都不想做深蹲呢？"
+  }
+]

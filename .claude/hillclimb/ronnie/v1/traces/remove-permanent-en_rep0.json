@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "Take burpees out of all my routines for good."
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"burpees\"},\"result\":\"No exercises found\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Hmm, looks like \"burpees\" isn't found in the exercise database, so it may not be in any of your routines. Can you double-check the exercise name, or is it possible it's listed under a different name?"
+  }
+]

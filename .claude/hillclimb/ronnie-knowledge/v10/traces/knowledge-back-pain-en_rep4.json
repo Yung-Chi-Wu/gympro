@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "My lower back hurts after deadlifts, should I keep going?"
+  },
+  {
+    "role": "assistant",
+    "content": "Safety first, Alex. Sharp or persistent pain means stop and see a professional—don't push through that. If it's mild soreness, lower the load and stay within a pain-free range of motion, focusing on form over weight. Deadlifts demand solid technique; even slight form breakdowns under fatigue can wreck your lower back. Get checked out if it doesn't settle in a day or two. 💪"
+  }
+]

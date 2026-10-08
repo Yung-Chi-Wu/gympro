@@ -1,0 +1,30 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個 Jefferson curl"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson curl\"},\"result\":\"動作庫裡沒有完全符合「Jefferson curl」的動作，以下是最接近的：\\nID: 0cb907f9-7f89-dce6-05e4-3eadd55a87f4 | 二頭彎舉 (biceps)\\nID: d9911659-0064-b239-47e6-f2198a2bebb1 | 錘式彎舉 (biceps)\\nID: 995b5a70-06b8-d145-4e7e-49b1492ecaa9 | 腿彎舉 (legs)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"脊椎屈曲\"},\"result\":\"找不到符合的動作。可以換個說法再查（英文或中文、較短的關鍵字，或用 muscle_group）\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"curl stretch\"},\"result\":\"動作庫裡沒有完全符合「curl stretch」的動作，以下是最接近的：\\nID: 0cb907f9-7f89-dce6-05e4-3eadd55a87f4 | 二頭彎舉 (biceps)\\nID: d9911659-0064-b239-47e6-f2198a2bebb1 | 錘式彎舉 (biceps)\\nID: 995b5a70-06b8-d145-4e7e-49b1492ecaa9 | 腿彎舉 (legs)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle_group\":\"core\",\"query\":\"curl\"},\"result\":\"找不到符合的動作。可以換個說法再查（英文或中文、較短的關鍵字，或用 muscle_group）\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "抱歉，動作庫裡沒有 Jefferson curl 這個動作 ⚠️ \n\n你想加這個來練靈活度還是背部伸展？我可以幫你找替代的核心或背部動作，或者你可以在 APP 裡的「訓練課表」頁面告訴 Coach G 你的需求，它會幫你設計課表。"
+  }
+]

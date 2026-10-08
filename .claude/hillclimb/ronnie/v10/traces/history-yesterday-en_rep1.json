@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "What did I do yesterday?"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_workout_history",
+    "content": "{\"input\":{\"date_from\":\"2026-10-06\",\"date_to\":\"2026-10-06\"},\"result\":\"Tue, October 6:\\n  Back Squat: 6×102.5kg, 6×102.5kg, 6×102.5kg, 6×102.5kg\\n  Romanian Deadlift: 8×92.5kg, 8×92.5kg, 8×92.5kg\\n  Leg Press: 10×162.5kg, 10×162.5kg, 10×162.5kg\\n  Burpee: 10 reps (bodyweight), 10 reps (bodyweight), 10 reps (bodyweight)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Solid leg day yesterday, Alex! You hit Back Squats (4×6 @ 102.5kg), Romanian Deadlifts (3×8 @ 92.5kg), Leg Press (3×10 @ 162.5kg), and closed it out with Burpees (3×10). Building that strength for the bench push—let's keep the momentum going today on push day! 💪"
+  }
+]

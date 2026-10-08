@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "assistant",
+    "content": "Upper chest work calls for incline pressing angles—the incline barbell bench press or incline dumbbell press hit those fibers hard. Cable flyes at an upward angle are solid too if you want isolation. What matters most is that steep angle targeting the clavicular head of your pec. You training that today, or just asking for future programming?"
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"incline barbell bench press\"},\"result\":\"No exercise in the library matches \\\"incline barbell bench press\\\" exactly. Closest matches:\\nID: d988a60a-ba54-d7db-cb0b-a977ca45c6b6 | Barbell Bench Press (chest)\\nID: 6fc5ead6-1bea-025c-c9c7-eac7ebb4d82a | Incline Barbell Press (chest)\\nID: 41290ea9-f8d5-d3c4-6ce9-8523bc6922cc | Incline Dumbbell Press (chest)\\nID: d486b05a-e771-e7d4-99a5-7b89d2390aeb | Dumbbell Bench Press (chest)\\nID: 650646da-9072-5839-6235-ce6357955325 | Barbell Row (back)\\nID: 13841865-fc8b-f679-bf4d-493b252e680b | Overhead Press (shoulders)\\nID: 0cb907f9-7f89-dce6-05e4-3eadd55a87f4 | Barbell Curl (biceps)\\nID: 68be0377-1b01-2c53-d839-a5fc291fb389 | Leg Press (legs)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"incline dumbbell press\"},\"result\":\"ID: 41290ea9-f8d5-d3c4-6ce9-8523bc6922cc | Incline Dumbbell Press (chest)\\nID: 6fc5ead6-1bea-025c-c9c7-eac7ebb4d82a | Incline Barbell Press (chest)\\nID: d486b05a-e771-e7d4-99a5-7b89d2390aeb | Dumbbell Bench Press (chest)\\nID: d988a60a-ba54-d7db-cb0b-a977ca45c6b6 | Barbell Bench Press (chest)\\nID: d1302cd0-e4cb-a826-c011-5ab69d5ff085 | One-Arm Dumbbell Row (back)\\nID: 13841865-fc8b-f679-bf4d-493b252e680b | Overhead Press (shoulders)\\nID: 03810fd4-c321-7c0f-6ee0-006a2a74edd1 | Rear Delt Dumbbell Fly (shoulders)\\nID: 68be0377-1b01-2c53-d839-a5fc291fb389 | Leg Press (legs)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Got both: Incline Barbell Press and Incline Dumbbell Press. Which one? 💪"
+  }
+]

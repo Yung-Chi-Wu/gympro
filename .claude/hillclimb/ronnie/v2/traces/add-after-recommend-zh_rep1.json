@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個可以練後三角的動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle_group\":\"shoulders\",\"query\":\"後三角\"},\"result\":\"ID: 03810fd4-c321-7c0f-6ee0-006a2a74edd1 | 啞鈴後三角飛鳥 (shoulders)\\nID: 13841865-fc8b-f679-bf4d-493b252e680b | 肩推 (shoulders)\\nID: 65d4104b-0e23-1546-4df5-3e2140b99d79 | 側平舉 (shoulders)\\nID: cd6e3284-218f-a781-910b-8fe9ecc575aa | 臉拉 (shoulders)\\nID: 7fb35f03-312f-a889-2549-9ddcd10461d3 | 反向飛鳥機 (shoulders)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "推薦你用啞鈴後三角飛鳥，直接針對後三角，效果最扎實 💪 你想加到今天的課表裡嗎？"
+  },
+  {
+    "role": "user",
+    "content": "好，幫我加進今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"03810fd4-c321-7c0f-6ee0-006a2a74edd1\",\"exercise_name\":\"啞鈴後三角飛鳥\"},\"result\":\"✓ 已將「啞鈴後三角飛鳥」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "完成！啞鈴後三角飛鳥已經加進今天的推日課表了 ✅ 記得控制好重量，用心感受後三角的收縮。"
+  }
+]

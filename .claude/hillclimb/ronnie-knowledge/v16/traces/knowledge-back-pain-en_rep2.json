@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "My lower back hurts after deadlifts, should I keep going?"
+  },
+  {
+    "role": "assistant",
+    "content": "⚠️ Alex, don't push through pain. Drop the deadlift load right now, or swap in something easier on your back, like hip thrusts or leg curls, and only train pain-free. If the pain is sharp, shoots down your leg, or lasts more than a few days, stop deadlifting and see a doctor or physio. I can't diagnose it from here.\n\nDo you want me to swap deadlifts out of today's workout, or look at your recent training to see if load has jumped?"
+  }
+]

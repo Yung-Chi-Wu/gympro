@@ -1,0 +1,30 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個 Jefferson curl"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson curl\"},\"result\":\"Nothing in the library matches \\\"Jefferson curl\\\" exactly. Closest:\\nID: 0cb907f9 | 二頭彎舉 (biceps)\\nID: d9911659 | 錘式彎舉 (biceps)\\nID: 995b5a70 | 腿彎舉 (legs)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson\"},\"result\":\"No exercises found. Try other wording (English or Chinese, a shorter keyword, or a muscle_group).\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"傑佛遜彎舉\"},\"result\":\"Nothing in the library matches \\\"傑佛遜彎舉\\\" exactly. Closest:\\nID: 0cb907f9 | 二頭彎舉 (biceps)\\nID: d9911659 | 錘式彎舉 (biceps)\\nID: 995b5a70 | 腿彎舉 (legs)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"傑佛遜\"},\"result\":\"No exercises found. Try other wording (English or Chinese, a shorter keyword, or a muscle_group).\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "動作庫裡找不到 Jefferson curl，所以我沒加進今天的訓練。它主要練腿後側和下背的柔軟度與控制，我可以幫你加一個相近的動作，例如羅馬尼亞硬舉。要加嗎？💪"
+  }
+]

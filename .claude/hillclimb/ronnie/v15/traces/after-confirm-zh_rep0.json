@@ -1,0 +1,37 @@
+[
+  {
+    "role": "user",
+    "content": "以後所有課表都不要再排波比跳了"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"波比跳\"},\"result\":\"ID: c6e49af8 | 波比跳 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"burpee\"},\"result\":\"ID: c6e49af8 | 波比跳 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "propose_routine_change",
+    "content": "{\"input\":{\"exercise_id\":\"c6e49af8\",\"change\":\"remove\"},\"result\":\"Proposed, not applied yet: remove \\\"波比跳\\\" from 「腿日」 (the only routines with this exercise). It takes effect when the user confirms it in the app.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "已準備好：從「腿日」移除「波比跳」，在 app 裡按「確認」後生效。"
+  },
+  {
+    "role": "app_event",
+    "content": "[App event] The user confirmed the proposal and it was applied: remove \"波比跳\" from 「腿日」 (腿日: was 3 x 10, position 4)."
+  },
+  {
+    "role": "user",
+    "content": "波比跳還在腿日嗎？"
+  },
+  {
+    "role": "assistant",
+    "content": "不在了 ✅ 波比跳已從腿日移除，剛才的確認也已生效。你其他課表原本就沒有這個動作。"
+  }
+]

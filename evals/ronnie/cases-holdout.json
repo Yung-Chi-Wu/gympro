@@ -1,0 +1,114 @@
+[
+  {
+    "id": "holdout-back-sets-en",
+    "language": "en",
+    "turns": [
+      "How many sets did I do for back last week?"
+    ],
+    "expect": {
+      "writes": [],
+      "history_range": {
+        "cover": [
+          "2026-09-28",
+          "2026-10-04"
+        ],
+        "earliest": "2026-09-21",
+        "latest": "2026-10-07"
+      },
+      "judge": "Last week (2026-09-28 to 2026-10-04) the user did 22 working sets for back, over two pull sessions. The number must come from the tool results (get_training_summary reports it per muscle group); the reply fails if the number is wrong or worked out some other way that disagrees with the tools."
+    },
+    "meta": {
+      "why": "上週（9/28–10/4）背部 22 組、兩次拉日；數字要來自工具。"
+    }
+  },
+  {
+    "id": "holdout-swap-today-en",
+    "language": "en",
+    "turns": [
+      "Swap today's overhead press for lateral raises."
+    ],
+    "expect": {
+      "tools_forbidden": [
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [
+        {
+          "op": "remove_today",
+          "exercise": "Overhead Press",
+          "turn": 1
+        },
+        {
+          "op": "add_today",
+          "exercise": "Lateral Raise",
+          "turn": 1
+        }
+      ]
+    },
+    "meta": {
+      "why": "只改今天：移除肩推、加入側平舉，固定課表不動。"
+    }
+  },
+  {
+    "id": "holdout-remove-from-routine-zh",
+    "language": "zh-TW",
+    "turns": [
+      "把三頭下壓從推日的固定課表拿掉"
+    ],
+    "expect": {
+      "writes": [],
+      "confirm": true,
+      "judge": "Taking triceps pushdowns out of the push-day routine is a permanent change, so the reply must ask the user to confirm (or present the change for confirmation) before doing it. Fail if it says the change is already done, refuses, or only tells the user to edit the routine themselves."
+    },
+    "meta": {
+      "why": "改固定課表是永久修改，要先問你。"
+    }
+  },
+  {
+    "id": "holdout-core-recommend-add-zh",
+    "language": "zh-TW",
+    "turns": [
+      "推薦一個不用器材的核心動作",
+      "可以，加到今天的課表"
+    ],
+    "expect": {
+      "writes": [
+        {
+          "op": "add_today",
+          "exercise": "$recommended",
+          "turn": 2
+        }
+      ]
+    },
+    "meta": {
+      "why": "兩句對話：加入的要是剛才推薦的那個動作，ID 要正確。"
+    }
+  },
+  {
+    "id": "holdout-add-two-plural-en",
+    "language": "en",
+    "turns": [
+      "Add hammer curls and lateral raises to today's workout"
+    ],
+    "expect": {
+      "tools_required": [
+        "search_exercises"
+      ],
+      "writes": [
+        {
+          "op": "add_today",
+          "exercise": "Hammer Curl",
+          "turn": 1
+        },
+        {
+          "op": "add_today",
+          "exercise": "Lateral Raise",
+          "turn": 1
+        }
+      ]
+    },
+    "meta": {
+      "why": "一次加兩個，而且都是複數寫法（動作庫裡是單數）。"
+    }
+  }
+]

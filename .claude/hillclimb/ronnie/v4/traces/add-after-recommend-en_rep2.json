@@ -1,0 +1,23 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "assistant",
+    "content": "Upper chest work is key for a balanced bench press—here are the best options:\n\nIncline barbell or dumbbell bench press (best overall—hits upper chest hard while building strength for your 100kg goal), incline machine press, or chest flyes at an incline angle. All of these shift the load higher on the chest and bring in the clavicular head.\n\nWhat setup do you have available—barbell, dumbbells, or machines?"
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"incline bench press\",\"muscle_group\":\"chest\"},\"result\":\"No exercise in the library matches \\\"incline bench press\\\" exactly. Closest matches:\\nID: d988a60a | Barbell Bench Press (chest)\\nID: 41290ea9 | Incline Dumbbell Press (chest)\\nID: 6fc5ead6 | Incline Barbell Press (chest)\\nID: d486b05a | Dumbbell Bench Press (chest)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it—we've got Incline Barbell Press or Incline Dumbbell Press in the library. Which one fits your setup today?"
+  }
+]

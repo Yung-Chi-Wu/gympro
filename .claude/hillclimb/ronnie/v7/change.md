@@ -1,0 +1,2 @@
+v6 plus (bbcbd2c): an empty reply is retried once; add_exercise_today / remove_exercise_today descriptions say today's changes need no confirmation; recommend_exercise is not for explicit add requests. Model claude-haiku-4-5.
+Result: pass 95%, change_done 100%, no wrong change, judge 92%, asks_first 67% (2 failures in remove-permanent-zh: said 搞定 though told not to; ended on "我來幫你處理" without calling the tool).

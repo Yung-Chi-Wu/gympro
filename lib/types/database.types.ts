@@ -176,6 +176,60 @@ export type Database = {
         }
         Relationships: []
       }
+      ronnie_conversations: {
+        Row: {
+          conversation_date: string
+          display: Json
+          messages: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_date: string
+          display?: Json
+          messages?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_date?: string
+          display?: Json
+          messages?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ronnie_pending_actions: {
+        Row: {
+          action: Json
+          created_at: string
+          expires_at: string
+          id: string
+          resolved_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          action: Json
+          created_at?: string
+          expires_at: string
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          action?: Json
+          created_at?: string
+          expires_at?: string
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       routine_exercises: {
         Row: {
           created_at: string
@@ -447,6 +501,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      append_ronnie_conversation: {
+        Args: {
+          p_date: string
+          p_display: Json
+          p_messages: Json
+        }
+        Returns: undefined
+      }
+      resolve_ronnie_action: {
+        Args: {
+          p_action_id: string
+          p_decision: string
+        }
+        Returns: Json
+      }
       get_period_training_summary: {
         Args: {
           p_period_end: string

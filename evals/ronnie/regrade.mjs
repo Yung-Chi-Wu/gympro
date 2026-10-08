@@ -1,0 +1,92 @@
+#!/usr/bin/env node
+// Re-scores a finished variant after a change to grade.mjs - no API calls.
+// The conversation is rebuilt from traces/ (every write is a write-tool call in
+// the fixture, so the writes are exact), the programmatic checks run again,
+// and the judge verdicts already in results.jsonl are kept as they are -
+// except for the cases named in rejudge=, whose rubric changed (paid Opus calls).
+//   node evals/ronnie/regrade.mjs .claude/hillclimb/ronnie baseline [rejudge=case-a,case-b]
+// The original file is kept as results.before-regrade.jsonl.
+
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { overallPass, programmaticGrade } from './grade.mjs'
+import { judge } from './judge.mjs'
+
+const here = dirname(fileURLToPath(import.meta.url))
+const { EXERCISES, FIXTURE_USER, buildSystemPrompt, getClient } = createRequire(import.meta.url)(join(here, 'dist', 'ronnie.cjs'))
+const [flow = '.claude/hillclimb/ronnie', variant = 'baseline', rejudgeArg = ''] = process.argv.slice(2)
+const rejudge = new Set(rejudgeArg.replace(/^rejudge=/, '').split(',').filter(Boolean))
+const vdir = join(flow, variant)
+const cases = new Map(['cases.json', 'cases-holdout.json', 'cases-knowledge.json'].flatMap((f) => JSON.parse(readFileSync(join(here, f), 'utf8'))).map((c) => [c.id, c]))
+const KNOWN = new Set(EXERCISES.map((e) => e.id))
+const WRITE_OPS = { add_exercise_today: 'add_today', remove_exercise_today: 'remove_today', remove_exercise_from_routine: 'delete_from_routines' }
+
+// Results show 8-character IDs (since v4); a write's input may carry one
+const fullId = (id) => (id && id.length < 36 ? [...KNOWN].find((k) => k.startsWith(String(id).toLowerCase())) : id)
+const idFromResult = (result) => {
+    const name = String(result).match(/[「"](.+?)[」"]/)?.[1]
+    return EXERCISES.find((e) => e.name === name || e.name_zh_tw === name)?.id
+}
+
+function rebuild(trace) {
+    const turns = []
+    let events = []
+    for (const m of trace) {
+        if (m.role === 'app_event') events.push(m.content)
+        else if (m.role === 'user') {
+            turns.push({ user: m.content, events, toolCalls: [], writes: [], message: '' })
+            events = []
+        }
+        else if (m.role === 'assistant') turns.at(-1).message = m.content
+        else {
+            const { input, result } = JSON.parse(m.content)
+            turns.at(-1).toolCalls.push({ name: m.name, input, result })
+            // Took effect only if the tool reported success for an exercise that exists
+            // (older runs reported "✓ removed" even for an invented id that removed nothing)
+            // A removal can name the exercise without an ID; the result then names the one removed
+            const exerciseId = fullId(input.exercise_id) ?? idFromResult(result)
+            if (WRITE_OPS[m.name]) turns.at(-1).writes.push({ op: WRITE_OPS[m.name], exerciseId, effective: String(result).startsWith('✓') && KNOWN.has(exerciseId) })
+        }
+    }
+    return { turns, writes: turns.flatMap((t) => t.writes) }
+}
+
+// Regrades the current file, so judge verdicts from an earlier rejudge= are kept;
+// the first run keeps the original as results.before-regrade.jsonl
+const resultsPath = join(vdir, 'results.jsonl')
+const backup = join(vdir, 'results.before-regrade.jsonl')
+if (!existsSync(backup)) copyFileSync(resultsPath, backup)
+const rows = readFileSync(resultsPath, 'utf8').split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l))
+
+let changed = 0
+const out = []
+for (const r of rows) {
+    const c = cases.get(r.prompt_id)
+    const conv = rebuild(JSON.parse(readFileSync(join(vdir, 'traces', `${r.prompt_id}_rep${r.rep}.json`), 'utf8')))
+    const { grade, explanation } = programmaticGrade(c, conv, EXERCISES)
+    grade.judge_ok = r.grade.judge_ok
+    if (r.explanation?.judge_ok) explanation.judge_ok = r.explanation.judge_ok
+    if (rejudge.has(r.prompt_id)) {
+        // The system prompt is today's, not the one the run had: the judge reads it for the user's profile
+        const j = await judge(await getClient(), c, { ...conv, system: buildSystemPrompt(c.language, FIXTURE_USER) })
+        grade.judge_ok = j.verdict.verdict === 'pass' ? 1 : 0
+        explanation.judge_ok = j.verdict.reason
+    }
+    grade.asks_first = null
+    if (c.expect.confirm) {
+        const changed = conv.writes.some((w) => w.effective)
+        grade.asks_first = !changed && grade.judge_ok === 1 ? 1 : 0
+        explanation.asks_first = changed ? '沒有先問就直接改了' : grade.judge_ok ? '有先問你' : '沒有改，但也沒有好好問你（見評審理由）'
+    }
+    const regraded = { pass: overallPass(grade), ...grade }
+    if (JSON.stringify(regraded) !== JSON.stringify(r.grade)) {
+        changed++
+        const diff = Object.keys(regraded).filter((k) => regraded[k] !== r.grade[k]).map((k) => `${k} ${r.grade[k]}→${regraded[k]}`)
+        console.log(`${r.prompt_id} rep${r.rep}: ${diff.join(', ')}`)
+    }
+    out.push({ ...r, grade: regraded, explanation })
+}
+writeFileSync(resultsPath, out.map((r) => JSON.stringify(r)).join('\n') + '\n')
+console.log(`${variant}: ${changed} of ${rows.length} rows changed`)

@@ -1,0 +1,38 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個可以練後三角的動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle_group\":\"shoulders\",\"query\":\"posterior deltoid\"},\"result\":\"找不到符合的動作。可以換個說法再查（英文或中文、較短的關鍵字，或用 muscle_group）\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle_group\":\"shoulders\",\"query\":\"反向飛鳥\"},\"result\":\"ID: 7fb35f03 | 反向飛鳥機 (shoulders)\\nID: 03810fd4 | 啞鈴後三角飛鳥 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"03810fd4\",\"exercise_name\":\"啞鈴後三角飛鳥\"},\"result\":\"已顯示推薦卡片：「啞鈴後三角飛鳥」，使用者可以直接按「加入今天」，也可以叫你加入。\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "這個動作孤立後三角，推日的時候加進去效果很好 💪"
+  },
+  {
+    "role": "user",
+    "content": "好，幫我加進今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"03810fd4\",\"exercise_name\":\"啞鈴後三角飛鳥\"},\"result\":\"✓ 已將「啞鈴後三角飛鳥」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "啞鈴後三角飛鳥已經加進今天的推日課表了 ✅ 今天好好練！"
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "以後都不要再排波比跳了"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"波比跳\"},\"result\":\"ID: c6e49af8 | 波比跳 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "propose_routine_change",
+    "content": "{\"input\":{\"exercise_id\":\"c6e49af8\",\"exercise_name\":\"波比跳\"},\"result\":\"已建立提議（尚未生效）：從「腿日」移除「波比跳」。這樣回覆使用者：已準備好，在 app 裡按「確認」後生效。\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "已準備好，在 app 裡按「確認」後，波比跳就會從「腿日」永久移除 ✅"
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個 Jefferson curl"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson curl\"},\"result\":\"動作庫裡沒有完全符合「Jefferson curl」的動作，以下是最接近的：\\nID: 0cb907f9 | 二頭彎舉 (biceps)\\nID: d9911659 | 錘式彎舉 (biceps)\\nID: 995b5a70 | 腿彎舉 (legs)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "動作庫裡沒有 Jefferson curl 這個動作。這是一個脊椎活動度和柔軟度的動作，通常不在主流肌力訓練動作庫裡。\n\n你想要這個動作主要是為了什麼？如果是要增加脊椎活動度或暖身，我可以推薦動作庫裡有的替代方案；如果只是想加進來當輔助，你也可以在訓練後自己做，不需要記錄在課表裡。怎麼說？💪"
+  }
+]

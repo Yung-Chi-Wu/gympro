@@ -1,0 +1,25 @@
+[
+  {
+    "role": "user",
+    "content": "以後腿日不要再排波比跳跟腿推了"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_routine_exercises",
+    "content": "{\"input\":{\"routine_name\":\"腿日\"},\"result\":\"「腿日」的動作：\\nID: 5866803c | 深蹲: 4組 × 6下\\nID: 07bccaa6 | 羅馬尼亞硬舉: 3組 × 8下\\nID: 68be0377 | 腿推: 3組 × 10下\\nID: c6e49af8 | 波比跳: 3組 × 10下\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "propose_routine_change",
+    "content": "{\"input\":{\"exercise_id\":\"68be0377\",\"exercise_name\":\"腿推\",\"routine_name\":\"腿日\",\"change\":\"remove\"},\"result\":\"已建立提議（尚未生效）：從「腿日」移除「腿推」，使用者在 app 裡確認後才會生效。\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "propose_routine_change",
+    "content": "{\"input\":{\"exercise_id\":\"c6e49af8\",\"exercise_name\":\"波比跳\",\"routine_name\":\"腿日\",\"change\":\"remove\"},\"result\":\"已建立提議（尚未生效）：從「腿日」移除「波比跳」，使用者在 app 裡確認後才會生效。\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "已準備好：從「腿日」移除「腿推」，在 app 裡按「確認」後生效。\n已準備好：從「腿日」移除「波比跳」，在 app 裡按「確認」後生效。"
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "role": "user",
+    "content": "Swap today's overhead press for lateral raises."
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"lateral raise\"},\"result\":\"ID: 65d4104b | Lateral Raise (shoulders)\\nID: afc9ed91 | Calf Raise (legs)\\nID: 3f4394d3 | Hanging Leg Raise (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "remove_exercise_today",
+    "content": "{\"input\":{\"exercise_name\":\"Overhead Press\",\"exercise_id\":\"13841865\"},\"result\":\"✓ Removed \\\"Overhead Press\\\" from today only (routine unchanged)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"65d4104b\",\"exercise_name\":\"Lateral Raise\"},\"result\":\"✓ Added \\\"Lateral Raise\\\" to today's workout\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Done ✅ I swapped Overhead Press for Lateral Raise in today's workout. Your permanent routine is unchanged. Keep the weight light and the reps controlled. 💪"
+  }
+]

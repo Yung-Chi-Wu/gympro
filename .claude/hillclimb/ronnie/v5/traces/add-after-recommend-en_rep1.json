@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "assistant",
+    "content": "Incline Barbell Press is your best bet for hitting the upper chest hard—it targets that area better than flat bench work and pairs perfectly with your bench press goal! 💪\n\nYou want to add it to today's workout, or just looking for knowledge?"
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Incline Barbell Press\"},\"result\":\"ID: 6fc5ead6 | Incline Barbell Press (chest)\\nID: d988a60a | Barbell Bench Press (chest)\\nID: 41290ea9 | Incline Dumbbell Press (chest)\\nID: d486b05a | Dumbbell Bench Press (chest)\\nID: 650646da | Barbell Row (back)\\nID: 13841865 | Overhead Press (shoulders)\\nID: 0cb907f9 | Barbell Curl (biceps)\\nID: 68be0377 | Leg Press (legs)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"6fc5ead6\",\"exercise_name\":\"Incline Barbell Press\"},\"result\":\"✓ Added \\\"Incline Barbell Press\\\" to today's workout\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Done! Incline Barbell Press is locked in for today. Ain't nothin' but a peanut! 💪"
+  }
+]

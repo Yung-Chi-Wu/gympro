@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個可以練後三角的動作"
+  },
+  {
+    "role": "assistant",
+    "content": "後三角肌最經典的就是啞鈴側平舉或槓鈴划船，但推日的話我建議你試試反向蝴蝶機 💪\n\n你今天課表裡已經有後三角的動作嗎？還是想加一個？"
+  },
+  {
+    "role": "user",
+    "content": "好，幫我加進今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"反向蝴蝶機\"},\"result\":\"找不到符合的動作\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"reverse pec deck\"},\"result\":\"ID: 7fb35f03-312f-a889-2549-9ddcd10461d3 | 反向飛鳥機 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"7fb35f03-312f-a889-2549-9ddcd10461d3\",\"exercise_name\":\"反向飛鳥機\"},\"result\":\"✓ 已將「反向飛鳥機」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "搞定！反向飛鳥機已經加進今天推日課表囉 ✅ Ain't nothin' but a peanut！"
+  }
+]

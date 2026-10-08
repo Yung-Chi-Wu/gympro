@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個槓鈴划船"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"槓鈴划船\"},\"result\":\"ID: 650646da-9072-5839-6235-ce6357955325 | 槓鈴划船 (back)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "不過 Alex，今天是推日，槓鈴划船是背部的拉動作喔 💪 你確定要加進今天課表嗎？"
+  }
+]

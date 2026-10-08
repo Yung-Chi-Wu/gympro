@@ -1,0 +1,162 @@
+[
+  {
+    "id": "knowledge-volume-zh",
+    "language": "zh-TW",
+    "turns": [
+      "想增肌，每個肌群一週要練幾組？"
+    ],
+    "expect": {
+      "tools_forbidden": [
+        "add_exercise_today",
+        "remove_exercise_today",
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "judge": "An evidence-based weekly volume for muscle gain: roughly 10-20 hard sets per muscle group per week as a common range (starting lower and adding sets as needed is fine), sets taken close to failure, spread over two or more sessions a week. Fails if it gives one exact number as the rule, says more is always better, or invents facts about the user."
+    },
+    "meta": {
+      "why": "約 10–20 組是常見的實證範圍，每組接近力竭，分兩天以上練；不能給單一神奇數字或說越多越好。"
+    }
+  },
+  {
+    "id": "knowledge-heavy-en",
+    "language": "en",
+    "turns": [
+      "Do I need to lift heavy to build muscle?"
+    ],
+    "expect": {
+      "tools_forbidden": [
+        "add_exercise_today",
+        "remove_exercise_today",
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "judge": "Muscle grows across a wide range of loads (roughly 5-30 reps) when sets are taken close to failure; heavier loads matter more for maximal strength, which is relevant to this user's bench press goal. Fails if it says only a specific rep range (such as 8-12) builds muscle, or that light weights cannot."
+    },
+    "meta": {
+      "why": "5–30 下接近力竭都能增肌；大重量對最大肌力（他的臥推目標）比較重要；不能說只有 8–12 下有效。"
+    }
+  },
+  {
+    "id": "knowledge-spot-reduction-zh",
+    "language": "zh-TW",
+    "turns": [
+      "我想瘦肚子，每天做仰臥起坐有用嗎？"
+    ],
+    "expect": {
+      "tools_forbidden": [
+        "add_exercise_today",
+        "remove_exercise_today",
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "judge": "Says spot reduction does not work: crunches train the abdominal muscles but do not burn belly fat in particular; losing fat needs an overall calorie deficit (mainly diet, with training and daily activity helping). Fails if it endorses crunches or ab work as a way to lose belly fat."
+    },
+    "meta": {
+      "why": "局部減脂無效；腹肌訓練練肌肉，減脂靠熱量赤字；不能支持仰臥起坐瘦肚子。"
+    }
+  },
+  {
+    "id": "knowledge-cardio-zh",
+    "language": "zh-TW",
+    "turns": [
+      "我在增肌，做有氧會不會掉肌肉？"
+    ],
+    "expect": {
+      "tools_forbidden": [
+        "add_exercise_today",
+        "remove_exercise_today",
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "judge": "Moderate cardio does not meaningfully hinder muscle gain (any interference is small, mostly with large amounts, especially running, or done right before leg training); practical advice such as keeping it moderate, away from leg sessions, and eating enough. Fails if it says cardio burns muscle or should be avoided while building muscle."
+    },
+    "meta": {
+      "why": "適量有氧對增肌影響很小，跟腿日錯開、吃夠；不能說有氧會吃掉肌肉。"
+    }
+  },
+  {
+    "id": "knowledge-knees-toes-zh",
+    "language": "zh-TW",
+    "turns": [
+      "深蹲膝蓋可以超過腳尖嗎？"
+    ],
+    "expect": {
+      "tools_forbidden": [
+        "add_exercise_today",
+        "remove_exercise_today",
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "judge": "Yes: knees travelling past the toes is normal in a deep squat and generally safe; how far depends on limb length and ankle mobility, and blocking it shifts stress to the hips and lower back. What matters is the knees tracking in line with the toes and moving without pain. Fails if it says the knees should not pass the toes."
+    },
+    "meta": {
+      "why": "可以，很正常；硬限制會把負擔轉到髖和下背；重點是膝蓋朝腳尖方向、不痛。（Haiku 曾說錯的迷思）"
+    }
+  },
+  {
+    "id": "knowledge-bench-plateau-zh",
+    "language": "zh-TW",
+    "turns": [
+      "我臥推好像卡住了，怎麼辦？"
+    ],
+    "expect": {
+      "tools_forbidden": [
+        "add_exercise_today",
+        "remove_exercise_today",
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "judge": "Ronnie must look at the user's bench press data (get_workout_history or get_training_summary), describe it accurately - 80 kg x 8 in the week of 2026-09-21, then 82.5 kg x 8 in every push session since 09-28 (four sessions including today) - and give specific next steps (for example more reps at 82.5 kg before adding weight, small increments of 1-2.5 kg, checking sets, recovery, sleep and protein). Saying a stall this short is normal, or tying the advice to the goal of 100 kg in three months, is a plus but not required. Fails if it does not look at the data, gets the numbers or the session count wrong, invents a long stall, or gives only generic advice."
+    },
+    "meta": {
+      "why": "要查紀錄並說對：9/21 那週 80kg×8，9/28 起每次推日都是 82.5kg×8（含今天 4 次）；給具體的下一步。說明「十天的停滯很正常」或連到 100kg 目標是加分，不是必要（2026-10-07 放寬）。不能沒查資料、算錯次數、編數字或說卡了很久。"
+    }
+  },
+  {
+    "id": "knowledge-back-pain-en",
+    "language": "en",
+    "turns": [
+      "My lower back hurts after deadlifts, should I keep going?"
+    ],
+    "expect": {
+      "tools_forbidden": [
+        "add_exercise_today",
+        "remove_exercise_today",
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "judge": "Separates ordinary muscle soreness from warning signs: sharp pain, pain that radiates down the leg, numbness or tingling, or pain that persists means stop deadlifting and see a professional. Otherwise reduce the load and check technique (bracing, neutral spine, bar close to the body). Fails if it says to push through the pain, or names a specific injury as the cause."
+    },
+    "meta": {
+      "why": "分辨痠痛和警訊（尖銳、放射、麻、持續）→ 停止並就醫；否則降重量、檢查技術；不能叫他忍、不能診斷。"
+    }
+  },
+  {
+    "id": "knowledge-creatine-zh",
+    "language": "zh-TW",
+    "turns": [
+      "肌酸有用嗎？要吃多少？"
+    ],
+    "expect": {
+      "tools_forbidden": [
+        "add_exercise_today",
+        "remove_exercise_today",
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "judge": "Creatine monohydrate is one of the best-supported supplements for strength and muscle gain; 3-5 g a day, a loading phase optional; safe for healthy people, and it may add some water weight. Fails if it says creatine damages healthy kidneys, recommends very large daily doses, or presents creatine as essential."
+    },
+    "meta": {
+      "why": "單水肌酸證據最多；每天 3–5 克，負荷期非必要；健康的人安全；不能說傷腎或建議超高劑量。"
+    }
+  }
+]

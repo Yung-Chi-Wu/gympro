@@ -1,0 +1,1 @@
+Knowledge set, code 034a3e9, claude-haiku-4-5, 5 reps. Pass 48%: volume 0/5, back pain 0/5, bench plateau 0/5 (never looked at the data), plus misses on heavy, spot reduction (mixed message), creatine (invented "12 weeks left").

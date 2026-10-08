@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "以後都不要再排波比跳了"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"波比跳\"},\"result\":\"ID: c6e49af8 | 波比跳 (core)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "要從所有課表移除的話，我會去掉波比跳，你需要在 app 裡按「確認」才會生效喔。"
+  }
+]

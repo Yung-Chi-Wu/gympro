@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "Add face pulls to today's workout"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"face pulls\"},\"result\":\"ID: cd6e3284-218f-a781-910b-8fe9ecc575aa | Face Pull (shoulders)\\nID: 1ca807a6-78b6-1c08-7ea9-12eb7ca41e81 | Pull-Up (back)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"cd6e3284-218f-a781-910b-8fe9ecc575aa\",\"exercise_name\":\"Face Pull\"},\"result\":\"✓ Added \\\"Face Pull\\\" to today's workout\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Done! Face Pull is in today's push session. Great addition for shoulder health and rear delts—ain't nothin' but a peanut! 💪"
+  }
+]

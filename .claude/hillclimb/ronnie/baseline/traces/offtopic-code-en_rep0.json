@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "Can you help me debug my Python code?"
+  },
+  {
+    "role": "assistant",
+    "content": "Hey Alex, I appreciate the question, but that's not my lane 💪 I'm your fitness coach—I help with training, workouts, and gym knowledge through GymPro.\n\nFor coding help, you'll need a different resource. Now, let's talk about crushing that 100kg bench press goal in three months—you got a workout question for me?"
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "assistant",
+    "content": "Upper chest needs more angle—incline bench press is the king move, hits that upper pec area hard. Alternatively, incline dumbbell press or machine incline press work great too if you want variation.\n\nYou thinking about adding something to today's workout, or just curious? 💪"
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"incline bench press\"},\"result\":\"No exercises found\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Let me search for what's available in the database—what equipment do you have access to? Barbell, dumbbells, or machines?"
+  }
+]

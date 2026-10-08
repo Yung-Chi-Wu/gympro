@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "以後都不要再排波比跳了"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"波比跳\"},\"result\":\"ID: c6e49af8 | 波比跳 (core)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "告訴我是全部課表還是某一個課表，我馬上幫你移除。"
+  }
+]

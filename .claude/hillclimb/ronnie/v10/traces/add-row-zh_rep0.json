@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個槓鈴划船"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"槓鈴划船\"},\"result\":\"ID: 650646da | 槓鈴划船 (back)\\nID: d1302cd0 | 單臂啞鈴划船 (back)\\nID: d988a60a | 槓鈴臥推 (chest)\\nID: 6fc5ead6 | 上斜槓鈴臥推 (chest)\\nID: 461557d5 | 坐姿繩索划船 (back)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"650646da\",\"exercise_name\":\"槓鈴划船\"},\"result\":\"✓ 已將「槓鈴划船」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "搞定！槓鈴划船已經加進去了 💪 是今天推日的課表外加背部訓練，不錯的選擇。"
+  }
+]

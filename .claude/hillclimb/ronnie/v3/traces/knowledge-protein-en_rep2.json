@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "How much protein should I eat to build muscle?"
+  },
+  {
+    "role": "assistant",
+    "content": "The solid science says aim for 1.6–2.2 grams per kilogram of body weight daily. That's the range where muscle protein synthesis peaks—anything above that doesn't give you extra gains.\n\nWhat matters more is hitting that target consistently, training hard, and staying in a slight caloric surplus. You eating enough protein right now to support your 100 kg bench goal? 💪"
+  }
+]

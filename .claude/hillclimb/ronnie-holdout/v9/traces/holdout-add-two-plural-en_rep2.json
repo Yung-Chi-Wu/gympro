@@ -1,0 +1,30 @@
+[
+  {
+    "role": "user",
+    "content": "Add hammer curls and lateral raises to today's workout"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"hammer curls\"},\"result\":\"ID: d9911659 | Hammer Curl (biceps)\\nID: 0cb907f9 | Barbell Curl (biceps)\\nID: 995b5a70 | Leg Curl (legs)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"lateral raises\"},\"result\":\"ID: 65d4104b | Lateral Raise (shoulders)\\nID: afc9ed91 | Calf Raise (legs)\\nID: 3f4394d3 | Hanging Leg Raise (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"d9911659\",\"exercise_name\":\"Hammer Curl\"},\"result\":\"✓ Added \\\"Hammer Curl\\\" to today's workout\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"65d4104b\",\"exercise_name\":\"Lateral Raise\"},\"result\":\"✓ Added \\\"Lateral Raise\\\" to today's workout\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Done! Hammer Curl and Lateral Raise are added to today's push workout. 💪 Ain't nothin' but a peanut!"
+  }
+]

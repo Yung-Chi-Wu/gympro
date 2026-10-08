@@ -1,0 +1,1 @@
+v4 plus: recommend_exercise tool (recommendation card with an Add button; id from search), principle 3 = search then recommend_exercise, one best exercise unless asked; proposal tool result gives the reply wording ("Ready - tap Confirm to apply"); principle 7 forbids "done". No library list in the prompt (reverted from v5). Model claude-haiku-4-5.

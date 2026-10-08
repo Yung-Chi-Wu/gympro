@@ -1,0 +1,42 @@
+[
+  {
+    "role": "user",
+    "content": "以後所有課表都不要再排波比跳了"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"波比跳\"},\"result\":\"ID: c6e49af8 | 波比跳 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"burpee\"},\"result\":\"ID: c6e49af8 | 波比跳 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "propose_routine_change",
+    "content": "{\"input\":{\"exercise_id\":\"c6e49af8\",\"exercise_name\":\"波比跳\",\"change\":\"remove\"},\"result\":\"已建立提議（尚未生效）：從「腿日」移除「波比跳」，使用者在 app 裡確認後才會生效。\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "已準備好：從「腿日」移除「波比跳」，在 app 裡按「確認」後生效。"
+  },
+  {
+    "role": "app_event",
+    "content": "[app 事件] 使用者確認了提議，已套用：從「腿日」移除「波比跳」（腿日：原本 3 組 × 10 下，排第 4 個）。"
+  },
+  {
+    "role": "user",
+    "content": "波比跳還在腿日嗎？"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_routine_exercises",
+    "content": "{\"input\":{\"routine_name\":\"腿日\"},\"result\":\"「腿日」的動作：\\nID: 5866803c | 深蹲: 4組 × 6下\\nID: 07bccaa6 | 羅馬尼亞硬舉: 3組 × 8下\\nID: 68be0377 | 腿推: 3組 × 10下\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "不在了 ✅ 腿日現在只剩深蹲 4 組 × 6 下、羅馬尼亞硬舉 3 組 × 8 下、腿推 3 組 × 10 下。這次系統只回報從腿日移除，沒有其他課表受影響。"
+  }
+]

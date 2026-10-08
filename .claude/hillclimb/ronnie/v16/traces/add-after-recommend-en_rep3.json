@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"incline dumbbell press\",\"muscle_group\":\"chest\"},\"result\":\"ID: 41290ea9 | Incline Dumbbell Press (chest)\\nID: 6fc5ead6 | Incline Barbell Press (chest)\\nID: d486b05a | Dumbbell Bench Press (chest)\\nID: d988a60a | Barbell Bench Press (chest)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"41290ea9\"},\"result\":\"Showing a card for \\\"Incline Dumbbell Press\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Try the Incline Dumbbell Press 💪. Set the bench to about 30°, because steeper angles shift the work to your shoulders. The dumbbells give you a long range of motion, and the exercise should also help your bench press. I've put a card above if you want to add it to today."
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"41290ea9\"},\"result\":\"✓ Added \\\"Incline Dumbbell Press\\\" to today's workout\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ I added Incline Dumbbell Press to today's workout. Start with 3 sets of 8–12 reps at a weight that leaves you 1–2 reps short of failure. Have a good push day 💪"
+  }
+]

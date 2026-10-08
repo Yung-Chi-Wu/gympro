@@ -1,0 +1,1 @@
+v3 plus: 8-character exercise ids in tool results (resolved back to the full UUID), and prompt principle 10 (pain/injury: safety first). Model claude-haiku-4-5. Graded with the split change metrics (change_done, no_wrong_change; valid_ids diagnostic).

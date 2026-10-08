@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個 Jefferson curl"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson curl\"},\"result\":\"找不到符合的動作\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "資料庫裡找不到 Jefferson curl，沒辦法幫你加進今天課表 😅 你可以試試看其他動作名稱，或是去「訓練課表」用 Coach G 來新增自訂動作！"
+  }
+]

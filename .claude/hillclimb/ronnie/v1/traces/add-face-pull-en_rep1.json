@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "Add face pulls to today's workout"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"face pulls\"},\"result\":\"No exercises found\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Hmm, face pulls aren't in GymPro's exercise database right now, so I can't add it to your workout. Try searching for a similar rear delt or cable exercise in the app, or ask Coach G in Routines to add it! 💪"
+  }
+]

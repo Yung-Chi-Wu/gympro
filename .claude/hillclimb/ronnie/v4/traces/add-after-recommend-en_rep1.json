@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "assistant",
+    "content": "Upper chest responds great to incline pressing movements—they shift the load higher on your pectorals. Incline barbell bench press, incline dumbbell press, or machine chest press all hit it hard. Which style do you prefer, and what equipment do you have access to? 💪"
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "assistant",
+    "content": "I need to search the exercise library first to get the exact ID. Which one appeals to you most—incline barbell bench press, incline dumbbell press, or machine chest press?"
+  }
+]

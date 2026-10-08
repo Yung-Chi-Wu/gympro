@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個 Jefferson curl"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson curl\"},\"result\":\"找不到符合的動作\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "搜尋不到這個動作欸 😅 有沒有可能是中文名稱或另外的叫法？或者這個動作在 APP 裡的名稱不同？"
+  }
+]

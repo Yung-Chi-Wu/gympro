@@ -1,0 +1,1 @@
+Code 4340f12 (claim check explained by applied app events) on claude-sonnet-5-5, only the two app-event cases, 5 reps. after-cancel-en 5/5; after-confirm-zh 3/5 - no more confused retries, but it inferred "no other routine has burpees" from the proposal result, which the judge counts as unsupported. Fixed after: the proposal result says outright which routines have the exercise.
