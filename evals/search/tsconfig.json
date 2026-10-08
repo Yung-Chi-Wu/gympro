@@ -1,0 +1,7 @@
+{
+  "//": "The search eval, type-checked on its own like the Ronnie eval (npm run typecheck:evals).",
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": ["./**/*.ts"],
+  "exclude": ["dist"]
+}
