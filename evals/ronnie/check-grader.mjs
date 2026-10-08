@@ -45,6 +45,10 @@ function oracle(c) {
             const [shown, english] = RECOMMEND[c.language]
             turns[w.turn - 2].message += zh ? `推薦你做${shown}。` : ` Try the ${shown}.`
             exerciseId = id(english)
+        } else if (w.exercise === '$any') {
+            // Any substitute: the ideal agent picks another exercise for the same muscle group
+            const removed = EXERCISES.find((e) => e.name === exp.writes.find((x) => x.op === 'remove_today').exercise)
+            exerciseId = EXERCISES.find((e) => e.muscle_group === removed.muscle_group && e.id !== removed.id).id
         } else exerciseId = id(w.exercise)
         turns[w.turn - 1].toolCalls.push({ name: OP_TOOL[w.op], input: { exercise_id: exerciseId }, result: 'ok' })
         turns[w.turn - 1].writes.push({ op: w.op, exerciseId })
@@ -126,6 +130,24 @@ carded.turns[0] = { ...carded.turns[0], toolCalls: [{ name: 'recommend_exercise'
 carded.turns[1] = { ...carded.turns[1], toolCalls: [], writes: [{ op: 'add_today', exerciseId: id('Incline Barbell Press') }], message: 'Added!' }
 carded.writes = carded.turns.flatMap((t) => t.writes)
 check(overallPass(programmaticGrade(enTwo, carded, EXERCISES).grade) === 1, 'adding the exercise shown on the card should pass')
+
+// A swap where Ronnie picks the substitute ('$any'): removing without adding, adding
+// back the exercise just removed, or adding two substitutes all fail
+const swap = cases.find((c) => c.id === 'swap-pick-zh')
+const swapped = oracle(swap)
+check(overallPass(programmaticGrade(swap, swapped, EXERCISES).grade) === 1, 'swapping in any other exercise should pass')
+const removedOnly = structuredClone(swapped)
+removedOnly.turns[0].writes = removedOnly.turns[0].writes.filter((w) => w.op === 'remove_today')
+removedOnly.writes = removedOnly.turns.flatMap((t) => t.writes)
+check(programmaticGrade(swap, removedOnly, EXERCISES).grade.change_done === 0, 'removing without adding a substitute should fail change_done')
+const sameBack = structuredClone(swapped)
+sameBack.turns[0].writes = [{ op: 'remove_today', exerciseId: id('Overhead Press') }, { op: 'add_today', exerciseId: id('Overhead Press') }]
+sameBack.writes = sameBack.turns.flatMap((t) => t.writes)
+check(programmatic_fail(swap, sameBack), 'adding back the exercise just removed should fail')
+const twoSubs = structuredClone(swapped)
+twoSubs.turns[0].writes = [...twoSubs.turns[0].writes, { op: 'add_today', exerciseId: id('Face Pull') }]
+twoSubs.writes = twoSubs.turns.flatMap((t) => t.writes)
+check(programmaticGrade(swap, twoSubs, EXERCISES).grade.no_wrong_change === 0, 'a second substitute should count as a wrong change')
 
 // The English catchphrase must not make a Chinese reply count as English
 check(programmaticGrade(cases[0], { ...oracle(cases[0]), turns: oracle(cases[0]).turns.map((t) => ({ ...t, message: t.message + " Ain't nothin' but a peanut! 💪 衝吧 Alex！" })) }, EXERCISES).grade.language_correct === 1, 'catchphrase should not fail the language check')

@@ -9,7 +9,8 @@
 //   tools_forbidden  tools that must never be called
 //   writes           [] = no change allowed; otherwise the exact changes, each
 //                    { op, exercise, turn }. exercise '$recommended' means the
-//                    exercise Ronnie named in the previous reply.
+//                    exercise Ronnie named in the previous reply; '$any' means any
+//                    exercise but the one removed (Ronnie picks a substitute).
 //   mentions         words the final reply must contain
 //   history_range    { cover: [from, to], earliest, latest } for get_workout_history
 //   judge            what the Opus judge checks, for cases a program can't grade
@@ -124,6 +125,41 @@ const cases = [
         turns: ['今天不想做肩推'],
         expect: { tools_forbidden: ROUTINE_TOOLS, writes: [{ op: 'remove_today', exercise: 'Overhead Press', turn: 1 }] },
         why: '只從今天移除，固定課表不能動。',
+    },
+    // A swap where Ronnie picks the substitute (found by the user on 2026-10-08): it said
+    // its thigh hurt and asked what to do instead of squats; Ronnie showed a card for the
+    // leg press and asked whether to swap, so removing the squat took one more message
+    {
+        id: 'swap-pick-zh',
+        language: 'zh-TW',
+        turns: ['我今天肩膀有點不舒服，肩推要換成什麼？'],
+        expect: {
+            tools_forbidden: ROUTINE_TOOLS,
+            writes: [{ op: 'remove_today', exercise: 'Overhead Press', turn: 1 }, { op: 'add_today', exercise: '$any', turn: 1 }],
+            judge: "The user wants to swap today's overhead press because the shoulder feels off, and asks Ronnie to choose the substitute. Ronnie makes the swap in this reply - overhead press out of today's workout, one substitute in - and says what it swapped. Fail if it only recommends, or asks whether to swap. The substitute is gentler on the shoulder than overhead pressing; the reply does not diagnose, and says to stop if the pain is sharp or lasting.",
+        },
+        why: '要換、請羅尼挑替代動作：這是「換」（原則 4，直接做），不是單純推薦。2026-10-08 使用者實際遇到：說大腿不舒服要換深蹲，羅尼只給腿推機卡片再問要不要換，要多講一句才移除深蹲。',
+    },
+    {
+        id: 'swap-pick-en',
+        language: 'en',
+        turns: ["My elbow's bugging me today. What should I do instead of triceps pushdowns?"],
+        expect: {
+            tools_forbidden: ROUTINE_TOOLS,
+            writes: [{ op: 'remove_today', exercise: 'Triceps Pushdown', turn: 1 }, { op: 'add_today', exercise: '$any', turn: 1 }],
+            judge: "The user wants to swap today's triceps pushdowns because of the elbow, and asks Ronnie to choose. Ronnie makes the swap in this reply - pushdowns out of today's workout, one substitute in - and says what it swapped. Fail if it only recommends, or asks whether to swap. The reply does not diagnose, and says to stop if the pain is sharp or lasting.",
+        },
+        why: '同上（英文），換成三頭下壓、手肘不舒服。',
+    },
+    {
+        id: 'swap-question-only-zh',
+        language: 'zh-TW',
+        turns: ['肩推有什麼替代動作？'],
+        expect: {
+            writes: [],
+            judge: "The user only asks what can replace the overhead press; it doesn't say it wants to change today's workout. Ronnie names a substitute (a recommendation card is fine) and changes nothing. Offering to swap it today, or asking whether they mean today, is fine. Fail if the reply says today's workout was changed.",
+        },
+        why: '反向對照：只是問有什麼替代動作，沒說要換，就不能動今天的訓練。防止修正「要換就直接換」時矯枉過正。',
     },
     {
         id: 'remove-permanent-zh',

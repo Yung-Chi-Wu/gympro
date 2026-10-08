@@ -107,10 +107,15 @@ export function programmaticGrade(c, out, exercises) {
                     continue
                 }
                 if (!allowed.size) missing.push(`第 ${w.turn - 1} 句回覆沒有推薦動作庫裡的任何動作`)
+            } else if (w.exercise === '$any') {
+                // "Swap it for something": Ronnie picks the substitute, so any exercise counts
+                // except the one being swapped out. A second substitute is still a wrong change.
+                const out = new Set(exp.writes.filter((x) => x.op === 'remove_today').map((x) => idFor(x.exercise)))
+                allowed = new Set(exercises.map((e) => e.id).filter((id) => !out.has(id)))
             } else allowed = new Set([idFor(w.exercise)])
             const i = unmatched.findIndex((a) => a.op === w.op && a.turn === w.turn && allowed.has(a.exerciseId))
             if (i >= 0) unmatched.splice(i, 1)
-            else missing.push(`第 ${w.turn} 句應該${OP_ZH[w.op]}：${w.exercise === '$recommended' ? '剛才推薦的動作' : label(idFor(w.exercise))}`)
+            else missing.push(`第 ${w.turn} 句應該${OP_ZH[w.op]}：${w.exercise === '$recommended' ? '剛才推薦的動作' : w.exercise === '$any' ? '一個替代動作' : label(idFor(w.exercise))}`)
         }
         grade.change_done = exp.writes.length ? (missing.length ? 0 : 1) : null
         if (exp.writes.length) {
