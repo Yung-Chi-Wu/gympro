@@ -141,6 +141,17 @@ const cases = [
         why: '要換、請羅尼挑替代動作：這是「換」（原則 4，直接做），不是單純推薦。2026-10-08 使用者實際遇到：說大腿不舒服要換深蹲，羅尼只給腿推機卡片再問要不要換，要多講一句才移除深蹲。',
     },
     {
+        id: 'swap-options-zh',
+        language: 'zh-TW',
+        turns: ['我肩膀不舒服要換肩推有什麼動作'],
+        expect: {
+            tools_forbidden: ROUTINE_TOOLS,
+            writes: [{ op: 'remove_today', exercise: 'Overhead Press', turn: 1 }, { op: 'add_today', exercise: '$any', turn: 1 }],
+            judge: "The user wants to swap today's overhead press because the shoulder feels off; \"有什麼動作\" asks Ronnie for the substitute, it doesn't ask for a list. Ronnie makes the swap in this reply - overhead press out of today's workout, one substitute in - and says what it swapped. Fail if it only recommends, or asks whether to swap. The reply does not diagnose, and says to stop if the pain is sharp or lasting.",
+        },
+        why: '使用者的原句型：「要換 X 有什麼動作」。「有什麼動作」像在問選項，羅尼因此只推薦、再問要不要換。swap-pick-zh 的「要換成什麼」沒有重現這個失敗。',
+    },
+    {
         id: 'swap-pick-en',
         language: 'en',
         turns: ["My elbow's bugging me today. What should I do instead of triceps pushdowns?"],
