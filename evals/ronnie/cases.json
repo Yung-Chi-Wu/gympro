@@ -285,6 +285,45 @@
       "My elbow's bugging me today. What should I do instead of triceps pushdowns?"
     ],
     "expect": {
+      "tools_forbidden": [
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "judge": "The user's elbow bothers them on triceps pushdowns, which already put little load on the elbow. Ronnie suggests leaving triceps out today rather than swapping to another triceps exercise; it may offer to take the pushdowns off today's workout, but changes nothing yet. Fail if it recommends another triceps exercise as the fix, or says the workout was already changed. The reply does not diagnose, and says to stop if the pain is sharp or lasting."
+    },
+    "meta": {
+      "why": "手肘痛的是三頭下壓，它本來對手肘的負擔就低：照 2026-10-08 跟使用者定的規則，今天先跳過三頭，不換成別的三頭動作。"
+    }
+  },
+  {
+    "id": "elbow-high-recommend-zh",
+    "language": "zh-TW",
+    "turns": [
+      "我做過頭三頭伸展的時候手肘會痛，練三頭可以改做什麼？"
+    ],
+    "expect": {
+      "tools_required": [
+        "search_exercises"
+      ],
+      "tools_forbidden": [
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "judge": "Overhead triceps extensions put a high load on the elbow and hurt the user. Ronnie names one triceps exercise with low elbow load (in this library, the Triceps Pushdown, which is already in today's workout, so no card is needed), and changes nothing. Fail if it recommends a triceps exercise that loads the elbow more than lightly (overhead extensions, dips), lists several without picking one, or diagnoses. It says to stop if the pain is sharp or lasting."
+    },
+    "meta": {
+      "why": "過頭三頭伸展對手肘負擔高：換成同肌群、手肘負擔低的動作（三頭下壓）。三頭下壓今天已經排了，recommend_exercise 會拒絕，所以只檢查有沒有用搜尋找，不要求推薦卡片（v25 的題目要求了，是題目錯）。"
+    }
+  },
+  {
+    "id": "muscle-side-delts-zh",
+    "language": "zh-TW",
+    "turns": [
+      "推薦一個練肩膀中束的動作"
+    ],
+    "expect": {
       "tools_required": [
         "recommend_exercise"
       ],
@@ -293,10 +332,12 @@
         "propose_routine_change"
       ],
       "writes": [],
-      "judge": "The user wants to swap today's triceps pushdowns because of the elbow, and leaves the choice of substitute to Ronnie. Ronnie recommends one substitute with recommend_exercise and replaces_exercise_id set to the Triceps Pushdown, so the card's Swap button does it, and changes nothing yet; the reply says what it suggests and that the user can swap it. The substitute is easier on the elbow. Fail if the reply says the workout was already changed, lists several options without recommending one, or asks whether they mean today or for good. The reply does not diagnose, and says to stop if the pain is sharp or lasting."
+      "mentions": [
+        "側平舉"
+      ]
     },
     "meta": {
-      "why": "同上（英文），三頭下壓、手肘不舒服。"
+      "why": "指定細部肌群（中束）：動作庫裡主要練中束的只有側平舉。搜尋可以用 muscle: side_delts 篩選。v25 寫成「我想加一個」，沒說今天還是永久，羅尼照原則先問，是題目不清楚。"
     }
   },
   {

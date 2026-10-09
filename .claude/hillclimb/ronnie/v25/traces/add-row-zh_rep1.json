@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個槓鈴划船"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"槓鈴划船\"},\"result\":\"ID: 650646da | 槓鈴划船: back; trains lats, upper back; joint load: lower back medium\\nID: d1302cd0 | 單臂啞鈴划船: back; trains lats, upper back; low joint load\\nID: 461557d5 | 坐姿繩索划船: back; trains upper back, lats; low joint load\\nID: 6fc5ead6 | 上斜槓鈴臥推: chest; trains upper chest; joint load: shoulder medium, elbow medium\\nID: d988a60a | 槓鈴臥推: chest; trains chest; joint load: shoulder medium, elbow medium\\nID: d9911659 | 錘式彎舉: biceps; trains biceps, forearms; low joint load\\nID: f04af209 | 棒式: core; trains abs; low joint load\\nID: 03bae642 | 雙槓撐體: triceps; trains triceps; joint load: shoulder high, elbow medium\\nID: 263ada72 | 滑輪下拉: back; trains lats; low joint load\\nID: 0cb907f9 | 二頭彎舉: biceps; trains biceps; joint load: elbow medium\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"650646da\"},\"result\":\"✓ 已將「槓鈴划船」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 已將槓鈴划船加入今天的課表。\n\n💡 這個動作對下背負荷中等，做的時候請保持背部中立。"
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "My elbow's bugging me today. What should I do instead of triceps pushdowns?"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle\":\"triceps\",\"low_load_on\":\"elbow\"},\"result\":\"ID: 697409e4 | Triceps Pushdown: triceps; trains triceps; low joint load\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Triceps pushdown already loads the elbow only lightly, and no other triceps exercise in the library is easier on it. So I'd skip direct triceps work today instead of swapping.\n\n⚠️ Your presses still use the triceps, so keep the weight comfortable and stay pain-free. If the elbow pain is sharp or lingers, stop and see a professional.\n\nWant me to remove Triceps Pushdown from today's workout?"
+  }
+]

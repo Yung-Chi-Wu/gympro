@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個不用器材的核心動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"bodyweight core no equipment\",\"muscle\":\"core\"},\"result\":\"Nothing in the library matches \\\"bodyweight core no equipment\\\" exactly. Closest:\\nID: c6e49af8 | 波比跳: core; trains cardio; joint load: shoulder medium, lower back medium, knee medium\\nID: 3f4394d3 | 懸吊舉腿: core; trains abs; joint load: shoulder medium\\nID: f04af209 | 棒式: core; trains abs; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\"},\"result\":\"Showing a card for \\\"棒式\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "推薦棒式：完全不用器材，主練腹部，關節負擔也低。\n\n💡 重點是臀部夾緊、肋骨下壓、身體成一直線，每組撐 30 到 60 秒，不要塌腰。\n\n要我把它加進今天的推日嗎？"
+  },
+  {
+    "role": "user",
+    "content": "可以，加到今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\"},\"result\":\"✓ 已將「棒式」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 已把棒式加進今天的課表。\n\n建議放在推日最後面做，3 組，每組 30 到 60 秒。"
+  }
+]

@@ -1,0 +1,1 @@
+[v25] 25/25 done (25 ok, 0 failed), 39s elapsed, ~0s left

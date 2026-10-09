@@ -1,0 +1,43 @@
+[
+  {
+    "role": "user",
+    "content": "我肩膀不舒服要換肩推有什麼動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | 槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | 上斜啞鈴臥推: no sets yet\\nID: 13841865 | 肩推: no sets yet\\nID: 697409e4 | 三頭下壓: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle\":\"shoulders\",\"low_load_on\":\"shoulder\"},\"result\":\"ID: 65d4104b | 側平舉: shoulders; trains side delts; low joint load\\nID: cd6e3284 | 臉拉: shoulders; trains rear delts, upper back; low joint load\\nID: 7fb35f03 | 反向飛鳥機: shoulders; trains rear delts; low joint load\\nID: 03810fd4 | 啞鈴後三角飛鳥: shoulders; trains rear delts; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"65d4104b\",\"replaces_exercise_id\":\"13841865\"},\"result\":\"Showing a card that swaps \\\"肩推\\\" for \\\"側平舉\\\" in today's workout. Nothing changes until the user taps Swap on it. Say which exercise you suggest and why, and that Swap on the card makes the change.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "🔄 我建議用側平舉換掉肩推。它練的是中三角，對肩關節的負擔比較低。想換的話，按卡片上的「換」就會替換。\n\n💡 重量要輕，動作要慢，做到完全沒有疼痛的範圍。\n\n⚠️ 如果肩膀出現刺痛，或是不舒服持續不退，請先停下來，找專業人員評估。另外，今天的槓鈴臥推和上斜啞鈴臥推也會用到肩膀。做這兩個動作時如果還是不舒服，要不要也一起調整？"
+  },
+  {
+    "role": "user",
+    "content": "好，換吧"
+  },
+  {
+    "role": "tool_call",
+    "name": "remove_exercise_today",
+    "content": "{\"input\":{\"exercise_name\":\"肩推\",\"exercise_id\":\"13841865\"},\"result\":\"✓ 已將「肩推」從今天課表移除（不影響固定課表）\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"65d4104b\"},\"result\":\"✓ 已將「側平舉」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 已經換好了。今天的課表裡，肩推換成了側平舉，固定課表沒有變。\n\n💪 用輕重量、慢慢做，保持沒有疼痛。"
+  }
+]

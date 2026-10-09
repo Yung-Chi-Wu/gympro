@@ -27,7 +27,7 @@ async function main() {
     const key = await getSecret(process.env.SUPABASE_SERVICE_ROLE_KEY_PARAM ?? '/gympro/supabase-service-role-key')
     const supabase = createClient<Database>(supabaseUrl(), key, { auth: { persistSession: false } })
 
-    const { data, error } = await supabase.from('exercises').select('id, name, name_zh_tw, muscle_group, equipment, embedding_text')
+    const { data, error } = await supabase.from('exercises').select('id, name, name_zh_tw, muscle_group, equipment, primary_muscles, embedding_text')
     if (error) throw error
     const stale = data.map((e) => ({ e, text: exerciseDocument(e) })).filter(({ e, text }) => e.embedding_text !== text)
     console.log(`${data.length} exercises: ${stale.length} to embed, ${data.length - stale.length} up to date`)

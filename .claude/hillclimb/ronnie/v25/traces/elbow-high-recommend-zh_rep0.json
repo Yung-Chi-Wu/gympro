@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "我做過頭三頭伸展的時候手肘會痛，練三頭可以改做什麼？"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | 槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | 上斜啞鈴臥推: no sets yet\\nID: 13841865 | 肩推: no sets yet\\nID: 697409e4 | 三頭下壓: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle\":\"triceps\",\"low_load_on\":\"elbow\"},\"result\":\"ID: 697409e4 | 三頭下壓: triceps; trains triceps; low joint load\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "今天的菜單裡已經有三頭下壓，它對手肘的負荷低，直接用它練三頭就好。\n\n💡 重量放輕，動作放慢，手肘固定在身體兩側，全程不痛才做。如果手肘痛得很尖銳，或是一直沒消退，就先停下來，請專業人員檢查。"
+  }
+]

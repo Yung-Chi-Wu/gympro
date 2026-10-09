@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "Add face pulls to today's workout"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"face pull\"},\"result\":\"ID: cd6e3284 | Face Pull: shoulders; trains rear delts, upper back; low joint load\\nID: 1ca807a6 | Pull-Up: back; trains lats; joint load: shoulder medium\\nID: 263ada72 | Lat Pulldown: back; trains lats; low joint load\\nID: 13841865 | Overhead Press: shoulders; trains front delts; joint load: shoulder medium, elbow medium, lower back medium\\nID: a726ab1a | Low-to-High Cable Fly: chest; trains upper chest; low joint load\\nID: 23bc61ff | Push-Up: chest; trains chest; low joint load\\nID: 461557d5 | Seated Cable Row: back; trains upper back, lats; low joint load\\nID: 650646da | Barbell Row: back; trains lats, upper back; joint load: lower back medium\\nID: 697409e4 | Triceps Pushdown: triceps; trains triceps; low joint load\\nID: 540581f3 | Hip Thrust: glutes; trains glutes; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"cd6e3284\"},\"result\":\"✓ Added \\\"Face Pull\\\" to today's workout\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ I added Face Pull to today's workout.\n\n💡 It works your rear delts and upper back, so it balances out all the pressing on push day and helps your bench."
+  }
+]
