@@ -135,8 +135,7 @@
         "bmi": "BMI",
         "ageSex": "Age / Sex",
         "deloadRecommended": "Deload recommended:",
-        "retry": "Try again",
-        "retrying": "Retrying..."
+        "retry": "Try again"
     },
     "routines": {
         "title": "Routines",

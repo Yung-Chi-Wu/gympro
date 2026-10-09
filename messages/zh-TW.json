@@ -135,8 +135,7 @@
         "bmi": "BMI",
         "ageSex": "年齡 / 性別",
         "deloadRecommended": "建議減量訓練：",
-        "retry": "重新產生",
-        "retrying": "重新產生中..."
+        "retry": "重新產生"
     },
     "routines": {
         "title": "訓練課表",
