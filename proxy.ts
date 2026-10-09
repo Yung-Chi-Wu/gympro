@@ -34,9 +34,13 @@ export async function proxy(request: NextRequest) {
     (path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`)
   )
 
+  // Signed out: go to the welcome page, which says what GymPro is and has the log-in
+  // button, not straight to the login form. This covers the installed app (it opens
+  // /dashboard), bookmarks and shared links.
   if (isProtected && !user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = '/'
+    url.search = ''
     return NextResponse.redirect(url)
   }
 
