@@ -8,6 +8,11 @@ const SIMPLIFIED_ONLY = /[这们训练进动议还时对说体发让点从过关
 // Half-width punctuation right after a Chinese character
 const HALF_WIDTH_AFTER_CJK = /[一-鿿][,?!:;]/
 
+/** Whether the user left a note: one for the whole period, or one on any single day. */
+export function hasNote(c) {
+    return !!c.note || Object.keys(c.dayNotes ?? {}).length > 0
+}
+
 export function narrativeText(n) {
     return [n?.headline, ...(n?.items ?? []).map((i) => i.action)].filter(Boolean).join('\n')
 }
@@ -40,9 +45,9 @@ export function programmaticGrade(c, out) {
         const action = items.find((i) => i.rule === f.rule)?.action ?? ''
         return name && !action.toLowerCase().includes(name.toLowerCase())
     }).map((f) => out.names[f.id])
-    // Both ways to add a low muscle's sets named, so the user can choose. With a note the judge
-    // decides instead (note_fits): a note about pain can rule one out.
-    const optionsApply = !c.note && findings.some((f) => out?.options?.[f.id]?.length)
+    // Both ways to add a low muscle's sets named, so the user can choose. With a note (the period's
+    // or a day's) the judge decides instead (note_fits): a note about pain can rule one out.
+    const optionsApply = !hasNote(c) && findings.some((f) => out?.options?.[f.id]?.length)
     const unoffered = findings.flatMap((f) => {
         const action = items.find((i) => i.rule === f.rule)?.action ?? ''
         return (out?.options?.[f.id] ?? []).filter((name) => !action.toLowerCase().includes(name.toLowerCase()))

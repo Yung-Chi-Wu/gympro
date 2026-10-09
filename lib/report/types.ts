@@ -44,6 +44,8 @@ export interface ReportInputs {
     routineLeads: string[]
     /** Findings of the previous report, to follow up; null when there is none */
     previousFindings: Finding[] | null
+    /** The user's notes on single days of the period (at most one a day), oldest first */
+    notes: { date: string; note: string }[]
 }
 
 export interface BestSet {
@@ -93,6 +95,11 @@ export interface DayFacts {
     date: string
     routine: string | null
     trained: boolean
+}
+
+/** A day's note next to that day's plan and whether the user trained: code lines them up, the model reads them */
+export interface DayNote extends DayFacts {
+    note: string
 }
 
 export interface RecordFacts {
@@ -174,5 +181,7 @@ export interface ReportV3 {
     findings: Finding[]
     watching: Watching[]
     followUps: FollowUp[]
+    /** The day notes the text was written with; reports saved before 2026-10-10 have none */
+    dayNotes?: DayNote[]
     narrative: ReportNarrative
 }

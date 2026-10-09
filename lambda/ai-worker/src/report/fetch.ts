@@ -86,15 +86,16 @@ export async function fetchReportInputs(
 
     const schedule = await fetchSchedule(supabase, userId, periodStart, days)
     const plannedIds = (schedule ?? []).flatMap((d) => d.plan.map((p) => p.exerciseId))
-    const [exercises, weighIns, routineLeads, previousFindings] = await Promise.all([
+    const [exercises, weighIns, routineLeads, previousFindings, notes] = await Promise.all([
         fetchExercises(supabase, [...new Set([...sets.map((s) => s.exerciseId), ...plannedIds])]),
         fetchWeighIns(supabase, userId, utcFrom, utcTo, localDate, lookbackStart, periodEnd),
         fetchRoutineLeads(supabase, userId),
         fetchPreviousFindings(supabase, userId, periodStart),
+        fetchDayNotes(supabase, userId, periodStart, periodEnd),
     ])
 
     return {
-        inputs: { periodStart, periodEnd, sets, exercises, schedule, weighIns, goal: profile?.training_goal ?? null, routineLeads, previousFindings },
+        inputs: { periodStart, periodEnd, sets, exercises, schedule, weighIns, goal: profile?.training_goal ?? null, routineLeads, previousFindings, notes },
         language: profile?.language ?? 'en',
         weightUnit: profile?.weight_unit === 'lb' ? 'lb' : 'kg',
     }
@@ -173,6 +174,19 @@ async function fetchRoutineLeads(supabase: SupabaseClient, userId: string): Prom
     return ((data ?? []) as { routine_exercises: { exercise_id: string; order_index: number }[] }[])
         .map((r) => [...r.routine_exercises].sort((a, b) => a.order_index - b.order_index)[0]?.exercise_id)
         .filter((id): id is string => !!id)
+}
+
+/** The user's note for each day of the period that has one. Already a local date: the app saves it that way. */
+async function fetchDayNotes(supabase: SupabaseClient, userId: string, periodStart: string, periodEnd: string): Promise<ReportInputs['notes']> {
+    const { data, error } = await supabase
+        .from('day_notes')
+        .select('note_date, note')
+        .eq('user_id', userId)
+        .gte('note_date', periodStart)
+        .lte('note_date', periodEnd)
+        .order('note_date')
+    if (error) throw new Error(`Failed to fetch day notes: ${error.message}`)
+    return (data ?? []).map((n) => ({ date: n.note_date, note: n.note }))
 }
 
 /** The previous report's findings, if it was a version 3 report. */
