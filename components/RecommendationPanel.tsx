@@ -16,10 +16,10 @@ import {
 } from 'recharts'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
-import { retryFailedReport } from '@/app/(app)/dashboard/period-actions'
 import type { AiRecommendation } from './types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import { isReportV3, ReportView } from './report/ReportView'
+import { FailedReport } from './report/FailedReport'
 
 interface RecommendationPanelProps {
     userId: string
@@ -49,8 +49,6 @@ export function RecommendationPanel({ userId, language, weightUnit }: Recommenda
     const [status, setStatus] = useState<Status>('idle')
     const [recommendation, setRecommendation] = useState<AiRecommendation | null>(null)
     const [periodStart, setPeriodStart] = useState<string | null>(null)
-    const [retrying, setRetrying] = useState(false)
-    const [retryError, setRetryError] = useState<string | null>(null)
     const [strengthHistory, setStrengthHistory] = useState<StrengthHistoryPoint[]>([])
     const [muscleGroupsInHistory, setMuscleGroupsInHistory] = useState<string[]>([])
 
@@ -108,17 +106,6 @@ export function RecommendationPanel({ userId, language, weightUnit }: Recommenda
         }
     }, [status, loadStrengthHistory])
 
-    async function handleRetry() {
-        if (!periodStart) return
-        setRetrying(true)
-        setRetryError(null)
-        const result = await retryFailedReport(periodStart)
-        setRetrying(false)
-        if (!result.success) setRetryError(result.message ?? null)
-        // On success the row is 'pending' again, which restarts the polling below
-        await checkStatus()
-    }
-
     // The worker finishes in seconds, but nothing pushes its result back to
     // the browser — keep checking until the report leaves 'pending'.
     useEffect(() => {
@@ -158,21 +145,8 @@ export function RecommendationPanel({ userId, language, weightUnit }: Recommenda
                 <p className="text-ink/60 dark:text-white/60">{tV3('insufficient')}</p>
             )}
 
-            {status === 'failed' && (
-                // error_message holds the technical cause for debugging; users get a plain message
-                <div className="space-y-2">
-                    <p className="text-red-600">{t('failed')}</p>
-                    <button
-                        type="button"
-                        onClick={handleRetry}
-                        disabled={retrying}
-                        className="rounded-md border border-ink/20 px-3 py-1.5 text-sm hover:bg-ink/5 disabled:opacity-50"
-                    >
-                        {retrying ? t('retrying') : t('retry')}
-                    </button>
-                    {retryError && <p className="text-sm text-red-600">{retryError}</p>}
-                </div>
-            )}
+            {/* A retried report is 'pending' again, which restarts the polling above */}
+            {status === 'failed' && periodStart && <FailedReport periodStart={periodStart} onRetried={checkStatus} />}
         </div>
     )
 }

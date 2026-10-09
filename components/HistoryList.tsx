@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import {
     PieChart, Pie, Cell,
@@ -11,6 +12,7 @@ import type { PeriodOption } from '@/app/(app)/history/page'
 import type { AiRecommendation } from './types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import { isReportV3, ReportView } from './report/ReportView'
+import { FailedReport } from './report/FailedReport'
 
 interface WeightEntry {
     id: string
@@ -194,6 +196,7 @@ function ReportSection({ report, language, weightUnit }: { report: ReportRow | n
     const zh = language === 'zh-TW'
     const t = useTranslations('report')
     const tV3 = useTranslations('reportV3')
+    const router = useRouter()
     const [isOpen, setIsOpen] = useState(false)
     const [showMore, setShowMore] = useState(false)
 
@@ -240,11 +243,7 @@ function ReportSection({ report, language, weightUnit }: { report: ReportRow | n
 
                     {v3 && <ReportView report={v3} language={language} weightUnit={weightUnit} />}
 
-                    {report?.status === 'failed' && (
-                        <p className="text-sm text-red-600">
-                            {zh ? '報告生成失敗。' : 'Report generation failed.'}
-                        </p>
-                    )}
+                    {report?.status === 'failed' && <FailedReport periodStart={report.period_start} onRetried={() => router.refresh()} />}
 
                     {isCompleted && rec && (
                         <div className="space-y-4">
