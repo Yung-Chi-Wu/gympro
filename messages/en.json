@@ -100,6 +100,50 @@
         "switchUnit": "Switch unit",
         "dayOf": "Day {day} of {total}"
     },
+    "sets": {
+        "set": "Set",
+        "fields": {
+            "weight": "{unit}",
+            "added": "+{unit}",
+            "assist": "Assist {unit}",
+            "reps": "Reps",
+            "seconds": "Sec",
+            "minutes": "Min",
+            "speed": "{unit}",
+            "incline": "Incline %",
+            "level": "Level",
+            "metres": "Metres"
+        },
+        "bodyweight": "BW",
+        "summary": {
+            "notStarted": "Not started",
+            "separator": " · ",
+            "sets": "<b>{count}</b> {count, plural, one {set} other {sets}}",
+            "best": "best <b>{weight}</b> {unit} × <b>{reps}</b>",
+            "reps": "<b>{count}</b> reps",
+            "seconds": "<b>{count}</b> s",
+            "minutes": "<b>{count}</b> min",
+            "km": "<b>{value}</b> km",
+            "mi": "<b>{value}</b> mi",
+            "metres": "<b>{value}</b> m"
+        },
+        "compact": {
+            "weightReps": "{weight}{unit}×{reps}",
+            "bodyweight": "BW×{reps}",
+            "added": "+{weight}{unit}×{reps}",
+            "assisted": "Assist {weight}{unit}×{reps}",
+            "duration": "{seconds} s",
+            "treadmill": "{minutes} min · {speed} {speedUnit} · {incline}% incline",
+            "cardioLevel": "{minutes} min · level {level}",
+            "rower": "{minutes} min · {metres} m",
+            "cardioTime": "{minutes} min"
+        },
+        "addSet": "Add set {n}",
+        "deleteSet": "Delete set {n}",
+        "fieldOfSet": "Set {n}, {field}",
+        "logUnit": "Logging unit for {name}",
+        "distanceUnit": "Distance unit"
+    },
     "periodLog": {
         "title": "This Period",
         "reportSchedule": "Your AI report is generated automatically after this period ends ({end}).",

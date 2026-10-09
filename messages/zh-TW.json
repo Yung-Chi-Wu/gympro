@@ -100,6 +100,50 @@
         "switchUnit": "切換單位",
         "dayOf": "第 {day} 天 / 共 {total} 天"
     },
+    "sets": {
+        "set": "組",
+        "fields": {
+            "weight": "{unit}",
+            "added": "+{unit}",
+            "assist": "輔助 {unit}",
+            "reps": "次數",
+            "seconds": "秒",
+            "minutes": "分鐘",
+            "speed": "{unit}",
+            "incline": "坡度 %",
+            "level": "段數",
+            "metres": "公尺"
+        },
+        "bodyweight": "自重",
+        "summary": {
+            "notStarted": "還沒開始",
+            "separator": "・",
+            "sets": "<b>{count}</b> 組",
+            "best": "最佳 <b>{weight}</b> {unit} × <b>{reps}</b>",
+            "reps": "共 <b>{count}</b> 下",
+            "seconds": "共 <b>{count}</b> 秒",
+            "minutes": "<b>{count}</b> 分鐘",
+            "km": "<b>{value}</b> 公里",
+            "mi": "<b>{value}</b> 英里",
+            "metres": "<b>{value}</b> 公尺"
+        },
+        "compact": {
+            "weightReps": "{weight}{unit}×{reps}",
+            "bodyweight": "自重×{reps}",
+            "added": "+{weight}{unit}×{reps}",
+            "assisted": "輔助 {weight}{unit}×{reps}",
+            "duration": "{seconds} 秒",
+            "treadmill": "{minutes} 分鐘・{speed} {speedUnit}・坡度 {incline}%",
+            "cardioLevel": "{minutes} 分鐘・{level} 段",
+            "rower": "{minutes} 分鐘・{metres} 公尺",
+            "cardioTime": "{minutes} 分鐘"
+        },
+        "addSet": "新增第 {n} 組",
+        "deleteSet": "刪除第 {n} 組",
+        "fieldOfSet": "第 {n} 組的{field}",
+        "logUnit": "{name}的記錄單位",
+        "distanceUnit": "距離單位"
+    },
     "periodLog": {
         "title": "本週期紀錄",
         "reportSchedule": "這個週期結束後（{end}），AI 報告會自動產生。",

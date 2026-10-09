@@ -7,6 +7,7 @@ import { TodayWorkoutCard } from '@/components/TodayWorkoutCard'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
+import type { DistanceUnit } from '@/lib/distance-unit'
 import { DashboardClientShell } from '@/components/DashboardClientShell'
 import { currentPeriod } from '@/lib/periods'
 import { loadTodayWorkout } from '@/lib/today-workout'
@@ -27,7 +28,7 @@ export default async function DashboardPage() {
   const [profileResult, latestMetricResult, cycleResult, allExercisesResult] = await Promise.all([
     supabase
       .from('user_profiles')
-      .select('display_name, timezone, language, onboarding_completed, weight_unit')
+      .select('display_name, timezone, language, onboarding_completed, weight_unit, distance_unit')
       .eq('user_id', user.id)
       .maybeSingle(),
     supabase
@@ -44,7 +45,7 @@ export default async function DashboardPage() {
       .maybeSingle(),
     supabase
       .from('exercises')
-      .select('id, name, name_zh_tw, muscle_group, equipment')
+      .select('id, name, name_zh_tw, muscle_group, equipment, log_type')
       .order('name'),
   ])
 
@@ -58,6 +59,7 @@ export default async function DashboardPage() {
   const latestWeightKg = latestMetricData?.weight_kg ?? null
   const onboardingCompleted = profile?.onboarding_completed ?? false
   const weightUnit = (profile?.weight_unit as WeightUnit) ?? 'kg'
+  const distanceUnit: DistanceUnit = profile?.distance_unit === 'mi' ? 'mi' : 'km'
 
   const hasCycle = !!cycle
   const period = currentPeriod(
@@ -138,6 +140,7 @@ export default async function DashboardPage() {
             allExercises={(allExercisesResult.data ?? []) as ExerciseOption[]}
             language={language}
             weightUnit={weightUnit}
+            distanceUnit={distanceUnit}
             routineName={routineName}
             latestWeightKg={latestWeightKg}
             period={period}

@@ -4,6 +4,8 @@ export interface ExerciseOption {
     name_zh_tw?: string | null
     muscle_group: string
     equipment: string | null
+    /** How its sets are logged (lib/set-log.ts); weight x reps when missing */
+    log_type?: string | null
 }
 
 export interface LoggedSet {
