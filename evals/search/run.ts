@@ -2,8 +2,9 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { dot, EMBEDDING_MODELS, type EmbeddingModel } from '../../lib/embeddings'
 import { cachedEmbedder } from '../shared/embedding-cache'
-import { exerciseDocument, fuseRanks, gatedSearch, searchLibrary } from '../../lib/ronnie/search'
+import { exerciseDocument, fuseRanks, gatedSearch, matchesFilter, searchLibrary } from '../../lib/ronnie/search'
 import type { LibraryExercise } from '../../lib/ronnie/data'
+import attributes from '../../supabase/data/exercise-attributes.json'
 
 // Exercise-search eval. Each case is a query that a user, or Ronnie, would send to
 // search_exercises, together with the library exercises that are right answers.
@@ -19,7 +20,8 @@ import type { LibraryExercise } from '../../lib/ronnie/data'
 // Variants:
 //   keyword                     the current search (lib/ronnie/search.ts). Free.
 //   vector:<model>[:names]      nearest exercises by embedding. ":names" embeds only
-//                               the two names instead of exerciseDocument.
+//                               the two names instead of exerciseDocument, and
+//                               ":no-muscles" exerciseDocument without the primary muscles.
 //   hybrid:<model>[:names]      keyword and vector ranks merged with RRF
 //   gated:<model>[:names]       hybrid only when the keyword search matched a name
 //                               (its exact flag); otherwise vector alone. A partial
@@ -55,7 +57,7 @@ interface Case {
 type Exercise = LibraryExercise & { equipment: string | null }
 type Search = (query: string, muscleGroup: string | undefined) => Promise<LibraryExercise[]>
 
-/** The cleaned library, the same rows as the migrated database. Quoted fields may hold commas. */
+/** The cleaned library, the same rows as the migrated database, with their reviewed attributes. Quoted fields may hold commas. */
 function loadLibrary(): Exercise[] {
     const rows = readFileSync(join(HERE, 'library.csv'), 'utf8')
         .trim()
@@ -63,22 +65,34 @@ function loadLibrary(): Exercise[] {
         .map((line) => [...line.matchAll(/(?:^|,)("(?:[^"]|"")*"|[^,]*)/g)].map((m) => m[1].replace(/^"|"$/g, '').replace(/""/g, '"')))
     const [header, ...data] = rows
     const col = (name: string) => header.indexOf(name)
-    return data.map((r) => ({
-        id: r[col('id')],
-        name: r[col('name')],
-        name_zh_tw: r[col('name_zh_tw')] || null,
-        muscle_group: r[col('muscle_group')],
-        equipment: r[col('equipment')] || null,
-    }))
+    const byId = new Map(attributes.map((a) => [a.id, a]))
+    return data.map((r) => {
+        const a = byId.get(r[col('id')])
+        if (!a) throw new Error(`${r[col('name')]} has no attributes`)
+        // Names and categories as the attributes migration leaves them
+        return {
+            id: r[col('id')],
+            name: r[col('name')],
+            name_zh_tw: a.nameZh,
+            muscle_group: a.muscleGroup,
+            equipment: r[col('equipment')] || null,
+            primary_muscles: a.primary,
+            secondary_muscles: a.secondary,
+            joint_load: a.jointLoad as Record<string, string>,
+        }
+    })
 }
 
 async function makeSearch(variant: string, library: Exercise[], cases: Case[]): Promise<Search> {
-    const keyword: Search = async (q, mg) => searchLibrary(library, q, mg, POOL).exercises
+    const keyword: Search = async (q, mg) => searchLibrary(library, q, { muscle: mg }, POOL).exercises
     if (variant === 'keyword') return keyword
 
     const [mode, model, format] = variant.split(':') as [string, EmbeddingModel, string | undefined]
     if (!['vector', 'hybrid', 'gated'].includes(mode) || !(model in EMBEDDING_MODELS)) throw new Error(`Unknown variant ${variant}`)
-    const documents = library.map((e) => (format === 'names' ? [e.name, e.name_zh_tw].filter(Boolean).join(' | ') : exerciseDocument(e)))
+    const documents = library.map((e) =>
+        format === 'names' ? [e.name, e.name_zh_tw].filter(Boolean).join(' | ')
+            : format === 'no-muscles' ? exerciseDocument({ ...e, primary_muscles: [] })
+                : exerciseDocument(e))
     const embedTexts = cachedEmbedder(join(HERE, '.cache'), model)
     const docVectors = await embedTexts(documents, 'document')
     const queryVectors = new Map((await embedTexts(cases.map((c) => c.query), 'query')).map((v, i) => [cases[i].query, v]))
@@ -87,7 +101,7 @@ async function makeSearch(variant: string, library: Exercise[], cases: Case[]): 
         const qv = queryVectors.get(q)!
         return library
             .map((e, i) => ({ e, score: dot(qv, docVectors[i]) }))
-            .filter((x) => !mg || x.e.muscle_group === mg)
+            .filter((x) => matchesFilter(x.e, { muscle: mg }))
             .sort((a, b) => b.score - a.score)
             .slice(0, POOL)
             .map((x) => x.e)
@@ -95,7 +109,7 @@ async function makeSearch(variant: string, library: Exercise[], cases: Case[]): 
     if (mode === 'vector') return vector
     if (mode === 'hybrid') return async (q, mg) => fuseRanks([await keyword(q, mg), await vector(q, mg)])
     // What Ronnie runs (lib/ronnie/search.ts)
-    return async (q, mg) => gatedSearch(library, searchLibrary(library, q, mg, POOL), (await vector(q, mg)).map((e) => e.id), POOL).exercises
+    return async (q, mg) => gatedSearch(library, searchLibrary(library, q, { muscle: mg }, POOL), (await vector(q, mg)).map((e) => e.id), POOL, { muscle: mg }).exercises
 }
 
 async function main() {

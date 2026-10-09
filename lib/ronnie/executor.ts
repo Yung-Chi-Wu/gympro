@@ -62,6 +62,16 @@ function matchByName<T extends Named>(planned: T[], query: string | undefined): 
     return found.filter((pe, i) => found.findIndex((x) => x.exercise_id === pe.exercise_id) === i)
 }
 
+/** A search result's detail: its group, the muscles it mainly trains, and any joint it loads more than lightly. */
+function describe(e: LibraryExercise): string {
+    const loads = Object.entries(e.joint_load ?? {}).filter(([, level]) => level !== 'low').map(([joint, level]) => `${joint.replace('_', ' ')} ${level}`)
+    return [
+        e.muscle_group,
+        e.primary_muscles.length ? `trains ${e.primary_muscles.join(', ').replace(/_/g, ' ')}` : '',
+        loads.length ? `joint load: ${loads.join(', ')}` : e.joint_load ? 'low joint load' : '',
+    ].filter(Boolean).join('; ')
+}
+
 const weekdayOf = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })
 const shiftDate = (iso: string, days: number) => {
     const d = new Date(`${iso}T00:00:00Z`)
@@ -124,10 +134,11 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         async search_exercises(input) {
             const library = await exercises()
             const query = input.query?.trim()
-            const nearest = query ? await data.nearestExercises(query, input.muscle_group) : null
-            const { exercises: found, exact } = gatedSearch(library, searchLibrary(library, query, input.muscle_group, 20), nearest)
-            if (!found.length) return 'No exercises found. Try other wording (English or Chinese, a shorter keyword, or a muscle_group).'
-            const lines = (await Promise.all(found.map((e) => listLine(e.id, `${nameOf(e)} (${e.muscle_group})`)))).join('\n')
+            const filter = { muscle: input.muscle || undefined, lowLoadOn: input.low_load_on || undefined }
+            const nearest = query ? await data.nearestExercises(query) : null
+            const { exercises: found, exact } = gatedSearch(library, searchLibrary(library, query, filter, 20), nearest, 10, filter)
+            if (!found.length) return `No exercises found${filter.lowLoadOn ? ` with low ${filter.lowLoadOn} load` : ''}. Try other wording (English or Chinese, a shorter keyword) or another muscle.`
+            const lines = (await Promise.all(found.map((e) => listLine(e.id, nameOf(e), describe(e))))).join('\n')
             return exact ? lines : `Nothing in the library matches "${input.query}" exactly. Closest:\n${lines}`
         },
 

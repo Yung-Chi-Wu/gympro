@@ -89,9 +89,14 @@ export type Database = {
           equipment: string | null
           id: string
           is_custom: boolean
+          joint_load: Json | null
+          log_type: string
           muscle_group: string
           name: string
           name_zh_tw: string | null
+          primary_muscles: string[]
+          secondary_muscles: string[]
+          stability_demand: string | null
         }
         Insert: {
           created_at?: string
@@ -101,9 +106,14 @@ export type Database = {
           equipment?: string | null
           id?: string
           is_custom?: boolean
+          joint_load?: Json | null
+          log_type?: string
           muscle_group: string
           name: string
           name_zh_tw?: string | null
+          primary_muscles?: string[]
+          secondary_muscles?: string[]
+          stability_demand?: string | null
         }
         Update: {
           created_at?: string
@@ -113,9 +123,14 @@ export type Database = {
           equipment?: string | null
           id?: string
           is_custom?: boolean
+          joint_load?: Json | null
+          log_type?: string
           muscle_group?: string
           name?: string
           name_zh_tw?: string | null
+          primary_muscles?: string[]
+          secondary_muscles?: string[]
+          stability_demand?: string | null
         }
         Relationships: []
       }
