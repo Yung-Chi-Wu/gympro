@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { buildSystemPrompt } from '@/lib/ronnie/prompt'
 import { createRonnieExecutor } from '@/lib/ronnie/executor'
-import { runRonnieTurn } from '@/lib/ronnie/agent'
+import { RONNIE_MODEL, runRonnieTurn } from '@/lib/ronnie/agent'
 import { loadRonnieContext } from '@/lib/ronnie/context'
 import {
     appendConversation,
@@ -14,6 +14,8 @@ import {
     truncateAtUserMessage,
     withProposalStatuses,
 } from '@/lib/ronnie/conversation'
+import { errorText, usageOfError } from '@/lib/ai/trace'
+import { traceAfterResponse } from '@/lib/ai/trace-after'
 
 // Ronnie lives in lib/ronnie so the eval can run the same agent against fixture
 // data; this route authenticates, keeps the day's conversation on the server, and
@@ -71,6 +73,9 @@ export async function POST(request: Request) {
     const system = buildSystemPrompt(language, ctx.userContext)
     const executor = createRonnieExecutor({ data: ctx.data, language, timeZone: ctx.timeZone, todayRoutineName: ctx.todayRoutineName })
     const sent = [...conv.messages, { role: 'user' as const, content: message }]
+    // The trace keeps what Ronnie was given: the system prompt with the user's context, and today's conversation so far
+    const traceInput = { language, message, editFrom: Number.isInteger(body?.editFrom) ? body.editFrom : null, system, history: conv.messages }
+    const started = Date.now()
 
     try {
         const turn = await runRonnieTurn({ client, system, messages: sent, executor, language })
@@ -89,10 +94,21 @@ export async function POST(request: Request) {
         })
         if (error) console.error('Ronnie conversation not saved:', error)
         await deleteOldConversations(supabase, user.id, ctx.today)
+        traceAfterResponse({
+            userId: user.id, feature: 'ronnie', model: RONNIE_MODEL, servedModel: turn.servedModel, status: 'ok',
+            latencyMs: Date.now() - started, usage: turn.usage, input: traceInput,
+            // What the turn added after the user's message: tool calls, their results, the reply
+            output: { reply: turn.message, messages: turn.messages.slice(sent.length), proposals, recommendations, reloadDashboard: turn.reloadDashboard },
+        })
 
         return NextResponse.json({ message: turn.message, reloadDashboard: turn.reloadDashboard, proposals, recommendations })
     } catch (err) {
         console.error('Ronnie error:', err)
+        const partial = err as { servedModel?: string | null; toolCalls?: unknown }
+        traceAfterResponse({
+            userId: user.id, feature: 'ronnie', model: RONNIE_MODEL, servedModel: partial.servedModel ?? null, status: 'error', error: errorText(err),
+            latencyMs: Date.now() - started, usage: usageOfError(err), input: traceInput, output: { toolCalls: partial.toolCalls ?? [] },
+        })
         return NextResponse.json({ error: 'AI error' }, { status: 500 })
     }
 }

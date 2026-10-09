@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { errorText } from '@/lib/ai/trace'
+import { traceAfterResponse } from '@/lib/ai/trace-after'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -105,9 +107,12 @@ ${exerciseLines}
 Output format (cycle_length MUST be ${numDays}):
 {"action":"generate_routine","message":"encouraging summary","cycle_length":${numDays},"routines":[{"name":"Push Day","name_zh_tw":"推日","day_indices":[1,4],"exercises":[{"exercise_id":"uuid","exercise_name":"Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
 
+    const model = 'claude-sonnet-4-6'
+    const traceInput = { collected, system: systemPrompt, user: userInfo }
+    const started = Date.now()
     try {
         const response = await client.messages.create({
-            model: 'claude-sonnet-4-6',
+            model,
             max_tokens: 4096,
             system: systemPrompt,
             messages: [{ role: 'user', content: userInfo }],
@@ -115,6 +120,11 @@ Output format (cycle_length MUST be ${numDays}):
 
         const rawText = response.content[0].type === 'text'
             ? response.content[0].text.trim() : ''
+        // An answer with no usable routine fails the request, so its trace counts as an error
+        const trace = (error: string | null) => traceAfterResponse({
+            userId: user.id, feature: 'coach_routine', model, servedModel: response.model, status: error ? 'error' : 'ok', error,
+            latencyMs: Date.now() - started, usage: [response.usage], input: traceInput, output: { text: rawText, stopReason: response.stop_reason },
+        })
 
         const startIdx = rawText.indexOf('{')
         const endIdx = rawText.lastIndexOf('}')
@@ -125,14 +135,20 @@ Output format (cycle_length MUST be ${numDays}):
                 if (parsed.action === 'generate_routine') {
                     // 強制確保 cycle_length 正確
                     parsed.cycle_length = numDays
+                    trace(null)
                     return NextResponse.json(parsed)
                 }
             } catch { /* 繼續 */ }
         }
 
+        trace('no valid routine in the output')
         return NextResponse.json({ error: 'Generation failed' }, { status: 500 })
     } catch (err) {
         console.error('Coach G generate error:', err)
+        traceAfterResponse({
+            userId: user.id, feature: 'coach_routine', model, status: 'error', error: errorText(err),
+            latencyMs: Date.now() - started, usage: [], input: traceInput,
+        })
         return NextResponse.json({ error: 'AI error' }, { status: 500 })
     }
 }

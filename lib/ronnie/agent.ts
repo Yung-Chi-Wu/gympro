@@ -113,47 +113,52 @@ export async function runRonnieTurn({
         }
     }
 
-    // The model now and then ends a turn with no text; one fresh sample usually answers
-    let emptyRetried = false
-    for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
-        // Out of tool rounds: one last call without tools, so the work done is summarised, not lost
-        const lastRound = round === MAX_TOOL_ROUNDS
-        const response = await client.messages.create({
-            model,
-            max_tokens: 1024,
-            // The system prompt and tools are the same all day; the automatic breakpoint lets each
-            // tool round reuse the conversation so far. Below the model's minimum it isn't cached.
-            system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
-            cache_control: { type: 'ephemeral' },
-            tools: RONNIE_TOOLS,
-            ...(lastRound ? { tool_choice: { type: 'none' as const } } : {}),
-            messages: compactHistory(history),
-            ...options.params,
-        }, options.headers ? { headers: options.headers } : undefined)
-        usage.push(response.usage)
-        servedModel = response.model
+    // A failed call still reports what the turn used and did, for its trace
+    try {
+        // The model now and then ends a turn with no text; one fresh sample usually answers
+        let emptyRetried = false
+        for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
+            // Out of tool rounds: one last call without tools, so the work done is summarised, not lost
+            const lastRound = round === MAX_TOOL_ROUNDS
+            const response = await client.messages.create({
+                model,
+                max_tokens: 1024,
+                // The system prompt and tools are the same all day; the automatic breakpoint lets each
+                // tool round reuse the conversation so far. Below the model's minimum it isn't cached.
+                system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+                cache_control: { type: 'ephemeral' },
+                tools: RONNIE_TOOLS,
+                ...(lastRound ? { tool_choice: { type: 'none' as const } } : {}),
+                messages: compactHistory(history),
+                ...options.params,
+            }, options.headers ? { headers: options.headers } : undefined)
+            usage.push(response.usage)
+            servedModel = response.model
 
-        if (response.stop_reason !== 'tool_use') {
-            if (!textOf(response.content).trim() && !lastRound && !emptyRetried) {
-                emptyRetried = true
-                continue
+            if (response.stop_reason !== 'tool_use') {
+                if (!textOf(response.content).trim() && !lastRound && !emptyRetried) {
+                    emptyRetried = true
+                    continue
+                }
+                return finish(response.content)
             }
-            return finish(response.content)
+
+            const toolResults: Anthropic.ToolResultBlockParam[] = await Promise.all(
+                response.content
+                    .filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use')
+                    .map(async (tb) => {
+                        const input = tb.input as Record<string, string>
+                        const result = await executor.executeTool(tb.name, input)
+                        toolCalls.push({ name: tb.name, input, result })
+                        return { type: 'tool_result' as const, tool_use_id: tb.id, content: result }
+                    })
+            )
+            history.push({ role: 'assistant', content: response.content }, { role: 'user', content: toolResults })
         }
 
-        const toolResults: Anthropic.ToolResultBlockParam[] = await Promise.all(
-            response.content
-                .filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use')
-                .map(async (tb) => {
-                    const input = tb.input as Record<string, string>
-                    const result = await executor.executeTool(tb.name, input)
-                    toolCalls.push({ name: tb.name, input, result })
-                    return { type: 'tool_result' as const, tool_use_id: tb.id, content: result }
-                })
-        )
-        history.push({ role: 'assistant', content: response.content }, { role: 'user', content: toolResults })
+        // Unreachable: the last round runs with tool_choice none
+        return finish([])
+    } catch (err) {
+        throw Object.assign(err instanceof Error ? err : new Error(String(err)), { usage, toolCalls, servedModel })
     }
-
-    // Unreachable: the last round runs with tool_choice none
-    return finish([])
 }

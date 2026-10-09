@@ -5,7 +5,8 @@ import type { AnalysisRequestMessage } from './types'
 
 // Runs every hour from EventBridge Scheduler. Each user's report is due once
 // their period has ended in their own time zone, so an hourly sweep reaches
-// every time zone within an hour of local midnight.
+// every time zone within an hour of local midnight. It also deletes AI traces
+// past their retention.
 //
 // Idempotent: a report row is claimed with insert-or-ignore on
 // (user_id, period_start), and only rows this run created are queued. Repeated
@@ -13,6 +14,9 @@ import type { AnalysisRequestMessage } from './types'
 // or from an older manual check-in), are skipped.
 
 const sqs = new SQSClient({})
+
+/** AI traces hold users' messages; they are kept this long for evals and debugging (lib/ai/trace.ts) */
+const TRACE_RETENTION_DAYS = 90
 
 interface ProfileRow {
     user_id: string
@@ -31,6 +35,11 @@ export async function handler(): Promise<void> {
     if (!queueUrl) throw new Error('SQS_QUEUE_URL environment variable is not set')
 
     const supabase = await getSupabaseClient()
+
+    const cutoff = new Date(Date.now() - TRACE_RETENTION_DAYS * 86_400_000).toISOString()
+    const { error: traceError } = await supabase.from('ai_traces').delete().lt('created_at', cutoff)
+    if (traceError) console.error(`Old AI traces not deleted: ${traceError.message}`)
+
     const [profilesResult, cyclesResult] = await Promise.all([
         supabase.from('user_profiles').select('user_id, timezone, language'),
         supabase.from('training_cycles').select('user_id, cycle_length, start_date'),
