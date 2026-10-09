@@ -1,10 +1,13 @@
 {
     "nav": {
-        "dashboard": "Home",
+        "dashboard": "Today",
         "routines": "Routines",
         "history": "History",
         "settings": "Settings",
-        "logout": "Log out"
+        "logout": "Log out",
+        "askRonnie": "Ask Ronnie",
+        "openRonnie": "Open Ronnie",
+        "closeRonnie": "Close Ronnie"
     },
     "welcome": {
         "meta": {

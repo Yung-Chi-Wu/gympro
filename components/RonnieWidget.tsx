@@ -1,15 +1,47 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import type { PointerEvent as ReactPointerEvent } from 'react'
+import { useTranslations } from 'next-intl'
 import type { DisplayItem, ProposalCard, ProposalStatus, RecommendationCard } from '@/lib/ronnie/conversation'
 import { describeProposal } from '@/lib/ronnie/events'
-import { isSubmitEnter } from '@/lib/keyboard'
+import { isSubmitEnter, useKeyboardOpen } from '@/lib/keyboard'
+import { Icon } from './Icon'
 
 // Ronnie's chat window. The conversation lives on the server (one per day); this
 // shows it, sends one message at a time, and handles the cards' buttons:
 //   proposal: Confirm applies a routine change - a removal asks a second time first
 //   recommendation: Add to today, or Swap (removes the exercise it replaces and adds it)
 // Each button's outcome is recorded in the conversation by the server, so Ronnie knows.
+//
+// Where it sits: on a phone, a round button the user can drag to either edge opens the
+// chat full screen. From md up there is no button: 問 Ronnie in the sidebar opens the chat
+// as a column on the right, which narrows the page instead of covering it.
+
+interface RonnieState {
+    isOpen: boolean
+    open: () => void
+    close: () => void
+    toggle: () => void
+}
+
+const RonnieContext = createContext<RonnieState | null>(null)
+
+/** Whether Ronnie is open, shared by the widget and the sidebar's 問 Ronnie */
+export function RonnieProvider({ children }: { children: React.ReactNode }) {
+    const [isOpen, setIsOpen] = useState(false)
+    const open = useCallback(() => setIsOpen(true), [])
+    const close = useCallback(() => setIsOpen(false), [])
+    const toggle = useCallback(() => setIsOpen((v) => !v), [])
+    const value = useMemo(() => ({ isOpen, open, close, toggle }), [isOpen, open, close, toggle])
+    return <RonnieContext.Provider value={value}>{children}</RonnieContext.Provider>
+}
+
+export function useRonnie(): RonnieState {
+    const state = useContext(RonnieContext)
+    if (!state) throw new Error('useRonnie needs a RonnieProvider')
+    return state
+}
 
 interface RonnieWidgetProps {
     language: string
@@ -23,7 +55,8 @@ const ACCENT = '#C8955A'
 
 export function RonnieWidget({ language }: RonnieWidgetProps) {
     const zh = language === 'zh-TW'
-    const [isOpen, setIsOpen] = useState(false)
+    const { isOpen, open: setOpen, close } = useRonnie()
+    const tNav = useTranslations('nav')
     const [items, setItems] = useState<Item[]>([])
     const [loaded, setLoaded] = useState(false)
     const [input, setInput] = useState('')
@@ -49,18 +82,24 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         window.dispatchEvent(new CustomEvent('ronnie-routine-changed'))
     }
 
-    async function open() {
-        setIsOpen(true)
-        if (loaded) return
-        try {
-            const res = await fetch('/api/ai/coach')
-            const data = await res.json().catch(() => null)
-            if (res.ok && Array.isArray(data?.items)) setItems(data.items)
-            setLoaded(true)
-        } catch (err) {
-            console.error(err)
+    // The conversation loads the first time Ronnie opens, from the button or the sidebar
+    useEffect(() => {
+        if (!isOpen || loaded) return
+        let cancelled = false
+        async function load() {
+            try {
+                const res = await fetch('/api/ai/coach')
+                const data = await res.json().catch(() => null)
+                if (cancelled) return
+                if (res.ok && Array.isArray(data?.items)) setItems(data.items)
+                setLoaded(true)
+            } catch (err) {
+                console.error(err)
+            }
         }
-    }
+        void load()
+        return () => { cancelled = true }
+    }, [isOpen, loaded])
 
     async function send(text: string, editFrom?: number) {
         setIsLoading(true)
@@ -249,22 +288,15 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
 
     return (
         <>
-            {/* 懸浮按鈕 */}
-            {!isOpen && (
-                <button
-                    type="button"
-                    onClick={open}
-                    className="fixed bottom-24 right-4 sm:bottom-8 sm:right-8 z-40 w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
-                    style={{ backgroundColor: ACCENT }}
-                    aria-label="Open Ronnie"
-                >
-                    <span className="text-white font-bold text-lg">R</span>
-                </button>
-            )}
+            {/* 手機：可以拖曳的圓形按鈕 */}
+            {!isOpen && <RonnieButton label={tNav('openRonnie')} onOpen={setOpen} />}
 
-            {/* Chat Widget */}
+            {/* 對話：手機全螢幕；md 以上是右邊一欄，主畫面跟著變窄 */}
             {isOpen && (
-                <div className="fixed bottom-24 right-4 sm:bottom-8 sm:right-8 z-50 w-[340px] sm:w-[380px] h-[520px] rounded-2xl bg-white dark:bg-[#2C2923] shadow-2xl flex flex-col overflow-hidden border border-ink/10 dark:border-white/10">
+                <aside
+                    aria-label="Ronnie"
+                    className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-card pt-[env(safe-area-inset-top)] md:relative md:inset-auto md:z-auto md:h-dvh md:w-[340px] md:shrink-0 md:border-l md:border-line md:pt-0 xl:w-[380px]"
+                >
 
                     {/* Header */}
                     <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ backgroundColor: '#26241F' }}>
@@ -287,9 +319,9 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                     {zh ? '清除' : 'Clear'}
                                 </button>
                             )}
-                            <button type="button" onClick={() => setIsOpen(false)}
-                                className="text-white/50 hover:text-white transition-colors text-lg">
-                                ✕
+                            <button type="button" onClick={close} aria-label={tNav('closeRonnie')}
+                                className="-m-1.5 p-1.5 text-white/50 hover:text-white transition-colors">
+                                <Icon name="close" className="size-5" />
                             </button>
                         </div>
                     </div>
@@ -421,7 +453,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                     </div>
 
                     {/* Input */}
-                    <div className="p-3 border-t border-ink/10 dark:border-white/10 shrink-0">
+                    <div className="p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-3 border-t border-ink/10 dark:border-white/10 shrink-0">
                         <div className="flex gap-2">
                             <input
                                 ref={inputRef}
@@ -466,8 +498,175 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                             </div>
                         </div>
                     )}
-                </div>
+                </aside>
             )}
         </>
+    )
+}
+
+// ---------- The phone's button ----------
+
+const BUTTON_SIZE = 52
+const EDGE = 16
+/** A press that moves less than this is a tap, so a slightly shaky tap still opens the chat */
+const DRAG_THRESHOLD = 6
+const SPOT_KEY = 'gympro.ronnieButton'
+
+interface ButtonSpot {
+    side: 'left' | 'right'
+    /** Top edge in px from the top of the screen; the CSS keeps it between the top bar and the tab bar */
+    top: number
+}
+
+// The bottom right, just above the tab bar
+const DEFAULT_SPOT: ButtonSpot = { side: 'right', top: 100_000 }
+
+// Where the user left the button, kept in localStorage. Storage can be missing or refuse
+// writes (private browsing); the spot is then remembered until the page reloads.
+let savedSpot: string | null | undefined
+const spotListeners = new Set<() => void>()
+
+function getSpotSnapshot(): string | null {
+    if (savedSpot === undefined) {
+        try {
+            savedSpot = localStorage.getItem(SPOT_KEY)
+        } catch {
+            savedSpot = null
+        }
+    }
+    return savedSpot
+}
+
+function subscribeSpot(listener: () => void) {
+    spotListeners.add(listener)
+    return () => { spotListeners.delete(listener) }
+}
+
+function saveSpot(spot: ButtonSpot) {
+    savedSpot = JSON.stringify(spot)
+    try {
+        localStorage.setItem(SPOT_KEY, savedSpot)
+    } catch {
+        // Kept in memory only
+    }
+    spotListeners.forEach((listener) => listener())
+}
+
+function parseSpot(raw: string | null): ButtonSpot {
+    if (!raw) return DEFAULT_SPOT
+    try {
+        const v = JSON.parse(raw)
+        if ((v?.side === 'left' || v?.side === 'right') && Number.isFinite(v?.top)) return { side: v.side, top: v.top }
+    } catch {
+        // Not a spot this version wrote: start over
+    }
+    return DEFAULT_SPOT
+}
+
+const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min), Math.max(min, max))
+
+/**
+ * The round button that opens Ronnie on a phone. It can be dragged anywhere between the
+ * top bar and the tab bar; let go, it slides to the nearer side and stays there next time.
+ * A press that barely moves is a tap and opens the chat. It hides while the keyboard is open.
+ */
+function RonnieButton({ label, onOpen }: { label: string; onOpen: () => void }) {
+    const keyboardOpen = useKeyboardOpen()
+    const raw = useSyncExternalStore(subscribeSpot, getSpotSnapshot, () => null)
+    const spot = useMemo(() => parseSpot(raw), [raw])
+    // While dragging: the button's top-left corner, in px
+    const [dragAt, setDragAt] = useState<{ x: number; y: number } | null>(null)
+    const press = useRef<{
+        id: number
+        startX: number
+        startY: number
+        offsetX: number
+        offsetY: number
+        minY: number
+        maxY: number
+        x: number
+        y: number
+        moved: boolean
+    } | null>(null)
+    // A drag ends in a click too; that click mustn't open the chat
+    const justDragged = useRef(false)
+
+    if (keyboardOpen) return null
+
+    function handlePointerDown(e: ReactPointerEvent<HTMLButtonElement>) {
+        if (e.button !== 0) return
+        justDragged.current = false
+        const rect = e.currentTarget.getBoundingClientRect()
+        // The free area: below the phone's top bar, above its tab bar
+        const bar = document.querySelector('[data-app-bar]')?.getBoundingClientRect()
+        const tabs = document.querySelector('.bottom-nav')?.getBoundingClientRect()
+        press.current = {
+            id: e.pointerId,
+            startX: e.clientX,
+            startY: e.clientY,
+            offsetX: e.clientX - rect.left,
+            offsetY: e.clientY - rect.top,
+            minY: (bar?.bottom ?? 0) + 8,
+            maxY: (tabs?.top ?? window.innerHeight) - 8 - BUTTON_SIZE,
+            x: rect.left,
+            y: rect.top,
+            moved: false,
+        }
+        e.currentTarget.setPointerCapture(e.pointerId)
+    }
+
+    function handlePointerMove(e: ReactPointerEvent<HTMLButtonElement>) {
+        const p = press.current
+        if (!p || p.id !== e.pointerId) return
+        if (!p.moved && Math.hypot(e.clientX - p.startX, e.clientY - p.startY) < DRAG_THRESHOLD) return
+        p.moved = true
+        p.x = clamp(e.clientX - p.offsetX, EDGE / 2, window.innerWidth - BUTTON_SIZE - EDGE / 2)
+        p.y = clamp(e.clientY - p.offsetY, p.minY, p.maxY)
+        setDragAt({ x: p.x, y: p.y })
+    }
+
+    function handlePointerUp(e: ReactPointerEvent<HTMLButtonElement>) {
+        const p = press.current
+        if (!p || p.id !== e.pointerId) return
+        press.current = null
+        if (!p.moved) return
+        justDragged.current = true
+        saveSpot({ side: p.x + BUTTON_SIZE / 2 < window.innerWidth / 2 ? 'left' : 'right', top: Math.round(p.y) })
+        setDragAt(null)
+    }
+
+    function handlePointerCancel() {
+        press.current = null
+        setDragAt(null)
+    }
+
+    const style = dragAt
+        ? { left: dragAt.x, top: dragAt.y, transition: 'none' }
+        : {
+            left: spot.side === 'left' ? `${EDGE}px` : `calc(100% - ${EDGE + BUTTON_SIZE}px)`,
+            // 60px: the top bar and a gap; 116px: the tab bar, a gap and the button
+            top: `clamp(calc(60px + env(safe-area-inset-top)), ${spot.top}px, calc(100dvh - 116px - env(safe-area-inset-bottom)))`,
+        }
+
+    return (
+        <button
+            type="button"
+            aria-label={label}
+            onClick={() => {
+                if (justDragged.current) {
+                    justDragged.current = false
+                    return
+                }
+                onOpen()
+            }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+            style={style}
+            className="fixed z-40 grid size-[52px] touch-none select-none place-items-center rounded-full bg-ink text-card shadow-[0_6px_18px_rgb(0_0_0/0.18)] transition-[left,top] duration-200 ease-out active:scale-95 md:hidden"
+        >
+            <Icon name="chat" className="size-6" />
+        </button>
     )
 }
