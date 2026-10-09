@@ -157,17 +157,38 @@ const cases = [
         },
         why: '使用者的原句型：「要換 X 有什麼動作」。v18 只給「加入今天」卡片，按了不會移除肩推；v19 改成直接換，使用者不要：要先推薦、確認後同時加入和移除。',
     },
+    // The joint rule (agreed with the user 2026-10-08): pain on an exercise that loads the joint
+    // more than lightly means a substitute with low load on it; pain on one that already loads
+    // it lightly means leaving that muscle for today. Pushdowns are low on the elbow.
     {
         id: 'swap-pick-en',
         language: 'en',
         turns: ["My elbow's bugging me today. What should I do instead of triceps pushdowns?"],
         expect: {
+            tools_forbidden: ROUTINE_TOOLS,
+            writes: [],
+            judge: "The user's elbow bothers them on triceps pushdowns, which already put little load on the elbow. Ronnie suggests leaving triceps out today rather than swapping to another triceps exercise; it may offer to take the pushdowns off today's workout, but changes nothing yet. Fail if it recommends another triceps exercise as the fix, or says the workout was already changed. The reply does not diagnose, and says to stop if the pain is sharp or lasting.",
+        },
+        why: '手肘痛的是三頭下壓，它本來對手肘的負擔就低：照 2026-10-08 跟使用者定的規則，今天先跳過三頭，不換成別的三頭動作。',
+    },
+    {
+        id: 'elbow-high-recommend-zh',
+        language: 'zh-TW',
+        turns: ['我做過頭三頭伸展的時候手肘會痛，練三頭可以改做什麼？'],
+        expect: {
             tools_required: ['recommend_exercise'],
             tools_forbidden: ROUTINE_TOOLS,
             writes: [],
-            judge: SWAP_CARD_JUDGE("today's triceps pushdowns because of the elbow", 'replaces_exercise_id set to the Triceps Pushdown', 'easier on the elbow'),
+            judge: 'Overhead triceps extensions put a high load on the elbow and hurt the user. Ronnie recommends one triceps exercise with low elbow load (in this library, the Triceps Pushdown) with recommend_exercise, and changes nothing. Fail if it recommends a triceps exercise that loads the elbow more than lightly (overhead extensions, dips), lists several without picking one, or diagnoses. It says to stop if the pain is sharp or lasting.',
         },
-        why: '同上（英文），三頭下壓、手肘不舒服。',
+        why: '過頭三頭伸展對手肘負擔高：換成同肌群、手肘負擔低的動作（三頭下壓）。搜尋結果會列出每個動作的關節負擔，也可以用 low_load_on 篩選。',
+    },
+    {
+        id: 'muscle-side-delts-zh',
+        language: 'zh-TW',
+        turns: ['我想加一個練肩膀中束的動作'],
+        expect: { tools_required: ['recommend_exercise'], tools_forbidden: ROUTINE_TOOLS, writes: [], mentions: ['側平舉'] },
+        why: '指定細部肌群（中束）：動作庫裡主要練中束的只有側平舉。搜尋可以用 muscle: side_delts 篩選。',
     },
     {
         id: 'swap-confirm-zh',

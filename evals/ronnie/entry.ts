@@ -36,15 +36,14 @@ function fixtureNearest() {
     // One embedder for the whole run, so parallel conversations share one cache
     embedTexts ??= cachedEmbedder(join(process.cwd(), 'evals', 'ronnie', '.cache'), SEARCH_EMBEDDING_MODEL)
     const embedder = embedTexts
-    return async (query: string, muscleGroup?: string) => {
+    return async (query: string) => {
         docVectors ??= embedder(EXERCISES.map((e) => exerciseDocument(e)), 'document')
         const docs = await docVectors
         const [q] = await embedder([query], 'query')
         return EXERCISES
-            .map((e, i) => ({ id: e.id, group: e.muscle_group, score: dot(q, docs[i]) }))
-            .filter((x) => !muscleGroup || x.group === muscleGroup)
+            .map((e, i) => ({ id: e.id, score: dot(q, docs[i]) }))
             .sort((a, b) => b.score - a.score)
-            .slice(0, 20)
+            .slice(0, 50)
             .map((x) => x.id)
     }
 }

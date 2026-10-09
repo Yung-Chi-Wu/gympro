@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import attributes from '../../supabase/data/exercise-attributes.json'
 import type { PlannedExercise, RonnieData, RoutineProposal } from '../../lib/ronnie/data'
 import type { ResolvedRow } from '../../lib/ronnie/events'
 import { dateGuide, localDateStr } from '../../lib/ronnie/time'
@@ -52,11 +53,32 @@ const EXERCISE_LIST: [string, string, string][] = [
     ['Burpee', '波比跳', 'core'],
 ]
 
+// Fixture names that differ from the real library's, so each exercise takes the
+// reviewed muscles and joint load of its real counterpart
+const LIBRARY_NAME: Record<string, string> = {
+    'Incline Dumbbell Press': 'Incline Dumbbell Bench Press',
+    'Incline Barbell Press': 'Incline Barbell Bench Press',
+    'Low-to-High Cable Fly': 'Low Cable Fly',
+    'One-Arm Dumbbell Row': 'Single-Arm Dumbbell Row',
+    'Reverse Pec Deck': 'Rear Delt Machine',
+    'Rear Delt Dumbbell Fly': 'Rear Delt Fly',
+    Dips: 'Triceps Dip',
+    'Back Squat': 'Barbell Back Squat',
+    'Calf Raise': 'Standing Calf Raise',
+}
+const attributesOf = (name: string) => {
+    const real = (LIBRARY_NAME[name] ?? name).toLowerCase()
+    const a = attributes.find((x) => x.name.toLowerCase() === real)
+    if (!a) throw new Error(`fixture exercise ${name} has no counterpart in exercise-attributes.json`)
+    return { primary_muscles: a.primary, secondary_muscles: a.secondary, joint_load: a.jointLoad as Record<string, string> }
+}
+
 export const EXERCISES = EXERCISE_LIST.map(([name, name_zh_tw, muscle_group]) => ({
     id: idFor(name),
     name,
     name_zh_tw,
     muscle_group,
+    ...attributesOf(name),
 }))
 const byName = new Map(EXERCISES.map((e) => [e.name, e]))
 export const exerciseId = (name: string) => {
@@ -194,8 +216,8 @@ export function createFixtureData({ nearest }: { nearest?: RonnieData['nearestEx
         async listExercises() {
             return EXERCISES
         },
-        async nearestExercises(query, muscleGroup) {
-            return nearest ? nearest(query, muscleGroup) : null
+        async nearestExercises(query) {
+            return nearest ? nearest(query) : null
         },
         async getWorkoutsBetween(startIso, endIso) {
             return workouts
