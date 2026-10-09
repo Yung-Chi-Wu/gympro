@@ -11,8 +11,8 @@ import { inputsFor, SCENARIOS } from './scenarios.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const worker = join(here, '..', '..')
-execFileSync(join(worker, 'node_modules/.bin/esbuild'), ['evals/report-v3/entry.ts', '--bundle', '--platform=node', '--format=cjs', '--outfile=evals/report-v3/dist/analyze.cjs', '--log-level=warning'], { cwd: worker, stdio: 'inherit' })
-const { analyze } = createRequire(import.meta.url)(join(here, 'dist', 'analyze.cjs'))
+execFileSync(join(worker, 'node_modules/.bin/esbuild'), ['evals/report-v3/entry.ts', '--bundle', '--platform=node', '--format=cjs', '--outfile=evals/report-v3/dist/report.cjs', '--log-level=warning'], { cwd: worker, stdio: 'inherit' })
+const { analyze } = createRequire(import.meta.url)(join(here, 'dist', 'report.cjs'))
 
 const show = process.argv.includes('--show') ? process.argv[process.argv.indexOf('--show') + 1] : null
 let failed = 0

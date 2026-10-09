@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { getSecret } from './secrets'
 import type { AiRecommendation, TrainingPeriodSummary } from './types'
+import type { ReportV3 } from './report/types'
 
 let cachedClient: SupabaseClient | null = null
 
@@ -115,6 +116,30 @@ export async function saveRecommendation(
     if (error) {
         throw new Error(`Failed to save recommendation: ${error.message}`)
     }
+}
+
+/** A finished version 3 report. */
+export async function saveReport(
+    supabase: SupabaseClient,
+    userId: string,
+    periodStart: string,
+    report: ReportV3,
+    userNote: string | null
+): Promise<void> {
+    const { error } = await supabase.from('period_reports').upsert(
+        {
+            user_id: userId,
+            period_start: periodStart,
+            status: 'completed',
+            recommendation: report,
+            context_summary: null,
+            user_note: userNote,
+            completed_at: new Date().toISOString(),
+            pdf_status: 'not_applicable',
+        },
+        { onConflict: 'user_id,period_start' }
+    )
+    if (error) throw new Error(`Failed to save report: ${error.message}`)
 }
 
 export async function saveFailedStatus(
