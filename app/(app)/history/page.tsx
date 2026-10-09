@@ -22,7 +22,7 @@ export default async function HistoryPage() {
     const [profileResult, cycleResult] = await Promise.all([
         supabase
             .from('user_profiles')
-            .select('timezone, language, weight_unit')
+            .select('timezone, language, weight_unit, distance_unit')
             .eq('user_id', user.id)
             .maybeSingle(),
         supabase
@@ -96,6 +96,7 @@ export default async function HistoryPage() {
                 reports={reportsResult.data ?? []}
                 language={language}
                 weightUnit={profileResult.data?.weight_unit === 'lb' ? 'lb' : 'kg'}
+                distanceUnit={profileResult.data?.distance_unit === 'mi' ? 'mi' : 'km'}
                 weightEntries={(weightResult.data ?? []).map((e) => ({
                     id: e.id,
                     recordedAt: e.recorded_at,

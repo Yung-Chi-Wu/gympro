@@ -11,6 +11,10 @@ import { WeightTrendCard } from '@/components/WeightTrendCard'
 import type { PeriodOption } from '@/app/(app)/history/page'
 import type { AiRecommendation } from './types'
 import type { WeightUnit } from '@/lib/weight-unit'
+import type { DistanceUnit } from '@/lib/distance-unit'
+import type { LogType } from '@/lib/exercise-attributes'
+import type { SetValues } from '@/lib/set-log'
+import { compactSet } from './set-format'
 import { isReportV3, ReportView } from './report/ReportView'
 import { FailedReport } from './report/FailedReport'
 
@@ -34,6 +38,7 @@ interface HistoryListProps {
     reports: ReportRow[]
     language: string
     weightUnit: WeightUnit
+    distanceUnit: DistanceUnit
     weightEntries: WeightEntry[]
 }
 
@@ -44,7 +49,7 @@ const SEVERITY_STYLES: Record<string, string> = {
     severe: 'bg-red-50 text-red-800 border-red-200',
 }
 
-export function HistoryList({ userId, periods, reports, language, weightUnit, weightEntries }: HistoryListProps) {
+export function HistoryList({ userId, periods, reports, language, weightUnit, distanceUnit, weightEntries }: HistoryListProps) {
     const zh = language === 'zh-TW'
     const reportByPeriodStart = new Map(reports.map((r) => [r.period_start, r]))
 
@@ -66,6 +71,7 @@ export function HistoryList({ userId, periods, reports, language, weightUnit, we
                             userId={userId}
                             language={language}
                             weightUnit={weightUnit}
+                            distanceUnit={distanceUnit}
                         />
                     ))}
                 </div>
@@ -80,9 +86,10 @@ interface PeriodRowProps {
     userId: string
     language: string
     weightUnit: WeightUnit
+    distanceUnit: DistanceUnit
 }
 
-function PeriodRow({ period, report, userId, language, weightUnit }: PeriodRowProps) {
+function PeriodRow({ period, report, userId, language, weightUnit, distanceUnit }: PeriodRowProps) {
     return (
         <div className="rounded-xl border border-ink/10 bg-white overflow-hidden">
             <div className="px-4 py-3 border-b border-ink/10 bg-ink/[0.02]">
@@ -96,6 +103,8 @@ function PeriodRow({ period, report, userId, language, weightUnit }: PeriodRowPr
                 periodEnd={period.end}
                 userId={userId}
                 language={language}
+                weightUnit={weightUnit}
+                distanceUnit={distanceUnit}
             />
 
             <ReportSection report={report} language={language} weightUnit={weightUnit} />
@@ -108,13 +117,18 @@ function TrainingLogSection({
     periodEnd,
     userId,
     language,
+    weightUnit,
+    distanceUnit,
 }: {
     periodStart: string
     periodEnd: string
     userId: string
     language: string
+    weightUnit: WeightUnit
+    distanceUnit: DistanceUnit
 }) {
     const zh = language === 'zh-TW'
+    const ts = useTranslations('sets')
     const [isOpen, setIsOpen] = useState(false)
     const [loaded, setLoaded] = useState(false)
     const [workouts, setWorkouts] = useState<WorkoutDay[]>([])
@@ -176,7 +190,7 @@ function TrainingLogSection({
                                             <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
                                                 {ex.sets.map((s, i) => (
                                                     <span key={i} className="text-xs text-ink/40 dark:text-white/40 font-mono whitespace-nowrap">
-                                                        {s.reps}×{s.weightKg}kg
+                                                        {compactSet(ts, ex.logType, s, { weight: weightUnit, distance: distanceUnit })}
                                                     </span>
                                                 ))}
                                             </div>
@@ -368,7 +382,8 @@ interface WorkoutDay {
     exercises: {
         exerciseId: string
         name: string
-        sets: { reps: number; weightKg: number }[]
+        logType: LogType
+        sets: SetValues[]
     }[]
 }
 

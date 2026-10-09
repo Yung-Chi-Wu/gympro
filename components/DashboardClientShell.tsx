@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
 import { TodayWorkoutCard } from './TodayWorkoutCard'
 import { PeriodLogCard } from './PeriodLogCard'
 import type { ExerciseOption } from './log-types'
 import type { TodayExercise } from '@/lib/today-workout'
 import type { WeightUnit } from '@/lib/weight-unit'
+import type { DistanceUnit } from '@/lib/distance-unit'
 import type { Period } from '@/lib/periods'
 
 interface DashboardClientShellProps {
@@ -22,11 +22,13 @@ interface DashboardClientShellProps {
     allExercises: ExerciseOption[]
     language: string
     weightUnit: WeightUnit
+    distanceUnit: DistanceUnit
     routineName: string | null
     // PeriodLogCard props
     latestWeightKg: number | null
     period: Period | null
     periodNote: string
+    // Today's note, in today's log
     dayNote: string
 }
 
@@ -42,15 +44,15 @@ export function DashboardClientShell({
     initialExercises,
     allExercises,
     language,
-    weightUnit: initialWeightUnit,
+    weightUnit,
+    distanceUnit,
     routineName,
     latestWeightKg,
     period,
     periodNote,
     dayNote,
 }: DashboardClientShellProps) {
-    const [weightUnit, setWeightUnit] = useState<WeightUnit>(initialWeightUnit)
-
+    // The reading unit comes from Settings only; the logging card picks kg/lb per exercise
     return (
         <>
             <TodayWorkoutCard
@@ -66,8 +68,9 @@ export function DashboardClientShell({
                 allExercises={allExercises}
                 language={language}
                 weightUnit={weightUnit}
+                distanceUnit={distanceUnit}
                 routineName={routineName}
-                onWeightUnitChange={setWeightUnit}
+                initialDayNote={dayNote}
             />
             <PeriodLogCard
                 language={language}
@@ -75,7 +78,6 @@ export function DashboardClientShell({
                 weightUnit={weightUnit}
                 period={period}
                 initialNote={periodNote}
-                initialDayNote={dayNote}
             />
         </>
     )

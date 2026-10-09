@@ -101,6 +101,35 @@ export type Database = {
         }
         Relationships: []
       }
+      exercise_log_units: {
+        Row: {
+          exercise_id: string
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          exercise_id: string
+          unit: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          exercise_id?: string
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercise_log_units_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercises: {
         Row: {
           created_at: string
@@ -370,6 +399,7 @@ export type Database = {
           created_at: string
           date_of_birth: string | null
           display_name: string | null
+          distance_unit: string
           height_cm: number | null
           height_updated_at: string | null
           language: string
@@ -385,6 +415,7 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           display_name?: string | null
+          distance_unit?: string
           height_cm?: number | null
           height_updated_at?: string | null
           language?: string
@@ -400,6 +431,7 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           display_name?: string | null
+          distance_unit?: string
           height_cm?: number | null
           height_updated_at?: string | null
           language?: string
@@ -454,31 +486,52 @@ export type Database = {
       }
       workout_sets: {
         Row: {
+          assist_kg: number | null
           created_at: string
+          distance_m: number | null
+          duration_s: number | null
           exercise_id: string
           id: string
+          incline_pct: number | null
+          input_unit: string | null
+          level: number | null
           reps: number
           set_number: number
+          speed_kmh: number | null
           user_id: string
           weight_kg: number
           workout_id: string
         }
         Insert: {
+          assist_kg?: number | null
           created_at?: string
+          distance_m?: number | null
+          duration_s?: number | null
           exercise_id: string
           id?: string
+          incline_pct?: number | null
+          input_unit?: string | null
+          level?: number | null
           reps: number
           set_number: number
+          speed_kmh?: number | null
           user_id: string
           weight_kg: number
           workout_id: string
         }
         Update: {
+          assist_kg?: number | null
           created_at?: string
+          distance_m?: number | null
+          duration_s?: number | null
           exercise_id?: string
           id?: string
+          incline_pct?: number | null
+          input_unit?: string | null
+          level?: number | null
           reps?: number
           set_number?: number
+          speed_kmh?: number | null
           user_id?: string
           weight_kg?: number
           workout_id?: string
