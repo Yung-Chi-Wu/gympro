@@ -14,7 +14,7 @@ import { join } from 'node:path'
 // Bundled by `npm run eval:ronnie:build` into dist/ronnie.cjs for run-eval.mjs.
 // Runs the production Ronnie code (lib/ronnie) against the fixture user.
 
-export { RONNIE_MODEL, EXERCISES, ROUTINES, FIXTURE_USER, buildSystemPrompt }
+export { RONNIE_MODEL, EXERCISES, ROUTINES, FIXTURE_USER, FIXTURE_NOW, FIXTURE_TIME_ZONE, buildSystemPrompt, createFixtureData, createRonnieExecutor }
 
 let client: Anthropic | null = null
 
@@ -105,6 +105,7 @@ export async function runConversation({
             language,
             timeZone: FIXTURE_TIME_ZONE,
             todayRoutineName: FIXTURE_USER.todayRoutineName,
+            weightUnit: FIXTURE_USER.weightUnit === 'lb' ? 'lb' : 'kg',
             now: () => FIXTURE_NOW,
         })
         const writesBefore = writes.length

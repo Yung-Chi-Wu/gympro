@@ -3,6 +3,7 @@ import type { LibraryExercise, RonnieData, RoutineProposal } from './data'
 import { describeProposal } from './events'
 import { gatedSearch, latinTokens, searchLibrary } from './search'
 import { localDateStr, localDateToUtcRange } from './time'
+import { formatWeight, toDisplayWeight, type WeightUnit } from '../weight-unit'
 
 // Ronnie's tools. Results are for the model, so they are in English whatever the
 // user's language; exercise names follow the user's language (Ronnie quotes them),
@@ -14,6 +15,8 @@ export interface RonnieExecutorContext {
     language: string
     timeZone: string
     todayRoutineName: string | null
+    /** Sets are stored in kg; tool results give weights in the user's unit, which is what Ronnie must answer in */
+    weightUnit?: WeightUnit
     now?: () => Date
 }
 
@@ -80,7 +83,7 @@ const shiftDate = (iso: string, days: number) => {
 }
 const mondayOf = (iso: string) => shiftDate(iso, -((new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7))
 
-export function createRonnieExecutor({ data, language, timeZone, todayRoutineName, now = () => new Date() }: RonnieExecutorContext): RonnieExecutor {
+export function createRonnieExecutor({ data, language, timeZone, todayRoutineName, weightUnit = 'kg', now = () => new Date() }: RonnieExecutorContext): RonnieExecutor {
     const zh = language === 'zh-TW'
     let needsDashboardReload = false
     let removalAttempts = 0
@@ -91,7 +94,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
     const nameOf = (ex: { name: string; name_zh_tw: string | null } | null | undefined) =>
         (zh && ex?.name_zh_tw ? ex.name_zh_tw : ex?.name) ?? 'Unknown'
     // A bodyweight set is logged at 0 kg; said outright, since the model read 8×0kg as an assisted machine
-    const setText = (s: { reps: number; weight_kg: number }) => (s.weight_kg === 0 ? `${s.reps} reps (bodyweight)` : `${s.reps}×${s.weight_kg}kg`)
+    const setText = (s: { reps: number; weight_kg: number }) => (s.weight_kg === 0 ? `${s.reps} reps (bodyweight)` : `${s.reps}×${formatWeight(s.weight_kg, weightUnit)}`)
     const targets = (r: { target_sets: number | null; target_reps: number | null }) => `${r.target_sets ?? '?'} sets x ${r.target_reps ?? '?'} reps`
     /** A change to today's workout, worded for the user: also the tool's result. */
     const changed = (zhLine: string, enLine: string) => {
@@ -101,6 +104,10 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         return line
     }
     const todayRange = () => localDateToUtcRange(localDateStr(now(), timeZone), timeZone)
+    // One lookup of today's workout per turn: the model calls tools in parallel, and two removals
+    // each creating today's workout made two of them, so later changes went to the one not shown (2026-10-09)
+    let todayWorkout: Promise<string | null> | null = null
+    const ensureTodayWorkout = () => (todayWorkout ??= data.ensureTodayWorkout())
     const workoutsBetween = (from: string, to: string) =>
         data.getWorkoutsBetween(localDateToUtcRange(from, timeZone).start, localDateToUtcRange(to, timeZone).end)
 
@@ -175,7 +182,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         async add_exercise_today(input) {
             const exercise = await findExercise(input.exercise_id)
             if (!exercise) return UNKNOWN_ID
-            const workoutId = await data.ensureTodayWorkout()
+            const workoutId = await ensureTodayWorkout()
             if (!workoutId) return "Could not create today's workout"
             const error = await data.addPlannedExercise(workoutId, exercise.id)
             if (error) return `Not added: ${error}`
@@ -183,7 +190,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         },
 
         async remove_exercise_today(input) {
-            const workoutId = await data.ensureTodayWorkout()
+            const workoutId = await ensureTodayWorkout()
             if (!workoutId) return "Could not create today's workout"
             // A name is enough: needing an ID meant a lookup first, and the model sometimes stopped after it
             let id = input.exercise_id
@@ -201,6 +208,8 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
                 id = matches[0].exercise_id
                 name = nameOf(matches[0].exercises)
             }
+            // Called with an ID alone, the confirmation still names the exercise
+            name ||= nameOf(await findExercise(id))
             const { error, removed } = await data.removePlannedExercise(workoutId, id)
             if (error) return `Not removed: ${error}`
             // An unknown ID removes nothing: say so instead of a false success
@@ -318,7 +327,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
                 perExercise.set(st.exercise_id, e)
             }
             return [
-                `${label}: ${group.length} sessions, ${groupSets.length} sets, volume ${Math.round(volume).toLocaleString('en-US')} kg`,
+                `${label}: ${group.length} sessions, ${groupSets.length} sets, volume ${Math.round(toDisplayWeight(volume, weightUnit)).toLocaleString('en-US')} ${weightUnit}`,
                 `  By muscle group: ${[...muscles].map(([m, v]) => `${m} ${v.sets} sets (${v.sessions.size} sessions)`).join(', ')}`,
                 `  By exercise: ${[...perExercise].map(([id, v]) => `${nameOf(byId.get(id))} ${v.sets} sets (${v.sessions.size} sessions), best ${setText(v.best)}`).join('; ')}`,
             ].join('\n')
