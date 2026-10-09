@@ -1,17 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { logTypeOf, setValuesOf, type SetValues } from '@/lib/set-log'
+import { SET_COLUMNS } from '@/lib/today-workout'
 
-interface WorkoutSetRow {
+type WorkoutSetRow = Parameters<typeof setValuesOf>[0] & {
     id: string
     exercise_id: string
-    reps: number
-    weight_kg: number
     set_number: number
 }
 
 interface PlannedExerciseRow {
     exercise_id: string
-    exercises: { name: string; name_zh_tw: string | null } | null
+    exercises: { name: string; name_zh_tw: string | null; log_type: string | null } | null
 }
 
 interface WorkoutRow {
@@ -49,22 +49,22 @@ export async function GET(request: Request) {
         .from('workouts')
         .select(`
             id, title, performed_at,
-            workout_planned_exercises ( exercise_id, exercises ( name, name_zh_tw ) ),
-            workout_sets ( id, exercise_id, reps, weight_kg, set_number )
+            workout_planned_exercises ( exercise_id, exercises ( name, name_zh_tw, log_type ) ),
+            workout_sets ( id, exercise_id, set_number, ${SET_COLUMNS} )
         `)
         .eq('user_id', userId)
         .gte('performed_at', startDate.toISOString())
         .lte('performed_at', endDate.toISOString())
         .order('performed_at', { ascending: true })
 
-    const result = ((workouts as WorkoutRow[]) ?? [])
+    const result = ((workouts as unknown as WorkoutRow[]) ?? [])
         // 過濾掉完全沒有組數的 workout（空紀錄）
         .filter((w) => (w.workout_sets ?? []).length > 0)
         .map((w) => {
-            const setsByExercise = new Map<string, { reps: number; weightKg: number }[]>()
-            for (const s of w.workout_sets ?? []) {
+            const setsByExercise = new Map<string, SetValues[]>()
+            for (const s of [...(w.workout_sets ?? [])].sort((a, b) => a.set_number - b.set_number)) {
                 if (!setsByExercise.has(s.exercise_id)) setsByExercise.set(s.exercise_id, [])
-                setsByExercise.get(s.exercise_id)!.push({ reps: s.reps, weightKg: s.weight_kg })
+                setsByExercise.get(s.exercise_id)!.push(setValuesOf(s))
             }
 
             const exercises = (w.workout_planned_exercises ?? [])
@@ -73,6 +73,7 @@ export async function GET(request: Request) {
                     name: language === 'zh-TW' && p.exercises?.name_zh_tw
                         ? p.exercises.name_zh_tw
                         : p.exercises?.name ?? 'Unknown',
+                    logType: logTypeOf(p.exercises?.log_type),
                     sets: setsByExercise.get(p.exercise_id) ?? [],
                 }))
                 // 只顯示有登記組數的動作
