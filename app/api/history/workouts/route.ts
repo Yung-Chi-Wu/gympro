@@ -1,36 +1,25 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { logTypeOf, setValuesOf, type SetValues } from '@/lib/set-log'
-import { SET_COLUMNS } from '@/lib/today-workout'
+import { getEffectiveLanguage } from '@/lib/get-language'
+import { daysBetween } from '@/lib/periods'
+import { isDate, MAX_RANGE_DAYS } from '@/lib/history'
+import { loadHistoryDays, loadReportStatuses } from '@/lib/history-data'
 
-type WorkoutSetRow = Parameters<typeof setValuesOf>[0] & {
-    id: string
-    exercise_id: string
-    set_number: number
-}
-
-interface PlannedExerciseRow {
-    exercise_id: string
-    exercises: { name: string; name_zh_tw: string | null; log_type: string | null } | null
-}
-
-interface WorkoutRow {
-    id: string
-    title: string | null
-    performed_at: string
-    workout_planned_exercises: PlannedExerciseRow[]
-    workout_sets: WorkoutSetRow[]
-}
-
+// The 紀錄 page's days for one range: a month for the calendar, or the next periods of the
+// phone's list. GET ?start=YYYY-MM-DD&end=YYYY-MM-DD (the user's own dates) returns
+// { days, reports }: every day with sets or a note, and the reports of the periods that
+// start in the range. A range is at most MAX_RANGE_DAYS long, so no request reads
+// everything ever logged.
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
     const start = searchParams.get('start')
     const end = searchParams.get('end')
-    const language = searchParams.get('language') ?? 'en'
 
-    if (!userId || !start || !end) {
-        return NextResponse.json({ error: 'Missing params' }, { status: 400 })
+    if (!isDate(start) || !isDate(end) || end < start) {
+        return NextResponse.json({ error: 'start and end must be dates, start first' }, { status: 400 })
+    }
+    if (daysBetween(start, end) > MAX_RANGE_DAYS) {
+        return NextResponse.json({ error: `A range is at most ${MAX_RANGE_DAYS} days` }, { status: 400 })
     }
 
     const supabase = await createClient()
@@ -38,56 +27,27 @@ export async function GET(request: Request) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    if (!user || user.id !== userId) {
+    if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const startDate = new Date(`${start}T00:00:00Z`)
-    const endDate = new Date(`${end}T23:59:59Z`)
+    const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('timezone, language')
+        .eq('user_id', user.id)
+        .maybeSingle()
 
-    const { data: workouts } = await supabase
-        .from('workouts')
-        .select(`
-            id, title, performed_at,
-            workout_planned_exercises ( exercise_id, exercises ( name, name_zh_tw, log_type ) ),
-            workout_sets ( id, exercise_id, set_number, ${SET_COLUMNS} )
-        `)
-        .eq('user_id', userId)
-        .gte('performed_at', startDate.toISOString())
-        .lte('performed_at', endDate.toISOString())
-        .order('performed_at', { ascending: true })
+    const range = { start, end }
+    const [language, reports] = await Promise.all([
+        getEffectiveLanguage(profile?.language),
+        loadReportStatuses(supabase, user.id, range),
+    ])
+    const days = await loadHistoryDays(supabase, {
+        userId: user.id,
+        range,
+        timeZone: profile?.timezone ?? 'UTC',
+        language,
+    })
 
-    const result = ((workouts as unknown as WorkoutRow[]) ?? [])
-        // 過濾掉完全沒有組數的 workout（空紀錄）
-        .filter((w) => (w.workout_sets ?? []).length > 0)
-        .map((w) => {
-            const setsByExercise = new Map<string, SetValues[]>()
-            for (const s of [...(w.workout_sets ?? [])].sort((a, b) => a.set_number - b.set_number)) {
-                if (!setsByExercise.has(s.exercise_id)) setsByExercise.set(s.exercise_id, [])
-                setsByExercise.get(s.exercise_id)!.push(setValuesOf(s))
-            }
-
-            const exercises = (w.workout_planned_exercises ?? [])
-                .map((p) => ({
-                    exerciseId: p.exercise_id,
-                    name: language === 'zh-TW' && p.exercises?.name_zh_tw
-                        ? p.exercises.name_zh_tw
-                        : p.exercises?.name ?? 'Unknown',
-                    logType: logTypeOf(p.exercises?.log_type),
-                    sets: setsByExercise.get(p.exercise_id) ?? [],
-                }))
-                // 只顯示有登記組數的動作
-                .filter((ex) => ex.sets.length > 0)
-
-            return {
-                id: w.id,
-                title: w.title,
-                performed_at: w.performed_at,
-                exercises,
-            }
-        })
-        // 再次過濾：確保每個 workout 至少有一個有組數的動作
-        .filter((w) => w.exercises.length > 0)
-
-    return NextResponse.json({ workouts: result })
+    return NextResponse.json({ days, reports })
 }

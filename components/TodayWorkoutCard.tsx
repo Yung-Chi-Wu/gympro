@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { MuscleGroupExercisePicker } from './MuscleGroupExercisePicker'
@@ -8,11 +8,11 @@ import { toFriendlyError } from '@/lib/friendly-error'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
-import { fieldValue, fitsLogType, hasWeight, isValidField, LOG_FIELDS, logTypeOf, toSetRow, toStoredSet, type FieldKey, type SetValues, type Units } from '@/lib/set-log'
+import { fieldValue, fitsLogType, isValidField, isWeightField, LOG_FIELDS, logTypeOf, toSetRow, toStoredSet, type FieldKey, type SetValues, type Units } from '@/lib/set-log'
 import type { ExerciseOption } from './log-types'
 import { exerciseLogUnits, findTodayWorkoutId, lastSessionSets, loadTodayWorkout, type TodayExercise } from '@/lib/today-workout'
 import { cellText, compactSet, fieldLabel, SummaryLine } from './set-format'
-import { DayNoteField } from './DayNoteField'
+import { DayLogFields } from './DayLogFields'
 
 interface TodayWorkoutCardProps {
     userId: string
@@ -30,8 +30,11 @@ interface TodayWorkoutCardProps {
     weightUnit: WeightUnit
     distanceUnit: DistanceUnit
     routineName: string | null
-    /** Today's note, shown at the bottom of the log */
+    /** Today's weight and note, at the bottom of the log */
     initialDayNote: string
+    initialWeightKg: number | null
+    /** The last weigh-in before today, the weight box's hint */
+    lastWeightKg: number | null
 }
 
 // Today's log: every exercise, strength or cardio, is a table of sets whose columns come from
@@ -41,6 +44,8 @@ interface TodayWorkoutCardProps {
 //
 // kg/lb is chosen per exercise (some machines are in lb), remembered in exercise_log_units, and
 // starts as the reading unit from Settings, which this card never changes. km/mi is one choice.
+// Both are switched in the table's column header, where the unit is shown, so a folded
+// exercise is just its name and one line.
 
 /** What opens first: the exercise logged last, and the next one not started after it (the first exercise before any set) */
 function initialOpen(exercises: TodayExercise[]): { open: string[]; active: string | null } {
@@ -67,9 +72,10 @@ export function TodayWorkoutCard({
     distanceUnit: initialDistanceUnit,
     routineName,
     initialDayNote,
+    initialWeightKg,
+    lastWeightKg,
 }: TodayWorkoutCardProps) {
     const t = useTranslations('today')
-    const ts = useTranslations('sets')
     const supabase = createClient()
     const [workoutId, setWorkoutId] = useState<string | null>(initialWorkoutId)
     const [exercises, setExercises] = useState<TodayExercise[]>(initialExercises)
@@ -280,6 +286,8 @@ export function TodayWorkoutCard({
                     logType: logTypeOf(exercise.log_type),
                     logUnit: logUnits.get(exercise.id) ?? null,
                     previous: previous.get(exercise.id) ?? [],
+                    // Added just for today: the routine has no target for it
+                    target: null,
                 }))
             }
             setOpenState((s) => ({ ...s, open: s.open.includes(exercise.id) ? s.open : [...s.open, exercise.id] }))
@@ -290,42 +298,25 @@ export function TodayWorkoutCard({
     }
 
     return (
-        <div className="relative rounded-xl border border-ink/10 bg-white p-4 space-y-3">
+        <div className="relative space-y-4 rounded-2xl border border-line bg-card p-4 md:p-5">
 
-            {/* Header */}
-            <div className="flex items-center justify-between gap-2">
-                <button
-                    type="button"
-                    onClick={() => setIsCollapsed((v) => !v)}
-                    className="min-w-0 flex-1 text-left"
-                >
-                    <h2 className="text-lg font-semibold uppercase tracking-wide">{t('title')}</h2>
-                    {routineName && (
-                        <p className="text-sm font-medium text-ink/70 mt-0.5">{routineName}</p>
-                    )}
+            {/* Header: today's routine (the page's own title already says 今天) */}
+            <button
+                type="button"
+                onClick={() => setIsCollapsed((v) => !v)}
+                aria-expanded={!isCollapsed}
+                className="flex w-full items-center justify-between gap-3 text-left"
+            >
+                <span className="min-w-0">
+                    <h2 className="truncate text-xl font-bold">{routineName ?? t('title')}</h2>
                     {hasCycle && (
-                        <span className="text-xs text-ink/40">
-                            {language === 'zh-TW'
-                                ? `第 ${dayIndex} 天 / 共 ${cycleLength} 天`
-                                : `Day ${dayIndex} of ${cycleLength}`}
-                        </span>
+                        <span className="text-[13px] text-muted">{t('dayOf', { day: dayIndex, total: cycleLength })}</span>
                     )}
-                </button>
-
-                <div className="flex items-center gap-2 shrink-0">
-                    <UnitToggle label={ts('distanceUnit')} options={['km', 'mi'] as const} value={distanceUnit} onChange={handleDistanceUnit} />
-
-                    {/* 摺疊按鈕 */}
-                    <button
-                        type="button"
-                        onClick={() => setIsCollapsed((v) => !v)}
-                        aria-expanded={!isCollapsed}
-                        className="text-ink/30 hover:text-ink dark:text-white/30 dark:hover:text-white transition-colors p-1"
-                    >
-                        <Chevron closed={isCollapsed} size={16} />
-                    </button>
-                </div>
-            </div>
+                </span>
+                <span className="grid size-11 shrink-0 place-items-center text-faint">
+                    <Chevron closed={isCollapsed} size={18} />
+                </span>
+            </button>
 
             {/* 可摺疊內容 */}
             {!isCollapsed && (
@@ -352,6 +343,7 @@ export function TodayWorkoutCard({
                                 language={language}
                                 units={unitsFor(exercise)}
                                 onUnitChange={(unit) => handleExerciseUnit(exercise.exerciseId, unit)}
+                                onDistanceUnitChange={handleDistanceUnit}
                                 onAddSet={handleAddSet}
                                 onDeleteSet={handleDeleteSet}
                                 onRemove={handleRemoveExercise}
@@ -370,18 +362,24 @@ export function TodayWorkoutCard({
                         <button
                             type="button"
                             onClick={() => setShowAddPicker(true)}
-                            className="w-full rounded-md border border-dashed px-4 py-2 text-sm text-ink/60 hover:border-ink/30 hover:text-ink"
+                            className="h-11 w-full rounded-lg border border-dashed border-line text-[15px] text-muted hover:border-ink/30 hover:text-ink"
                         >
                             {t('addExercise')}
                         </button>
                     )}
 
-                    <DayNoteField initialNote={initialDayNote} />
+                    <DayLogFields
+                        initialWeightKg={initialWeightKg}
+                        lastWeightKg={lastWeightKg}
+                        initialNote={initialDayNote}
+                        weightUnit={readingUnit}
+                    />
                 </>
             )}
 
             {toast && (
-                <div className="fixed bottom-6 right-6 rounded-md bg-plate px-4 py-2 text-sm text-chalk shadow-lg">
+                // Above the phone's tab bar
+                <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-50 -translate-x-1/2 rounded-md bg-plate px-4 py-2 text-sm text-chalk shadow-lg md:bottom-6">
                     {toast}
                 </div>
             )}
@@ -400,35 +398,6 @@ function Chevron({ closed, size }: { closed: boolean; size: number }) {
         >
             <polyline points="6 9 12 15 18 9" />
         </svg>
-    )
-}
-
-function UnitToggle<U extends string>({ label, options, value, onChange, small }: {
-    label: string
-    options: readonly U[]
-    value: U
-    onChange: (unit: U) => void
-    small?: boolean
-}) {
-    return (
-        <div role="group" aria-label={label} className={`flex shrink-0 rounded-lg overflow-hidden font-bold border border-ink/20 dark:border-white/20 ${small ? 'text-[11px]' : 'text-xs'}`}>
-            {options.map((o, i) => (
-                <Fragment key={o}>
-                    {i > 0 && <div className="w-px bg-ink/20 dark:bg-white/20" />}
-                    <button
-                        type="button"
-                        aria-pressed={value === o}
-                        onClick={value !== o ? () => onChange(o) : undefined}
-                        className={`${small ? 'px-2 py-1' : 'px-2.5 py-1.5'} transition-all ${value === o
-                            ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814]'
-                            : 'bg-transparent text-ink/40 dark:text-white/40 hover:text-ink dark:hover:text-white'
-                            }`}
-                    >
-                        {o}
-                    </button>
-                </Fragment>
-            ))}
-        </div>
     )
 }
 
@@ -483,69 +452,82 @@ interface ExerciseBlockProps {
     /** This exercise's kg/lb, and km/mi */
     units: Units
     onUnitChange: (unit: WeightUnit) => void
+    onDistanceUnitChange: (unit: DistanceUnit) => void
     onAddSet: (exerciseId: string, values: SetValues) => Promise<boolean>
     onDeleteSet: (exerciseId: string, setId: string) => void
     onRemove: (exerciseId: string) => void
 }
 
-/** One exercise: muscle group, name and summary, which fold the table away */
-function ExerciseBlock({ exercise, isOpen, onToggle, language, units, onUnitChange, onAddSet, onDeleteSet, onRemove }: ExerciseBlockProps) {
+/** One exercise: its name and one line (the target, then the sets), which fold the table away */
+function ExerciseBlock({ exercise, isOpen, onToggle, language, units, onUnitChange, onDistanceUnitChange, onAddSet, onDeleteSet, onRemove }: ExerciseBlockProps) {
     const t = useTranslations('today')
     const ts = useTranslations('sets')
 
     return (
-        <div className="grid gap-2 py-3 border-t border-ink/10 first:border-t-0">
-            <div className="flex items-center justify-between gap-3">
-                <button type="button" onClick={onToggle} aria-expanded={isOpen} className="min-w-0 flex-1 text-left">
-                    <span className="block text-xs tracking-wider text-ink/40">
-                        {getMuscleGroupLabel(exercise.muscleGroup, language)}
+        <div className="grid gap-3 border-t border-line py-3 first:border-t-0 first:pt-0">
+            <button type="button" onClick={onToggle} aria-expanded={isOpen} className="flex min-h-11 w-full items-center gap-2 text-left">
+                <span className="text-faint"><Chevron closed={!isOpen} size={16} /></span>
+                <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline gap-2">
+                        <span className="truncate text-[17px] font-bold leading-snug">{exercise.name}</span>
+                        {/* The muscle group fits beside the name from md up; the phone keeps one line for it */}
+                        <span className="hidden shrink-0 text-xs text-faint md:inline">{getMuscleGroupLabel(exercise.muscleGroup, language)}</span>
                     </span>
-                    <span className="flex items-center gap-1.5 text-[17px] font-bold leading-snug">
-                        <span className="text-ink/40"><Chevron closed={!isOpen} size={14} /></span>
-                        <span className="truncate">{exercise.name}</span>
+                    <span className="block text-sm text-muted empty:hidden">
+                        <SummaryLine t={ts} logType={exercise.logType} sets={exercise.loggedSets} units={units} target={exercise.target} />
                     </span>
-                    <span className="block text-sm text-ink/60">
-                        <SummaryLine t={ts} logType={exercise.logType} sets={exercise.loggedSets} units={units} />
-                    </span>
-                </button>
-                {isOpen && hasWeight(exercise.logType) && (
-                    <UnitToggle small label={ts('logUnit', { name: exercise.name })} options={['kg', 'lb'] as const} value={units.weight} onChange={onUnitChange} />
-                )}
-                <button
-                    type="button"
-                    onClick={() => onRemove(exercise.exerciseId)}
-                    className="shrink-0 text-sm text-ink/40 hover:text-red-600 active:opacity-50"
-                >
-                    {t('remove')}
-                </button>
-            </div>
+                </span>
+            </button>
 
-            {/* Typed values are in the units shown, so switching units starts the row over */}
-            {isOpen && <SetTable key={`${units.weight}-${units.distance}`} exercise={exercise} units={units} onAddSet={onAddSet} onDeleteSet={onDeleteSet} />}
+            {isOpen && (
+                <>
+                    {/* Typed values are in the units shown, so switching units starts the row over */}
+                    <SetTable
+                        key={`${units.weight}-${units.distance}`}
+                        exercise={exercise}
+                        units={units}
+                        onUnitChange={onUnitChange}
+                        onDistanceUnitChange={onDistanceUnitChange}
+                        onAddSet={onAddSet}
+                        onDeleteSet={onDeleteSet}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => onRemove(exercise.exerciseId)}
+                        className="-my-2 justify-self-start py-2 text-[13px] text-faint hover:text-miss active:opacity-50"
+                    >
+                        {t('removeExercise')}
+                    </button>
+                </>
+            )}
         </div>
     )
 }
 
-const NUMBER = 'text-center font-mono text-sm font-bold text-ink/60'
-const CELL = 'h-[34px] truncate rounded-[7px] bg-[#F3EFE6] px-1 text-center font-mono text-base font-bold leading-[34px] dark:bg-white/[0.06]'
-const INPUT = 'h-[34px] min-h-0! w-full min-w-0 rounded-[7px] border border-[#E4DFD4] bg-white px-1 text-center font-mono text-base font-bold placeholder:font-medium placeholder:text-ink/35 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A9712F]'
-const PLUS = 'h-[34px] w-9 rounded-[7px] bg-[#A9712F] text-xl leading-none text-white transition-colors disabled:bg-[#F4E7D6] disabled:text-ink/40 dark:bg-[#D9A35F] dark:text-[#1A1814] dark:disabled:bg-[#3A2E1F] dark:disabled:text-white/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A9712F]'
+// A finger-sized row (44px) on the phone, a mouse-sized one (36px) from md up
+const NUMBER = 'text-center font-mono text-sm font-bold text-muted'
+const CELL = 'h-11 truncate rounded-lg bg-done px-1 text-center font-mono text-base font-bold leading-[44px] md:h-9 md:leading-9'
+const INPUT = 'h-11 min-h-0! w-full min-w-0 rounded-lg border border-line bg-card px-1 text-center font-mono text-base font-bold placeholder:font-medium placeholder:text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:h-9'
+const PLUS = 'h-11 w-11 rounded-lg bg-accent text-xl leading-none text-accent-ink transition-colors disabled:bg-accent-soft disabled:text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:h-9 md:w-9'
 const WHOLE_NUMBERS = new Set<FieldKey>(['reps', 'seconds'])
 
 /** The sets as a table: set number, the log type's columns, and delete or add */
-function SetTable({ exercise, units, onAddSet, onDeleteSet }: {
+function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSet, onDeleteSet }: {
     exercise: TodayExercise
     units: Units
+    onUnitChange: (unit: WeightUnit) => void
+    onDistanceUnitChange: (unit: DistanceUnit) => void
     onAddSet: (exerciseId: string, values: SetValues) => Promise<boolean>
     onDeleteSet: (exerciseId: string, setId: string) => void
 }) {
+    const t = useTranslations('today')
     const ts = useTranslations('sets')
     const fields = LOG_FIELDS[exercise.logType]
     const [draft, setDraft] = useState<string[]>(() => fields.map(() => ''))
     const [saving, setSaving] = useState(false)
     const firstInput = useRef<HTMLInputElement>(null)
     // One column template for every row, so the numbers, cells and buttons line up
-    const grid = { gridTemplateColumns: `30px repeat(${fields.length}, minmax(0, 1fr)) 36px` }
+    const grid = { gridTemplateColumns: `28px repeat(${fields.length}, minmax(0, 1fr)) auto` }
     const next = exercise.loggedSets.length
     // Last time's set with the same number, as hints; none if it was logged another way
     const hint = exercise.previous[next] && fitsLogType(exercise.logType, exercise.previous[next]) ? exercise.previous[next] : null
@@ -564,15 +546,40 @@ function SetTable({ exercise, units, onAddSet, onDeleteSet }: {
     }
 
     return (
-        <div className="grid gap-1">
-            <div className="mb-0.5 grid items-end gap-x-1.5 border-b border-ink/10 pb-1 text-center text-xs tracking-wide text-ink/40" style={grid}>
+        <div className="grid gap-1.5">
+            <div className="mb-0.5 grid items-center gap-x-2 border-b border-line pb-1.5 text-center text-xs tracking-wide text-faint" style={grid}>
                 <span>{ts('set')}</span>
-                {fields.map((key) => <span key={key} className="truncate">{fieldLabel(ts, key, units)}</span>)}
-                <span />
+                {fields.map((key) => {
+                    const label = fieldLabel(ts, key, units)
+                    // The unit is switched where it is shown: kg/lb for this exercise, km/mi for all
+                    const switchTo = isWeightField(key)
+                        ? () => onUnitChange(units.weight === 'kg' ? 'lb' : 'kg')
+                        : key === 'speed'
+                            ? () => onDistanceUnitChange(units.distance === 'km' ? 'mi' : 'km')
+                            : null
+                    if (!switchTo) return <span key={key} className="truncate">{label}</span>
+                    const other = fieldLabel(ts, key, isWeightField(key)
+                        ? { ...units, weight: units.weight === 'kg' ? 'lb' : 'kg' }
+                        : { ...units, distance: units.distance === 'km' ? 'mi' : 'km' })
+                    return (
+                        <button
+                            key={key}
+                            type="button"
+                            onClick={switchTo}
+                            aria-label={t('switchTo', { unit: other })}
+                            title={t('switchTo', { unit: other })}
+                            className="mx-auto inline-flex min-h-8 max-w-full items-center gap-1 rounded-md border border-line px-2 font-semibold text-ink hover:border-ink/30"
+                        >
+                            <span className="truncate">{label}</span>
+                            <span aria-hidden="true" className="text-faint">⇄</span>
+                        </button>
+                    )
+                })}
+                <span className="w-11 md:w-9" />
             </div>
 
             {exercise.loggedSets.map((s, i) => (
-                <div key={s.id} className="grid min-h-[34px] items-center gap-x-1.5" style={grid}>
+                <div key={s.id} className="grid items-center gap-x-2" style={grid}>
                     <span className={NUMBER}>{i + 1}</span>
                     {fitsLogType(exercise.logType, s)
                         ? fields.map((key) => <span key={key} className={CELL}>{cellText(ts, key, s, units)}</span>)
@@ -582,14 +589,14 @@ function SetTable({ exercise, units, onAddSet, onDeleteSet }: {
                         type="button"
                         onClick={() => onDeleteSet(exercise.exerciseId, s.id)}
                         aria-label={ts('deleteSet', { n: i + 1 })}
-                        className="h-[34px] w-9 text-lg text-ink/40 hover:text-red-600 active:opacity-50"
+                        className="h-11 w-11 text-lg text-faint hover:text-miss active:opacity-50 md:h-9 md:w-9"
                     >
                         ×
                     </button>
                 </div>
             ))}
 
-            <form onSubmit={handleSubmit} className="grid min-h-[34px] items-center gap-x-1.5" style={grid}>
+            <form onSubmit={handleSubmit} className="grid items-center gap-x-2" style={grid}>
                 <span className={NUMBER}>{next + 1}</span>
                 {fields.map((key, i) => (
                     <input

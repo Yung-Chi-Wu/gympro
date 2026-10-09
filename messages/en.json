@@ -1,10 +1,13 @@
 {
     "nav": {
-        "dashboard": "Home",
+        "dashboard": "Today",
         "routines": "Routines",
         "history": "History",
         "settings": "Settings",
-        "logout": "Log out"
+        "logout": "Log out",
+        "askRonnie": "Ask Ronnie",
+        "openRonnie": "Open Ronnie",
+        "closeRonnie": "Close Ronnie"
     },
     "welcome": {
         "meta": {
@@ -81,7 +84,7 @@
         }
     },
     "dashboard": {
-        "welcome": "Welcome back,",
+        "welcome": "Welcome back, {name}",
         "aiReportTitle": "AI Coach Report"
     },
     "today": {
@@ -92,13 +95,14 @@
         "addExercise": "+ Add an exercise",
         "addToToday": "Add",
         "cancel": "Cancel",
-        "remove": "Remove",
         "add": "Add",
         "reps": "Reps",
         "kg": "kg",
         "lb": "lb",
         "switchUnit": "Switch unit",
-        "dayOf": "Day {day} of {total}"
+        "dayOf": "Day {day} of {total}",
+        "removeExercise": "Remove this exercise",
+        "switchTo": "Switch to {unit}"
     },
     "sets": {
         "set": "Set",
@@ -116,7 +120,9 @@
         },
         "bodyweight": "BW",
         "summary": {
-            "notStarted": "Not started",
+            "target": "target <b>{sets}</b> {sets, plural, one {set} other {sets}}",
+            "targetReps": "target <b>{sets}</b> × <b>{reps}</b>",
+            "setsOf": "<b>{count}</b>/{target} sets",
             "separator": " · ",
             "sets": "<b>{count}</b> {count, plural, one {set} other {sets}}",
             "best": "best <b>{weight}</b> {unit} × <b>{reps}</b>",
@@ -140,29 +146,26 @@
         },
         "addSet": "Add set {n}",
         "deleteSet": "Delete set {n}",
-        "fieldOfSet": "Set {n}, {field}",
-        "logUnit": "Logging unit for {name}",
-        "distanceUnit": "Distance unit"
+        "fieldOfSet": "Set {n}, {field}"
     },
     "periodLog": {
-        "title": "This Period",
-        "reportSchedule": "Your AI report is generated automatically after this period ends ({end}).",
-        "weightLabel": "Body weight",
-        "logWeight": "Log",
-        "weightSaved": "Weight logged.",
-        "weightError": "Enter a valid weight.",
-        "dayNoteLabel": "Today's note (optional)",
-        "dayNotePlaceholder": "e.g. Slept badly, worked late, right shoulder felt stuck",
-        "dayNoteHint": "Write one any day, trained or not; your report reads it next to that day's training.",
-        "saveDayNote": "Save",
-        "deleteDayNote": "Delete",
-        "dayNoteSaved": "Today's note saved.",
-        "dayNoteDeleted": "Today's note deleted.",
+        "reportSchedule": "Your AI report is generated automatically when this period ends on {end}.",
         "periodNoteLabel": "Note for this period",
-        "periodNoteHint": "Your earlier note for the whole period still goes into this period's report; from now on, use today's note above.",
+        "periodNoteHint": "Your earlier note for the whole period still goes into this period's report; from now on, write in today's log.",
         "saveNote": "Save note",
         "noteSaved": "Note saved — it will be included in this period's report.",
         "saving": "Saving..."
+    },
+    "dayLog": {
+        "title": "Today's weight and note (optional)",
+        "weight": "Weight",
+        "note": "Note",
+        "notePlaceholder": "e.g. Slept badly, worked late, right shoulder felt stuck",
+        "hint": "Fill in any day, trained or not; your report reads them next to that day's training. Clear one and save to delete it.",
+        "save": "Save",
+        "saving": "Saving...",
+        "saved": "Saved.",
+        "weightInvalid": "Enter a valid weight."
     },
     "report": {
         "sectionTitle": "AI Coach Report",
@@ -191,7 +194,7 @@
         "title": "Routines",
         "yourRoutines": "Your Routines",
         "trainingCycle": "Training Cycle",
-        "newRoutine": "New Routine",
+        "newRoutine": "New routine",
         "newRoutinePlaceholder": "e.g. Push Day",
         "deleteRoutine": "Delete routine",
         "deleteCycle": "Delete cycle",
@@ -213,10 +216,45 @@
         "restartFromDay1": "Restart from Day 1",
         "changeCycleTitle": "Change cycle length?",
         "changeCycleDesc": "Changing from {from} to {to} days affects where you are in the cycle.",
-        "deleteCycleConfirm": "Delete your training cycle? Your routines will stay, but the day-by-day schedule will be cleared."
+        "deleteCycleConfirm": "Delete your training cycle? Your routines will stay, but the day-by-day schedule will be cleared.",
+        "newRoutineShort": "New",
+        "cycleTab": "Cycle",
+        "routinesTab": "Routines",
+        "cycleSummary": "{length}-day cycle · today is day {today}",
+        "editCycle": "Edit cycle",
+        "doneEditingCycle": "Done",
+        "noCycleHint": "Set up a cycle and Today shows each day's routine on its own.",
+        "dayN": "Day {n}",
+        "todayMark": " (today)",
+        "addRoutineFirst": "Add a routine first",
+        "shorterCycle": "One day fewer",
+        "longerCycle": "One day more",
+        "create": "Create",
+        "cancel": "Cancel",
+        "noRoutines": "No routines yet.",
+        "exerciseCount": "{count, plural, one {# exercise} other {# exercises}}",
+        "setCount": "{count, plural, one {# set} other {# sets}}",
+        "onDays": "Day {days}",
+        "separator": " · ",
+        "pickOrCreate": "Pick a routine, or create one.",
+        "deleteRoutineConfirm": "Delete \"{name}\"? The days it's on in your cycle become rest days.",
+        "rename": "Rename",
+        "delete": "Delete",
+        "emptyRoutine": "No exercises in this routine yet.",
+        "setsByReps": "Sets × reps",
+        "addExercise": "Add exercise",
+        "doneAdding": "Done",
+        "reorderHint": "Drag ⋮⋮ to reorder; the first exercise counts as a main lift",
+        "moveExercise": "Reorder {name} (arrow keys work too)",
+        "removeExercise": "Remove {name} from the routine",
+        "coachGButton": "Plan with Coach G",
+        "coachGPrompt": "Not sure how to plan it?",
+        "routineActions": "More for {name}",
+        "removeShort": "Remove",
+        "cycleActions": "More for the cycle"
     },
     "settings": {
-        "title": "Profile Settings",
+        "title": "Settings",
         "displayName": "Display name",
         "displayNamePlaceholder": "What should we call you?",
         "height": "Height (cm)",
@@ -236,13 +274,105 @@
         "save": "Save",
         "saving": "Saving...",
         "saved": "Saved!",
-        "backToDashboard": "Back to dashboard"
+        "backToDashboard": "Back to dashboard",
+        "sections": {
+            "profile": "Profile",
+            "goal": "Training goal",
+            "units": "Units & language",
+            "appearance": "Appearance",
+            "account": "Account"
+        },
+        "fields": {
+            "displayName": "Display name",
+            "heightCm": "Height",
+            "dateOfBirth": "Date of birth",
+            "sex": "Gender",
+            "timezone": "Timezone",
+            "trainingGoal": "Training goal",
+            "weightUnit": "Weight unit for reading",
+            "distanceUnit": "Distance unit",
+            "language": "Language",
+            "theme": "Appearance"
+        },
+        "hints": {
+            "heightCm": "In centimetres; reports use it for BMI.",
+            "trainingGoal": "Write down what you want to achieve; your reports and Ronnie take it into account. For example \"lose 5 kg\" or \"squat 1.5× bodyweight\".",
+            "weightUnit": "Reports, Ronnie and your history show weights in this unit. The kg or lb each exercise is logged in is set separately, in today's logging card.",
+            "distanceUnit": "Treadmill speed and distance use this unit."
+        },
+        "sexOptions": {
+            "none": "Prefer not to say",
+            "male": "Male",
+            "female": "Female",
+            "other": "Other"
+        },
+        "themes": {
+            "system": "System",
+            "light": "Light",
+            "dark": "Dark"
+        },
+        "cm": "{value} cm",
+        "notSet": "Not set",
+        "heightInvalid": "Enter your height as a number.",
+        "saveFailed": "Couldn't save: {message}",
+        "tutorial": "View the tutorial again",
+        "install": "Add to Home Screen",
+        "installSteps": {
+            "share": "In Safari, tap the Share button in the toolbar (a box with an arrow)",
+            "add": "Choose \"Add to Home Screen\"",
+            "done": "Tap \"Add\" in the top right"
+        },
+        "groups": {
+            "personal": "Personal",
+            "training": "Training",
+            "preferences": "Preferences",
+            "account": "Account"
+        }
     },
     "history": {
-        "title": "Training History",
+        "title": "History",
         "noWorkouts": "No workouts logged this period.",
         "weightTrend": "Weight Trend",
-        "noWeightData": "No weight data yet — log your weight on the dashboard any time."
+        "noWeightData": "No weight data yet — log your weight on the dashboard any time.",
+        "tabs": {
+            "training": "Training",
+            "weight": "Weight",
+            "reports": "Reports"
+        },
+        "prevMonth": "Previous month",
+        "nextMonth": "Next month",
+        "periods": "Periods",
+        "separator": " · ",
+        "inProgress": "in progress",
+        "sessionsOfPlan": "{done} of {planned} sessions",
+        "sessions": "{count, plural, one {# session} other {# sessions}}",
+        "recentPeriods": "Last {count} periods",
+        "backToRecent": "Latest",
+        "jumpToMonth": "Jump to month",
+        "noHistory": "No training yet. Log your first set on Today and it shows up here.",
+        "thisPeriod": "This period",
+        "noTraining": "No training this period",
+        "loading": "Loading…",
+        "loadOlder": "Show {count} earlier periods",
+        "noTrainingThisMonth": "No training this month",
+        "loadError": "Couldn't load.",
+        "retry": "Try again",
+        "reportPending": "Report on its way",
+        "reportTrend": "Report: {trend}",
+        "workout": "Workout",
+        "listJoiner": ", ",
+        "daySets": "{count, plural, one {# set} other {# sets}}",
+        "notTrained": "No training this day",
+        "statSets": "Sets",
+        "statExercises": "Exercises",
+        "noteLine": "Note: {note}",
+        "weighIns": "Weigh-ins",
+        "lastYear": "The last 12 months",
+        "showMore": "Show more",
+        "noReports": "No reports yet. One is made automatically when each period ends.",
+        "olderReports": "Show earlier reports",
+        "dayExercises": "{count, plural, one {# exercise} other {# exercises}}",
+        "weightLabel": "Weight"
     },
     "auth": {
         "loginTitle": "Log in to GymPro",

@@ -70,7 +70,7 @@ export function addDays(dateIso: string, days: number): string {
     return date.toISOString().split('T')[0]
 }
 
-function mostRecentMonday(dateIso: string): string {
+export function mostRecentMonday(dateIso: string): string {
     const date = new Date(`${dateIso}T12:00:00Z`)
     const day = date.getUTCDay()
     const diff = day === 0 ? -6 : 1 - day

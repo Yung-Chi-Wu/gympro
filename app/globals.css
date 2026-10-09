@@ -4,11 +4,31 @@
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-background: #FAFAF8;
+  --color-background: #F6F4EF;
   --color-ink: #1A1814;
   --color-chalk: #F5F3EC;
   --color-plate: #26241F;
   --color-plate-light: #3E3B34;
+
+  /* 版面改版與記錄畫面 v7 草圖的色彩（名稱跟草圖一樣）；夜間版在下面的 html.dark */
+  --color-card: #FFFFFF;
+  --color-side: #EFEBE3;
+  --color-line: #E4DFD4;
+  --color-muted: #6B665C;
+  --color-faint: #A8A296;
+  --color-done: #F3EFE6;
+  --color-accent: #A9712F;
+  --color-accent-soft: #F4E7D6;
+  --color-accent-ink: #FFFFFF;
+  --color-good: #3D7A4C;
+  --color-good-soft: #E2EEE4;
+  --color-miss: #B4553A;
+
+  /* 中文字：裝了 Noto Sans TC 就用，否則蘋果用蘋方、Windows 用微軟正黑 */
+  --font-sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+
+  /* 頁面主區的寬度到這裡才分成左右兩欄（@split:）；Ronnie 在右邊打開時主區會變窄 */
+  --container-split: 40rem;
 
   /* 歡迎頁對話範例逐句浮現（只在 motion-safe 下使用） */
   --animate-rise: rise 0.5s ease-out both;
@@ -23,6 +43,11 @@
       transform: none;
     }
   }
+}
+
+/* 數字用 JetBrains Mono（app/layout.tsx 載入） */
+@theme inline {
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 /* 防止 iOS 自動放大輸入框 */
@@ -61,8 +86,11 @@ h3 {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-.main-content {
-  padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+/* 手機版：最後一項能捲到底部分頁列和 Ronnie 按鈕（預設在分頁列上方）的上面 */
+@media (width < 48rem) {
+  .main-content {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+  }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -71,7 +99,19 @@ h3 {
 
 html.dark {
   --color-ink: #EAE7E0;
-  --color-background: #1A1814;
+  --color-background: #171512;
+  --color-card: #201D19;
+  --color-side: #1B1916;
+  --color-line: #332F28;
+  --color-muted: #A59F94;
+  --color-faint: #6E685E;
+  --color-done: #2A2620;
+  --color-accent: #D9A35F;
+  --color-accent-soft: #3A2E1F;
+  --color-accent-ink: #1A1712;
+  --color-good: #7FBF8E;
+  --color-good-soft: #1F2D22;
+  --color-miss: #E08A6D;
   color-scheme: dark;
   background-color: #1A1814;
   color: #EAE7E0;
@@ -95,11 +135,8 @@ html.dark .bg-\[\#F5F5F3\] {
   background-color: #242220 !important;
 }
 
-html.dark aside {
-  background-color: #1E1C19 !important;
-}
-
-html.dark header {
+/* 歡迎頁的頂端列；app 外框的側欄和頂端列用 bg-side、bg-background，自己有夜間色 */
+html.dark header:not([data-app-bar]) {
   background-color: #1E1C19 !important;
 }
 
@@ -271,12 +308,6 @@ html.dark .recharts-cartesian-grid line {
 /* ── Skeleton ── */
 html.dark .animate-pulse {
   background-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-/* ── Bottom nav ── */
-html.dark .bottom-nav {
-  background-color: #2C2923 !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* 主要 CTA 按鈕在 dark mode 反白 */

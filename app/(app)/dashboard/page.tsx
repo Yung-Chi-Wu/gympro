@@ -4,11 +4,11 @@ import { getTranslations } from 'next-intl/server'
 import { getEffectiveLanguage } from '@/lib/get-language'
 import { RecommendationPanel } from '@/components/RecommendationPanel'
 import { TodayWorkoutCard } from '@/components/TodayWorkoutCard'
+import { PeriodNoteCard } from '@/components/PeriodNoteCard'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
-import { DashboardClientShell } from '@/components/DashboardClientShell'
 import { currentPeriod, localDate } from '@/lib/periods'
 import { loadTodayWorkout } from '@/lib/today-workout'
 
@@ -20,23 +20,17 @@ export default async function DashboardPage() {
 
   if (!user) redirect('/login')
 
-  const [t, tReport] = await Promise.all([
+  const [t, tReport, tPeriod] = await Promise.all([
     getTranslations('dashboard'),
     getTranslations('report'),
+    getTranslations('periodLog'),
   ])
 
-  const [profileResult, latestMetricResult, cycleResult, allExercisesResult] = await Promise.all([
+  const [profileResult, cycleResult, allExercisesResult] = await Promise.all([
     supabase
       .from('user_profiles')
       .select('display_name, timezone, language, onboarding_completed, weight_unit, distance_unit')
       .eq('user_id', user.id)
-      .maybeSingle(),
-    supabase
-      .from('body_metrics')
-      .select('weight_kg')
-      .eq('user_id', user.id)
-      .order('recorded_at', { ascending: false })
-      .limit(1)
       .maybeSingle(),
     supabase
       .from('training_cycles')
@@ -50,13 +44,11 @@ export default async function DashboardPage() {
   ])
 
   const profile = profileResult.data
-  const latestMetricData = latestMetricResult.data
   const cycle = cycleResult.data
 
   const language = await getEffectiveLanguage(profile?.language)
-  const greetingName = profile?.display_name || user.email
+  const greetingName = profile?.display_name || user.email || ''
   const timezone = profile?.timezone || 'UTC'
-  const latestWeightKg = latestMetricData?.weight_kg ?? null
   const onboardingCompleted = profile?.onboarding_completed ?? false
   const weightUnit = (profile?.weight_unit as WeightUnit) ?? 'kg'
   const distanceUnit: DistanceUnit = profile?.distance_unit === 'mi' ? 'mi' : 'km'
@@ -74,7 +66,7 @@ export default async function DashboardPage() {
   let routineIdForToday: string | null = null
   let isRestDay = false
 
-  const [cycleDayResult, periodNoteResult, dayNoteResult] = await Promise.all([
+  const [cycleDayResult, periodNoteResult, dayNoteResult, todayWeightResult, lastWeightResult] = await Promise.all([
     cycle
       ? (() => {
         const daysSinceStart = daysBetween(cycle.start_date, todayParts)
@@ -103,6 +95,26 @@ export default async function DashboardPage() {
       .eq('user_id', user.id)
       .eq('note_date', todayIso)
       .maybeSingle(),
+    // Today's weigh-in, and the one before today as the weight box's hint
+    supabase
+      .from('body_metrics')
+      .select('weight_kg')
+      .eq('user_id', user.id)
+      .gte('recorded_at', startOfDay)
+      .lte('recorded_at', endOfDay)
+      .not('weight_kg', 'is', null)
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('body_metrics')
+      .select('weight_kg')
+      .eq('user_id', user.id)
+      .lt('recorded_at', startOfDay)
+      .not('weight_kg', 'is', null)
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   routineIdForToday = cycleDayResult.data?.routine_id ?? null
@@ -116,66 +128,69 @@ export default async function DashboardPage() {
   ])
   const routineName = routineResult.data?.name ?? null
 
+  const periodNote = periodNoteResult.data?.note ?? ''
+
   return (
-    <div className="py-8 space-y-6">
+    <div className="space-y-5 md:space-y-6">
       <OnboardingGuard
         userId={user.id}
         language={language}
         serverCompleted={onboardingCompleted}
       />
 
-      <h1 className="text-3xl font-bold uppercase tracking-wide">
-        {t('welcome')}
-        <span className="block truncate">{greetingName}</span>
+      {/* One line on the phone, under the top bar that already says 今天 */}
+      <h1 className="truncate text-lg font-semibold text-muted md:text-3xl md:font-bold md:text-ink">
+        {t('welcome', { name: greetingName })}
       </h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-[3fr_2fr] gap-6 items-start">
+      {/* Today's log, then the report: side by side once the page is wide enough */}
+      <div className="grid grid-cols-1 items-start gap-5 @4xl:grid-cols-[3fr_2fr] @4xl:gap-6">
+        <TodayWorkoutCard
+          key={today.workoutId ?? 'no-workout'}
+          userId={user.id}
+          initialWorkoutId={today.workoutId}
+          todayRange={todayRange}
+          routineIdForToday={routineIdForToday}
+          isRestDay={isRestDay}
+          hasCycle={hasCycle}
+          dayIndex={dayIndex}
+          cycleLength={cycle?.cycle_length ?? 0}
+          initialExercises={today.exercises}
+          allExercises={(allExercisesResult.data ?? []) as ExerciseOption[]}
+          language={language}
+          weightUnit={weightUnit}
+          distanceUnit={distanceUnit}
+          routineName={routineName}
+          initialDayNote={dayNoteResult.data?.note ?? ''}
+          initialWeightKg={todayWeightResult.data?.weight_kg ?? null}
+          lastWeightKg={lastWeightResult.data?.weight_kg ?? null}
+        />
 
-        {/* 左欄：今天 + 桌面版 AI 報告 */}
-        <div className="space-y-6">
-          <DashboardClientShell
-            key={today.workoutId ?? 'no-workout'}
-            userId={user.id}
-            initialWorkoutId={today.workoutId}
-            todayRange={todayRange}
-            routineIdForToday={routineIdForToday}
-            isRestDay={isRestDay}
-            hasCycle={hasCycle}
-            dayIndex={dayIndex}
-            cycleLength={cycle?.cycle_length ?? 0}
-            initialExercises={today.exercises}
-            allExercises={(allExercisesResult.data ?? []) as ExerciseOption[]}
-            language={language}
-            weightUnit={weightUnit}
-            distanceUnit={distanceUnit}
-            routineName={routineName}
-            latestWeightKg={latestWeightKg}
-            period={period}
-            periodNote={periodNoteResult.data?.note ?? ''}
-            dayNote={dayNoteResult.data?.note ?? ''}
-          />
-
-          {/* 桌面版 AI 報告 */}
-          <div className="hidden sm:block space-y-3">
-            <h2 className="text-lg font-bold uppercase tracking-wide border-b border-ink/10 pb-2">
-              {tReport('sectionTitle')}
-            </h2>
-            <RecommendationPanel userId={user.id} language={language} weightUnit={weightUnit} />
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-lg font-bold">{tReport('sectionTitle')}</h2>
+            {period && (
+              <p className="text-[13px] text-muted">
+                {tPeriod('reportSchedule', { end: formatPeriodDate(period.periodEnd, language) })}
+              </p>
+            )}
           </div>
-        </div>
-
-        {/* 右欄：手機版 AI 報告 */}
-        <div className="space-y-6">
-          <div className="block sm:hidden space-y-3">
-            <h2 className="text-lg font-bold uppercase tracking-wide border-b border-ink/10 pb-2">
-              {tReport('sectionTitle')}
-            </h2>
-            <RecommendationPanel userId={user.id} language={language} weightUnit={weightUnit} />
-          </div>
-        </div>
+          {period && periodNote && <PeriodNoteCard initialNote={periodNote} />}
+          <RecommendationPanel userId={user.id} language={language} weightUnit={weightUnit} />
+        </section>
       </div>
     </div>
   )
+}
+
+function formatPeriodDate(dateIso: string, language: string): string {
+  // Noon UTC keeps the calendar date the same in every time zone
+  return new Date(`${dateIso}T12:00:00Z`).toLocaleDateString(language === 'zh-TW' ? 'zh-TW' : 'en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    weekday: 'short',
+    timeZone: 'UTC',
+  })
 }
 
 interface DateParts {

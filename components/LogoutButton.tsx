@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 
-export function LogoutButton() {
+// Signs out and goes back to the welcome page. It lives in Settings → 帳號.
+export function LogoutButton({ className = 'text-sm text-[#2B2B28]/40 dark:text-white/40 hover:text-red-500 dark:hover:text-red-400 transition-colors' }: { className?: string }) {
     const router = useRouter()
     const supabase = createClient()
     const t = useTranslations('nav')
@@ -19,7 +20,7 @@ export function LogoutButton() {
         <button
             type="button"
             onClick={handleLogout}
-            className="text-sm text-[#2B2B28]/40 dark:text-white/40 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+            className={className}
         >
             {t('logout')}
         </button>

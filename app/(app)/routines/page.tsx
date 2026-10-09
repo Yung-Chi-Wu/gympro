@@ -1,11 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
 import { getEffectiveLanguage } from '@/lib/get-language'
+import { localDate } from '@/lib/periods'
 import { RoutineBuilder } from '@/components/RoutineBuilder'
-import { CycleScheduler } from '@/components/CycleScheduler'
 import type { ExerciseOption } from '@/components/log-types'
-import { CoachGEntry } from '@/components/CoachGEntry'
+
 export interface RoutineExerciseRow {
     id: string
     exercise_id: string
@@ -50,13 +49,11 @@ export default async function RoutinesPage() {
 
     if (!user) redirect('/login')
 
-    const t = await getTranslations('routines')
-
     const [profileResult, exercisesResult, routinesResult, cycleResult] = await Promise.all([
 
         supabase
             .from('user_profiles')
-            .select('language,training_goal')
+            .select('language,training_goal,timezone')
             .eq('user_id', user.id)
             .maybeSingle(),
         supabase
@@ -111,40 +108,15 @@ export default async function RoutinesPage() {
     }
 
     return (
-        <div className="py-8 space-y-8">
-            <div className="flex items-center justify-between gap-4">
-                <h1 className="text-3xl font-bold uppercase tracking-wide">{t('title')}</h1>
-                <CoachGEntry
-                    hasRoutines={routineList.length > 0}
-                    routineCount={routineList.length}
-                    language={language}
-                    trainingGoal={profile?.training_goal ?? null}
-                />
-            </div>
-            {/* 桌面版兩欄，手機版單欄 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-start">
-
-                {/* 左欄：訓練循環 */}
-                <div>
-                    <CycleScheduler
-                        userId={user.id}
-                        routines={routineList.map((r) => ({ id: r.id, name: r.name }))}
-                        initialCycle={cycle ? { id: cycle.id, cycleLength: cycle.cycle_length } : null}
-                        initialCycleDays={cycleDays}
-                        language={language}
-                    />
-                </div>
-
-                {/* 右欄：我的課表 */}
-                <div>
-                    <RoutineBuilder
-                        userId={user.id}
-                        exercises={(exercisesResult.data ?? []) as ExerciseOption[]}
-                        initialRoutines={routineList}
-                        language={language}
-                    />
-                </div>
-            </div>
-        </div>
+        <RoutineBuilder
+            userId={user.id}
+            exercises={(exercisesResult.data ?? []) as ExerciseOption[]}
+            initialRoutines={routineList}
+            language={language}
+            initialCycle={cycle ? { id: cycle.id, cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null}
+            initialCycleDays={cycleDays}
+            today={localDate(profile?.timezone ?? 'UTC', new Date())}
+            trainingGoal={profile?.training_goal ?? null}
+        />
     )
 }

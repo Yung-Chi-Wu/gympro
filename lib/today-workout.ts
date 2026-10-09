@@ -26,15 +26,25 @@ export interface TodayExercise {
     loggedSets: LoggedSetRow[]
     /** The sets of the last earlier workout with this exercise, in order: grey hints in the empty cells */
     previous: SetValues[]
+    /** What the routine asks for (routine_exercises); null for an exercise added just for today */
+    target: Target | null
+}
+
+export interface Target {
+    sets: number
+    reps: number | null
 }
 
 type ExerciseInfo = { name: string; name_zh_tw: string | null; muscle_group: string; log_type: string | null } | null
 type PlannedRow = { id: string; exercise_id: string; exercises: ExerciseInfo }
-type RoutineRow = { exercise_id: string; exercises: ExerciseInfo }
+type RoutineRow = { exercise_id: string; target_sets: number | null; target_reps: number | null; exercises: ExerciseInfo }
 type SetRow = Parameters<typeof setValuesOf>[0] & { id: string; exercise_id: string; set_number: number; created_at: string }
 type PreviousRow = Parameters<typeof setValuesOf>[0] & { workout_id: string; exercise_id: string; set_number: number; workouts: { performed_at: string } }
 
 const EXERCISE_COLUMNS = 'name, name_zh_tw, muscle_group, log_type'
+const TARGET_COLUMNS = 'exercise_id, target_sets, target_reps'
+const targetOf = (re: { target_sets: number | null; target_reps: number | null } | undefined): Target | null =>
+    re?.target_sets ? { sets: re.target_sets, reps: re.target_reps } : null
 export const SET_COLUMNS = 'reps, weight_kg, duration_s, speed_kmh, incline_pct, level, distance_m, assist_kg, input_unit'
 /** Enough earlier sets to find the last session of every exercise done in the past few months */
 const PREVIOUS_ROWS = 500
@@ -110,15 +120,16 @@ export async function loadTodayWorkout(
     },
 ): Promise<{ workoutId: string | null; exercises: TodayExercise[] }> {
     const nameOf = (e: ExerciseInfo) => (language === 'zh-TW' && e?.name_zh_tw ? e.name_zh_tw : e?.name ?? 'Unknown exercise')
-    const exerciseOf = (exerciseId: string, e: ExerciseInfo, plannedRowId: string | null, loggedSets: LoggedSetRow[]) => ({
+    const exerciseOf = (exerciseId: string, e: ExerciseInfo, plannedRowId: string | null, loggedSets: LoggedSetRow[], target: Target | null): TodayExercise => ({
         exerciseId,
         name: nameOf(e),
         muscleGroup: e?.muscle_group ?? 'other',
         logType: logTypeOf(e?.log_type),
-        logUnit: null as WeightUnit | null,
+        logUnit: null,
         plannedRowId,
         loggedSets,
-        previous: [] as SetValues[],
+        previous: [],
+        target,
     })
     // Last time's sets and the exercise's own kg/lb
     const withPrevious = async (exercises: TodayExercise[]) => {
@@ -130,7 +141,7 @@ export async function loadTodayWorkout(
     const workoutId = await findTodayWorkoutId(supabase, userId, range)
 
     if (workoutId) {
-        const [plannedResult, setsResult] = await Promise.all([
+        const [plannedResult, setsResult, workoutResult] = await Promise.all([
             supabase
                 .from('workout_planned_exercises')
                 .select(`id, exercise_id, exercises ( ${EXERCISE_COLUMNS} )`)
@@ -141,14 +152,21 @@ export async function loadTodayWorkout(
                 .eq('workout_id', workoutId)
                 .order('set_number')
                 .order('created_at'),
+            supabase.from('workouts').select('routine_id').eq('id', workoutId).maybeSingle(),
         ])
         const sets = (setsResult.data as unknown as SetRow[] | null) ?? []
+        // The targets of the routine the workout follows (Ronnie may start one without a routine: today's then)
+        const targetRoutineId = workoutResult.data?.routine_id ?? routineId
+        const { data: targetRows } = targetRoutineId
+            ? await supabase.from('routine_exercises').select(TARGET_COLUMNS).eq('routine_id', targetRoutineId)
+            : { data: null }
         return {
             workoutId,
             exercises: await withPrevious(((plannedResult.data as unknown as PlannedRow[] | null) ?? []).map((p) =>
                 exerciseOf(p.exercise_id, p.exercises, p.id, sets
                     .filter((s) => s.exercise_id === p.exercise_id)
-                    .map((s) => ({ ...setValuesOf(s), id: s.id, setNumber: s.set_number, createdAt: s.created_at })))
+                    .map((s) => ({ ...setValuesOf(s), id: s.id, setNumber: s.set_number, createdAt: s.created_at })),
+                targetOf(targetRows?.find((re) => re.exercise_id === p.exercise_id)))
             )),
         }
     }
@@ -156,12 +174,12 @@ export async function loadTodayWorkout(
     if (!routineId) return { workoutId: null, exercises: [] }
     const { data: routineExercises } = await supabase
         .from('routine_exercises')
-        .select(`exercise_id, exercises ( ${EXERCISE_COLUMNS} )`)
+        .select(`${TARGET_COLUMNS}, exercises ( ${EXERCISE_COLUMNS} )`)
         .eq('routine_id', routineId)
         .order('order_index')
     return {
         workoutId: null,
         exercises: await withPrevious(((routineExercises as unknown as RoutineRow[] | null) ?? []).map((re) =>
-            exerciseOf(re.exercise_id, re.exercises, null, []))),
+            exerciseOf(re.exercise_id, re.exercises, null, [], targetOf(re)))),
     }
 }

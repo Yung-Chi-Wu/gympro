@@ -2,56 +2,37 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { Icon, type IconName } from './Icon'
+import { useKeyboardOpen } from '@/lib/keyboard'
 
-interface NavLink {
+export interface NavLink {
     href: string
     label: string
+    icon: IconName
 }
 
-const ICONS: Record<string, string> = {
-    '/dashboard': '🏠',
-    '/routines': '📋',
-    '/history': '📅',
-    '/settings': '⚙',
-}
+export const isActiveLink = (href: string, pathname: string) =>
+    href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(href)
 
+// The phone's tab bar (below md). It hides while the on-screen keyboard is open.
 export function BottomNav({ links }: { links: NavLink[] }) {
     const pathname = usePathname()
-    const [keyboardOpen, setKeyboardOpen] = useState(false)
-
-    useEffect(() => {
-        const initialHeight = window.visualViewport?.height ?? window.innerHeight
-
-        function handleResize() {
-            const currentHeight = window.visualViewport?.height ?? window.innerHeight
-            setKeyboardOpen(initialHeight - currentHeight > 150)
-        }
-
-        const vv = window.visualViewport
-        if (vv) {
-            vv.addEventListener('resize', handleResize)
-            return () => vv.removeEventListener('resize', handleResize)
-        }
-    }, [])
+    const keyboardOpen = useKeyboardOpen()
 
     if (keyboardOpen) return null
 
     return (
-        <nav className="bottom-nav fixed bottom-0 left-0 right-0 z-40 flex border-t border-gray-200 dark:border-white/10 bg-white dark:bg-[#2C2923] sm:hidden">
+        <nav className="bottom-nav fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-line bg-card md:hidden">
             {links.map((link) => {
-                const isActive =
-                    link.href === '/dashboard'
-                        ? pathname === '/dashboard'
-                        : pathname.startsWith(link.href)
+                const active = isActiveLink(link.href, pathname)
                 return (
                     <Link
                         key={link.href}
                         href={link.href}
-                        className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs transition-all active:scale-90 active:opacity-60 ${isActive ? 'text-ink' : 'text-ink/40'
-                            }`}
+                        aria-current={active ? 'page' : undefined}
+                        className={`flex min-h-14 flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-xs font-medium transition-transform active:scale-90 ${active ? 'text-ink' : 'text-faint'}`}
                     >
-                        <span className="text-lg leading-none">{ICONS[link.href]}</span>
+                        <Icon name={link.icon} className={`size-[22px] ${active ? 'text-accent' : ''}`} />
                         {link.label}
                     </Link>
                 )
