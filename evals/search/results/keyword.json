@@ -2,9 +2,9 @@
   "variant": "keyword",
   "summary": {
     "n": 46,
-    "hit1": 0.6304347826086957,
+    "hit1": 0.6521739130434783,
     "hit5": 0.6956521739130435,
-    "mrr": 0.667632850241546
+    "mrr": 0.6821256038647343
   },
   "results": [
     {
@@ -66,8 +66,8 @@
         "Romanian Deadlift / 羅馬尼亞硬舉",
         "Deadlift / 硬舉",
         "Romanian Split Squat / 羅馬尼亞分腿蹲",
-        "Sumo Deadlift / 相撲硬舉",
-        "Stiff Leg Deadlift / 直腿硬舉"
+        "Back Extension / 羅馬椅挺身",
+        "Sumo Deadlift / 相撲硬舉"
       ]
     },
     {
@@ -430,8 +430,9 @@
       "relevant": [
         "Back Extension"
       ],
-      "rank": 0,
+      "rank": 1,
       "top": [
+        "Back Extension / 羅馬椅挺身",
         "Romanian Deadlift / 羅馬尼亞硬舉",
         "Romanian Split Squat / 羅馬尼亞分腿蹲"
       ]
@@ -532,9 +533,9 @@
       "top": [
         "Leg Press / 腿推機",
         "Leg Press Calf Raise / 腿推機提踵",
-        "Barbell Back Squat / 槓鈴深蹲",
-        "Bodyweight Squat / 徒手深蹲",
-        "Box Jump / 跳箱"
+        "Deadlift / 硬舉",
+        "Glute Ham Raise / 臀腿抬升（GHR）",
+        "Romanian Split Squat / 羅馬尼亞分腿蹲"
       ]
     },
     {
@@ -619,10 +620,10 @@
       "rank": 1,
       "top": [
         "Nordic Hamstring Curl / 北歐腿彎舉",
-        "Barbell Back Squat / 槓鈴深蹲",
-        "Bodyweight Squat / 徒手深蹲",
-        "Box Jump / 跳箱",
-        "Bulgarian Split Squat / 保加利亞分腿蹲"
+        "Deadlift / 硬舉",
+        "Glute Ham Raise / 臀腿抬升（GHR）",
+        "Romanian Split Squat / 羅馬尼亞分腿蹲",
+        "Sumo Deadlift / 相撲硬舉"
       ]
     },
     {
@@ -641,7 +642,7 @@
       "rank": 1,
       "top": [
         "Assisted Pull-up / 輔助引體向上",
-        "Back Extension / 背部伸展",
+        "Back Extension / 羅馬椅挺身",
         "Barbell Row / 槓鈴划船",
         "Barbell Shrug / 槓鈴聳肩",
         "Chest Supported Row / 俯臥支撐划船"
@@ -657,13 +658,13 @@
         "Box Jump",
         "Nordic Hamstring Curl"
       ],
-      "rank": 2,
+      "rank": 6,
       "top": [
-        "Barbell Back Squat / 槓鈴深蹲",
-        "Bodyweight Squat / 徒手深蹲",
-        "Box Jump / 跳箱",
-        "Bulgarian Split Squat / 保加利亞分腿蹲",
-        "Front Squat / 前蹲舉"
+        "Deadlift / 硬舉",
+        "Glute Ham Raise / 臀腿抬升（GHR）",
+        "Romanian Split Squat / 羅馬尼亞分腿蹲",
+        "Sumo Deadlift / 相撲硬舉",
+        "Barbell Back Squat / 槓鈴深蹲"
       ]
     },
     {
@@ -678,7 +679,7 @@
       ],
       "rank": 1,
       "top": [
-        "Back Extension / 背部伸展",
+        "Back Extension / 羅馬椅挺身",
         "Assisted Pull-up / 輔助引體向上",
         "Barbell Row / 槓鈴划船",
         "Barbell Shrug / 槓鈴聳肩",

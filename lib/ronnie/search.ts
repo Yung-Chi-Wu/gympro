@@ -1,5 +1,6 @@
 import type { LibraryExercise } from './data'
 import { MUSCLE_GROUP_LABELS } from '../exercise-display'
+import { MUSCLES, type Muscle } from '../exercise-attributes'
 
 // Exercise search, ranked in code. The eval found exact-substring search failing
 // on ordinary requests: "face pulls" (library: Face Pull), "burpees", "incline
@@ -43,6 +44,27 @@ function cjkBigrams(text: string): Set<string> {
     return grams
 }
 
+/** Filters search_exercises applies to the keyword and the vector ranking alike */
+export interface SearchFilter {
+    /** A muscle (upper_chest, side_delts, ...) or a group (chest, shoulders, ...), matched against the primary muscles */
+    muscle?: string
+    /** Only exercises with low load on this joint (shoulder, elbow, lower_back, knee) */
+    lowLoadOn?: string
+}
+
+export function matchesFilter(e: LibraryExercise, f: SearchFilter): boolean {
+    if (f.muscle) {
+        // A group also matches the app's category, which is all a custom exercise has
+        const ok = f.muscle in MUSCLE_GROUP_LABELS.en
+            ? e.muscle_group === f.muscle || e.primary_muscles.some((m) => MUSCLES[m as Muscle]?.group === f.muscle)
+            : e.primary_muscles.includes(f.muscle)
+        if (!ok) return false
+    }
+    // An exercise with no joint data (a custom one) can't be vouched for, so it's left out
+    if (f.lowLoadOn && e.joint_load?.[f.lowLoadOn] !== 'low') return false
+    return true
+}
+
 export interface SearchResult {
     exercises: LibraryExercise[]
     /** False when no name contains the query: the results are only the closest matches. */
@@ -52,10 +74,10 @@ export interface SearchResult {
 export function searchLibrary(
     library: LibraryExercise[],
     query: string | undefined,
-    muscleGroup: string | undefined,
+    filter: SearchFilter = {},
     limit = 10
 ): SearchResult {
-    const pool = muscleGroup ? library.filter((e) => e.muscle_group === muscleGroup) : library
+    const pool = library.filter((e) => matchesFilter(e, filter))
     const q = query?.trim() ?? ''
     if (!q) return { exercises: pool.slice(0, limit), exact: true }
 
@@ -136,11 +158,12 @@ export function gatedSearch(
     library: LibraryExercise[],
     keyword: SearchResult,
     nearestIds: string[] | null,
-    limit = 10
+    limit = 10,
+    filter: SearchFilter = {}
 ): SearchResult {
     if (!nearestIds?.length) return { exercises: keyword.exercises.slice(0, limit), exact: keyword.exact }
     const byId = new Map(library.map((e) => [e.id, e]))
-    const nearest = nearestIds.map((id) => byId.get(id)).filter((e): e is LibraryExercise => !!e)
+    const nearest = nearestIds.map((id) => byId.get(id)).filter((e): e is LibraryExercise => !!e && matchesFilter(e, filter))
     const ranked = keyword.exact ? fuseRanks([keyword.exercises, nearest]) : nearest
     return { exercises: ranked.slice(0, limit), exact: keyword.exact }
 }
@@ -151,11 +174,13 @@ const EQUIPMENT_ZH: Record<string, string> = {
 }
 
 /**
- * The text embedded for an exercise in vector search: both names, plus muscle group and
- * equipment in both languages, so "練胸的啞鈴動作" can match on more than the name.
+ * The text embedded for an exercise in vector search: both names, plus muscle group,
+ * the muscles it mainly trains and equipment, in both languages, so "練胸的啞鈴動作" or
+ * "upper chest" can match on more than the name.
  */
-export function exerciseDocument(e: LibraryExercise & { equipment?: string | null }): string {
+export function exerciseDocument(e: Pick<LibraryExercise, 'name' | 'name_zh_tw' | 'muscle_group' | 'primary_muscles'> & { equipment?: string | null }): string {
     const group = `${MUSCLE_GROUP_LABELS.en[e.muscle_group] ?? e.muscle_group} ${MUSCLE_GROUP_LABELS['zh-TW'][e.muscle_group] ?? ''}`.trim()
+    const muscles = e.primary_muscles.map((m) => MUSCLES[m as Muscle]).filter(Boolean).map((m) => `${m.en} ${m.zh}`).join(', ')
     const equipment = e.equipment ? `${e.equipment} ${EQUIPMENT_ZH[e.equipment] ?? ''}`.trim() : ''
-    return [e.name, e.name_zh_tw, group, equipment].filter(Boolean).join(' | ')
+    return [e.name, e.name_zh_tw, group, muscles, equipment].filter(Boolean).join(' | ')
 }

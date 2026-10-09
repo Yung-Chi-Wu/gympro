@@ -18,12 +18,16 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
     },
     {
         name: 'search_exercises',
-        description: "Search the exercise library (not the user's routines). Matches by meaning as well as by name, so a short description works (\"upper chest\", \"bodyweight legs\"), in English or Chinese, typos included, and it says when no name matched exactly. If the results don't fit, try other wording or muscle_group before saying it isn't there.",
+        description: "Search the exercise library (not the user's routines). Matches by meaning as well as by name, so a short description works (\"upper chest\", \"bodyweight legs\"), in English or Chinese, typos included, and it says when no name matched exactly. Each result lists the muscles it mainly trains and any joint it loads more than lightly. If the results don't fit, try other wording or a muscle before saying it isn't there.",
         input_schema: {
             type: 'object',
             properties: {
                 query: { type: 'string', description: 'An exercise name or a short description' },
-                muscle_group: { type: 'string', description: 'chest, back, shoulders, biceps, triceps, legs, glutes or core' },
+                muscle: {
+                    type: 'string',
+                    description: 'Only exercises that mainly train this: a group (chest, back, shoulders, biceps, triceps, legs, glutes, core) or a muscle (upper_chest, lower_chest, front_delts, side_delts, rear_delts, lats, upper_back, traps, lower_back, forearms, quads, hamstrings, adductors, calves, abductors, abs, obliques)',
+                },
+                low_load_on: { type: 'string', enum: ['shoulder', 'elbow', 'lower_back', 'knee'], description: 'Only exercises with low load on this joint, for when it hurts' },
             },
             required: [],
         },
@@ -78,13 +82,13 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
         input_schema: {
             type: 'object',
             properties: {
-                change: { type: 'string', enum: ['remove', 'add'], description: 'remove (the default) or add' },
+                change: { type: 'string', enum: ['remove', 'add'] },
                 exercise_id: exerciseId('search_exercises, get_routine_exercises or get_today_workout'),
                 routine_name: { type: 'string', description: 'remove: only this routine (omit for all). add: the routine (required).' },
                 target_sets: { type: 'integer', description: 'add only, default 3' },
                 target_reps: { type: 'integer', description: 'add only, default 10' },
             },
-            required: ['exercise_id'],
+            required: ['change', 'exercise_id'],
         },
     },
 ]

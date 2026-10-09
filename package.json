@@ -11,7 +11,8 @@
     "typecheck:evals": "tsc --noEmit -p evals/ronnie && tsc --noEmit -p evals/search && tsc --noEmit -p scripts",
     "eval:search": "lambda/ai-worker/node_modules/.bin/esbuild evals/search/run.ts --bundle --platform=node --target=node20 --format=cjs --outfile=evals/search/dist/run.cjs --log-level=warning && node evals/search/dist/run.cjs",
     "check:evidence": "lambda/ai-worker/node_modules/.bin/esbuild scripts/check-evidence.ts --bundle --platform=node --target=node20 --format=cjs --outfile=scripts/dist/check-evidence.cjs --log-level=warning && node scripts/dist/check-evidence.cjs",
-    "index:exercises": "lambda/ai-worker/node_modules/.bin/esbuild scripts/index-exercise-embeddings.ts --bundle --platform=node --target=node20 --format=cjs --outfile=scripts/dist/index-exercise-embeddings.cjs --log-level=warning && AWS_REGION=${AWS_REGION:-us-east-1} node --experimental-websocket scripts/dist/index-exercise-embeddings.cjs"
+    "index:exercises": "lambda/ai-worker/node_modules/.bin/esbuild scripts/index-exercise-embeddings.ts --bundle --platform=node --target=node20 --format=cjs --outfile=scripts/dist/index-exercise-embeddings.cjs --log-level=warning && AWS_REGION=${AWS_REGION:-us-east-1} node --experimental-websocket scripts/dist/index-exercise-embeddings.cjs",
+    "exercise-attributes": "lambda/ai-worker/node_modules/.bin/esbuild scripts/exercise-attributes.ts --bundle --platform=node --target=node20 --format=cjs --outfile=scripts/dist/exercise-attributes.cjs --log-level=warning && node scripts/dist/exercise-attributes.cjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
