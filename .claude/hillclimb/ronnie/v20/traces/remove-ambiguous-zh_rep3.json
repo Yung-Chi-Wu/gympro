@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "我不想做深蹲了"
+  },
+  {
+    "role": "assistant",
+    "content": "Alex，你是今天不想做深蹲，還是想把深蹲從課表裡永久移除？💪"
+  }
+]

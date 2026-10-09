@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "Add face pulls to today's workout"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"face pulls\",\"muscle_group\":\"shoulders\"},\"result\":\"ID: cd6e3284 | Face Pull (shoulders)\\nID: 13841865 | Overhead Press (shoulders)\\nID: 65d4104b | Lateral Raise (shoulders)\\nID: 03810fd4 | Rear Delt Dumbbell Fly (shoulders)\\nID: 7fb35f03 | Reverse Pec Deck (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"cd6e3284\"},\"result\":\"✓ Added \\\"Face Pull\\\" to today's workout\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Face Pull is now in today's workout ✅ It's good for rear delts and shoulder health on a push day, especially with your bench goal. Keep the weight light and the reps controlled. 💪"
+  }
+]

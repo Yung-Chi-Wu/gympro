@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個可以練後三角的動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"後三角 rear delt\",\"muscle_group\":\"shoulders\"},\"result\":\"ID: 03810fd4 | 啞鈴後三角飛鳥 (shoulders)\\nID: 65d4104b | 側平舉 (shoulders)\\nID: 13841865 | 肩推 (shoulders)\\nID: 7fb35f03 | 反向飛鳥機 (shoulders)\\nID: cd6e3284 | 臉拉 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"7fb35f03\"},\"result\":\"Showing a card for \\\"反向飛鳥機\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "推薦你做反向飛鳥機 💪 軌跡固定，比較容易把力量集中在後三角，不用靠身體擺盪代償。建議每組 12～20 下，動作放慢控制。"
+  },
+  {
+    "role": "user",
+    "content": "好，幫我加進今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"7fb35f03\"},\"result\":\"✓ 已將「反向飛鳥機」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 已把反向飛鳥機加進今天的課表。推完胸之後練，記得動作放慢、感受後三角發力！"
+  }
+]
