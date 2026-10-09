@@ -213,12 +213,14 @@ export function createSupabaseRonnieData(
             const todayStr = localDateStr(now(), timeZone)
             const range = localDateToUtcRange(todayStr, timeZone)
 
+            // The latest, as the dashboard picks (lib/today-workout.ts), so both change the workout the user sees
             const { data: existing } = await supabase
                 .from('workouts')
                 .select('id')
                 .eq('user_id', userId)
                 .gte('performed_at', range.start)
                 .lte('performed_at', range.end)
+                .order('performed_at', { ascending: false })
                 .limit(1)
                 .maybeSingle()
 

@@ -71,7 +71,10 @@ export async function POST(request: Request) {
     }
 
     const system = buildSystemPrompt(language, ctx.userContext)
-    const executor = createRonnieExecutor({ data: ctx.data, language, timeZone: ctx.timeZone, todayRoutineName: ctx.todayRoutineName })
+    const executor = createRonnieExecutor({
+        data: ctx.data, language, timeZone: ctx.timeZone, todayRoutineName: ctx.todayRoutineName,
+        weightUnit: ctx.userContext.weightUnit === 'lb' ? 'lb' : 'kg',
+    })
     const sent = [...conv.messages, { role: 'user' as const, content: message }]
     // The trace keeps what Ronnie was given: the system prompt with the user's context, and today's conversation so far
     const traceInput = { language, message, editFrom: Number.isInteger(body?.editFrom) ? body.editFrom : null, system, history: conv.messages }
