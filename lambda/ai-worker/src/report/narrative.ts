@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { getClaudeClient } from '../claude'
 import { toDisplayWeight, type WeightUnit } from '../../../../lib/weight-unit'
 import { unitLabel, VOLUME_UNITS, VOLUME_UNIT_IDS } from '../../../../lib/report/volume'
-import type { Finding, FollowUp, LiftFacts, ReportFacts, ReportNarrative, RuleId, Watching } from './types'
+import type { DayNote, Finding, FollowUp, LiftFacts, ReportFacts, ReportNarrative, RuleId, Watching } from './types'
 
 // The model's whole job in the report: one headline, and one plain-language action for each
 // rule code has already fired, covering every finding of that rule (all the muscles, all the
@@ -15,11 +15,11 @@ const MAX_ATTEMPTS = 2
 
 /** What each rule's advice says, in the user's unit. The app shows the research behind it. */
 const advice = (unit: WeightUnit, period: string): Record<RuleId, string> => ({
-    deload: 'Plan one lighter week: the same exercises at about half of each lift\'s sets this period (listed above) and clearly lighter weights, then build back up. If the note mentions sleep or stress, suggest looking at it; don\'t claim it is the cause.',
+    deload: 'Plan one lighter week: the same exercises at about half of each lift\'s sets this period (listed above) and clearly lighter weights, then build back up. If a note mentions sleep or stress, suggest looking at it; don\'t claim it is the cause.',
     lift_regressed: 'Stay at holdAt (this period\'s weight; for a bodyweight lift, the same reps) instead of adding load, check recovery (sleep, food, stress) and technique, and aim to get back to previousBest before pushing on.',
     lift_stalled: `Double progression: keep the weight and add reps on every set until all sets reach the top of the rep range, then add the smallest jump (${unit === 'lb' ? '5 lb upper body, 10 lb lower body' : '2.5 kg upper body, 5 kg lower body'}).`,
-    low_volume: `It takes addSets more sets each ${period} to bring the muscle to 10 a week. Offer the options in its data for the user to choose between, as given, with their exercises and set counts; if there is only one, give it alone (an option is left out when it isn't a sensible one, not because nothing trains the muscle). Add no exercise of your own unless the note rules an option out.`,
-    missed_sessions: 'Name the missed sessions and suggest a realistic way to fit those routines in, as planned, or plan around those days. Making them up is what brings lowGroups (muscles low only because of these sessions) back into range, so don\'t swap in other exercises. Never scold; if the note explains it, acknowledge that.',
+    low_volume: `It takes addSets more sets each ${period} to bring the muscle to 10 a week. Offer the options in its data for the user to choose between, as given, with their exercises and set counts; if there is only one, give it alone (an option is left out when it isn't a sensible one, not because nothing trains the muscle). Add no exercise of your own unless a note rules an option out.`,
+    missed_sessions: 'Name the missed sessions and suggest a realistic way to fit those routines in, as planned, or plan around those days. Making them up is what brings lowGroups (muscles low only because of these sessions) back into range, so don\'t swap in other exercises. Never scold; if a note explains it, acknowledge that.',
     weight_trend: 'Body weight is moving against the goal: suggest a small daily calorie change (about 200-300 kcal) and steady weigh-ins, not a crash diet.',
 })
 
@@ -28,7 +28,10 @@ export interface NarrativeInput {
     findings: Finding[]
     watching: Watching[]
     followUps: FollowUp[]
+    /** The note for the whole period (period_notes, the way notes were written before day notes) */
     note: string | null
+    /** Each day's note, already lined up with that day's plan and whether the user trained */
+    dayNotes: DayNote[]
     language: string
     /** Weights are stored in kg; the brief, and so the text, uses the user's unit */
     weightUnit: WeightUnit
@@ -82,7 +85,7 @@ function liftLine(l: LiftFacts, zh: boolean, unit: string, setOf: (s: LiftFacts[
 }
 
 export function buildPrompt(input: NarrativeInput): string {
-    const { facts, findings, watching, followUps, note, language, weightUnit } = input
+    const { facts, findings, watching, followUps, note, dayNotes, language, weightUnit } = input
     const zh = language === 'zh-TW'
     const unit = facts.period.days === 7 ? 'week' : 'cycle'
     const w = (kg: number) => `${toDisplayWeight(kg, weightUnit)} ${weightUnit}`
@@ -114,6 +117,12 @@ export function buildPrompt(input: NarrativeInput): string {
             return [k.replace(/Kg$/, ''), (k === 'latestKg' || k === 'changeKg') && typeof v === 'number' ? w(v) : v]
         }),
     ])
+    // Each note's day as the log has it, so the model reads which day it was instead of working it out
+    const dayOf = (d: DayNote) => {
+        const trained = d.trained ? 'trained' : 'not trained'
+        if (facts.sessions.planned == null) return trained
+        return d.routine ? `${d.routine}, ${trained}` : `rest day${d.trained ? ', trained' : ''}`
+    }
     const ranged = VOLUME_UNIT_IDS.filter((u) => VOLUME_UNITS[u].target).map(muscleName).join(', ')
     const s = facts.liftsSummary
     const lines = [
@@ -131,6 +140,10 @@ export function buildPrompt(input: NarrativeInput): string {
         `Weights are in ${weightUnit}; write every weight in ${weightUnit}.`,
         `The user's goal: ${facts.goal.text ? `"${facts.goal.text}"` : 'not set'}.`,
         `The user's note for this ${unit} (context to fit the advice to, not a message that needs a reply): ${note ? `"${note}"` : 'none'}.`,
+        ...(dayNotes.length ? [
+            `The user's notes on single days, each after that day's plan and whether they trained (context too, not messages that need a reply):`,
+            ...dayNotes.map((d) => `- ${d.date} (${dayOf(d)}): ${JSON.stringify(d.note)}`),
+        ] : []),
     ]
     if (followUps.length) {
         lines.push(`Last report's advice and how it went (the app shows this; mention it in the headline only if it matters):`,
@@ -153,7 +166,7 @@ export function buildPrompt(input: NarrativeInput): string {
 ${lines.join('\n')}
 
 1. headline: one sentence the user reads first, the most important thing about this ${unit}, consistent with the status. It may use a number from above. ${zh ? 'At most 40 characters.' : 'At most 25 words.'}
-2. actions: ${findings.length ? `one for each rule above. Each says exactly what to do next ${unit} about every item under its rule, naming each one as written above (every muscle, every lift), with the exercise, sets, weights or reps from the data; as short as covering every item allows. Don't repeat the reason; the app shows it. Fit every action to the user's note: if it mentions pain or discomfort in a movement or joint, don't simply add sets or load there; suggest a pain-free alternative or a lighter range, and getting it checked if it persists.` : 'leave it empty: nothing fired, so give no advice.'}
+2. actions: ${findings.length ? `one for each rule above. Each says exactly what to do next ${unit} about every item under its rule, naming each one as written above (every muscle, every lift), with the exercise, sets, weights or reps from the data; as short as covering every item allows. Don't repeat the reason; the app shows it. Fit every action to the user's notes: if one mentions pain or discomfort in a movement or joint, don't simply add sets or load there; suggest a pain-free alternative or a lighter range, and getting it checked if it persists.` : 'leave it empty: nothing fired, so give no advice.'}
 
 Use only the numbers above; never invent data. No myths, no diagnosis, no scolding. Plain text only: no Markdown, no lists inside a field. ${languageRule}`
 }

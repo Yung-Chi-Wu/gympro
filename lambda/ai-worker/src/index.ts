@@ -37,7 +37,8 @@ async function processMessage(record: SQSRecord): Promise<void> {
     // Code decides every number and which rules fire; the model writes the headline and advice
     const analysis = analyze(inputs)
     const started = Date.now()
-    const traceInput = { periodStart, periodEnd, language, weightUnit, note: userNote ?? null }
+    // The day notes go in as their own field, lined up with each day's plan, not only inside the brief
+    const traceInput = { periodStart, periodEnd, language, weightUnit, note: userNote ?? null, dayNotes: analysis.dayNotes }
     let narrative: ReportV3['narrative']
     try {
       const res = await generateNarrative({ ...analysis, note: userNote ?? null, language, weightUnit })

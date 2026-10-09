@@ -3,12 +3,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
 import { awsCredentialsProvider } from '@vercel/oidc-aws-credentials-provider'
-import { currentPeriod, periodEndFor } from '@/lib/periods'
+import { currentPeriod, localDate, periodEndFor } from '@/lib/periods'
 import { toFriendlyError } from '@/lib/friendly-error'
 
 // Reports are queued automatically when a period ends (the report-scheduler
 // Lambda). These actions cover what the user still does by hand: log weight,
-// leave a note for this period's report, and retry a report that failed.
+// leave a note for the day (or, from before day notes, for the period), and
+// retry a report that failed.
 
 export interface ActionResult {
     success: boolean
@@ -17,6 +18,8 @@ export interface ActionResult {
 }
 
 const MAX_NOTE_LENGTH = 1000
+// Short, so a week of day notes can't drown the rest of the report's brief (the table checks it too)
+const MAX_DAY_NOTE_LENGTH = 200
 
 export async function logBodyWeight(weightKg: number): Promise<ActionResult> {
     const supabase = await createClient()
@@ -31,6 +34,35 @@ export async function logBodyWeight(weightKg: number): Promise<ActionResult> {
         weight_kg: weightKg,
         recorded_at: new Date().toISOString(),
     })
+    return error ? { success: false, message: toFriendlyError(error) } : { success: true }
+}
+
+/** Save (or delete, when empty) today's note. One note a day, on any day, trained or not. */
+export async function saveDayNote(note: string): Promise<ActionResult> {
+    const supabase = await createClient()
+    const {
+        data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return { success: false, message: 'Not authenticated.' }
+
+    const trimmed = note.trim()
+    // Counted the way the database counts: by character, not UTF-16 unit
+    if ([...trimmed].length > MAX_DAY_NOTE_LENGTH) {
+        return { success: false, message: `Keep the note under ${MAX_DAY_NOTE_LENGTH} characters.` }
+    }
+
+    // Today is the user's own date, from the server's clock, never from the client
+    const { data: profile } = await supabase.from('user_profiles').select('timezone').eq('user_id', user.id).maybeSingle()
+    const today = localDate(profile?.timezone || 'UTC', new Date())
+
+    const { error } = trimmed
+        ? await supabase
+              .from('day_notes')
+              .upsert(
+                  { user_id: user.id, note_date: today, note: trimmed, updated_at: new Date().toISOString() },
+                  { onConflict: 'user_id,note_date' }
+              )
+        : await supabase.from('day_notes').delete().eq('user_id', user.id).eq('note_date', today)
     return error ? { success: false, message: toFriendlyError(error) } : { success: true }
 }
 

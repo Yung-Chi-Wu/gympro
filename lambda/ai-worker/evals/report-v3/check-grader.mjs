@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { overallPass, programmaticGrade } from './grade.mjs'
+import { hasNote, overallPass, programmaticGrade } from './grade.mjs'
 import { inputsFor, SCENARIOS } from './scenarios.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -52,7 +52,7 @@ for (const c of SCENARIOS) {
             const option = options[withOption.id].at(-1)
             const dropOption = ideal.narrative.items.map((i) => ({ ...i, action: i.action.replaceAll(option, '') }))
             const g = programmaticGrade(c, broken({ items: dropOption })).grade
-            check(c.note ? g.options_named === null : g.options_named === 0, `${c.id}: an action that leaves out ${option} should ${c.note ? 'be left to the judge (a note)' : 'fail'}`)
+            check(hasNote(c) ? g.options_named === null : g.options_named === 0, `${c.id}: an action that leaves out ${option} should ${hasNote(c) ? 'be left to the judge (a note)' : 'fail'}`)
         }
     } else {
         check(programmaticGrade(c, broken({ items: [{ rule: 'low_volume', action: 'x' }] })).grade.advice_valid === 0, `${c.id}: advice when nothing fired should fail`)

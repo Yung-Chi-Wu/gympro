@@ -4,7 +4,8 @@
 //
 // A scenario describes a repeating week (or cycle) of routines. Every set of an
 // exercise in a window is logged at that window's weight x reps, oldest window
-// first in `progress`. Window 0 is the reported period.
+// first in `progress`. Window 0 is the reported period. `note` is the note for the
+// whole period; `dayNotes` maps a day of the period (its index in `plan`) to that day's note.
 
 import { createRequire } from 'node:module'
 
@@ -111,6 +112,7 @@ export function inputsFor(sc) {
         goal: sc.goal ?? null,
         routineLeads: Object.values(sc.routines).map((r) => `ex-${r[0][0]}`),
         previousFindings: sc.previousFindings ?? null,
+        notes: Object.entries(sc.dayNotes ?? {}).map(([i, note]) => ({ date: addDays(sc.periodStart, Number(i)), note })),
     }
 }
 
@@ -122,6 +124,8 @@ const WEEK = ['push', 'pull', 'legs', 'push', 'legs', 'pull', null]
 // expect.watching: these rule:subject pairs are watched (others may be too)
 // expect.followUps: id -> status
 // expect.options: finding id -> the low-volume options code must pick (addTo is an exercise id, newExercise a library name)
+// expect.dayNotes: each day note's date, planned routine and whether it was trained, as code lines them up
+// expect.brief: lines the brief must contain word for word (how the day notes reach the model)
 export const SCENARIOS = [
     {
         id: 'mockup-week-zh',
@@ -383,6 +387,31 @@ export const SCENARIOS = [
         expect: {
             status: 'progressing', findings: ['low_volume:biceps'],
             options: { 'low_volume:biceps': { addTo: 'ex-row', addToSets: 6, addToHalf: 1, newExercise: 'Dumbbell Curl', newExerciseSets: 3 } },
+        },
+    },
+    {
+        id: 'overtime-missed-legs-day-note-zh',
+        why: '週五腿日沒練，當天的備註說加班到很晚：漏練規則成立（股四頭和腿後側偏低只因為這次漏練，算在漏練裡）。程式已經把備註對到那一天（腿日，沒練），模型要看懂是加班造成的：不能責怪，建議要實際可行（例如把腿日挪到週末，或下週避開加班的日子）。週日休息日的「睡不好」可以提醒留意，但不能說是它造成什麼。',
+        language: 'zh-TW', goal: '增肌', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH, routines: PPL, skip: [4],
+        dayNotes: { 4: '加班到快十點，沒去健身房', 6: '睡不好' },
+        expect: {
+            status: 'progressing', findings: ['missed_sessions:-'],
+            dayNotes: [{ date: '2026-10-02', routine: '腿日', trained: false }, { date: '2026-10-04', routine: null, trained: false }],
+            brief: ['- 2026-10-02 (腿日, not trained): "加班到快十點，沒去健身房"', '- 2026-10-04 (rest day): "睡不好"'],
+        },
+    },
+    {
+        id: 'bench-pain-day-note-en',
+        why: "The bench press has been stuck at 82.5 kg x 8 for three weeks, so the stall rule fires and its advice is double progression (more reps, then more weight). But Thursday's note, on a push day that was trained, says the front of the right shoulder hurt on the bench press. The advice can't simply push reps and load on the bench: it has to fit the shoulder (a pain-free range or variation, a lighter load, getting it checked if it persists).",
+        language: 'en', goal: 'Build muscle', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_EN, routines: PPL,
+        progress: { bench: ['77.5x8', '80x8', '82.5x8', '82.5x8', '82.5x8', '82.5x8'] },
+        dayNotes: { 3: 'Front of my right shoulder hurt on the bench press today, mostly at the bottom of each rep' },
+        expect: {
+            status: 'progressing', findings: ['lift_stalled:ex-bench'],
+            dayNotes: [{ date: '2026-10-01', routine: 'Push Day', trained: true }],
+            brief: ['- 2026-10-01 (Push Day, trained): "Front of my right shoulder hurt on the bench press today, mostly at the bottom of each rep"'],
         },
     },
 ]

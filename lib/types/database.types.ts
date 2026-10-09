@@ -80,6 +80,27 @@ export type Database = {
           },
         ]
       }
+      day_notes: {
+        Row: {
+          note: string
+          note_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          note: string
+          note_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          note?: string
+          note_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exercise_log_units: {
         Row: {
           exercise_id: string
