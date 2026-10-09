@@ -18,8 +18,8 @@
       "kind": "binary"
     },
     {
-      "id": "top_included",
-      "label": "最優先的有寫",
+      "id": "covers_all",
+      "label": "每個項目都有寫到",
       "kind": "binary"
     },
     {

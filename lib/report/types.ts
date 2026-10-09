@@ -162,8 +162,11 @@ export interface FollowUp {
 
 export interface ReportNarrative {
     headline: string
-    items: { findingId: string; action: string }[]
+    /** One action per fired rule, covering every finding of it, in priority order. Reports saved
+     *  before 2026-10-09 have one item per finding (findingId) instead. */
+    items: NarrativeItem[]
 }
+export type NarrativeItem = { action: string } & ({ rule: RuleId; findingId?: undefined } | { findingId: string; rule?: undefined })
 
 export interface ReportV3 {
     version: 3

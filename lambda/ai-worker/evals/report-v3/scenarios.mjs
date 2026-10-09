@@ -176,7 +176,7 @@ export const SCENARIOS = [
     },
     {
         id: 'first-report-zh',
-        why: '第一份報告：沒有之前的資料，狀態是「基準」，不能說停滯或退步。拉日一週只排一次：背 6 組、肩後束 1.5 組（划船算半組）、二頭 6 組都偏低，訓練量規則照樣成立。',
+        why: '第一份報告：沒有之前的資料，狀態是「基準」，不能說停滯或退步。拉日一週只排一次：背 9 組（划船、下拉 6 組，加上側平舉順帶練到上斜方的半組）、肩後束 1.5 組（划船算半組）、二頭 6 組都偏低，訓練量規則照樣成立，而且三個肌群合成一條建議。',
         language: 'zh-TW', goal: null, note: null,
         periodStart: '2026-09-28', plan: ['push', 'pull', 'legs', null, 'push', null, 'legs'], cycle: false, routines: { ...PPL, pull: [['row', 3], ['pulldown', 3], ['curl', 3]] }, history: 0,
         expect: { status: 'baseline', findings: ['low_volume:back', 'low_volume:rear_delts', 'low_volume:biceps'], records: [] },

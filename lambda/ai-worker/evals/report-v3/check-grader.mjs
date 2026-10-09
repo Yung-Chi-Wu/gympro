@@ -11,7 +11,7 @@ import { inputsFor, SCENARIOS } from './scenarios.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 execFileSync(join(here, '..', '..', 'node_modules/.bin/esbuild'), ['evals/report-v3/entry.ts', '--bundle', '--platform=node', '--format=cjs', '--outfile=evals/report-v3/dist/report.cjs', '--log-level=warning'], { cwd: join(here, '..', '..'), stdio: 'inherit' })
-const { analyze } = createRequire(import.meta.url)(join(here, 'dist', 'report.cjs'))
+const { analyze, findingName } = createRequire(import.meta.url)(join(here, 'dist', 'report.cjs'))
 
 let failures = 0
 const check = (ok, msg) => { if (!ok) { failures++; console.log(`FAIL ${msg}`) } }
@@ -19,30 +19,37 @@ const check = (ok, msg) => { if (!ok) { failures++; console.log(`FAIL ${msg}`) }
 for (const c of SCENARIOS) {
     const { findings, facts } = analyze(inputsFor(c))
     const zh = c.language === 'zh-TW'
-    // Ideal: the top three fired rules in priority order (a deload is always first)
+    // Ideal: one action per fired rule in priority order (a deload first), naming every item of it
+    const names = Object.fromEntries(findings.map((f) => [f.id, findingName(f, c.language)]))
+    const rules = [...new Set(findings.map((f) => f.rule))]
+    const named = (r) => findings.filter((f) => f.rule === r && names[f.id]).map((f) => names[f.id]).join(zh ? '、' : ', ')
     const ideal = {
         narrative: {
             headline: zh ? '這週整體穩定，照下面的重點調整就好。' : 'A steady week; the points below are what to adjust.',
-            items: findings.slice(0, 3).map((f) => ({ findingId: f.id, action: zh ? '下週照這個方向調整一項就好。' : 'Adjust this one thing next week.' })),
+            items: rules.map((r) => ({ rule: r, action: `${named(r)}${zh ? '下週照這個方向調整。' : ' adjust this next week.'}` })),
         },
-        findings, status: facts.status, brief: '',
+        findings, status: facts.status, brief: '', names,
     }
     const g = programmaticGrade(c, ideal).grade
     check(overallPass(g) === 1, `${c.id}: the ideal text should pass, got ${JSON.stringify(g)}`)
     const broken = (patch) => ({ ...ideal, narrative: { ...ideal.narrative, ...patch } })
     const item = ideal.narrative.items[0]
 
-    check(programmaticGrade(c, broken({ items: [...ideal.narrative.items, { findingId: 'made_up:-', action: 'x' }] })).grade.advice_valid === 0, `${c.id}: advice on a rule that didn't fire should fail`)
+    check(programmaticGrade(c, broken({ items: [...ideal.narrative.items, { rule: 'made_up', action: 'x' }] })).grade.advice_valid === 0, `${c.id}: advice on a rule that didn't fire should fail`)
     if (findings.length) {
         check(programmaticGrade(c, broken({ items: [] })).grade.advice_valid === 0, `${c.id}: no advice when rules fired should fail`)
         check(programmaticGrade(c, broken({ items: [item, item] })).grade.advice_valid === 0, `${c.id}: the same rule twice should fail`)
-        if (findings.length > 1) check(programmaticGrade(c, broken({ items: ideal.narrative.items.slice(1) })).grade.top_included === 0, `${c.id}: leaving out the top rule should fail`)
+        if (rules.length > 1) check(programmaticGrade(c, broken({ items: ideal.narrative.items.slice(1) })).grade.advice_valid === 0, `${c.id}: leaving out a fired rule should fail`)
+        const withName = findings.find((f) => names[f.id])
+        if (withName) {
+            const dropName = ideal.narrative.items.map((i) => ({ ...i, action: i.action.replaceAll(names[withName.id], '') }))
+            check(programmaticGrade(c, broken({ items: dropName })).grade.covers_all === 0, `${c.id}: an action that leaves out ${names[withName.id]} should fail`)
+        }
     } else {
-        check(programmaticGrade(c, broken({ items: [{ findingId: 'low_volume:legs', action: 'x' }] })).grade.advice_valid === 0, `${c.id}: advice when nothing fired should fail`)
+        check(programmaticGrade(c, broken({ items: [{ rule: 'low_volume', action: 'x' }] })).grade.advice_valid === 0, `${c.id}: advice when nothing fired should fail`)
     }
-    if (findings.some((f) => f.rule === 'deload')) {
-        check(programmaticGrade(c, broken({ items: ideal.narrative.items.filter((i) => i.findingId !== 'deload:-') })).grade.deload_first === 0, `${c.id}: leaving out the deload should fail`)
-        if (findings.length > 1) check(programmaticGrade(c, broken({ items: [...ideal.narrative.items].reverse() })).grade.deload_first === 0, `${c.id}: deload not first should fail`)
+    if (rules.includes('deload') && rules.length > 1) {
+        check(programmaticGrade(c, broken({ items: [...ideal.narrative.items].reverse() })).grade.deload_first === 0, `${c.id}: deload not first should fail`)
     }
     check(programmaticGrade(c, broken({ headline: zh ? '這週'.repeat(30) : 'word '.repeat(40) })).grade.headline_short === 0, `${c.id}: a long headline should fail`)
     check(programmaticGrade(c, broken({ headline: `**${ideal.narrative.headline}**` })).grade.plain_text === 0, `${c.id}: Markdown should fail`)

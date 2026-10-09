@@ -77,7 +77,10 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
         }
     }
 
-    const items = narrative.items.map((i) => ({ ...i, finding: findings.find((f) => f.id === i.findingId) })).filter((i) => i.finding)
+    // One item per fired rule, with every finding of it; reports saved before that have one per finding
+    const items = narrative.items
+        .map((i) => ({ ...i, findings: findings.filter((f) => (i.rule ? f.rule === i.rule : f.id === i.findingId)) }))
+        .filter((i) => i.findings.length)
     const missed = facts.sessions.planned != null ? facts.sessions.planned - facts.sessions.done : 0
     const lowGroups = facts.muscles.filter((m) => m.status === 'low').map((m) => m.group)
     const weightWatch = watching.find((w) => w.rule === 'weight_trend')
@@ -134,15 +137,15 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
                 ) : (
                     <ol className="space-y-2.5">
                         {items.map((item, i) => (
-                            <li key={item.findingId} className="space-y-2 rounded-xl border border-ink/10 p-3.5 dark:border-white/10">
+                            <li key={item.rule ?? item.findingId} className="space-y-2 rounded-xl border border-ink/10 p-3.5 dark:border-white/10">
                                 <div className="grid grid-cols-[24px_1fr] items-start gap-2.5">
                                     <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-plate text-xs font-bold text-chalk dark:bg-chalk dark:text-plate">{i + 1}</span>
                                     <p className="font-semibold leading-relaxed">{item.action}</p>
                                 </div>
                                 <dl className="space-y-1 pl-[34px] text-[13px] text-ink/70 dark:text-white/70">
-                                    <Reason tag={t('why')} tone="data">{why(item.finding!)}</Reason>
+                                    {item.findings.map((f) => <Reason key={f.id} tag={t('why')} tone="data">{why(f)}</Reason>)}
                                     <Reason tag={t('research')} tone="study">
-                                        {t(`researchText.${item.finding!.rule}`)} <span className="text-xs text-ink/40 dark:text-white/40">· {t('researchPending')}</span>
+                                        {t(`researchText.${item.findings[0].rule}`)} <span className="text-xs text-ink/40 dark:text-white/40">· {t('researchPending')}</span>
                                     </Reason>
                                 </dl>
                             </li>
