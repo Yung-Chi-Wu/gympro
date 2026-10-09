@@ -102,5 +102,5 @@
     "lambda/ai-worker/evals/report-v3/scenarios.mjs",
     "lambda/ai-worker/evals/report-v3/entry.ts"
   ],
-  "harness_sha": "8c349f18f581f6638b02eb3414053f8ff2ba5e67f9039a6dc6f8830f3d284b14"
+  "harness_sha": "daa4e3e54e621af5a671dbe3613faa6a7f696a63209a17318d8fd826601502d1"
 }
