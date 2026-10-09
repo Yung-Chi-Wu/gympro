@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個可以練後三角的動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle\":\"rear_delts\"},\"result\":\"ID: cd6e3284 | 臉拉: shoulders; trains rear delts, upper back; low joint load\\nID: 7fb35f03 | 反向飛鳥機: shoulders; trains rear delts; low joint load\\nID: 03810fd4 | 啞鈴後三角飛鳥: shoulders; trains rear delts; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"cd6e3284\"},\"result\":\"Showing a card for \\\"臉拉\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "我推薦臉拉。它主要練後三角和上背，對關節的負擔也低，很適合放在推日當收尾，平衡臥推造成的肩膀前側偏重。\n\n💡 建議做 3 組，每組 12 到 15 下，用輕重量，動作要穩。"
+  },
+  {
+    "role": "user",
+    "content": "好，幫我加進今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"cd6e3284\"},\"result\":\"✓ 已將「臉拉」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 已把臉拉加進今天的課表。\n\n💪 放在推日最後做，3 組，每組 12 到 15 下。"
+  }
+]

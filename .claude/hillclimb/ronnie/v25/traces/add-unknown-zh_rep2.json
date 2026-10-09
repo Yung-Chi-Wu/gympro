@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個 Jefferson curl"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson curl\"},\"result\":\"Nothing in the library matches \\\"Jefferson curl\\\" exactly. Closest:\\nID: 0cb907f9 | 二頭彎舉: biceps; trains biceps; joint load: elbow medium\\nID: d9911659 | 錘式彎舉: biceps; trains biceps, forearms; low joint load\\nID: 995b5a70 | 腿彎舉: legs; trains hamstrings; low joint load\\nID: 03bae642 | 雙槓撐體: triceps; trains triceps; joint load: shoulder high, elbow medium\\nID: 03810fd4 | 啞鈴後三角飛鳥: shoulders; trains rear delts; low joint load\\nID: 3f4394d3 | 懸吊舉腿: core; trains abs; joint load: shoulder medium\\nID: f04af209 | 棒式: core; trains abs; low joint load\\nID: cd6e3284 | 臉拉: shoulders; trains rear delts, upper back; low joint load\\nID: a726ab1a | 低位繩索飛鳥: chest; trains upper chest; low joint load\\nID: 7fb35f03 | 反向飛鳥機: shoulders; trains rear delts; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"脊椎逐節前彎 腿後側 柔軟度\"},\"result\":\"Nothing in the library matches \\\"脊椎逐節前彎 腿後側 柔軟度\\\" exactly. Closest:\\nID: 995b5a70 | 腿彎舉: legs; trains hamstrings; low joint load\\nID: 0f6a6808 | 硬舉: back; trains glutes, hamstrings, lower back; joint load: lower back high, knee medium\\nID: 5866803c | 深蹲: legs; trains quads, glutes; joint load: lower back medium, knee medium\\nID: 07bccaa6 | 羅馬尼亞硬舉: legs; trains hamstrings, glutes; joint load: lower back medium\\nID: 03810fd4 | 啞鈴後三角飛鳥: shoulders; trains rear delts; low joint load\\nID: cd6e3284 | 臉拉: shoulders; trains rear delts, upper back; low joint load\\nID: 263ada72 | 滑輪下拉: back; trains lats; low joint load\\nID: 461557d5 | 坐姿繩索划船: back; trains upper back, lats; low joint load\\nID: 7fb35f03 | 反向飛鳥機: shoulders; trains rear delts; low joint load\\nID: efd2d668 | 行走弓箭步: legs; trains quads, glutes; joint load: knee medium\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "動作庫裡找不到 Jefferson curl，所以我沒辦法直接幫你加進今天的訓練。\n\n如果你想練腿後側，我可以改加羅馬尼亞硬舉，或是腿彎舉（對下背負擔比較低）。你要哪一個？"
+  }
+]
