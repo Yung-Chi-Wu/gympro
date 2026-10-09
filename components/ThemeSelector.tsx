@@ -8,7 +8,7 @@ interface ThemeSelectorProps {
 
 export function ThemeSelector({ isZhTW, value, onChange }: ThemeSelectorProps) {
     const options = [
-        { value: 'system', labelZh: '系統', labelEn: 'System' },
+        { value: 'system', labelZh: '跟隨系統', labelEn: 'System' },
         { value: 'light', labelZh: '日間', labelEn: 'Light' },
         { value: 'dark', labelZh: '夜間', labelEn: 'Dark' },
     ]

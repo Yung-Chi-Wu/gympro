@@ -251,7 +251,7 @@
         "coachGPrompt": "不知道怎麼排？"
     },
     "settings": {
-        "title": "個人設定",
+        "title": "設定",
         "displayName": "顯示名稱",
         "displayNamePlaceholder": "你想怎麼被稱呼？",
         "height": "身高（公分）",
@@ -271,7 +271,60 @@
         "save": "儲存",
         "saving": "儲存中...",
         "saved": "已儲存！",
-        "backToDashboard": "回到主頁"
+        "backToDashboard": "回到主頁",
+        "sections": {
+            "profile": "個人資料",
+            "goal": "訓練目標",
+            "units": "單位與語言",
+            "appearance": "外觀",
+            "account": "帳號"
+        },
+        "fields": {
+            "displayName": "顯示名稱",
+            "heightCm": "身高",
+            "dateOfBirth": "生日",
+            "sex": "性別",
+            "timezone": "時區",
+            "trainingGoal": "訓練目標",
+            "weightUnit": "閱讀用的重量單位",
+            "distanceUnit": "距離單位",
+            "language": "語言",
+            "theme": "外觀"
+        },
+        "hints": {
+            "heightCm": "單位是公分，報告用來算 BMI。",
+            "trainingGoal": "寫下你想達成的事，報告和 Ronnie 都會參考。例如「減脂 5 公斤」「深蹲做到 1.5 倍體重」。",
+            "weightUnit": "報告、Ronnie 和紀錄都用這個單位顯示重量。每個動作記錄時用的 kg／lb，在今天的記錄卡片裡分開設定。",
+            "distanceUnit": "跑步機的速度和距離用這個單位。"
+        },
+        "sexOptions": {
+            "none": "不想說",
+            "male": "男性",
+            "female": "女性",
+            "other": "其他"
+        },
+        "themes": {
+            "system": "跟隨系統",
+            "light": "日間",
+            "dark": "夜間"
+        },
+        "cm": "{value} cm",
+        "notSet": "未設定",
+        "heightInvalid": "身高請填數字。",
+        "saveFailed": "儲存失敗：{message}",
+        "tutorial": "重新看使用教學",
+        "install": "加到主畫面",
+        "installSteps": {
+            "share": "在 Safari 點下方工具列中間的分享按鈕（方框加箭頭）",
+            "add": "選「加入主畫面」",
+            "done": "點右上角的「新增」"
+        },
+        "groups": {
+            "personal": "個人",
+            "training": "訓練",
+            "preferences": "偏好",
+            "account": "帳號"
+        }
     },
     "history": {
         "title": "紀錄",

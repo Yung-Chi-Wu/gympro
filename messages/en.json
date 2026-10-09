@@ -251,7 +251,7 @@
         "coachGPrompt": "Not sure how to plan it?"
     },
     "settings": {
-        "title": "Profile Settings",
+        "title": "Settings",
         "displayName": "Display name",
         "displayNamePlaceholder": "What should we call you?",
         "height": "Height (cm)",
@@ -271,7 +271,60 @@
         "save": "Save",
         "saving": "Saving...",
         "saved": "Saved!",
-        "backToDashboard": "Back to dashboard"
+        "backToDashboard": "Back to dashboard",
+        "sections": {
+            "profile": "Profile",
+            "goal": "Training goal",
+            "units": "Units & language",
+            "appearance": "Appearance",
+            "account": "Account"
+        },
+        "fields": {
+            "displayName": "Display name",
+            "heightCm": "Height",
+            "dateOfBirth": "Date of birth",
+            "sex": "Gender",
+            "timezone": "Timezone",
+            "trainingGoal": "Training goal",
+            "weightUnit": "Weight unit for reading",
+            "distanceUnit": "Distance unit",
+            "language": "Language",
+            "theme": "Appearance"
+        },
+        "hints": {
+            "heightCm": "In centimetres; reports use it for BMI.",
+            "trainingGoal": "Write down what you want to achieve; your reports and Ronnie take it into account. For example \"lose 5 kg\" or \"squat 1.5× bodyweight\".",
+            "weightUnit": "Reports, Ronnie and your history show weights in this unit. The kg or lb each exercise is logged in is set separately, in today's logging card.",
+            "distanceUnit": "Treadmill speed and distance use this unit."
+        },
+        "sexOptions": {
+            "none": "Prefer not to say",
+            "male": "Male",
+            "female": "Female",
+            "other": "Other"
+        },
+        "themes": {
+            "system": "System",
+            "light": "Light",
+            "dark": "Dark"
+        },
+        "cm": "{value} cm",
+        "notSet": "Not set",
+        "heightInvalid": "Enter your height as a number.",
+        "saveFailed": "Couldn't save: {message}",
+        "tutorial": "View the tutorial again",
+        "install": "Add to Home Screen",
+        "installSteps": {
+            "share": "In Safari, tap the Share button in the toolbar (a box with an arrow)",
+            "add": "Choose \"Add to Home Screen\"",
+            "done": "Tap \"Add\" in the top right"
+        },
+        "groups": {
+            "personal": "Personal",
+            "training": "Training",
+            "preferences": "Preferences",
+            "account": "Account"
+        }
     },
     "history": {
         "title": "History",
