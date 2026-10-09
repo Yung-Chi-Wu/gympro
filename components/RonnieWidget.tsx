@@ -5,7 +5,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslations } from 'next-intl'
 import type { DisplayItem, ProposalCard, ProposalStatus, RecommendationCard } from '@/lib/ronnie/conversation'
 import { describeProposal } from '@/lib/ronnie/events'
-import { isSubmitEnter, useKeyboardOpen } from '@/lib/keyboard'
+import { isSubmitEnter, useKeyboardOpen, useVisibleViewport, type VisibleViewport } from '@/lib/keyboard'
 import { Icon } from './Icon'
 
 // Ronnie's chat window. The conversation lives on the server (one per day); this
@@ -15,8 +15,10 @@ import { Icon } from './Icon'
 // Each button's outcome is recorded in the conversation by the server, so Ronnie knows.
 //
 // Where it sits: on a phone, a round button the user can drag to either edge opens the
-// chat full screen. From md up there is no button: 問 Ronnie in the sidebar opens the chat
-// as a column on the right, which narrows the page instead of covering it.
+// chat as a small floating window on that side, just above the tab bar. The page stays
+// visible and usable behind it (Ronnie's changes show up in the logging card as they
+// happen); only ✕ closes it. From md up there is no button: 問 Ronnie in the sidebar opens
+// the chat as a column on the right, which narrows the page instead of covering it.
 
 interface RonnieState {
     isOpen: boolean
@@ -57,6 +59,9 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     const zh = language === 'zh-TW'
     const { isOpen, open: setOpen, close } = useRonnie()
     const tNav = useTranslations('nav')
+    const isPhone = useIsPhone()
+    const spot = useButtonSpot()
+    const viewport = useVisibleViewport()
     const [items, setItems] = useState<Item[]>([])
     const [loaded, setLoaded] = useState(false)
     const [input, setInput] = useState('')
@@ -291,11 +296,12 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
             {/* 手機：可以拖曳的圓形按鈕 */}
             {!isOpen && <RonnieButton label={tNav('openRonnie')} onOpen={setOpen} />}
 
-            {/* 對話：手機全螢幕；md 以上是右邊一欄，主畫面跟著變窄 */}
+            {/* 對話：手機是按鈕那一側的小視窗；md 以上是右邊一欄，主畫面跟著變窄 */}
             {isOpen && (
                 <aside
                     aria-label="Ronnie"
-                    className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-card pt-[env(safe-area-inset-top)] md:relative md:inset-auto md:z-auto md:h-dvh md:w-[340px] md:shrink-0 md:border-l md:border-line md:pt-0 xl:w-[380px]"
+                    style={isPhone ? windowStyle(spot.side, viewport) : undefined}
+                    className="fixed z-50 flex flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-[0_12px_40px_rgb(0_0_0/0.25)] md:relative md:z-auto md:h-dvh md:w-[340px] md:shrink-0 md:rounded-none md:border-0 md:border-l md:shadow-none xl:w-[380px]"
                 >
 
                     {/* Header */}
@@ -320,7 +326,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                 </button>
                             )}
                             <button type="button" onClick={close} aria-label={tNav('closeRonnie')}
-                                className="-m-1.5 p-1.5 text-white/50 hover:text-white transition-colors">
+                                className="-m-3 p-3 text-white/50 hover:text-white transition-colors">
                                 <Icon name="close" className="size-5" />
                             </button>
                         </div>
@@ -453,7 +459,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                     </div>
 
                     {/* Input */}
-                    <div className="p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-3 border-t border-ink/10 dark:border-white/10 shrink-0">
+                    <div className="p-3 border-t border-ink/10 dark:border-white/10 shrink-0">
                         <div className="flex gap-2">
                             <input
                                 ref={inputRef}
@@ -502,6 +508,45 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
             )}
         </>
     )
+}
+
+// ---------- The phone's window ----------
+
+const PHONE_QUERY = '(max-width: 767.98px)'
+
+function subscribePhone(listener: () => void) {
+    const query = window.matchMedia(PHONE_QUERY)
+    query.addEventListener('change', listener)
+    return () => query.removeEventListener('change', listener)
+}
+
+/** Below md, where Ronnie is a floating window instead of a column */
+function useIsPhone(): boolean {
+    return useSyncExternalStore(subscribePhone, () => window.matchMedia(PHONE_QUERY).matches, () => false)
+}
+
+const WINDOW_WIDTH = 'min(360px, calc(100vw - 24px))'
+const WINDOW_MAX_HEIGHT = 540
+const GAP = 8
+
+/**
+ * Where the phone's chat window sits: on the side the button was left on, just above the
+ * tab bar, as tall as fits between the top bar and the tab bar (at most 540px). With the
+ * keyboard open the tab bar hides and the window fits the visible area instead, right
+ * above the keyboard, so the input stays in view.
+ */
+function windowStyle(side: ButtonSpot['side'], viewport: VisibleViewport | null): React.CSSProperties {
+    const base: React.CSSProperties = { [side]: '12px', width: WINDOW_WIDTH }
+    if (viewport?.keyboardOpen) {
+        const height = Math.min(WINDOW_MAX_HEIGHT, viewport.height - 2 * GAP)
+        return { ...base, top: viewport.offsetTop + viewport.height - GAP - height, height }
+    }
+    // 53px: the top bar with its line; 56px: the tab bar; a gap above and below
+    return {
+        ...base,
+        bottom: `calc(56px + ${GAP}px + env(safe-area-inset-bottom))`,
+        height: `min(${WINDOW_MAX_HEIGHT}px, calc(100dvh - 53px - 56px - ${2 * GAP}px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))`,
+    }
 }
 
 // ---------- The phone's button ----------
@@ -563,6 +608,12 @@ function parseSpot(raw: string | null): ButtonSpot {
     return DEFAULT_SPOT
 }
 
+/** Where the user left the button; the chat window opens on the same side */
+function useButtonSpot(): ButtonSpot {
+    const raw = useSyncExternalStore(subscribeSpot, getSpotSnapshot, () => null)
+    return useMemo(() => parseSpot(raw), [raw])
+}
+
 const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min), Math.max(min, max))
 
 /**
@@ -572,8 +623,7 @@ const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min)
  */
 function RonnieButton({ label, onOpen }: { label: string; onOpen: () => void }) {
     const keyboardOpen = useKeyboardOpen()
-    const raw = useSyncExternalStore(subscribeSpot, getSpotSnapshot, () => null)
-    const spot = useMemo(() => parseSpot(raw), [raw])
+    const spot = useButtonSpot()
     // While dragging: the button's top-left corner, in px
     const [dragAt, setDragAt] = useState<{ x: number; y: number } | null>(null)
     const press = useRef<{
