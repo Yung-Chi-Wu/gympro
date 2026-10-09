@@ -254,7 +254,10 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         },
     }
 
-    // Weekly totals (Monday to Sunday) computed here, so the model never does the arithmetic
+    // Weekly totals (Monday to Sunday) computed here, so the model never does the arithmetic.
+    // This week and last week are named, and this week says how far in it is: with dates
+    // alone the model called last week's 21 chest sets "this week". Each exercise gets its
+    // own sets and sessions, so bench press sets aren't read off the chest total.
     async function trainingSummary(dateFrom: string, dateTo: string): Promise<string> {
         const workouts = await workoutsBetween(dateFrom, dateTo)
         const sets = workouts.length ? await data.getSets(workouts.map((w) => w.id)) : []
@@ -272,27 +275,38 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             const groupSets = sets.filter((s) => group.some((w) => w.id === s.workout_id))
             const volume = groupSets.reduce((sum, s) => sum + s.reps * s.weight_kg, 0)
             const muscles = new Map<string, { sets: number; sessions: Set<string> }>()
-            const best = new Map<string, { reps: number; weight_kg: number }>()
+            const perExercise = new Map<string, { sets: number; sessions: Set<string>; best: { reps: number; weight_kg: number } }>()
             for (const st of groupSets) {
                 const muscle = byId.get(st.exercise_id)?.muscle_group ?? 'other'
                 const m = muscles.get(muscle) ?? { sets: 0, sessions: new Set<string>() }
                 m.sets++
                 m.sessions.add(st.workout_id)
                 muscles.set(muscle, m)
-                const b = best.get(st.exercise_id)
-                if (!b || st.weight_kg > b.weight_kg || (st.weight_kg === b.weight_kg && st.reps > b.reps)) best.set(st.exercise_id, st)
+                const e = perExercise.get(st.exercise_id) ?? { sets: 0, sessions: new Set<string>(), best: st }
+                e.sets++
+                e.sessions.add(st.workout_id)
+                if (st.weight_kg > e.best.weight_kg || (st.weight_kg === e.best.weight_kg && st.reps > e.best.reps)) e.best = st
+                perExercise.set(st.exercise_id, e)
             }
             return [
                 `${label}: ${group.length} sessions, ${groupSets.length} sets, volume ${Math.round(volume).toLocaleString('en-US')} kg`,
                 `  By muscle group: ${[...muscles].map(([m, v]) => `${m} ${v.sets} sets (${v.sessions.size} sessions)`).join(', ')}`,
-                `  Best sets: ${[...best].map(([id, b]) => `${nameOf(byId.get(id))} ${setText(b)}`).join(', ')}`,
+                `  By exercise: ${[...perExercise].map(([id, v]) => `${nameOf(byId.get(id))} ${v.sets} sets (${v.sessions.size} sessions), best ${setText(v.best)}`).join('; ')}`,
             ].join('\n')
         }
 
+        const today = localDateStr(now(), timeZone)
+        const thisMonday = mondayOf(today)
         const sections = [...weeks.keys()].sort().map((monday) => {
             // Clipped to the requested range, so a partial week says so
             const sunday = shiftDate(monday, 6)
-            return describe(`${monday < dateFrom ? dateFrom : monday} to ${sunday > dateTo ? dateTo : sunday}`, weeks.get(monday)!)
+            const dates = `${monday < dateFrom ? dateFrom : monday} to ${sunday > dateTo ? dateTo : sunday}`
+            const clipped = monday < dateFrom || (monday !== thisMonday && sunday > dateTo)
+            const day = (Date.parse(today) - Date.parse(monday)) / 86_400_000 + 1
+            const name = monday === thisMonday ? `This week so far, day ${day} of 7`
+                : monday === shiftDate(thisMonday, -7) ? 'Last week'
+                : 'Week'
+            return describe(`${name}${clipped ? ', partial' : ''} (${dates})`, weeks.get(monday)!)
         })
         if (weeks.size > 1) sections.push(describe(`Total ${dateFrom} to ${dateTo}`, trained))
         if (sets.some((s) => s.weight_kg === 0)) sections.push('(Bodyweight sets add nothing to volume)')

@@ -62,7 +62,7 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
     },
     {
         name: 'get_training_summary',
-        description: 'Totals computed by the app for a date range, per week (Monday to Sunday): sessions, sets, volume (kg x reps), sets and sessions per muscle group, and the best set per exercise.',
+        description: 'Totals computed by the app for a date range, per week (Monday to Sunday): sessions, sets, volume (kg x reps), sets and sessions per muscle group, and sets, sessions and the best set per exercise. This week and last week are named; this week is still under way and says which day it is.',
         input_schema: { type: 'object', properties: dateRange, required: ['date_from', 'date_to'] },
     },
     {
