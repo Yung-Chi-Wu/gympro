@@ -53,8 +53,8 @@
       "kind": "binary"
     },
     {
-      "id": "note_addressed",
-      "label": "有回應備註",
+      "id": "note_fits",
+      "label": "建議配合備註",
       "kind": "binary"
     }
   ],
@@ -102,5 +102,5 @@
     "lambda/ai-worker/evals/report-v3/scenarios.mjs",
     "lambda/ai-worker/evals/report-v3/entry.ts"
   ],
-  "harness_sha": "daa4e3e54e621af5a671dbe3613faa6a7f696a63209a17318d8fd826601502d1"
+  "harness_sha": "dc7944c5ba0df1363b710e36fd78ae4532b93ef651826309b911d12e6b1193cc"
 }

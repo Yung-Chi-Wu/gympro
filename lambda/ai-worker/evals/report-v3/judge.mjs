@@ -1,5 +1,5 @@
 // Opus judge for what a program can't check in the v3 report text: whether it is
-// true to the brief, whether the advice is the right advice, and the user's note.
+// true to the brief, whether the advice is the right advice, and whether it fits the user's note.
 
 export const JUDGE_MODEL = 'claude-opus-5-5'
 
@@ -14,9 +14,9 @@ const JUDGE_SCHEMA = {
     properties: {
         grounded: verdict(['pass', 'fail']),
         advice_fits: verdict(['pass', 'fail', 'not_applicable']),
-        note_addressed: verdict(['pass', 'fail', 'not_applicable']),
+        note_fits: verdict(['pass', 'fail', 'not_applicable']),
     },
-    required: ['grounded', 'advice_fits', 'note_addressed'],
+    required: ['grounded', 'advice_fits', 'note_fits'],
     additionalProperties: false,
 }
 
@@ -38,8 +38,14 @@ myth, diagnosis, unsafe advice or scolding. Ordinary coaching choices you might 
 differently are not failures. If there are no actions because no rules fired, answer
 not_applicable; if rules fired and there are no actions, fail.
 
-note_addressed - if the brief has a note from the user, pass only if the text responds to it
-(acknowledges it, or lets it shape an action). If there is no note, answer not_applicable.
+note_fits - if the brief has a note from the user: the note is context the user gave so the
+report fits them, not a message that needs a reply, so the text does not have to mention it. Pass
+if every action is consistent with the note and any action the note bears on is adapted to it:
+pain or discomfort in a movement or joint means not simply adding sets or load there (a pain-free
+alternative, a lighter range, or getting it checked); a busy week or travel means a realistic
+plan; tiredness or poor sleep may be named as something to look at, never as the cause. Fail if
+an action contradicts the note, or ignores it where it plainly applies (for example adds sets of
+the exercise the note says hurts). If there is no note, answer not_applicable.
 
 Write each reason in Traditional Chinese (繁體中文), one or two sentences.`
 
@@ -71,13 +77,13 @@ export async function judge(client, c, output) {
 export function judgeGrade(c, verdicts) {
     const grade = {}
     const explanation = {}
-    for (const k of ['grounded', 'advice_fits', 'note_addressed']) {
+    for (const k of ['grounded', 'advice_fits', 'note_fits']) {
         const v = verdicts[k]?.verdict
         grade[k] = v === 'pass' ? 1 : v === 'fail' ? 0 : null
         explanation[k] = verdicts[k]?.reason
     }
     // A judge miss is not a pass: a note left unjudged, or advice unjudged when rules fired
-    if (c.note && grade.note_addressed == null) grade.note_addressed = 0
+    if (c.note && grade.note_fits == null) grade.note_fits = 0
     if (c.expect.findings.length && grade.advice_fits == null) grade.advice_fits = 0
     return { grade, explanation }
 }

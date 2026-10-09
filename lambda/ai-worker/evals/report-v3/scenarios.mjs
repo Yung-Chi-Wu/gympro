@@ -292,6 +292,21 @@ export const SCENARIOS = [
         expect: { status: 'progressing', findings: ['lift_stalled:ex-bench'] },
     },
     {
+        id: 'shoulder-pain-note-zh',
+        why: '肩膀只有側平舉，每週 4 組，一直偏低：訓練量規則成立。但備註說做側平舉右肩會痛，所以建議不能只是多做側平舉，要換不痛的做法。備註不一定要回覆，要的是建議配合它。',
+        language: 'zh-TW', goal: '增肌', note: '側平舉的時候右肩會卡卡的，有點痛',
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH,
+        routines: { ...PPL, push: [['bench', 4], ['incline', 3], ['lateral', 2], ['pushdown', 2]] },
+        expect: { status: 'progressing', findings: ['low_volume:shoulders'] },
+    },
+    {
+        id: 'knee-note-missed-legs-en',
+        why: 'Friday leg day was skipped, and the note says why: a sore knee. The missed-session advice must not just say make up the squats; it has to fit the knee.',
+        language: 'en', goal: 'Build muscle', note: 'Skipped Friday legs, my knee was sore after the squats on Wednesday',
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_EN, routines: PPL, skip: [4],
+        expect: { status: 'progressing', findings: ['missed_sessions:-'] },
+    },
+    {
         id: 'legs-once-chronic-en',
         why: 'Legs are trained once a week by plan, 8 sets every week: a real volume gap, not a missed session. The squat still counts as a main lift because it leads its routine.',
         language: 'en', goal: 'Build muscle', note: null,
