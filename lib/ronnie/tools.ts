@@ -82,13 +82,13 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
         input_schema: {
             type: 'object',
             properties: {
-                change: { type: 'string', enum: ['remove', 'add'], description: 'remove (the default) or add' },
+                change: { type: 'string', enum: ['remove', 'add'] },
                 exercise_id: exerciseId('search_exercises, get_routine_exercises or get_today_workout'),
                 routine_name: { type: 'string', description: 'remove: only this routine (omit for all). add: the routine (required).' },
                 target_sets: { type: 'integer', description: 'add only, default 3' },
                 target_reps: { type: 'integer', description: 'add only, default 10' },
             },
-            required: ['exercise_id'],
+            required: ['change', 'exercise_id'],
         },
     },
 ]

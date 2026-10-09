@@ -235,6 +235,8 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         async propose_routine_change(input) {
             // Only proposed: the change happens when the user confirms it in the app. The cap is
             // counted before any await, so parallel calls in one response can't all slip under it.
+            // No default: a missing change once read as a removal of an exercise the user asked to add
+            if (input.change !== 'add' && input.change !== 'remove') return 'Not proposed: say change "add" or "remove"'
             const add = input.change === 'add'
             if (!add && removalAttempts++ >= MAX_REMOVALS_PER_TURN) {
                 return `At most ${MAX_REMOVALS_PER_TURN} removals at once; this one was not proposed. For a bigger change, suggest a redesign with Coach G.`

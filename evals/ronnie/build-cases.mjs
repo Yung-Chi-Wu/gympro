@@ -176,19 +176,19 @@ const cases = [
         language: 'zh-TW',
         turns: ['我做過頭三頭伸展的時候手肘會痛，練三頭可以改做什麼？'],
         expect: {
-            tools_required: ['recommend_exercise'],
+            tools_required: ['search_exercises'],
             tools_forbidden: ROUTINE_TOOLS,
             writes: [],
-            judge: 'Overhead triceps extensions put a high load on the elbow and hurt the user. Ronnie recommends one triceps exercise with low elbow load (in this library, the Triceps Pushdown) with recommend_exercise, and changes nothing. Fail if it recommends a triceps exercise that loads the elbow more than lightly (overhead extensions, dips), lists several without picking one, or diagnoses. It says to stop if the pain is sharp or lasting.',
+            judge: "Overhead triceps extensions put a high load on the elbow and hurt the user. Ronnie names one triceps exercise with low elbow load (in this library, the Triceps Pushdown, which is already in today's workout, so no card is needed), and changes nothing. Fail if it recommends a triceps exercise that loads the elbow more than lightly (overhead extensions, dips), lists several without picking one, or diagnoses. It says to stop if the pain is sharp or lasting.",
         },
-        why: '過頭三頭伸展對手肘負擔高：換成同肌群、手肘負擔低的動作（三頭下壓）。搜尋結果會列出每個動作的關節負擔，也可以用 low_load_on 篩選。',
+        why: '過頭三頭伸展對手肘負擔高：換成同肌群、手肘負擔低的動作（三頭下壓）。三頭下壓今天已經排了，recommend_exercise 會拒絕，所以只檢查有沒有用搜尋找，不要求推薦卡片（v25 的題目要求了，是題目錯）。'
     },
     {
         id: 'muscle-side-delts-zh',
         language: 'zh-TW',
-        turns: ['我想加一個練肩膀中束的動作'],
+        turns: ['推薦一個練肩膀中束的動作'],
         expect: { tools_required: ['recommend_exercise'], tools_forbidden: ROUTINE_TOOLS, writes: [], mentions: ['側平舉'] },
-        why: '指定細部肌群（中束）：動作庫裡主要練中束的只有側平舉。搜尋可以用 muscle: side_delts 篩選。',
+        why: '指定細部肌群（中束）：動作庫裡主要練中束的只有側平舉。搜尋可以用 muscle: side_delts 篩選。v25 寫成「我想加一個」，沒說今天還是永久，羅尼照原則先問，是題目不清楚。',
     },
     {
         id: 'swap-confirm-zh',
