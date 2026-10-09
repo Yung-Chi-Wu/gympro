@@ -53,8 +53,8 @@
       "kind": "binary"
     },
     {
-      "id": "note_addressed",
-      "label": "有回應備註",
+      "id": "note_fits",
+      "label": "建議配合備註",
       "kind": "binary"
     }
   ],

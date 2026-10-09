@@ -79,8 +79,10 @@ export function buildPrompt(input: NarrativeInput): string {
     const setOf = (s: LiftFacts['best'], bodyweight: boolean) => (!s ? '-' : bodyweight ? `${s.reps} reps (bodyweight)` : `${w(s.weightKg)} x ${s.reps}`)
     const ADVICE = advice(weightUnit, unit)
     // Finding data keeps weights in kg ("82.5x8"); the model sees the user's unit. previousValue
-    // is an internal estimated 1RM for the follow-up, not something to quote.
-    const dataFor = (f: Finding) => Object.fromEntries(Object.entries(f.data).filter(([k]) => k !== 'previousValue').map(([k, v]) => {
+    // is an internal estimated 1RM for the follow-up, not something to quote. In a 7-day period
+    // perWeek is the same number as sets, and two names for one number read as two numbers.
+    const hidden = new Set(['previousValue', ...(facts.period.days === 7 ? ['perWeek'] : [])])
+    const dataFor = (f: Finding) => Object.fromEntries(Object.entries(f.data).filter(([k]) => !hidden.has(k)).map(([k, v]) => {
         const m = typeof v === 'string' && /^(\d+(?:\.\d+)?)x(\d+)$/.exec(v)
         if (m) return [k, f.data.bodyweight ? `${m[2]} reps (bodyweight)` : `${w(Number(m[1]))} x ${m[2]}`]
         return [k.replace(/Kg$/, ''), (k === 'latestKg' || k === 'changeKg') && typeof v === 'number' ? w(v) : v]
@@ -93,11 +95,11 @@ export function buildPrompt(input: NarrativeInput): string {
         `Main lifts, best set this ${unit}:`,
         ...facts.lifts.map((l) => liftLine(l, zh, unit, setOf)),
         facts.records.length ? `New records (best estimated 1RM so far; not necessarily a new weight): ${facts.records.map((r) => `${nameOf(r, zh)} ${setOf(r.best, r.bodyweight)}`).join('; ')}.` : 'No new records.',
-        `Sets per muscle per week (range 10-20 for chest, back, legs, shoulders, glutes): ${facts.muscles.map((m) => `${m.group} ${m.perWeek}${m.previousPerWeek != null ? ` (last ${unit} ${m.previousPerWeek})` : ''}`).join(', ')}.`,
+        `${facts.period.days === 7 ? 'Sets per muscle this week' : `Sets per muscle per week (this ${facts.period.days}-day cycle scaled to 7 days)`} (range 10-20 a week for chest, back, legs, shoulders, glutes): ${facts.muscles.map((m) => `${m.group} ${m.perWeek}${m.previousPerWeek != null ? ` (last ${unit} ${m.previousPerWeek})` : ''}`).join(', ')}.`,
         facts.bodyWeight.latestKg != null ? `Body weight: ${w(facts.bodyWeight.latestKg)}${facts.bodyWeight.changeKg != null ? ` (${facts.bodyWeight.changeKg >= 0 ? '+' : '-'}${w(Math.abs(facts.bodyWeight.changeKg))})` : ''}, ${facts.bodyWeight.weighIns} weigh-in(s) this ${unit}.` : 'No body weight logged.',
         `Weights are in ${weightUnit}; write every weight in ${weightUnit}.`,
         `The user's goal: ${facts.goal.text ? `"${facts.goal.text}"` : 'not set'}.`,
-        `The user's note for this ${unit}: ${note ? `"${note}"` : 'none'}.`,
+        `The user's note for this ${unit} (context to fit the advice to, not a message that needs a reply): ${note ? `"${note}"` : 'none'}.`,
     ]
     if (followUps.length) {
         lines.push(`Last report's advice and how it went (the app shows this; mention it in the headline only if it matters):`,
@@ -116,7 +118,7 @@ export function buildPrompt(input: NarrativeInput): string {
 ${lines.join('\n')}
 
 1. headline: one sentence the user reads first, the most important thing about this ${unit}, consistent with the status. It may use a number from above. ${zh ? 'At most 40 characters.' : 'At most 25 words.'}
-2. items: ${findings.length ? `advice for at most ${MAX_ITEMS} of the fired rules, most important first: usually by priority, but the goal or the note may change the order. A deload, if it fired, is always included and first. Each action is one or two short sentences saying exactly what to do next ${unit}, with the exercise, sets, weights or reps from the data. Don't repeat the reason; the app shows it.` : 'leave it empty: nothing fired, so give no advice.'}
+2. items: ${findings.length ? `advice for at most ${MAX_ITEMS} of the fired rules, most important first: usually by priority, but the goal or the note may change the order. A deload, if it fired, is always included and first. Each action is one or two short sentences saying exactly what to do next ${unit}, with the exercise, sets, weights or reps from the data. Don't repeat the reason; the app shows it. Fit every action to the user's note: if it mentions pain or discomfort in a movement or joint, don't simply add sets or load there; suggest a pain-free alternative or a lighter range, and getting it checked if it persists.` : 'leave it empty: nothing fired, so give no advice.'}
 
 Use only the numbers above; never invent data. No myths, no diagnosis, no scolding. Plain text only: no Markdown, no lists inside a field. ${languageRule}`
 }
