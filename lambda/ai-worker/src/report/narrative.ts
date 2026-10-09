@@ -2,6 +2,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
 import { getClaudeClient } from '../claude'
 import { toDisplayWeight, type WeightUnit } from '../../../../lib/weight-unit'
+import { unitLabel, VOLUME_UNITS, VOLUME_UNIT_IDS } from '../../../../lib/report/volume'
 import type { Finding, FollowUp, LiftFacts, ReportFacts, ReportNarrative, RuleId, Watching } from './types'
 
 // The model's whole job in the report: one headline, and plain-language advice for at
@@ -82,11 +83,18 @@ export function buildPrompt(input: NarrativeInput): string {
     // is an internal estimated 1RM for the follow-up, not something to quote. In a 7-day period
     // perWeek is the same number as sets, and two names for one number read as two numbers.
     const hidden = new Set(['previousValue', ...(facts.period.days === 7 ? ['perWeek'] : [])])
-    const dataFor = (f: Finding) => Object.fromEntries(Object.entries(f.data).filter(([k]) => !hidden.has(k)).map(([k, v]) => {
-        const m = typeof v === 'string' && /^(\d+(?:\.\d+)?)x(\d+)$/.exec(v)
-        if (m) return [k, f.data.bodyweight ? `${m[2]} reps (bodyweight)` : `${w(Number(m[1]))} x ${m[2]}`]
-        return [k.replace(/Kg$/, ''), (k === 'latestKg' || k === 'changeKg') && typeof v === 'number' ? w(v) : v]
-    }))
+    // Muscles by name, in the user's language like exercise names
+    const muscleName = (g: string) => unitLabel(g, language, (x) => x)
+    const dataFor = (f: Finding) => Object.fromEntries([
+        ...(f.rule === 'low_volume' && f.subject ? [['muscle', muscleName(f.subject)]] : []),
+        ...Object.entries(f.data).filter(([k]) => !hidden.has(k)).map(([k, v]) => {
+            const m = typeof v === 'string' && /^(\d+(?:\.\d+)?)x(\d+)$/.exec(v)
+            if (m) return [k, f.data.bodyweight ? `${m[2]} reps (bodyweight)` : `${w(Number(m[1]))} x ${m[2]}`]
+            if (k === 'lowGroups' && typeof v === 'string') return [k, v.split(', ').map(muscleName).join(', ')]
+            return [k.replace(/Kg$/, ''), (k === 'latestKg' || k === 'changeKg') && typeof v === 'number' ? w(v) : v]
+        }),
+    ])
+    const ranged = VOLUME_UNIT_IDS.filter((u) => VOLUME_UNITS[u].target).map(muscleName).join(', ')
     const s = facts.liftsSummary
     const lines = [
         `Period: ${facts.period.start} to ${facts.period.end} (one ${unit}, ${facts.period.days} days).`,
@@ -95,7 +103,7 @@ export function buildPrompt(input: NarrativeInput): string {
         `Main lifts, best set this ${unit}:`,
         ...facts.lifts.map((l) => liftLine(l, zh, unit, setOf)),
         facts.records.length ? `New records (best estimated 1RM so far; not necessarily a new weight): ${facts.records.map((r) => `${nameOf(r, zh)} ${setOf(r.best, r.bodyweight)}`).join('; ')}.` : 'No new records.',
-        `${facts.period.days === 7 ? 'Sets per muscle this week' : `Sets per muscle per week (this ${facts.period.days}-day cycle scaled to 7 days)`} (range 10-20 a week for chest, back, legs, shoulders, glutes): ${facts.muscles.map((m) => `${m.group} ${m.perWeek}${m.previousPerWeek != null ? ` (last ${unit} ${m.previousPerWeek})` : ''}`).join(', ')}.`,
+        `${facts.period.days === 7 ? 'Sets per muscle this week' : `Sets per muscle per week (this ${facts.period.days}-day cycle scaled to 7 days)`}, where a muscle an exercise trains on the side counts half a set (range 10-20 a week for ${ranged}; the others have no range): ${facts.muscles.map((m) => `${muscleName(m.group)} ${m.perWeek}${m.previousPerWeek != null ? ` (last ${unit} ${m.previousPerWeek})` : ''}`).join(', ')}.`,
         facts.bodyWeight.latestKg != null ? `Body weight: ${w(facts.bodyWeight.latestKg)}${facts.bodyWeight.changeKg != null ? ` (${facts.bodyWeight.changeKg >= 0 ? '+' : '-'}${w(Math.abs(facts.bodyWeight.changeKg))})` : ''}, ${facts.bodyWeight.weighIns} weigh-in(s) this ${unit}.` : 'No body weight logged.',
         `Weights are in ${weightUnit}; write every weight in ${weightUnit}.`,
         `The user's goal: ${facts.goal.text ? `"${facts.goal.text}"` : 'not set'}.`,

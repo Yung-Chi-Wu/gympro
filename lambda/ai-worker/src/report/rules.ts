@@ -1,4 +1,5 @@
-import { VOLUME_GROUPS, VOLUME_RANGE } from './facts'
+import { VOLUME_RANGE } from './facts'
+import { hasTarget } from '../../../../lib/report/volume'
 import type { BestSet, Finding, FollowUp, FollowUpStatus, LiftFacts, ReportFacts, RuleId, Watching } from './types'
 
 // The rule table. A rule fires on the facts alone; the report may only advise on a
@@ -75,14 +76,15 @@ export function evaluateRules(facts: ReportFacts): { findings: Finding[]; watchi
     const { done, planned, days } = facts.sessions
     const missedSessions = planned != null && done < planned
 
-    // Low volume only for a group the user actually trains (this period or the one before).
-    // One cause, one finding: a group that was in range last period and is low only because a
-    // session was missed is part of the missed-sessions finding, not a volume problem.
+    // Low volume only for a muscle the user actually trains (this period, the one before, or in
+    // a planned session). One cause, one finding: a muscle the missed sessions would have brought
+    // into range, by their routines' target sets, is part of the missed-sessions finding, not a
+    // volume problem. Measured against the plan, so it holds in a first report too.
     const lowFromMissing: string[] = []
     for (const m of facts.muscles) {
-        const trainsIt = m.sets > 0 || (m.previousPerWeek ?? 0) > 0
-        if (m.status !== 'low' || !trainsIt || !VOLUME_GROUPS.includes(m.group)) continue
-        if (missedSessions && (m.previousPerWeek ?? 0) >= VOLUME_RANGE.low) lowFromMissing.push(m.group)
+        const trainsIt = m.sets > 0 || (m.previousPerWeek ?? 0) > 0 || (m.missedPerWeek ?? 0) > 0
+        if (m.status !== 'low' || !trainsIt || !hasTarget(m.group)) continue
+        if (missedSessions && m.perWeek + (m.missedPerWeek ?? 0) >= VOLUME_RANGE.low) lowFromMissing.push(m.group)
         else {
             // Sets to add each period to reach the weekly minimum, so the advice has an exact number
             const addSets = Math.ceil((VOLUME_RANGE.low * facts.period.days) / 7 - m.sets)
@@ -122,7 +124,8 @@ export function evaluateRules(facts: ReportFacts): { findings: Finding[]; watchi
  */
 export function followUp(previous: Finding[] | null, facts: ReportFacts, liftOf: (exerciseId: string) => LiftFacts | null): FollowUp[] {
     if (!previous?.length) return []
-    return previous.map((f) => {
+    // A volume finding from before the muscles were split (legs, shoulders) has nothing to compare with now
+    return previous.filter((f) => f.rule !== 'low_volume' || hasTarget(String(f.subject))).map((f) => {
         const result = (status: FollowUpStatus, data: FollowUp['data'] = {}): FollowUp => ({
             id: f.id, rule: f.rule, subject: f.subject, status, data: { ...f.data, ...data },
         })

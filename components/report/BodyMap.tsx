@@ -1,8 +1,8 @@
 import { useId } from 'react'
 import type { MuscleFacts } from '@/lib/report/types'
 
-// A body outline, front and back, with each trained muscle group shaded by whether its
-// weekly sets are in range. One smooth silhouette (the right half, mirrored); the
+// A body outline, front and back, with each trained muscle shaded by whether its weekly
+// sets are in range. One smooth silhouette (the right half, mirrored); the
 // shading is clipped inside it, and untrained areas stay plain.
 
 const RIGHT: [number, number][] = [[55, 26], [57, 31], [66, 33], [74, 37], [79, 44], [81, 58], [83, 78], [85, 100], [86, 112], [85, 120], [81, 121], [79, 113],
@@ -23,21 +23,30 @@ function smoothPath(pts: [number, number][]): string {
 }
 const BODY = smoothPath(OUTLINE)
 
-// [cx, cy, rx, ry] on the right side; mirrored unless centred
+// [cx, cy, rx, ry] on the right side; mirrored unless centred. Front and side delts share the
+// front view (the side delts on the outer edge), the rear delts and hamstrings are on the back.
+// shoulders and legs are the categories of reports saved before the muscles were split.
 type Region = [number, number, number, number]
 const FRONT: Record<string, Region[]> = {
     shoulders: [[74, 41, 8, 8]],
+    front_delts: [[72, 41, 6, 7]],
+    side_delts: [[79, 43, 3.5, 7]],
     chest: [[59, 46, 9, 8]],
     biceps: [[78, 63, 5, 11]],
     core: [[50, 76, 9, 13]],
     legs: [[59, 128, 8, 20], [60, 172, 5, 13]],
+    quads: [[59, 128, 8, 20]],
+    calves: [[60, 172, 5, 13]],
 }
 const BACK: Record<string, Region[]> = {
     shoulders: [[74, 41, 8, 8]],
+    rear_delts: [[74, 41, 8, 8]],
     back: [[50, 52, 17, 16], [50, 78, 9, 9]],
     triceps: [[78, 63, 5, 11]],
     glutes: [[58, 104, 8, 9]],
     legs: [[59, 132, 8, 18], [60, 172, 5, 13]],
+    hamstrings: [[59, 132, 8, 18]],
+    calves: [[60, 172, 5, 13]],
 }
 
 const FILL: Record<MuscleFacts['status'], string> = {

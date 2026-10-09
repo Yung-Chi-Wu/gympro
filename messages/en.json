@@ -311,7 +311,7 @@
             "basis": "Why each point",
             "glossary": "Terms and how it's calculated"
         },
-        "musclesNote": "{sets} working sets this {unit, select, week {week} other {cycle}}. Below: sets per muscle, scaled to a week. Arms and core have no range, since presses and pulls train them too.",
+        "musclesNote": "{sets} working sets this {unit, select, week {week} other {cycle}}. Below: sets per muscle, scaled to a week. A muscle an exercise mainly trains counts a full set, one it trains on the side counts half: a bench press set is a chest set and half a triceps set. Front delts, calves and core have no range; presses already train the front delts.",
         "musclesNotePrev": "Last {unit, select, week {week} other {cycle}}: {prev}.",
         "legend": {
             "ok": "10–20 sets",
@@ -366,7 +366,7 @@
             },
             "weeklySets": {
                 "term": "Weekly sets",
-                "text": "Sets logged per muscle, scaled to a week."
+                "text": "Sets logged for each muscle, scaled to a week. A muscle an exercise mainly trains counts a full set, one it trains on the side counts half. Shoulders are split into front, side and rear delts, and legs into quads and hamstrings, because different movements train them."
             },
             "status": {
                 "term": "Status",
