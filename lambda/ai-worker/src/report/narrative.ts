@@ -16,10 +16,10 @@ const MAX_ATTEMPTS = 2
 /** What each rule's advice says, in the user's unit. The app shows the research behind it. */
 const advice = (unit: WeightUnit, period: string): Record<RuleId, string> => ({
     deload: 'Plan one lighter week: the same exercises at about half of each lift\'s sets this period (listed above) and clearly lighter weights, then build back up. If the note mentions sleep or stress, suggest looking at it; don\'t claim it is the cause.',
-    lift_regressed: 'Hold the weight for now, check recovery (sleep, food, stress) and technique, and aim to get back to the earlier level before pushing on.',
+    lift_regressed: 'Stay at holdAt (this period\'s weight; for a bodyweight lift, the same reps) instead of adding load, check recovery (sleep, food, stress) and technique, and aim to get back to previousBest before pushing on.',
     lift_stalled: `Double progression: keep the weight and add reps on every set until all sets reach the top of the rep range, then add the smallest jump (${unit === 'lb' ? '5 lb upper body, 10 lb lower body' : '2.5 kg upper body, 5 kg lower body'}).`,
-    low_volume: `It takes addSets more sets each ${period} to bring the muscle to 10 a week. Give the user two ways to choose between, with the exercises in its data: addToSets more sets of addTo, which they already do (addToHalf 1 means it trains the muscle on the side, so each set counts half and it takes twice as many; say so), or adding newExercise for newExerciseSets sets. When one is null, give the other alone. Use these exercises, not others, unless the note rules one out.`,
-    missed_sessions: 'Name the missed sessions and suggest a realistic way to fit the work in or plan around those days. Never scold; if the note explains it, acknowledge that.',
+    low_volume: `It takes addSets more sets each ${period} to bring the muscle to 10 a week. Offer the options in its data for the user to choose between, as given, with their exercises and set counts; if there is only one, give it alone (an option is left out when it isn't a sensible one, not because nothing trains the muscle). Add no exercise of your own unless the note rules an option out.`,
+    missed_sessions: 'Name the missed sessions and suggest a realistic way to fit those routines in, as planned, or plan around those days. Making them up is what brings lowGroups (muscles low only because of these sessions) back into range, so don\'t swap in other exercises. Never scold; if the note explains it, acknowledge that.',
     weight_trend: 'Body weight is moving against the goal: suggest a small daily calorie change (about 200-300 kcal) and steady weigh-ins, not a crash diet.',
 })
 
@@ -49,6 +49,9 @@ export function findingName(f: Finding, language: string): string | null {
     if (f.rule === 'lift_stalled' || f.rule === 'lift_regressed') return String((language === 'zh-TW' && f.data.nameZh) || f.data.name)
     return null
 }
+
+/** Where withExerciseOptions puts a low muscle's options in its data */
+const OPTION_FIELDS = ['addTo', 'addToZh', 'addToId', 'addToSets', 'addToHalf', 'newExercise', 'newExerciseZh', 'newExerciseId', 'newExerciseSets']
 
 /** The exercises a low muscle's action offers the user to choose between, as its action must name them. */
 export function optionNames(f: Finding, language: string): string[] {
@@ -88,17 +91,26 @@ export function buildPrompt(input: NarrativeInput): string {
     // Finding data keeps weights in kg ("82.5x8"); the model sees the user's unit. previousValue
     // is an internal estimated 1RM for the follow-up, not something to quote. In a 7-day period
     // perWeek is the same number as sets, and two names for one number read as two numbers.
-    // Exercise ids are for the app; a suggested exercise goes by its name in the user's language.
-    const hidden = new Set(['previousValue', 'addToId', 'newExerciseId', 'addToZh', 'newExerciseZh', ...(facts.period.days === 7 ? ['perWeek'] : [])])
+    // A low muscle's options go in as phrases (optionsOf), not as their fields.
+    const hidden = new Set(['previousValue', ...OPTION_FIELDS, ...(facts.period.days === 7 ? ['perWeek'] : [])])
     // Muscles by name, in the user's language like exercise names
     const muscleName = (g: string) => unitLabel(g, language, (x) => x)
+    // Spelled out so "4 more sets" can't be read as "4 sets in all"; a missing option is left out
+    const optionsOf = (f: Finding) => {
+        const d = f.data
+        const name = (k: 'addTo' | 'newExercise') => String((zh && d[`${k}Zh`]) || d[k])
+        return [
+            d.addTo != null && `${d.addToSets} more ${d.addToSets === 1 ? 'set' : 'sets'} each ${unit} of ${name('addTo')}, on top of the sets they do now${d.addToHalf ? ` (it trains the ${muscleName(String(f.subject))} on the side, so each set counts half; say so)` : ''}`,
+            d.newExercise != null && `add ${name('newExercise')}, a new exercise, for ${d.newExerciseSets} sets each ${unit}`,
+        ].filter(Boolean)
+    }
     const dataFor = (f: Finding) => Object.fromEntries([
-        ...(f.rule === 'low_volume' && f.subject ? [['muscle', muscleName(f.subject)]] : []),
+        ...(f.rule === 'low_volume' && f.subject ? [['muscle', muscleName(f.subject)], ['options', optionsOf(f)]] : []),
+        ...(f.rule === 'lift_regressed' && !f.data.bodyweight && typeof f.data.best === 'string' ? [['holdAt', w(Number(f.data.best.split('x')[0]))]] : []),
         ...Object.entries(f.data).filter(([k]) => !hidden.has(k)).map(([k, v]) => {
             const m = typeof v === 'string' && /^(\d+(?:\.\d+)?)x(\d+)$/.exec(v)
             if (m) return [k, f.data.bodyweight ? `${m[2]} reps (bodyweight)` : `${w(Number(m[1]))} x ${m[2]}`]
             if (k === 'lowGroups' && typeof v === 'string') return [k, v.split(', ').map(muscleName).join(', ')]
-            if ((k === 'addTo' || k === 'newExercise') && zh && v != null) return [k, f.data[`${k}Zh`] ?? v]
             return [k.replace(/Kg$/, ''), (k === 'latestKg' || k === 'changeKg') && typeof v === 'number' ? w(v) : v]
         }),
     ])
@@ -111,7 +123,10 @@ export function buildPrompt(input: NarrativeInput): string {
         `Main lifts, best set this ${unit}:`,
         ...facts.lifts.map((l) => liftLine(l, zh, unit, setOf)),
         facts.records.length ? `New records (best estimated 1RM so far; not necessarily a new weight): ${facts.records.map((r) => `${nameOf(r, zh)} ${setOf(r.best, r.bodyweight)}`).join('; ')}.` : 'No new records.',
-        `${facts.period.days === 7 ? 'Sets per muscle this week' : `Sets per muscle per week (this ${facts.period.days}-day cycle scaled to 7 days)`}, where a muscle an exercise trains on the side counts half a set (range 10-20 a week for ${ranged}; the others have no range): ${facts.muscles.map((m) => `${muscleName(m.group)} ${m.perWeek}${m.previousPerWeek != null ? ` (last ${unit} ${m.previousPerWeek})` : ''}`).join(', ')}.`,
+        `${facts.period.days === 7 ? 'Sets per muscle this week' : `Sets per muscle per week (this ${facts.period.days}-day cycle scaled to 7 days)`}, where a muscle an exercise trains on the side counts half a set (range 10-20 a week for ${ranged}; the others have no range): ${facts.muscles.map((m) => {
+            const notes = [m.status === 'low' ? 'below the range' : m.status === 'high' ? 'above the range' : null, m.previousPerWeek != null ? `last ${unit} ${m.previousPerWeek}` : null].filter(Boolean)
+            return `${muscleName(m.group)} ${m.perWeek}${notes.length ? ` (${notes.join('; ')})` : ''}`
+        }).join(', ')}.`,
         facts.bodyWeight.latestKg != null ? `Body weight: ${w(facts.bodyWeight.latestKg)}${facts.bodyWeight.changeKg != null ? ` (${facts.bodyWeight.changeKg >= 0 ? '+' : '-'}${w(Math.abs(facts.bodyWeight.changeKg))})` : ''}, ${facts.bodyWeight.weighIns} weigh-in(s) this ${unit}.` : 'No body weight logged.',
         `Weights are in ${weightUnit}; write every weight in ${weightUnit}.`,
         `The user's goal: ${facts.goal.text ? `"${facts.goal.text}"` : 'not set'}.`,
