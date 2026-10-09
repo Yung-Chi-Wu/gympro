@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "My lower back hurts after deadlifts, should I keep going?"
+  },
+  {
+    "role": "assistant",
+    "content": "Lower the load for now and only train pain-free. If the pain is sharp, shooting, or lasts more than a few days, stop deadlifting and see a doctor or physio.\n\n💡 Until it settles, drop the weight by 30-50% or switch to a gentler hinge like Romanian deadlifts or hip thrusts. Keep your back neutral and the bar close to your body.\n\n⚠️ Numbness, tingling, or pain running down a leg means stop and get checked right away.\n\nWant me to look at your recent training to see if your deadlift volume has jumped?"
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "role": "user",
+    "content": "My elbow's bugging me today. What should I do instead of triceps pushdowns?"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"elbow-friendly triceps alternative\",\"muscle_group\":\"triceps\"},\"result\":\"Nothing in the library matches \\\"elbow-friendly triceps alternative\\\" exactly. Closest:\\nID: 697409e4 | Triceps Pushdown (triceps)\\nID: 03bae642 | Dips (triceps)\\nID: ad5d9bcc | Overhead Triceps Extension (triceps)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"chest fly or lateral raise low elbow stress\"},\"result\":\"Nothing in the library matches \\\"chest fly or lateral raise low elbow stress\\\" exactly. Closest:\\nID: a726ab1a | Low-to-High Cable Fly (chest)\\nID: 65d4104b | Lateral Raise (shoulders)\\nID: 41290ea9 | Incline Dumbbell Press (chest)\\nID: 03810fd4 | Rear Delt Dumbbell Fly (shoulders)\\nID: 6fc5ead6 | Incline Barbell Press (chest)\\nID: 7fb35f03 | Reverse Pec Deck (shoulders)\\nID: 23bc61ff | Push-Up (chest)\\nID: d486b05a | Dumbbell Bench Press (chest)\\nID: d988a60a | Barbell Bench Press (chest)\\nID: 263ada72 | Lat Pulldown (back)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"65d4104b\",\"replaces_exercise_id\":\"697409e4\"},\"result\":\"Showing a card that swaps \\\"Triceps Pushdown\\\" for \\\"Lateral Raise\\\" in today's workout. Nothing changes until the user taps Swap on it. Say which exercise you suggest and why, and that Swap on the card makes the change.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "🔄 I'd swap Triceps Pushdown for Lateral Raise. It puts very little load on the elbow joint, and it still works your shoulders on a push day. Tap Swap on the card to make the change. I skipped dips and overhead extensions because they usually bother a sore elbow more.\n\n⚠️ Your bench and presses also load the elbow. Lower the weight and keep every rep pain-free. If the pain turns sharp or sticks around, stop and get it checked by a professional."
+  }
+]

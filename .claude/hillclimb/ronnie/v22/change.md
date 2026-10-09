@@ -1,0 +1,2 @@
+Code 59f600c on claude-sonnet-5-5 (bundle rebuilt by hand), the three swap-card cases x5. Change since v21: the swap card's tool result tells Ronnie to name the suggestion, say why, and say that Swap on the card makes the change. Cases and rubrics unchanged.
+Swap-card cases 14/15 (v21 10/15): swap-pick-zh 5/5, swap-options-zh 5/5, swap-pick-en 4/5. The failure removed pushdowns without asking (every fixture triceps exercise loads the elbow, so Ronnie skipped triceps): the open elbow question.

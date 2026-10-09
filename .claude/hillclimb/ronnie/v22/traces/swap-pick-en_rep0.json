@@ -1,0 +1,30 @@
+[
+  {
+    "role": "user",
+    "content": "My elbow's bugging me today. What should I do instead of triceps pushdowns?"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"elbow-friendly triceps alternative\",\"muscle_group\":\"triceps\"},\"result\":\"Nothing in the library matches \\\"elbow-friendly triceps alternative\\\" exactly. Closest:\\nID: 697409e4 | Triceps Pushdown (triceps)\\nID: 03bae642 | Dips (triceps)\\nID: ad5d9bcc | Overhead Triceps Extension (triceps)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"light triceps cable kickback or machine\",\"muscle_group\":\"triceps\"},\"result\":\"Nothing in the library matches \\\"light triceps cable kickback or machine\\\" exactly. Closest:\\nID: 697409e4 | Triceps Pushdown (triceps)\\nID: 03bae642 | Dips (triceps)\\nID: ad5d9bcc | Overhead Triceps Extension (triceps)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "remove_exercise_today",
+    "content": "{\"input\":{\"exercise_name\":\"Triceps Pushdown\",\"exercise_id\":\"697409e4\"},\"result\":\"✓ Removed \\\"Triceps Pushdown\\\" from today only (routines unchanged)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ I removed Triceps Pushdown from today's workout. Your routine is unchanged.\n\n💡 Your triceps still get work from the bench and overhead press. Keep those pain-free, and drop the weight or skip a lift if the elbow twinges.\n\n⚠️ If the pain is sharp or lasts several days, stop pressing and see a professional. How does the elbow feel on the bench warm-up sets?"
+  }
+]
