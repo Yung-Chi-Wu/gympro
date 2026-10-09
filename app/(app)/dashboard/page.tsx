@@ -8,7 +8,7 @@ import { OnboardingGuard } from '@/components/OnboardingGuard'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import { DashboardClientShell } from '@/components/DashboardClientShell'
-import { currentPeriod } from '@/lib/periods'
+import { currentPeriod, localDate } from '@/lib/periods'
 import { loadTodayWorkout } from '@/lib/today-workout'
 
 export default async function DashboardPage() {
@@ -65,13 +65,14 @@ export default async function DashboardPage() {
     cycle ? { cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null
   )
   const todayParts = getLocalDateParts(timezone)
+  const todayIso = localDate(timezone, new Date())
   const { startOfDay, endOfDay } = getTodayRangeUtc(todayParts, timezone)
 
   let dayIndex = 0
   let routineIdForToday: string | null = null
   let isRestDay = false
 
-  const [cycleDayResult, periodNoteResult] = await Promise.all([
+  const [cycleDayResult, periodNoteResult, dayNoteResult] = await Promise.all([
     cycle
       ? (() => {
         const daysSinceStart = daysBetween(cycle.start_date, todayParts)
@@ -94,6 +95,12 @@ export default async function DashboardPage() {
         .eq('period_start', period.periodStart)
         .maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase
+      .from('day_notes')
+      .select('note')
+      .eq('user_id', user.id)
+      .eq('note_date', todayIso)
+      .maybeSingle(),
   ])
 
   routineIdForToday = cycleDayResult.data?.routine_id ?? null
@@ -142,6 +149,7 @@ export default async function DashboardPage() {
             latestWeightKg={latestWeightKg}
             period={period}
             periodNote={periodNoteResult.data?.note ?? ''}
+            dayNote={dayNoteResult.data?.note ?? ''}
           />
 
           {/* 桌面版 AI 報告 */}

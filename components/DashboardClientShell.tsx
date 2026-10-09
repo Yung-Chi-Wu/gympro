@@ -27,6 +27,7 @@ interface DashboardClientShellProps {
     latestWeightKg: number | null
     period: Period | null
     periodNote: string
+    dayNote: string
 }
 
 export function DashboardClientShell({
@@ -46,6 +47,7 @@ export function DashboardClientShell({
     latestWeightKg,
     period,
     periodNote,
+    dayNote,
 }: DashboardClientShellProps) {
     const [weightUnit, setWeightUnit] = useState<WeightUnit>(initialWeightUnit)
 
@@ -73,6 +75,7 @@ export function DashboardClientShell({
                 weightUnit={weightUnit}
                 period={period}
                 initialNote={periodNote}
+                initialDayNote={dayNote}
             />
         </>
     )
