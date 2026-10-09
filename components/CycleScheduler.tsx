@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { toFriendlyError } from '@/lib/friendly-error'
 import { addDays, daysBetween } from '@/lib/periods'
+import { MoreMenu } from './MoreMenu'
 
 // The training cycle: how many days one round lasts and which routine each day trains.
 // Side by side with the routines (@split) it is one strip of days with today outlined;
@@ -38,8 +39,9 @@ type PendingLengthChange = {
     canContinue: boolean
 }
 
-const INPUT = 'w-full rounded-[9px] border border-line bg-card px-3 py-2 text-sm'
-const PRIMARY = 'rounded-[9px] bg-accent px-4 py-2 text-sm font-bold text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50'
+// Phone sizes first (44px targets, 15px text), the denser desktop ones from md
+const INPUT = 'h-11 w-full rounded-[9px] border border-line bg-card px-3 text-base md:h-auto md:py-2 md:text-sm'
+const PRIMARY = 'min-h-11 rounded-[9px] bg-accent px-5 text-[15px] font-bold text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50 md:min-h-0 md:px-4 md:py-2 md:text-sm'
 
 export function CycleScheduler({
     userId,
@@ -262,7 +264,7 @@ export function CycleScheduler({
         <section className="space-y-3 rounded-[14px] border border-line bg-card p-4">
             <div className="flex items-start justify-between gap-3">
                 <div>
-                    <h2 className="text-[15px] font-bold tracking-wide">{t('trainingCycle')}</h2>
+                    <h2 className="text-base font-bold tracking-wide md:text-[15px]">{t('trainingCycle')}</h2>
                     {cycleId && todayIndex && (
                         <p className="text-[13px] text-muted">{t('cycleSummary', { length: cycleLength, today: todayIndex })}</p>
                     )}
@@ -276,16 +278,24 @@ export function CycleScheduler({
                         {editing ? t('doneEditingCycle') : t('editCycle')}
                     </button>
                 )}
+                {/* As a list (phone) the days are always editable; deleting the cycle waits behind ⋯ */}
+                {cycleId && (
+                    <MoreMenu
+                        label={t('cycleActions')}
+                        className="-mr-2 -mt-2 @split:hidden"
+                        items={[{ label: t('deleteCycle'), onSelect: handleDeleteCycle, danger: true }]}
+                    />
+                )}
             </div>
 
-            {error && <p role="alert" className="text-sm text-miss">{error}</p>}
+            {error && <p role="alert" className="text-[15px] text-miss md:text-sm">{error}</p>}
 
             {!cycleId ? (
                 <form onSubmit={handleCreateCycle} className="space-y-3">
-                    <p className="text-[13px] text-muted">{t('noCycleHint')}</p>
+                    <p className="text-[15px] text-muted md:text-[13px]">{t('noCycleHint')}</p>
                     <div className="grid max-w-md grid-cols-2 gap-3">
                         <label className="space-y-1">
-                            <span className="text-xs font-medium text-muted">{t('cycleLengthLabel')}</span>
+                            <span className="text-[13px] font-medium text-muted md:text-xs">{t('cycleLengthLabel')}</span>
                             <input
                                 type="text"
                                 inputMode="numeric"
@@ -295,7 +305,7 @@ export function CycleScheduler({
                             />
                         </label>
                         <label className="space-y-1">
-                            <span className="text-xs font-medium text-muted">{t('todayDayLabel')}</span>
+                            <span className="text-[13px] font-medium text-muted md:text-xs">{t('todayDayLabel')}</span>
                             <input
                                 type="text"
                                 inputMode="numeric"
@@ -312,7 +322,7 @@ export function CycleScheduler({
             ) : (
                 <>
                     {/* The days: a list on a phone, one strip side by side with the routines */}
-                    <ol className="grid gap-1.5 @split:flex @split:gap-1.5 @split:overflow-x-auto @split:pb-1">
+                    <ol className="divide-y divide-line @split:flex @split:gap-1.5 @split:divide-y-0 @split:overflow-x-auto @split:pb-1">
                         {days.map((day) => {
                             const name = routineName(day.routineId)
                             const isToday = day.dayIndex === todayIndex
@@ -320,9 +330,9 @@ export function CycleScheduler({
                                 <li
                                     key={day.dayIndex}
                                     aria-current={isToday ? 'date' : undefined}
-                                    className={`flex items-center justify-between gap-3 rounded-[10px] border px-3 py-1.5 @split:min-w-[92px] @split:flex-1 @split:flex-col @split:items-stretch @split:justify-start @split:gap-0.5 @split:px-1.5 @split:py-2 @split:text-center ${name ? 'border-line bg-card' : 'border-dashed border-line'} ${isToday ? 'shadow-[inset_0_0_0_1.5px_var(--color-accent)]' : ''}`}
+                                    className={`flex min-h-[52px] items-center justify-between gap-3 py-1.5 @split:min-h-0 @split:min-w-[92px] @split:flex-1 @split:flex-col @split:items-stretch @split:justify-start @split:gap-0.5 @split:rounded-[10px] @split:border @split:px-1.5 @split:py-2 @split:text-center ${name ? '@split:border-line @split:bg-card' : '@split:border-dashed @split:border-line'} ${isToday ? '@split:shadow-[inset_0_0_0_1.5px_var(--color-accent)]' : ''}`}
                                 >
-                                    <span className={`shrink-0 text-xs @split:text-[11px] ${isToday ? 'font-bold text-accent' : 'text-faint'}`}>
+                                    <span className={`w-[7.5rem] shrink-0 text-[15px] md:w-auto md:text-xs @split:text-[11px] ${isToday ? 'font-bold text-accent' : 'text-muted md:text-faint'}`}>
                                         {t('dayN', { n: day.dayIndex })}
                                         {isToday && <span className="@split:hidden">{t('todayMark')}</span>}
                                     </span>
@@ -333,13 +343,13 @@ export function CycleScheduler({
                                     </span>
                                     <span className={`min-w-0 flex-1 @split:flex-none ${editing ? '' : '@split:hidden'}`}>
                                         {routines.length === 0 ? (
-                                            <span className="block py-2 text-right text-[13px] text-faint @split:text-center">{t('addRoutineFirst')}</span>
+                                            <span className="block py-2 text-right text-[15px] text-faint md:text-[13px] @split:text-center">{t('addRoutineFirst')}</span>
                                         ) : (
                                             <select
                                                 value={name ? day.routineId ?? '' : ''}
                                                 onChange={(e) => handleDayChange(day.dayIndex, e.target.value)}
                                                 aria-label={t('dayN', { n: day.dayIndex })}
-                                                className="w-full rounded-[9px] border border-line bg-card px-2 py-1.5 text-sm"
+                                                className="h-11 w-full rounded-[9px] border border-line bg-card px-3 text-base md:h-auto md:px-2 md:py-1.5 md:text-sm"
                                             >
                                                 <option value="">{t('restDay')}</option>
                                                 {routines.map((r) => (
@@ -356,15 +366,15 @@ export function CycleScheduler({
                     {/* Length and delete: always on a phone, while editing side by side */}
                     <form
                         onSubmit={handleRequestLengthChange}
-                        className={`flex flex-wrap items-center gap-3 border-t border-line pt-3 ${editing ? '' : '@split:hidden'}`}
+                        className={`flex flex-wrap items-center gap-3 border-t border-line pt-4 md:pt-3 ${editing ? '' : '@split:hidden'}`}
                     >
-                        <span className="text-[13px] text-muted">{t('cycleLength')}</span>
+                        <span className="text-[15px] text-muted md:text-[13px]">{t('cycleLength')}</span>
                         <div className="flex items-center gap-1">
                             <button
                                 type="button"
                                 onClick={() => setLengthInput(String(Math.max(1, Number(lengthInput) - 1)))}
                                 aria-label={t('shorterCycle')}
-                                className="flex size-8 items-center justify-center rounded-full border border-line text-lg leading-none text-muted hover:text-ink"
+                                className="flex size-11 items-center justify-center rounded-full border border-line text-lg leading-none text-muted hover:text-ink md:size-8"
                             >
                                 −
                             </button>
@@ -374,25 +384,25 @@ export function CycleScheduler({
                                 value={lengthInput}
                                 onChange={(e) => setLengthInput(e.target.value)}
                                 aria-label={t('cycleLength')}
-                                className="w-12 border-none bg-transparent text-center font-mono font-bold outline-none"
+                                className="h-11 w-12 border-none bg-transparent text-center font-mono text-lg font-bold outline-none md:h-auto md:text-base"
                             />
                             <button
                                 type="button"
                                 onClick={() => setLengthInput(String(Number(lengthInput) + 1))}
                                 aria-label={t('longerCycle')}
-                                className="flex size-8 items-center justify-center rounded-full border border-line text-lg leading-none text-muted hover:text-ink"
+                                className="flex size-11 items-center justify-center rounded-full border border-line text-lg leading-none text-muted hover:text-ink md:size-8"
                             >
                                 ＋
                             </button>
                         </div>
-                        <button type="submit" disabled={isSaving} className="rounded-[9px] border border-line px-3 py-1.5 text-[13px] font-bold disabled:opacity-50">
+                        <button type="submit" disabled={isSaving} className="min-h-11 rounded-[9px] border border-line px-4 text-[15px] font-bold disabled:opacity-50 md:min-h-0 md:px-3 md:py-1.5 md:text-[13px]">
                             {t('updateLength')}
                         </button>
                         <button
                             type="button"
                             onClick={handleDeleteCycle}
                             disabled={isSaving}
-                            className="ml-auto text-[13px] text-faint transition-colors hover:text-miss disabled:opacity-50"
+                            className="ml-auto hidden text-[13px] text-faint transition-colors hover:text-miss disabled:opacity-50 @split:block"
                         >
                             {t('deleteCycle')}
                         </button>
@@ -417,7 +427,7 @@ export function CycleScheduler({
                                     type="button"
                                     onClick={() => applyLengthChange(false)}
                                     disabled={isSaving}
-                                    className="rounded-[9px] border border-line px-4 py-2 text-sm disabled:opacity-50"
+                                    className="min-h-11 rounded-[9px] border border-line px-4 text-[15px] disabled:opacity-50 md:min-h-0 md:py-2 md:text-sm"
                                 >
                                     {zh ? '保留目前的進度，只延長循環天數' : 'Keep my current day, just extend the cycle'}
                                 </button>
@@ -434,7 +444,7 @@ export function CycleScheduler({
                                 type="button"
                                 onClick={() => setPending(null)}
                                 disabled={isSaving}
-                                className="rounded-[9px] px-4 py-2 text-sm text-muted disabled:opacity-50"
+                                className="min-h-11 rounded-[9px] px-4 text-[15px] text-muted disabled:opacity-50 md:min-h-0 md:py-2 md:text-sm"
                             >
                                 {zh ? '取消' : 'Cancel'}
                             </button>

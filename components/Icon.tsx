@@ -15,6 +15,7 @@ const PATHS = {
     plus: <path d="M12 5v14M5 12h14" />,
     close: <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />,
     out: <path d="M14 5h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h9" />,
+    more: <><circle cx="6" cy="12" r="1.3" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" /><circle cx="18" cy="12" r="1.3" fill="currentColor" stroke="none" /></>,
     grip: <><circle cx="9" cy="7" r="1" /><circle cx="15" cy="7" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="9" cy="17" r="1" /><circle cx="15" cy="17" r="1" /></>,
 } satisfies Record<string, ReactNode>
 

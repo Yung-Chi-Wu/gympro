@@ -9,6 +9,7 @@ import { MuscleGroupExercisePicker } from './MuscleGroupExercisePicker'
 import { CycleScheduler, type CycleDayState } from './CycleScheduler'
 import { CoachGEntry } from './CoachGEntry'
 import { Icon } from './Icon'
+import { MoreMenu } from './MoreMenu'
 import { toFriendlyError } from '@/lib/friendly-error'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { closeSubPage, openSubPage } from '@/lib/sub-page'
@@ -42,10 +43,11 @@ interface RawRoutineExercise {
     exercises: { name: string; muscle_group: string } | null
 }
 
+// Phone sizes first (44px targets, 15px text), the denser desktop ones from md
 const CARD = 'rounded-[14px] border border-line bg-card p-4'
-const BUTTON = 'inline-flex min-h-9 items-center justify-center gap-1 whitespace-nowrap rounded-[9px] border border-line bg-card px-3 text-[13px] font-bold transition-colors hover:bg-done disabled:opacity-50'
-const PRIMARY = 'inline-flex min-h-9 items-center justify-center gap-1 whitespace-nowrap rounded-[9px] bg-accent px-3 text-[13px] font-bold text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50'
-const NUMBER_INPUT = 'w-12 rounded-[7px] border border-line bg-card px-1 text-center font-mono font-bold'
+const BUTTON = 'inline-flex min-h-11 items-center justify-center gap-1 whitespace-nowrap rounded-[9px] border border-line bg-card px-4 text-[15px] font-bold transition-colors hover:bg-done disabled:opacity-50 md:min-h-9 md:px-3 md:text-[13px]'
+const PRIMARY = 'inline-flex min-h-11 items-center justify-center gap-1 whitespace-nowrap rounded-[9px] bg-accent px-4 text-[15px] font-bold text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50 md:min-h-9 md:px-3 md:text-[13px]'
+const NUMBER_INPUT = 'h-11 w-14 rounded-[7px] border border-line bg-card px-1 text-center font-mono font-bold md:h-auto md:w-12'
 
 const isShown = (ex: RoutineExerciseRow) => ex.exercise_name !== 'Unknown exercise' && ex.exercise_name !== ''
 
@@ -301,7 +303,7 @@ export function RoutineBuilder({
     )
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-5 md:space-y-4">
             {/* On a phone the top bar has the title and nothing else here shows, so the row takes no space */}
             <div className="flex items-end justify-between gap-4 max-md:contents">
                 <h1 className="text-2xl font-bold max-md:sr-only">{t('title')}</h1>
@@ -327,7 +329,7 @@ export function RoutineBuilder({
                                 role="tab"
                                 aria-selected={view === v}
                                 onClick={() => setView(v)}
-                                className={`min-h-9 px-4 text-sm font-medium ${view === v ? 'bg-ink text-card' : 'text-muted'}`}
+                                className={`min-h-11 px-5 text-[15px] font-medium ${view === v ? 'bg-ink text-card' : 'text-muted'}`}
                             >
                                 {v === 'cycle' ? t('cycleTab') : t('routinesTab')}
                             </button>
@@ -357,12 +359,12 @@ export function RoutineBuilder({
             <div className={`${view === 'routines' || opened ? '' : 'hidden'} items-start gap-4 @split:grid @split:grid-cols-[minmax(220px,300px)_minmax(0,1fr)]`}>
 
                 {/* The routines */}
-                <div className={`space-y-3 ${opened ? 'hidden @split:block' : ''}`}>
-                    <section className="space-y-1 rounded-[14px] border border-line bg-card px-3 py-1 @split:p-4">
+                <div className={`space-y-5 md:space-y-3 ${opened ? 'hidden @split:block' : ''}`}>
+                    <section className="space-y-1 rounded-[14px] border border-line bg-card px-4 py-1 @split:p-4">
                         <h2 className="hidden pb-1 text-[15px] font-bold tracking-wide @split:block">{t('yourRoutines')}</h2>
 
                         {isCreating && (
-                            <form onSubmit={handleCreateRoutine} className="flex flex-wrap gap-2 py-2">
+                            <form onSubmit={handleCreateRoutine} className="flex flex-wrap gap-2 py-3 md:py-2">
                                 <input
                                     type="text"
                                     autoFocus
@@ -371,7 +373,7 @@ export function RoutineBuilder({
                                     onKeyDown={(e) => { if (e.key === 'Escape') setIsCreating(false) }}
                                     placeholder={t('newRoutinePlaceholder')}
                                     aria-label={t('newRoutine')}
-                                    className="min-w-0 flex-1 rounded-[9px] border border-line bg-card px-3 py-2 text-sm"
+                                    className="h-11 min-w-0 flex-1 rounded-[9px] border border-line bg-card px-3 text-base md:h-auto md:py-2 md:text-sm"
                                 />
                                 <div className="flex gap-2">
                                     <button type="submit" className={PRIMARY}>{t('create')}</button>
@@ -381,7 +383,7 @@ export function RoutineBuilder({
                         )}
 
                         {routines.length === 0 && !isCreating && (
-                            <p className="py-2 text-sm text-muted">{t('noRoutines')}</p>
+                            <p className="py-3 text-[15px] text-muted md:py-2 md:text-sm">{t('noRoutines')}</p>
                         )}
 
                         <ul className="divide-y divide-line">
@@ -400,11 +402,11 @@ export function RoutineBuilder({
                                             type="button"
                                             onClick={() => openSubPage('routine', routine.id)}
                                             aria-current={routine.id === shown?.id ? 'true' : undefined}
-                                            className={`-mx-2 grid w-[calc(100%+1rem)] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 rounded-[10px] px-2 py-2.5 text-left ${routine.id === shown?.id ? '@split:bg-accent-soft' : 'hover:bg-done'}`}
+                                            className={`-mx-2 grid min-h-16 w-[calc(100%+1rem)] grid-cols-[minmax(0,1fr)_auto] content-center items-center gap-x-2 gap-y-0.5 rounded-[10px] px-2 py-2.5 text-left md:min-h-0 md:gap-y-0 ${routine.id === shown?.id ? '@split:bg-accent-soft' : 'hover:bg-done'}`}
                                         >
                                             <span className="truncate font-bold">{routine.name}</span>
                                             <Icon name="forward" className="row-span-2 size-4 text-faint" />
-                                            <span className="truncate text-xs text-muted">{meta}</span>
+                                            <span className="truncate text-[13px] text-muted md:text-xs">{meta}</span>
                                         </button>
                                     </li>
                                 )
@@ -433,7 +435,7 @@ export function RoutineBuilder({
                             onReorder={(ids) => handleReorder(shown.id, ids)}
                         />
                     ) : (
-                        <div className={`${CARD} hidden py-10 text-center text-sm text-muted @split:block`}>
+                        <div className={`${CARD} hidden py-10 text-center text-[15px] text-muted @split:block md:text-sm`}>
                             {t('pickOrCreate')}
                         </div>
                     )}
@@ -493,6 +495,11 @@ function RoutineEditor({
     const visible = routine.exercises.filter(isShown)
     const byId = new Map(visible.map((ex) => [ex.id, ex]))
     const rows = dragging ? dragging.order.flatMap((id) => byId.get(id) ?? []) : visible
+
+    function startRenaming() {
+        setName(routine.name)
+        setRenaming(true)
+    }
 
     function commitRename() {
         if (name.trim() && name.trim() !== routine.name) onRename(name.trim())
@@ -557,16 +564,16 @@ function RoutineEditor({
             <button
                 type="button"
                 onClick={() => closeSubPage('routine')}
-                className="hidden items-center gap-0.5 text-sm font-medium text-accent md:@max-split:flex"
+                className="hidden min-h-9 items-center gap-0.5 text-sm font-medium text-accent md:@max-split:flex"
             >
                 <Icon name="back" className="size-4" />
                 {t('title')}
             </button>
 
-            <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-3 md:flex-wrap">
                 <div className="min-w-0 flex-1">
                     {dayIndexes.length > 0 && (
-                        <p className="text-xs tracking-wider text-faint">{t('onDays', { days: dayIndexes.join(zh ? '、' : ', ') })}</p>
+                        <p className="text-[13px] tracking-wider text-faint md:text-xs">{t('onDays', { days: dayIndexes.join(zh ? '、' : ', ') })}</p>
                     )}
                     {renaming ? (
                         <input
@@ -580,23 +587,31 @@ function RoutineEditor({
                                 if (e.key === 'Escape') { setName(routine.name); setRenaming(false) }
                             }}
                             aria-label={t('rename')}
-                            className="w-full max-w-xs rounded-[9px] border border-line bg-card px-2 py-1 text-lg font-bold"
+                            className="h-11 w-full max-w-xs rounded-[9px] border border-line bg-card px-2 text-lg font-bold md:h-auto md:py-1"
                         />
                     ) : (
                         <h2 className="truncate text-xl font-bold">{routine.name}</h2>
                     )}
                 </div>
-                <div className="flex gap-2">
-                    <button type="button" onClick={() => { setName(routine.name); setRenaming(true) }} className={BUTTON}>{t('rename')}</button>
+                <div className="hidden gap-2 md:flex">
+                    <button type="button" onClick={startRenaming} className={BUTTON}>{t('rename')}</button>
                     <button type="button" onClick={onDelete} className={`${BUTTON} hover:text-miss`}>{t('delete')}</button>
                 </div>
+                <MoreMenu
+                    label={t('routineActions', { name: routine.name })}
+                    className="-mr-2 -mt-1 md:hidden"
+                    items={[
+                        { label: t('rename'), onSelect: startRenaming },
+                        { label: t('delete'), onSelect: onDelete, danger: true },
+                    ]}
+                />
             </div>
 
             {rows.length === 0 ? (
-                <p className="py-2 text-sm text-muted">{t('emptyRoutine')}</p>
+                <p className="py-2 text-[15px] text-muted md:text-sm">{t('emptyRoutine')}</p>
             ) : (
                 <>
-                    <p className="text-right text-[11px] text-faint" aria-hidden="true">{t('setsByReps')}</p>
+                    <p className="hidden text-right text-[11px] text-faint md:block" aria-hidden="true">{t('setsByReps')}</p>
                     <ol ref={listRef} className="divide-y divide-line">
                         {rows.map((ex, index) => (
                             <ExerciseRow
@@ -628,12 +643,12 @@ function RoutineEditor({
                     onDone={() => setAdding(false)}
                 />
             ) : (
-                <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
                     <button type="button" onClick={() => setAdding(true)} className={BUTTON}>
                         <Icon name="plus" className="size-4" />
                         {t('addExercise')}
                     </button>
-                    {rows.length > 1 && <span className="text-xs text-faint">{t('reorderHint')}</span>}
+                    {rows.length > 1 && <span className="text-[13px] text-faint md:text-xs">{t('reorderHint')}</span>}
                 </div>
             )}
         </section>
@@ -660,12 +675,15 @@ function ExerciseRow({ exercise, language, exercises, dragging, gripProps, onUpd
     const t = useTranslations('routines')
     const [targetSets, setTargetSets] = useState(String(exercise.target_sets ?? ''))
     const [targetReps, setTargetReps] = useState(String(exercise.target_reps ?? ''))
+    // On a phone the row is one tap target; it opens to show the inputs and 移除
+    const [expanded, setExpanded] = useState(false)
 
     const displayName = (() => {
         if (language !== 'zh-TW') return exercise.exercise_name
         const found = exercises.find((ex) => ex.id === exercise.exercise_id)
         return found?.name_zh_tw ? found.name_zh_tw : exercise.exercise_name
     })()
+    const muscle = getMuscleGroupLabel(exercise.muscle_group, language)
 
     function commitIfChanged() {
         const setsNum = Number(targetSets)
@@ -676,51 +694,81 @@ function ExerciseRow({ exercise, language, exercises, dragging, gripProps, onUpd
         }
     }
 
+    const input = (value: string, set: (v: string) => void, label: string) => (
+        <input
+            type="text"
+            inputMode="numeric"
+            value={value}
+            onChange={(e) => set(e.target.value)}
+            onBlur={commitIfChanged}
+            aria-label={`${displayName} ${label}`}
+            className={NUMBER_INPUT}
+        />
+    )
+
     return (
-        <li className={`grid grid-cols-[28px_minmax(0,1fr)_auto_32px] items-center gap-x-2 py-2 ${dragging ? 'rounded-[10px] bg-accent-soft' : ''}`}>
-            <button
-                type="button"
-                {...gripProps}
-                aria-label={t('moveExercise', { name: displayName })}
-                className="flex h-10 cursor-grab touch-none items-center justify-center rounded-[7px] text-faint hover:text-ink active:cursor-grabbing"
-            >
-                <Icon name="grip" className="size-5" />
-            </button>
-            <span className="min-w-0">
-                <span className="block truncate font-bold">{displayName}</span>
-                <span className="inline-block rounded-full bg-done px-2 text-xs text-muted">
-                    {getMuscleGroupLabel(exercise.muscle_group, language)}
+        <li className={dragging ? 'rounded-[10px] bg-accent-soft' : ''}>
+            <div className="grid grid-cols-[32px_minmax(0,1fr)] items-center gap-x-2 md:grid-cols-[28px_minmax(0,1fr)_auto_32px] md:py-2">
+                <button
+                    type="button"
+                    {...gripProps}
+                    aria-label={t('moveExercise', { name: displayName })}
+                    className="flex h-11 cursor-grab touch-none items-center justify-center rounded-[7px] text-faint hover:text-ink active:cursor-grabbing md:h-10"
+                >
+                    <Icon name="grip" className="size-5" />
+                </button>
+
+                {/* Phone: name and sets × reps; a tap opens the inputs */}
+                <button
+                    type="button"
+                    onClick={() => setExpanded((v) => !v)}
+                    aria-expanded={expanded}
+                    className="flex min-h-[60px] min-w-0 items-center gap-3 py-2 text-left md:hidden"
+                >
+                    <span className="min-w-0 flex-1">
+                        <span className="block truncate font-bold">{displayName}</span>
+                        <span className="text-[13px] text-muted">{muscle}</span>
+                    </span>
+                    <span className="shrink-0 font-mono text-[15px] font-bold">{targetSets || '–'} × {targetReps || '–'}</span>
+                    <Icon name="forward" className={`size-4 text-faint transition-transform ${expanded ? 'rotate-90' : ''}`} />
+                </button>
+
+                {/* From md: everything in the row */}
+                <span className="hidden min-w-0 md:block">
+                    <span className="block truncate font-bold">{displayName}</span>
+                    <span className="inline-block rounded-full bg-done px-2 text-xs text-muted">{muscle}</span>
                 </span>
-            </span>
-            <span className="flex items-center gap-1">
-                <input
-                    type="text"
-                    inputMode="numeric"
-                    value={targetSets}
-                    onChange={(e) => setTargetSets(e.target.value)}
-                    onBlur={commitIfChanged}
-                    aria-label={`${displayName} ${t('sets')}`}
-                    className={NUMBER_INPUT}
-                />
-                <span className="text-faint">×</span>
-                <input
-                    type="text"
-                    inputMode="numeric"
-                    value={targetReps}
-                    onChange={(e) => setTargetReps(e.target.value)}
-                    onBlur={commitIfChanged}
-                    aria-label={`${displayName} ${t('reps')}`}
-                    className={NUMBER_INPUT}
-                />
-            </span>
-            <button
-                type="button"
-                onClick={onRemove}
-                aria-label={t('removeExercise', { name: displayName })}
-                className="flex size-8 items-center justify-center rounded-[7px] text-faint hover:bg-done hover:text-miss"
-            >
-                <Icon name="close" className="size-4" />
-            </button>
+                <span className="hidden items-center gap-1 md:flex">
+                    {input(targetSets, setTargetSets, t('sets'))}
+                    <span className="text-faint">×</span>
+                    {input(targetReps, setTargetReps, t('reps'))}
+                </span>
+                <button
+                    type="button"
+                    onClick={onRemove}
+                    aria-label={t('removeExercise', { name: displayName })}
+                    className="hidden size-8 items-center justify-center rounded-[7px] text-faint hover:bg-done hover:text-miss md:flex"
+                >
+                    <Icon name="close" className="size-4" />
+                </button>
+            </div>
+
+            {expanded && (
+                <div className="flex flex-wrap items-end gap-3 pb-4 pl-10 md:hidden">
+                    <label className="flex flex-col gap-1">
+                        <span className="text-[13px] text-muted">{t('sets')}</span>
+                        {input(targetSets, setTargetSets, t('sets'))}
+                    </label>
+                    <span className="mb-3 text-faint">×</span>
+                    <label className="flex flex-col gap-1">
+                        <span className="text-[13px] text-muted">{t('reps')}</span>
+                        {input(targetReps, setTargetReps, t('reps'))}
+                    </label>
+                    <button type="button" onClick={onRemove} className="ml-auto min-h-11 px-2 text-[15px] font-medium text-miss">
+                        {t('removeShort')}
+                    </button>
+                </div>
+            )}
         </li>
     )
 }
@@ -739,16 +787,16 @@ function AddExerciseToRoutine({ exercises, language, onAdd, onDone }: AddExercis
     const [targetReps, setTargetReps] = useState('10')
 
     return (
-        <div className="space-y-2 rounded-[10px] border border-dashed border-line p-3">
+        <div className="space-y-3 border-t border-line pt-4 md:space-y-2 md:pt-3 [&_select]:h-11 [&_select]:text-base md:[&_select]:h-auto md:[&_select]:text-sm">
             <MuscleGroupExercisePicker
                 exercises={exercises}
                 value={selectedId}
                 onChange={setSelectedId}
                 language={language}
             />
-            <div className="flex flex-wrap items-end gap-2">
+            <div className="flex flex-wrap items-end gap-x-2 gap-y-3">
                 <label className="flex flex-col gap-1">
-                    <span className="text-xs text-muted">{t('sets')}</span>
+                    <span className="text-[13px] text-muted md:text-xs">{t('sets')}</span>
                     <input
                         type="text"
                         inputMode="numeric"
@@ -757,9 +805,9 @@ function AddExerciseToRoutine({ exercises, language, onAdd, onDone }: AddExercis
                         className={NUMBER_INPUT}
                     />
                 </label>
-                <span className="mb-2.5 text-sm text-faint">×</span>
+                <span className="mb-3 text-faint md:mb-2.5 md:text-sm">×</span>
                 <label className="flex flex-col gap-1">
-                    <span className="text-xs text-muted">{t('reps')}</span>
+                    <span className="text-[13px] text-muted md:text-xs">{t('reps')}</span>
                     <input
                         type="text"
                         inputMode="numeric"

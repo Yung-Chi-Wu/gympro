@@ -248,7 +248,10 @@
         "moveExercise": "調整「{name}」的順序（也可以用上下鍵）",
         "removeExercise": "從課表移除「{name}」",
         "coachGButton": "Coach G 幫我排",
-        "coachGPrompt": "不知道怎麼排？"
+        "coachGPrompt": "不知道怎麼排？",
+        "routineActions": "「{name}」的其他動作",
+        "removeShort": "移除",
+        "cycleActions": "循環的其他動作"
     },
     "settings": {
         "title": "設定",

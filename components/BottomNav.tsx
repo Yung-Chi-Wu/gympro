@@ -30,7 +30,7 @@ export function BottomNav({ links }: { links: NavLink[] }) {
                         key={link.href}
                         href={link.href}
                         aria-current={active ? 'page' : undefined}
-                        className={`flex min-h-14 flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-[11px] font-medium transition-transform active:scale-90 ${active ? 'text-ink' : 'text-faint'}`}
+                        className={`flex min-h-14 flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-xs font-medium transition-transform active:scale-90 ${active ? 'text-ink' : 'text-faint'}`}
                     >
                         <Icon name={link.icon} className={`size-[22px] ${active ? 'text-accent' : ''}`} />
                         {link.label}

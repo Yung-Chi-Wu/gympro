@@ -86,10 +86,10 @@ h3 {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* 手機版：內容捲到最底時不會被底部分頁列蓋住 */
+/* 手機版：最後一項能捲到底部分頁列和 Ronnie 按鈕（預設在分頁列上方）的上面 */
 @media (width < 48rem) {
   .main-content {
-    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
   }
 }
 

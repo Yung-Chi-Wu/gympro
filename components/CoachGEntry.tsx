@@ -62,10 +62,10 @@ export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal,
                     {t('coachGButton')}
                 </button>
             ) : (
-                <div className="flex flex-col items-center gap-2 rounded-[14px] border border-line bg-card p-4 text-center">
-                    <span className="text-[13px] text-muted">{t('coachGPrompt')}</span>
+                <div className="flex flex-col items-center gap-3 rounded-[14px] border border-line bg-card p-4 text-center md:gap-2">
+                    <span className="text-[15px] text-muted md:text-[13px]">{t('coachGPrompt')}</span>
                     <button type="button" onClick={handleOpen}
-                        className="inline-flex min-h-9 items-center rounded-[9px] border border-line bg-card px-3 text-[13px] font-bold transition-colors hover:bg-done">
+                        className="inline-flex min-h-11 items-center rounded-[9px] border border-line bg-card px-4 text-[15px] font-bold transition-colors hover:bg-done md:min-h-9 md:px-3 md:text-[13px]">
                         {t('coachGButton')}
                     </button>
                 </div>

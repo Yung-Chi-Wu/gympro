@@ -248,7 +248,10 @@
         "moveExercise": "Reorder {name} (arrow keys work too)",
         "removeExercise": "Remove {name} from the routine",
         "coachGButton": "Plan with Coach G",
-        "coachGPrompt": "Not sure how to plan it?"
+        "coachGPrompt": "Not sure how to plan it?",
+        "routineActions": "More for {name}",
+        "removeShort": "Remove",
+        "cycleActions": "More for the cycle"
     },
     "settings": {
         "title": "Settings",
