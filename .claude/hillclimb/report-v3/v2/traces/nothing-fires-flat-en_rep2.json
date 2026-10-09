@@ -1,0 +1,11 @@
+[
+  {
+    "role": "user",
+    "content": "You write the short text of a strength-training app's weekly report. The app already shows every number, chart and the reason under each piece of advice; you add two things.\n\nPeriod: 2026-09-28 to 2026-10-04 (one week, 7 days).\nStatus, decided by code: progressing (main lifts: 3 up, 2 flat, 0 down).\nSessions: 6. Sets: 66 (last week 66).\nMain lifts, best set this week:\n- Barbell Bench Press: 82.5 kg x 8 (last week 82.5 kg x 8), flat (2 weeks without a new best), 8 sets this week\n- Barbell Back Squat: 100 kg x 6 (last week 100 kg x 6), flat (2 weeks without a new best), 8 sets this week\n- Barbell Row: 70 kg x 8 (last week 67.5 kg x 8), estimated 1RM up 3.7%, 8 sets this week\n- Romanian Deadlift: 90 kg x 8 (last week 87.5 kg x 8), estimated 1RM up 2.9%, 8 sets this week\n- Overhead Press: 45 kg x 8 (last week 42.5 kg x 8), estimated 1RM up 5.9%, 8 sets this week\nNew records (best estimated 1RM so far; not necessarily a new weight): Barbell Row 70 kg x 8; Romanian Deadlift 90 kg x 8; Overhead Press 45 kg x 8.\nSets per muscle per week (range 10-20 for chest, back, legs, shoulders, glutes): chest 14 (last week 14), shoulders 14 (last week 14), triceps 4 (last week 4), back 14 (last week 14), biceps 4 (last week 4), legs 16 (last week 16).\nNo body weight logged.\nWeights are in kg; write every weight in kg.\nThe user's goal: not set.\nThe user's note for this week: none.\nNo rules fired this period.\nWatching, below threshold (do not advise on these): lift_stalled ex-bench, lift_stalled ex-squat.\n\n1. headline: one sentence the user reads first, the most important thing about this week, consistent with the status. It may use a number from above. At most 25 words.\n2. items: leave it empty: nothing fired, so give no advice.\n\nUse only the numbers above; never invent data. No myths, no diagnosis, no scolding. Plain text only: no Markdown, no lists inside a field. Write in English."
+  },
+  {
+    "role": "tool_call",
+    "name": "submit_report_text",
+    "content": "{\n  \"headline\": \"Strong week: Barbell Row, Romanian Deadlift, and Overhead Press all hit new personal records, keeping you firmly on a progressive track.\",\n  \"items\": []\n}"
+  }
+]
