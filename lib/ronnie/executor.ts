@@ -216,7 +216,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             if (!replaced) return "The exercise to replace isn't in today's workout; no card shown. Get its ID from get_today_workout."
             const replacesName = nameOf(replaced.exercises)
             recommendations.push({ exerciseId: exercise.id, exerciseName: nameOf(exercise), replacesExerciseId: replaced.exercise_id, replacesName })
-            return `Showing a card that swaps "${replacesName}" for "${nameOf(exercise)}" in today's workout. Nothing changes until the user taps Swap.`
+            return `Showing a card that swaps "${replacesName}" for "${nameOf(exercise)}" in today's workout. Nothing changes until the user taps Swap on it. Say which exercise you suggest and why, and that Swap on the card makes the change.`
         },
 
         get_training_summary: (input) => trainingSummary(input.date_from, input.date_to),
