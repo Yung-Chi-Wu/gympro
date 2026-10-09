@@ -1,14 +1,14 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-
 interface LangToggleProps {
     currentLocale: string
+    className?: string
 }
 
-export function LangToggle({ currentLocale }: LangToggleProps) {
+export function LangToggle({ currentLocale, className = 'text-sm text-ink/40 hover:text-ink' }: LangToggleProps) {
+    const next = currentLocale === 'zh-TW' ? 'en' : 'zh-TW'
+
     function toggle() {
-        const next = currentLocale === 'zh-TW' ? 'en' : 'zh-TW'
         document.cookie = `language=${next}; path=/; max-age=${60 * 60 * 24 * 365}`
         window.location.reload()
     }
@@ -17,9 +17,10 @@ export function LangToggle({ currentLocale }: LangToggleProps) {
         <button
             type="button"
             onClick={toggle}
-            className="text-sm text-ink/40 hover:text-ink"
+            lang={next === 'zh-TW' ? 'zh-Hant' : 'en'}
+            className={className}
         >
-            {currentLocale === 'zh-TW' ? 'EN' : '繁中'}
+            {next === 'zh-TW' ? '繁中' : 'EN'}
         </button>
     )
 }

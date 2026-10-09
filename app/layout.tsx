@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
-import { getMessages } from 'next-intl/server'
+import { getLocale, getMessages } from 'next-intl/server'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import './globals.css'
 
@@ -21,10 +21,10 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const messages = await getMessages()
+  const [messages, locale] = await Promise.all([getMessages(), getLocale()])
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
