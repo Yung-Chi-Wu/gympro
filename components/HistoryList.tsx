@@ -9,6 +9,7 @@ import {
 import { WeightTrendCard } from '@/components/WeightTrendCard'
 import type { PeriodOption } from '@/app/(app)/history/page'
 import type { AiRecommendation } from './types'
+import { isReportV3, ReportView } from './report/ReportView'
 
 interface WeightEntry {
     id: string
@@ -188,11 +189,13 @@ function TrainingLogSection({
 function ReportSection({ report, language }: { report: ReportRow | null; language: string }) {
     const zh = language === 'zh-TW'
     const t = useTranslations('report')
+    const tV3 = useTranslations('reportV3')
     const [isOpen, setIsOpen] = useState(false)
     const [showMore, setShowMore] = useState(false)
 
     const isCompleted = report?.status === 'completed'
-    const rec = isCompleted ? (report.recommendation as unknown as AiRecommendation) : null
+    const v3 = isCompleted && isReportV3(report.recommendation) ? report.recommendation : null
+    const rec = isCompleted && !v3 ? (report.recommendation as unknown as AiRecommendation) : null
 
     return (
         <div>
@@ -228,8 +231,10 @@ function ReportSection({ report, language }: { report: ReportRow | null; languag
                     )}
 
                     {report?.status === 'insufficient_data' && (
-                        <p className="text-sm text-ink/60">{report.error_message}</p>
+                        <p className="text-sm text-ink/60">{tV3('insufficient')}</p>
                     )}
+
+                    {v3 && <ReportView report={v3} language={language} />}
 
                     {report?.status === 'failed' && (
                         <p className="text-sm text-red-600">

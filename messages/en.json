@@ -204,5 +204,176 @@
         "loginError": "Login failed. Please check your email and password.",
         "noAccount": "Don't have an account?",
         "signup": "Sign up"
+    },
+    "reportV3": {
+        "period": "{unit, select, week {Weekly report} other {Cycle report}} · {start} – {end}",
+        "statusLabel": "This {unit, select, week {week} other {cycle}}",
+        "status": {
+            "progressing": "Progressing",
+            "stalling": "Holding steady",
+            "regressing": "Slipping",
+            "baseline": "First report"
+        },
+        "statusHint": {
+            "progressing": "Your main lifts went up",
+            "stalling": "Your main lifts mostly held",
+            "regressing": "More lifts went down than up",
+            "baseline": "Later reports compare with this {unit, select, week {week} other {cycle}}"
+        },
+        "kpi": {
+            "sessions": "Sessions",
+            "missed": "{n} missed",
+            "allDone": "All done",
+            "records": "Records",
+            "noRecords": "None this {unit, select, week {week} other {cycle}}",
+            "mainLifts": "Main lifts",
+            "up": "up",
+            "rest": "{flat} flat · {down} down",
+            "weight": "Weight",
+            "weightChange": "{change} vs last {unit, select, week {week} other {cycle}}",
+            "noWeight": "Not logged"
+        },
+        "followUpTitle": "Last time's advice",
+        "followUpCount": "{done} of {total} done",
+        "advised": {
+            "lift_stalled": "Add reps on {lift}",
+            "lift_regressed": "Hold the weight on {lift}",
+            "low_volume": "More sets for {muscle}",
+            "missed_sessions": "Do every planned session",
+            "deload": "A lighter {unit, select, week {week} other {cycle}}",
+            "weight_trend": "Adjust calories"
+        },
+        "result": {
+            "lift_stalled": {
+                "done": "Broke through: now {now}",
+                "not_done": "Still {now}"
+            },
+            "lift_regressed": {
+                "done": "Back to the earlier level ({now})",
+                "partial": "Coming back ({now})",
+                "not_done": "Not back yet ({now})"
+            },
+            "notTrained": "Not trained this {unit, select, week {week} other {cycle}}",
+            "low_volume": {
+                "done": "Up to {n} sets",
+                "partial": "Up to {n} sets, nearly there",
+                "not_done": "Still {n} sets"
+            },
+            "missed_sessions": {
+                "done": "Every session done",
+                "partial": "{done} of {planned}, better than last time",
+                "not_done": "{done} of {planned}"
+            },
+            "deload": {
+                "done": "Done: {sets} sets this {unit, select, week {week} other {cycle}}",
+                "not_done": "{sets} sets this {unit, select, week {week} other {cycle}}, no lighter week"
+            },
+            "weight_trend": {
+                "done": "Weight is heading the right way ({kg} kg)",
+                "not_done": "Still heading the wrong way ({kg} kg)"
+            }
+        },
+        "nextTitle": "Next {unit, select, week {week} other {cycle}}",
+        "nextCount": "{n, plural, one {# point} other {# points}}",
+        "noAdvice": "Nothing to change this {unit, select, week {week} other {cycle}}. Keep going as planned.",
+        "why": "Why",
+        "research": "Research",
+        "researchPending": "citation pending",
+        "whyText": {
+            "lift_stalled": "{lift}: best set {best} for {n} {unit, select, week {weeks} other {cycles}} running",
+            "lift_regressed": "{lift}: down from {previous} to {best}",
+            "deload": "{lifts} all went down",
+            "low_volume": "{muscle}: {perWeek} sets a week; 10–20 is the range",
+            "missed_sessions": "{done} of {planned} planned sessions (missed: {routines})",
+            "missedLow": "{groups} fell below 10 sets because of it",
+            "weight_trend": "Your goal is to {direction, select, gain {gain} other {lose}} weight, and it has gone {direction, select, gain {down} other {up}} {n} {unit, select, week {weeks} other {cycles}} running"
+        },
+        "researchText": {
+            "lift_stalled": "Double progression: add reps at the same weight, then add weight",
+            "lift_regressed": "A short dip usually comes from recovery; hold the weight first",
+            "deload": "When fatigue builds up, a lighter week helps performance recover",
+            "low_volume": "Weekly sets and muscle growth: the dose-response",
+            "missed_sessions": "Volume and frequency shape how fast you progress",
+            "weight_trend": "Gaining muscle needs a calorie surplus; losing fat needs a deficit"
+        },
+        "readMore": "See the full analysis",
+        "showLess": "Hide the full analysis",
+        "accordionHint": "Tap a row to open it; one opens at a time.",
+        "section": {
+            "muscles": "Muscles trained",
+            "musclesLow": "{groups} low",
+            "musclesOk": "All in range",
+            "lifts": "Records and main lifts",
+            "recordsCount": "{n, plural, one {# record} other {# records}}",
+            "noRecords": "Main lifts",
+            "weight": "Body weight",
+            "watching": "Watching",
+            "noWeight": "Not logged",
+            "basis": "Why each point",
+            "glossary": "Terms and how it's calculated"
+        },
+        "musclesNote": "{sets} working sets this {unit, select, week {week} other {cycle}}. Below: sets per muscle, scaled to a week. Arms and core have no range, since presses and pulls train them too.",
+        "musclesNotePrev": "Last {unit, select, week {week} other {cycle}}: {prev}.",
+        "legend": {
+            "ok": "10–20 sets",
+            "low": "Under 10",
+            "high": "Over 20",
+            "none": "No range, or not trained"
+        },
+        "front": "Front",
+        "back": "Back",
+        "liftsNote": "The best set each {unit, select, week {week} other {cycle}}; the line is the estimated 1RM over 6 {unit, select, week {weeks} other {cycles}}. A lift counts as stalled after 3 flat {unit, select, week {weeks} other {cycles}}.",
+        "trend": {
+            "up": "Up",
+            "flat": "Flat",
+            "down": "Down",
+            "new": "New"
+        },
+        "flatFor": "{unit, select, week {week} other {cycle}} {n}",
+        "record": "Record",
+        "reps": "{n} reps",
+        "weighIns": "{n, plural, one {# weigh-in} other {# weigh-ins}} this {unit, select, week {week} other {cycle}}",
+        "weightWatch": "Your goal is to {direction, select, gain {gain} other {lose}} weight, and it has gone {direction, select, gain {down} other {up}} {n} {unit, select, week {weeks} other {cycles}} running; a note comes after {needed}.",
+        "liftWatch": "{lift} has been flat {n} {unit, select, week {weeks} other {cycles}}; one more and it gets a note.",
+        "basisLabels": {
+            "rule": "Rule",
+            "data": "Your numbers",
+            "research": "Research"
+        },
+        "ruleText": {
+            "lift_stalled": "A main lift's best set hasn't improved for 3 {unit, select, week {weeks} other {cycles}}",
+            "lift_regressed": "A main lift dropped 5% or more, or two {unit, select, week {weeks} other {cycles}} in a row",
+            "deload": "Two or more main lifts dropped 3% or more, and more went down than up",
+            "low_volume": "Chest, back, legs, shoulders or glutes under 10 sets a week, and not just from a missed session",
+            "missed_sessions": "Days your training cycle planned that weren't trained",
+            "weight_trend": "Body weight moving against the goal 4 {unit, select, week {weeks} other {cycles}} running"
+        },
+        "glossary": {
+            "mainLifts": {
+                "term": "Main lifts",
+                "text": "Lifts the goal names and each routine's first exercise, then the most-trained over the last 4 {unit, select, week {weeks} other {cycles}}; up to 5."
+            },
+            "bestSet": {
+                "term": "Best set",
+                "text": "The set with the highest estimated 1RM that {unit, select, week {week} other {cycle}}; reps for bodyweight exercises."
+            },
+            "e1rm": {
+                "term": "Estimated 1RM",
+                "text": "A one-rep max estimated from weight and reps (Epley), so 80 kg × 10 and 85 kg × 6 can be compared."
+            },
+            "record": {
+                "term": "Record",
+                "text": "A main lift's best set this {unit, select, week {week} other {cycle}} beat every earlier set."
+            },
+            "weeklySets": {
+                "term": "Weekly sets",
+                "text": "Sets logged per muscle, scaled to a week."
+            },
+            "status": {
+                "term": "Status",
+                "text": "More main lifts up than down is progressing; the reverse is slipping; equal is holding steady."
+            }
+        },
+        "insufficient": "Not enough sets were logged this period for a report."
     }
 }
