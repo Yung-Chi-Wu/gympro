@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import {
     PieChart, Pie, Cell,
@@ -9,6 +10,9 @@ import {
 import { WeightTrendCard } from '@/components/WeightTrendCard'
 import type { PeriodOption } from '@/app/(app)/history/page'
 import type { AiRecommendation } from './types'
+import type { WeightUnit } from '@/lib/weight-unit'
+import { isReportV3, ReportView } from './report/ReportView'
+import { FailedReport } from './report/FailedReport'
 
 interface WeightEntry {
     id: string
@@ -29,6 +33,7 @@ interface HistoryListProps {
     periods: PeriodOption[]
     reports: ReportRow[]
     language: string
+    weightUnit: WeightUnit
     weightEntries: WeightEntry[]
 }
 
@@ -39,7 +44,7 @@ const SEVERITY_STYLES: Record<string, string> = {
     severe: 'bg-red-50 text-red-800 border-red-200',
 }
 
-export function HistoryList({ userId, periods, reports, language, weightEntries }: HistoryListProps) {
+export function HistoryList({ userId, periods, reports, language, weightUnit, weightEntries }: HistoryListProps) {
     const zh = language === 'zh-TW'
     const reportByPeriodStart = new Map(reports.map((r) => [r.period_start, r]))
 
@@ -60,6 +65,7 @@ export function HistoryList({ userId, periods, reports, language, weightEntries 
                             report={reportByPeriodStart.get(period.start) ?? null}
                             userId={userId}
                             language={language}
+                            weightUnit={weightUnit}
                         />
                     ))}
                 </div>
@@ -73,9 +79,10 @@ interface PeriodRowProps {
     report: ReportRow | null
     userId: string
     language: string
+    weightUnit: WeightUnit
 }
 
-function PeriodRow({ period, report, userId, language }: PeriodRowProps) {
+function PeriodRow({ period, report, userId, language, weightUnit }: PeriodRowProps) {
     return (
         <div className="rounded-xl border border-ink/10 bg-white overflow-hidden">
             <div className="px-4 py-3 border-b border-ink/10 bg-ink/[0.02]">
@@ -91,7 +98,7 @@ function PeriodRow({ period, report, userId, language }: PeriodRowProps) {
                 language={language}
             />
 
-            <ReportSection report={report} language={language} />
+            <ReportSection report={report} language={language} weightUnit={weightUnit} />
         </div>
     )
 }
@@ -185,14 +192,25 @@ function TrainingLogSection({
     )
 }
 
-function ReportSection({ report, language }: { report: ReportRow | null; language: string }) {
+function ReportSection({ report, language, weightUnit }: { report: ReportRow | null; language: string; weightUnit: WeightUnit }) {
     const zh = language === 'zh-TW'
     const t = useTranslations('report')
+    const tV3 = useTranslations('reportV3')
+    const router = useRouter()
     const [isOpen, setIsOpen] = useState(false)
     const [showMore, setShowMore] = useState(false)
+    const reload = useCallback(() => router.refresh(), [router])
+
+    // Nothing pushes the worker's result back: while an open report is being made, reload it
+    useEffect(() => {
+        if (!isOpen || report?.status !== 'pending') return
+        const timer = setInterval(reload, 5000)
+        return () => clearInterval(timer)
+    }, [isOpen, report?.status, reload])
 
     const isCompleted = report?.status === 'completed'
-    const rec = isCompleted ? (report.recommendation as unknown as AiRecommendation) : null
+    const v3 = isCompleted && isReportV3(report.recommendation) ? report.recommendation : null
+    const rec = isCompleted && !v3 ? (report.recommendation as unknown as AiRecommendation) : null
 
     return (
         <div>
@@ -223,19 +241,17 @@ function ReportSection({ report, language }: { report: ReportRow | null; languag
                     {report?.status === 'pending' && (
                         <div className="flex items-center gap-2 text-sm text-ink/60">
                             <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
-                            {zh ? '報告生成中...' : 'Report is being generated...'}
+                            {t('pending')}
                         </div>
                     )}
 
                     {report?.status === 'insufficient_data' && (
-                        <p className="text-sm text-ink/60">{report.error_message}</p>
+                        <p className="text-sm text-ink/60">{tV3('insufficient')}</p>
                     )}
 
-                    {report?.status === 'failed' && (
-                        <p className="text-sm text-red-600">
-                            {zh ? '報告生成失敗。' : 'Report generation failed.'}
-                        </p>
-                    )}
+                    {v3 && <ReportView report={v3} language={language} weightUnit={weightUnit} />}
+
+                    {report?.status === 'failed' && <FailedReport periodStart={report.period_start} onRetried={reload} />}
 
                     {isCompleted && rec && (
                         <div className="space-y-4">

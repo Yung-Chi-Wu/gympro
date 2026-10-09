@@ -1,17 +1,10 @@
 import type { SQSEvent, SQSHandler, SQSRecord } from 'aws-lambda'
-import {
-  getSupabaseClient,
-  fetchTrainingPeriodSummary,
-  fetchPreviousPeriod,
-  fetchUserProfile,
-  fetchRoutineAdherence,
-  computeStrengthIndex,
-  saveRecommendation,
-  saveFailedStatus,
-  saveInsufficientDataStatus,
-} from './supabase'
-import { generateRecommendation } from './claude'
-import type { AnalysisRequestMessage, AiRecommendation } from './types'
+import { getSupabaseClient, saveFailedStatus, saveInsufficientDataStatus, saveReport } from './supabase'
+import { analyze } from './report/analyze'
+import { fetchReportInputs } from './report/fetch'
+import { generateNarrative } from './report/narrative'
+import type { ReportV3 } from './report/types'
+import type { AnalysisRequestMessage } from './types'
 
 const MINIMUM_SETS_FOR_ANALYSIS = 10
 
@@ -28,72 +21,23 @@ async function processMessage(record: SQSRecord): Promise<void> {
   const supabase = await getSupabaseClient()
 
   try {
-    const [trainingSummary, previousPeriod, userProfile, routineAdherence] = await Promise.all([
-      fetchTrainingPeriodSummary(supabase, userId, periodStart, periodEnd),
-      fetchPreviousPeriod(supabase, userId, periodStart),
-      fetchUserProfile(supabase, userId),
-      fetchRoutineAdherence(supabase, userId, periodStart, periodEnd),
-    ])
-    const language = messageLanguage ?? userProfile.language
-    trainingSummary.userContext.ageYears = userProfile.ageYears
-    trainingSummary.userContext.sex = userProfile.sex
-    trainingSummary.userContext.bmi = calculateBmi(
-      trainingSummary.userContext.heightCm,
-      trainingSummary.userContext.latestWeightKg
-    )
-    trainingSummary.routineAdherence = routineAdherence
+    const { inputs, language: profileLanguage, weightUnit } = await fetchReportInputs(supabase, userId, periodStart, periodEnd)
+    const language = messageLanguage ?? profileLanguage
 
-    const totalSets = trainingSummary.targetPeriod.totalSets
-
+    const totalSets = inputs.sets.filter((s) => s.date >= periodStart).length
     if (totalSets < MINIMUM_SETS_FOR_ANALYSIS) {
       console.log(
         `Skipping AI analysis for user ${userId}: only ${totalSets} sets logged (minimum ${MINIMUM_SETS_FOR_ANALYSIS})`
       )
-      await saveInsufficientDataStatus(
-        supabase,
-        userId,
-        periodStart,
-        totalSets,
-        MINIMUM_SETS_FOR_ANALYSIS
-      )
+      await saveInsufficientDataStatus(supabase, userId, periodStart, totalSets, MINIMUM_SETS_FOR_ANALYSIS)
       return
     }
 
-    trainingSummary.strengthIndex = await computeStrengthIndex(
-      supabase,
-      userId,
-      periodStart,
-      periodEnd,
-      previousPeriod.previousStrengthIndex
-    )
-    trainingSummary.volumeSplit = computeVolumeSplit(trainingSummary.targetPeriod)
-
-    const { narrative } = await generateRecommendation(
-      trainingSummary,
-      previousPeriod.contextSummary,
-      userProfile.trainingGoal,
-      userNote ?? null,
-      language
-    )
-
-    const recommendation: AiRecommendation = {
-      ...narrative,
-      weeklyVolume: {
-        totalSets: trainingSummary.targetPeriod.totalSets,
-        totalTonnageKg: trainingSummary.targetPeriod.totalTonnageKg,
-        byMuscleGroup: trainingSummary.targetPeriod.byMuscleGroup,
-      },
-      volumeSplit: trainingSummary.volumeSplit,
-      strengthIndex: trainingSummary.strengthIndex,
-      bodyMetrics: {
-        weightKg: trainingSummary.userContext.latestWeightKg,
-        heightCm: trainingSummary.userContext.heightCm,
-        bmi: trainingSummary.userContext.bmi,
-        ageYears: trainingSummary.userContext.ageYears,
-        sex: trainingSummary.userContext.sex,
-      },
-    }
-    await saveRecommendation(supabase, userId, periodStart, recommendation, userNote ?? null)
+    // Code decides every number and which rules fire; the model writes the headline and advice
+    const analysis = analyze(inputs)
+    const { narrative } = await generateNarrative({ ...analysis, note: userNote ?? null, language, weightUnit })
+    const report: ReportV3 = { version: 3, ...analysis, narrative }
+    await saveReport(supabase, userId, periodStart, report, userNote ?? null)
     console.log(`Successfully saved recommendation for user ${userId} (messageId ${record.messageId})`)
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err)
@@ -112,24 +56,4 @@ export const handler: SQSHandler = async (event: SQSEvent) => {
   for (const record of event.Records) {
     await processMessage(record)
   }
-}
-
-function calculateBmi(heightCm: number | null, weightKg: number | null): number | null {
-  if (!heightCm || !weightKg) return null
-  const heightM = heightCm / 100
-  return Math.round((weightKg / (heightM * heightM)) * 10) / 10
-}
-
-function computeVolumeSplit(targetPeriod: {
-  totalTonnageKg: number
-  byMuscleGroup: Record<string, { tonnageKg: number }>
-}): Record<string, number> {
-  const total = targetPeriod.totalTonnageKg
-  if (!total || total <= 0) return {}
-
-  const split: Record<string, number> = {}
-  for (const [muscleGroup, data] of Object.entries(targetPeriod.byMuscleGroup)) {
-    split[muscleGroup] = Math.round((data.tonnageKg / total) * 1000) / 10
-  }
-  return split
 }

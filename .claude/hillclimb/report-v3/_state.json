@@ -1,0 +1,106 @@
+{
+  "flow": "report-v3",
+  "description": "Weekly report v3 (lambda/ai-worker src/report): code computes facts and fires rules, the model writes the headline and advice; 18 scenarios with planted signals",
+  "metrics": [
+    {
+      "id": "pass",
+      "label": "全部通過",
+      "kind": "binary"
+    },
+    {
+      "id": "advice_valid",
+      "label": "只建議觸發的規則",
+      "kind": "binary"
+    },
+    {
+      "id": "deload_first",
+      "label": "減量排第一",
+      "kind": "binary"
+    },
+    {
+      "id": "top_included",
+      "label": "最優先的有寫",
+      "kind": "binary"
+    },
+    {
+      "id": "headline_short",
+      "label": "標題夠短",
+      "kind": "binary"
+    },
+    {
+      "id": "plain_text",
+      "label": "沒有 Markdown",
+      "kind": "binary"
+    },
+    {
+      "id": "language_correct",
+      "label": "語言正確",
+      "kind": "binary"
+    },
+    {
+      "id": "unit_correct",
+      "label": "重量單位正確",
+      "kind": "binary"
+    },
+    {
+      "id": "grounded",
+      "label": "內容有根據",
+      "kind": "binary"
+    },
+    {
+      "id": "advice_fits",
+      "label": "建議正確具體",
+      "kind": "binary"
+    },
+    {
+      "id": "note_addressed",
+      "label": "有回應備註",
+      "kind": "binary"
+    }
+  ],
+  "perf_fields": [
+    {
+      "id": "latency_s",
+      "label": "Latency",
+      "unit": "s"
+    },
+    {
+      "id": "in_tokens",
+      "label": "In tokens"
+    },
+    {
+      "id": "out_tokens",
+      "label": "Out tokens"
+    },
+    {
+      "id": "cost_usd",
+      "label": "Cost",
+      "unit": "$"
+    }
+  ],
+  "prices": {
+    "claude-sonnet-4-6": {
+      "in": 3,
+      "out": 15
+    },
+    "claude-sonnet-5-5": {
+      "in": 3,
+      "out": 15
+    },
+    "claude-haiku-4-5": {
+      "in": 1,
+      "out": 5
+    },
+    "claude-opus-5-5": {
+      "in": 4,
+      "out": 20
+    }
+  },
+  "harness_paths": [
+    "lambda/ai-worker/evals/report-v3/grade.mjs",
+    "lambda/ai-worker/evals/report-v3/judge.mjs",
+    "lambda/ai-worker/evals/report-v3/scenarios.mjs",
+    "lambda/ai-worker/evals/report-v3/entry.ts"
+  ],
+  "harness_sha": "daa4e3e54e621af5a671dbe3613faa6a7f696a63209a17318d8fd826601502d1"
+}

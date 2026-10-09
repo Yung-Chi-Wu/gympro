@@ -49,7 +49,7 @@ export function periodEndFor(periodStart: string, cycle: CycleSettings | null): 
 
 // ---------- Date helpers ----------
 
-function localDate(timeZone: string, now: Date): string {
+export function localDate(timeZone: string, now: Date): string {
     const parts: Record<string, string> = {}
     const formatter = new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
     for (const part of formatter.formatToParts(now)) {
@@ -58,13 +58,13 @@ function localDate(timeZone: string, now: Date): string {
     return `${parts.year}-${parts.month}-${parts.day}`
 }
 
-function daysBetween(startDateIso: string, todayIso: string): number {
+export function daysBetween(startDateIso: string, todayIso: string): number {
     const start = new Date(`${startDateIso}T00:00:00Z`)
     const today = new Date(`${todayIso}T00:00:00Z`)
     return Math.round((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function addDays(dateIso: string, days: number): string {
+export function addDays(dateIso: string, days: number): string {
     const date = new Date(`${dateIso}T00:00:00Z`)
     date.setUTCDate(date.getUTCDate() + days)
     return date.toISOString().split('T')[0]

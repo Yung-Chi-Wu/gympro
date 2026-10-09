@@ -135,8 +135,7 @@
         "bmi": "BMI",
         "ageSex": "年齡 / 性別",
         "deloadRecommended": "建議減量訓練：",
-        "retry": "重新產生",
-        "retrying": "重新產生中..."
+        "retry": "重新產生"
     },
     "routines": {
         "title": "訓練課表",
@@ -204,5 +203,176 @@
         "loginError": "登入失敗，請確認你的信箱和密碼。",
         "noAccount": "還沒有帳號？",
         "signup": "立即註冊"
+    },
+    "reportV3": {
+        "period": "{unit, select, week {週報} other {循環報告}} · {start} – {end}",
+        "statusLabel": "這{unit, select, week {週} other {輪}}狀態",
+        "status": {
+            "progressing": "進步中",
+            "stalling": "持平",
+            "regressing": "退步中",
+            "baseline": "第一份報告"
+        },
+        "statusHint": {
+            "progressing": "主要動作有進步",
+            "stalling": "主要動作大多持平",
+            "regressing": "退步的動作比進步的多",
+            "baseline": "之後的報告會跟這{unit, select, week {週} other {輪}}比較"
+        },
+        "kpi": {
+            "sessions": "訓練次數",
+            "missed": "少了 {n} 次",
+            "allDone": "全部完成",
+            "records": "新紀錄",
+            "noRecords": "這{unit, select, week {週} other {輪}}沒有",
+            "mainLifts": "主要動作",
+            "up": "進步",
+            "rest": "{flat} 持平 · {down} 退步",
+            "weight": "體重",
+            "weightChange": "比上{unit, select, week {週} other {輪}} {change}",
+            "noWeight": "沒有記錄"
+        },
+        "followUpTitle": "上次的建議",
+        "followUpCount": "完成 {done} / {total}",
+        "advised": {
+            "lift_stalled": "{lift}先加次數再加重",
+            "lift_regressed": "{lift}先穩住重量",
+            "low_volume": "{muscle}每週多練幾組",
+            "missed_sessions": "練滿計畫的次數",
+            "deload": "減量一{unit, select, week {週} other {輪}}",
+            "weight_trend": "調整熱量"
+        },
+        "result": {
+            "lift_stalled": {
+                "done": "突破了，現在 {now}",
+                "not_done": "還是 {now}"
+            },
+            "lift_regressed": {
+                "done": "回到之前的水準（{now}）",
+                "partial": "有回升（{now}）",
+                "not_done": "還沒回升（{now}）"
+            },
+            "notTrained": "這{unit, select, week {週} other {輪}}沒練",
+            "low_volume": {
+                "done": "補到 {n} 組",
+                "partial": "增加到 {n} 組，還差一點",
+                "not_done": "還是 {n} 組"
+            },
+            "missed_sessions": {
+                "done": "這{unit, select, week {週} other {輪}}全部練完",
+                "partial": "練了 {done} / {planned} 次，比上次好",
+                "not_done": "練了 {done} / {planned} 次"
+            },
+            "deload": {
+                "done": "有減量，這{unit, select, week {週} other {輪}} {sets} 組",
+                "not_done": "這{unit, select, week {週} other {輪}} {sets} 組，沒有減量"
+            },
+            "weight_trend": {
+                "done": "體重方向回來了（{kg} {unit}）",
+                "not_done": "體重還在往反方向（{kg} {unit}）"
+            }
+        },
+        "nextTitle": "下{unit, select, week {週} other {輪}}重點",
+        "nextCount": "{n} 項",
+        "noAdvice": "這{unit, select, week {週} other {輪}}沒有需要調整的地方，照目前的安排繼續。",
+        "why": "為什麼",
+        "research": "研究",
+        "researchPending": "文獻待查證",
+        "whyText": {
+            "lift_stalled": "{lift}連續 {n} {unit, select, week {週} other {輪}}最佳都是 {best}",
+            "lift_regressed": "{lift}從 {previous} 降到 {best}",
+            "deload": "{lifts} 同時退步",
+            "low_volume": "{muscle}每週 {perWeek} 組，建議 10–20 組",
+            "missed_sessions": "排了 {planned} 次，練了 {done} 次（沒練：{routines}）",
+            "missedLow": "{groups}因此低於 10 組",
+            "weight_trend": "目標是{direction, select, gain {增肌} other {減脂}}，體重連續 {n} {unit, select, week {週} other {輪}}{direction, select, gain {下降} other {上升}}"
+        },
+        "researchText": {
+            "lift_stalled": "雙重漸進：重量不變先加次數，做滿再加重",
+            "lift_regressed": "暫時的退步常跟恢復有關，先穩住重量",
+            "deload": "疲勞累積時，安排減量有助於恢復表現",
+            "low_volume": "每週組數與增肌效果的劑量反應",
+            "missed_sessions": "訓練量和頻率會影響進步幅度",
+            "weight_trend": "增肌需要熱量盈餘，減脂需要熱量赤字"
+        },
+        "readMore": "看完整分析",
+        "showLess": "收起完整分析",
+        "accordionHint": "點一列展開，一次只打開一個。",
+        "section": {
+            "muscles": "練了哪些肌群",
+            "musclesLow": "{groups}偏少",
+            "musclesOk": "都在範圍內",
+            "lifts": "新紀錄和主要動作",
+            "recordsCount": "{n} 個新紀錄",
+            "noRecords": "主要動作",
+            "weight": "體重",
+            "watching": "觀察中",
+            "noWeight": "沒有記錄",
+            "basis": "建議的完整依據",
+            "glossary": "名詞和計算方式"
+        },
+        "musclesNote": "這{unit, select, week {週} other {輪}}正式組共 {sets} 組，下面是每個肌群換算成一週的組數。手臂和核心沒有設定範圍，因為推、拉的動作也會練到。",
+        "musclesNotePrev": "上{unit, select, week {週} other {輪}} {prev} 組。",
+        "legend": {
+            "ok": "10–20 組",
+            "low": "少於 10 組",
+            "high": "多於 20 組",
+            "none": "沒有範圍或沒練"
+        },
+        "front": "正面",
+        "back": "背面",
+        "liftsNote": "每{unit, select, week {週} other {輪}}最佳的一組，走勢線是近 6 {unit, select, week {週} other {輪}}的估計 1RM。持平 3 {unit, select, week {週} other {輪}}以上才算停滯。",
+        "trend": {
+            "up": "進步",
+            "flat": "持平",
+            "down": "退步",
+            "new": "新動作"
+        },
+        "flatFor": "第 {n} {unit, select, week {週} other {輪}}",
+        "record": "新紀錄",
+        "reps": "{n} 下",
+        "weighIns": "這{unit, select, week {週} other {輪}}量了 {n} 次",
+        "weightWatch": "目標是{direction, select, gain {增肌} other {減脂}}，體重已連續 {n} {unit, select, week {週} other {輪}}{direction, select, gain {下降} other {上升}}，連續 {needed} {unit, select, week {週} other {輪}}才會提醒。",
+        "liftWatch": "{lift}持平 {n} {unit, select, week {週} other {輪}}，再持平一{unit, select, week {週} other {輪}}就會提醒。",
+        "basisLabels": {
+            "rule": "規則",
+            "data": "你的數據",
+            "research": "研究"
+        },
+        "ruleText": {
+            "lift_stalled": "同一個主要動作連續 3 {unit, select, week {週} other {輪}}，最佳重量和次數都沒變",
+            "lift_regressed": "一個主要動作退步 5% 以上，或連續兩{unit, select, week {週} other {輪}}退步",
+            "deload": "兩個以上主要動作同時退步 3% 以上，而且退步的比進步的多",
+            "low_volume": "胸、背、腿、肩、臀其中一個肌群每週少於 10 組，而且不是因為這次漏練",
+            "missed_sessions": "訓練循環裡排了、但沒有練的日子",
+            "weight_trend": "體重連續 4 {unit, select, week {週} other {輪}}往目標的反方向走"
+        },
+        "glossary": {
+            "mainLifts": {
+                "term": "主要動作",
+                "text": "目標提到的動作、每個課表的第一個動作，再補上最近 4 {unit, select, week {週} other {輪}}做最多組的，最多 5 個。"
+            },
+            "bestSet": {
+                "term": "最佳的一組",
+                "text": "那一{unit, select, week {週} other {輪}}估計 1RM 最高的一組；自體重量的動作看次數。"
+            },
+            "e1rm": {
+                "term": "估計 1RM",
+                "text": "用 Epley 公式從重量和次數估算單次最大重量，讓 80kg × 10 和 85kg × 6 可以比較。"
+            },
+            "record": {
+                "term": "新紀錄",
+                "text": "主要動作這{unit, select, week {週} other {輪}}的最佳組，超過過去所有的紀錄。"
+            },
+            "weeklySets": {
+                "term": "每週組數",
+                "text": "每個肌群記錄的組數，換算成一週。"
+            },
+            "status": {
+                "term": "狀態",
+                "text": "主要動作進步的比退步的多是「進步中」，反過來是「退步中」，一樣多是「持平」。"
+            }
+        },
+        "insufficient": "這段期間記錄的組數不夠，所以沒有產生報告。"
     }
 }
