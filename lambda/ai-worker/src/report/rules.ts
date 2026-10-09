@@ -83,7 +83,11 @@ export function evaluateRules(facts: ReportFacts): { findings: Finding[]; watchi
         const trainsIt = m.sets > 0 || (m.previousPerWeek ?? 0) > 0
         if (m.status !== 'low' || !trainsIt || !VOLUME_GROUPS.includes(m.group)) continue
         if (missedSessions && (m.previousPerWeek ?? 0) >= VOLUME_RANGE.low) lowFromMissing.push(m.group)
-        else add('low_volume', m.group, { sets: m.sets, perWeek: m.perWeek, previousPerWeek: m.previousPerWeek, target: VOLUME_RANGE.low })
+        else {
+            // Sets to add each period to reach the weekly minimum, so the advice has an exact number
+            const addSets = Math.ceil((VOLUME_RANGE.low * facts.period.days) / 7 - m.sets)
+            add('low_volume', m.group, { sets: m.sets, perWeek: m.perWeek, previousPerWeek: m.previousPerWeek, target: VOLUME_RANGE.low, addSets })
+        }
     }
 
     if (missedSessions) {

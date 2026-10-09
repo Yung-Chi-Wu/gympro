@@ -31,6 +31,12 @@ for (const sc of SCENARIOS) {
     const records = r.facts.records.map((x) => x.exerciseId)
     for (const id of sc.expect.records ?? []) if (!records.includes(id)) problems.push(`no record for ${id} (records ${JSON.stringify(records)})`)
     if (sc.expect.records && !sc.expect.records.length && records.length) problems.push(`records ${JSON.stringify(records)}, expected none`)
+    // The sets a low-volume finding says to add are the fewest that reach 10 a week
+    const perWeek = (sets) => (sets * 7) / r.facts.period.days
+    for (const f of r.findings.filter((x) => x.rule === 'low_volume')) {
+        const { sets, addSets } = f.data
+        if (!(perWeek(sets + addSets) >= 10 && perWeek(sets + addSets - 1) < 10)) problems.push(`${f.id}: addSets ${addSets} with ${sets} sets in ${r.facts.period.days} days`)
+    }
 
     if (problems.length) failed++
     console.log(`${problems.length ? 'FAIL' : 'ok  '} ${sc.id}${problems.map((p) => `\n       ${p}`).join('')}`)

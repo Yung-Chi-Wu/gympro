@@ -13,11 +13,11 @@ const MAX_ITEMS = 3
 const MAX_ATTEMPTS = 2
 
 /** What each rule's advice says, in the user's unit. The app shows the research behind it. */
-const advice = (unit: WeightUnit): Record<RuleId, string> => ({
+const advice = (unit: WeightUnit, period: string): Record<RuleId, string> => ({
     deload: 'Plan one lighter week: the same exercises at about half of each lift\'s sets this period (listed above) and clearly lighter weights, then build back up. If the note mentions sleep or stress, suggest looking at it; don\'t claim it is the cause.',
     lift_regressed: 'Hold the weight for now, check recovery (sleep, food, stress) and technique, and aim to get back to the earlier level before pushing on.',
     lift_stalled: `Double progression: keep the weight and add reps on every set until all sets reach the top of the rep range, then add the smallest jump (${unit === 'lb' ? '5 lb upper body, 10 lb lower body' : '2.5 kg upper body, 5 kg lower body'}).`,
-    low_volume: 'Add 2-4 sets a week for that muscle, ideally in a session the user already does.',
+    low_volume: `Add addSets sets (from the data) each ${period} for that muscle, which brings it to 10 a week, spread over sessions the user already does.`,
     missed_sessions: 'Name the missed sessions and suggest a realistic way to fit the work in or plan around those days. Never scold; if the note explains it, acknowledge that.',
     weight_trend: 'Body weight is moving against the goal: suggest a small daily calorie change (about 200-300 kcal) and steady weigh-ins, not a crash diet.',
 })
@@ -67,7 +67,7 @@ const nameOf = (l: { name: string; nameZh: string | null }, zh: boolean) => (zh 
 function liftLine(l: LiftFacts, zh: boolean, unit: string, setOf: (s: LiftFacts['best'], bodyweight: boolean) => string): string {
     const trend = l.trend === 'new' ? 'no earlier data'
         : l.trend === 'flat' ? `flat (${l.flatWindows} ${unit}s without a new best)`
-        : `${l.trend} ${l.bodyweight ? `${l.change} reps` : `${l.change}%`}`
+        : l.bodyweight ? `best reps ${l.trend} ${Math.abs(l.change ?? 0)}` : `estimated 1RM ${l.trend} ${Math.abs(l.change ?? 0)}%`
     return `- ${nameOf(l, zh)}: ${setOf(l.best, l.bodyweight)} (last ${unit} ${setOf(l.previousBest, l.bodyweight)}), ${trend}, ${l.sets} sets this ${unit}${l.goalLift ? ', named in the goal' : ''}`
 }
 
@@ -77,7 +77,7 @@ export function buildPrompt(input: NarrativeInput): string {
     const unit = facts.period.days === 7 ? 'week' : 'cycle'
     const w = (kg: number) => `${toDisplayWeight(kg, weightUnit)} ${weightUnit}`
     const setOf = (s: LiftFacts['best'], bodyweight: boolean) => (!s ? '-' : bodyweight ? `${s.reps} reps (bodyweight)` : `${w(s.weightKg)} x ${s.reps}`)
-    const ADVICE = advice(weightUnit)
+    const ADVICE = advice(weightUnit, unit)
     // Finding data keeps weights in kg ("82.5x8"); the model sees the user's unit. previousValue
     // is an internal estimated 1RM for the follow-up, not something to quote.
     const dataFor = (f: Finding) => Object.fromEntries(Object.entries(f.data).filter(([k]) => k !== 'previousValue').map(([k, v]) => {
@@ -93,7 +93,7 @@ export function buildPrompt(input: NarrativeInput): string {
         `Main lifts, best set this ${unit}:`,
         ...facts.lifts.map((l) => liftLine(l, zh, unit, setOf)),
         facts.records.length ? `New records (best estimated 1RM so far; not necessarily a new weight): ${facts.records.map((r) => `${nameOf(r, zh)} ${setOf(r.best, r.bodyweight)}`).join('; ')}.` : 'No new records.',
-        `Sets per muscle per week (range 10-20 for chest, back, legs, shoulders, glutes): ${facts.muscles.map((m) => `${m.group} ${m.perWeek}`).join(', ')}.`,
+        `Sets per muscle per week (range 10-20 for chest, back, legs, shoulders, glutes): ${facts.muscles.map((m) => `${m.group} ${m.perWeek}${m.previousPerWeek != null ? ` (last ${unit} ${m.previousPerWeek})` : ''}`).join(', ')}.`,
         facts.bodyWeight.latestKg != null ? `Body weight: ${w(facts.bodyWeight.latestKg)}${facts.bodyWeight.changeKg != null ? ` (${facts.bodyWeight.changeKg >= 0 ? '+' : '-'}${w(Math.abs(facts.bodyWeight.changeKg))})` : ''}, ${facts.bodyWeight.weighIns} weigh-in(s) this ${unit}.` : 'No body weight logged.',
         `Weights are in ${weightUnit}; write every weight in ${weightUnit}.`,
         `The user's goal: ${facts.goal.text ? `"${facts.goal.text}"` : 'not set'}.`,
