@@ -14,6 +14,10 @@ import { Sparkline } from './Sparkline'
 // change"; the full analysis opens one section at a time. Every number and reason
 // comes from code (report.facts, findings); only the headline and each action are
 // the model's (report.narrative).
+//
+// On a phone (below md) the report sits in one card, so nothing inside it is a box of its
+// own: groups are set apart by lines and space, and text is at least 12-13px. The max-md:
+// classes do that; from md the report looks as it did.
 
 type Data = Finding['data']
 
@@ -91,18 +95,18 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
         <div className="space-y-5">
             {/* Status and headline */}
             <div className="space-y-1.5">
-                <p className="text-xs font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
+                <p className="text-xs font-semibold uppercase tracking-wider text-ink/50 max-md:text-[13px] dark:text-white/50">
                     {t('period', { unit, start: shortDate(facts.period.start), end: shortDate(facts.period.end) })}
                 </p>
                 <div className="flex flex-wrap items-baseline gap-x-3">
                     <h3 className={`text-2xl font-bold ${STATUS_COLOR[facts.status]}`}>{t(`status.${facts.status}`)}</h3>
-                    <span className="text-sm font-medium text-ink/60 dark:text-white/60">{t(`statusHint.${facts.status}`, { unit })}</span>
+                    <span className="text-sm font-medium text-ink/60 max-md:text-[15px] dark:text-white/60">{t(`statusHint.${facts.status}`, { unit })}</span>
                 </div>
                 <p className="text-[15px] leading-relaxed">{narrative.headline}</p>
             </div>
 
             {/* Four numbers, each against last period */}
-            <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-ink/10 dark:border-white/10 [&>div:nth-child(2n)]:border-l [&>div:nth-child(n+3)]:border-t [&>div]:border-ink/10 dark:[&>div]:border-white/10">
+            <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-ink/10 max-md:rounded-none max-md:border-x-0 max-md:[&>div:nth-child(2n+1)]:pl-0 dark:border-white/10 [&>div:nth-child(2n)]:border-l [&>div:nth-child(n+3)]:border-t [&>div]:border-ink/10 dark:[&>div]:border-white/10">
                 <Kpi label={t('kpi.sessions')} value={facts.sessions.planned != null ? <>{facts.sessions.done}<small className="text-base font-medium text-ink/40 dark:text-white/40"> / {facts.sessions.planned}</small></> : facts.sessions.done}
                     note={facts.sessions.planned != null ? (missed > 0 ? t('kpi.missed', { n: missed }) : t('kpi.allDone')) : null} />
                 <Kpi label={t('kpi.records')} value={facts.records.length}
@@ -121,7 +125,7 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
                     <SectionTitle title={t('followUpTitle')} count={t('followUpCount', { done: followUps.filter((f) => f.status === 'done').length, total: followUps.length })} />
                     <ul className="space-y-1.5">
                         {followUps.map((f) => (
-                            <li key={f.id} className="grid grid-cols-[22px_1fr] gap-2 text-sm text-ink/70 dark:text-white/70">
+                            <li key={f.id} className="grid grid-cols-[22px_1fr] gap-2 text-sm text-ink/70 max-md:text-[15px] dark:text-white/70">
                                 <Mark status={f.status} />
                                 <span><b className="font-semibold text-ink dark:text-white">{advised(f)}</b>{zh ? '：' : ': '}{result(f)}</span>
                             </li>
@@ -134,11 +138,11 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
             <section className="space-y-2">
                 <SectionTitle title={t('nextTitle', { unit })} count={items.length ? t('nextCount', { n: items.length }) : null} />
                 {items.length === 0 ? (
-                    <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-400/10 dark:text-emerald-300">{t('noAdvice', { unit })}</p>
+                    <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 max-md:bg-transparent max-md:p-0 max-md:text-[15px] dark:bg-emerald-400/10 dark:text-emerald-300 max-md:dark:bg-transparent">{t('noAdvice', { unit })}</p>
                 ) : (
-                    <ol className="space-y-2.5">
+                    <ol className="space-y-2.5 max-md:space-y-0 max-md:divide-y max-md:divide-ink/10 max-md:dark:divide-white/10">
                         {items.map((item, i) => (
-                            <li key={item.rule ?? item.findingId} className="space-y-2 rounded-xl border border-ink/10 p-3.5 dark:border-white/10">
+                            <li key={item.rule ?? item.findingId} className="space-y-2 rounded-xl border border-ink/10 p-3.5 max-md:rounded-none max-md:border-0 max-md:px-0 max-md:py-3 dark:border-white/10">
                                 <div className="grid grid-cols-[24px_1fr] items-start gap-2.5">
                                     <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-plate text-xs font-bold text-chalk dark:bg-chalk dark:text-plate">{i + 1}</span>
                                     <p className="font-semibold leading-relaxed">{item.action}</p>
@@ -156,18 +160,18 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
             </section>
 
             <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
-                className="w-full rounded-xl border border-plate py-3 text-sm font-bold hover:bg-ink/5 dark:border-chalk dark:hover:bg-white/5">
+                className="w-full rounded-xl border border-plate py-3 text-sm font-bold hover:bg-ink/5 max-md:text-[15px] dark:border-chalk dark:hover:bg-white/5">
                 {open ? `${t('showLess')} ▴` : `${t('readMore')} ▾`}
             </button>
 
             {open && (
                 <div className="space-y-2">
-                    <p className="text-xs text-ink/50 dark:text-white/50">{t('accordionHint')}</p>
-                    <div className="divide-y divide-ink/10 rounded-xl border border-ink/10 dark:divide-white/10 dark:border-white/10">
+                    <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('accordionHint')}</p>
+                    <div className="divide-y divide-ink/10 rounded-xl border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
                         <Row {...row('muscles')} title={t('section.muscles')} take={lowGroups.length ? t('section.musclesLow', { groups: lowGroups.map(muscle).join(zh ? '、' : ', ') }) : t('section.musclesOk')} tone={lowGroups.length ? 'warn' : 'good'}>
                             <BodyMap muscles={facts.muscles} frontLabel={t('front')} backLabel={t('back')} />
                             <Legend items={[['bg-emerald-500/80', t('legend.ok')], ['bg-amber-500/85', t('legend.low')], ['bg-sky-500/80', t('legend.high')], ['bg-ink/25 dark:bg-white/25', t('legend.none')]]} />
-                            <p className="text-xs text-ink/50 dark:text-white/50">
+                            <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">
                                 {t('musclesNote', { sets: facts.totalSets.now, unit })} {facts.totalSets.previous != null && t('musclesNotePrev', { prev: facts.totalSets.previous, unit })}
                             </p>
                             <MuscleBars muscles={facts.muscles} label={muscle} />
@@ -176,10 +180,10 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
                             {facts.records.length > 0 && (
                                 <ul className="space-y-1.5">
                                     {facts.records.map((r) => (
-                                        <li key={r.exerciseId} className="flex items-center gap-2.5 rounded-lg bg-[#C8955A]/15 px-3 py-2 text-sm">
+                                        <li key={r.exerciseId} className="flex items-center gap-2.5 rounded-lg bg-[#C8955A]/15 px-3 py-2 text-sm max-md:rounded-none max-md:bg-transparent max-md:px-0 max-md:text-[15px]">
                                             <span className="text-xs font-bold tracking-wider text-[#A8742F] dark:text-[#D9AA6E]">PR</span>
                                             <b className="flex-1 font-semibold">{liftName(r)} {r.bodyweight ? t('reps', { n: r.best.reps }) : `${weight(r.best.weightKg)} × ${r.best.reps}`}</b>
-                                            <span className="text-xs text-ink/50 dark:text-white/50">{shortDate(r.date)}</span>
+                                            <span className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{shortDate(r.date)}</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -188,7 +192,7 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
                                 prev={(l) => setText(l.previousBest ? `${l.previousBest.weightKg}x${l.previousBest.reps}` : null, l.bodyweight)}
                                 trendLabel={(l) => t(`trend.${l.trend}`)}
                                 trendNote={(l) => l.trend === 'flat' && l.flatWindows ? t('flatFor', { n: l.flatWindows, unit }) : l.change != null && l.trend !== 'new' ? (l.bodyweight ? `${l.change > 0 ? '+' : ''}${l.change}` : `${l.change > 0 ? '+' : ''}${l.change}%`) : null} />
-                            <p className="text-xs text-ink/50 dark:text-white/50">{t('liftsNote', { unit })}</p>
+                            <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('liftsNote', { unit })}</p>
                             {liftWatches.map((w) => <WatchNote key={w.subject} label={`${t('section.watching')}${zh ? '：' : ': '}`}>{t('liftWatch', { lift: liftName(w.data), n: Number(w.data.flatWindows), unit })}</WatchNote>)}
                         </Row>
                         <Row {...row('weight')} title={t('section.weight')} take={weightWatch ? t('section.watching') : facts.bodyWeight.latestKg == null ? t('section.noWeight') : null}>
@@ -197,7 +201,7 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
                                     <Sparkline values={facts.bodyWeight.series} width={220} height={56} className="w-full text-[#C8955A]" label={t('section.weight')} />
                                     <div className="text-right">
                                         <p className="text-2xl font-semibold tabular-nums">{bodyWeight(facts.bodyWeight.latestKg)}<small className="text-sm font-medium text-ink/40 dark:text-white/40"> {weightUnit}</small></p>
-                                        <p className="text-xs text-ink/50 dark:text-white/50">{t('weighIns', { n: facts.bodyWeight.weighIns, unit })}</p>
+                                        <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('weighIns', { n: facts.bodyWeight.weighIns, unit })}</p>
                                     </div>
                                 </div>
                             )}
@@ -206,10 +210,10 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
                         {findings.length > 0 && (
                             <Row {...row('basis')} title={t('section.basis')} take={String(findings.length)}>
                                 {findings.map((f) => (
-                                    <div key={f.id} className="space-y-1.5 rounded-lg border border-ink/10 p-3 text-[13px] dark:border-white/10">
+                                    <div key={f.id} className="space-y-1.5 rounded-lg border border-ink/10 p-3 text-[13px] max-md:rounded-none max-md:border-0 max-md:border-t max-md:px-0 max-md:first:border-t-0 max-md:first:pt-0 dark:border-white/10">
                                         <h4 className="text-sm font-semibold">{advised(f)}</h4>
                                         <dl className="grid grid-cols-[72px_1fr] gap-x-2.5 gap-y-1">
-                                            <dt className="text-ink/50 dark:text-white/50">{t('basisLabels.rule')}</dt><dd className="text-ink/70 dark:text-white/70">{t(`ruleText.${f.rule}`, { unit })}{EVIDENCE[f.rule].ownThreshold && <span className="text-xs text-ink/40 dark:text-white/40"> · {t('ownSetting')}</span>}</dd>
+                                            <dt className="text-ink/50 dark:text-white/50">{t('basisLabels.rule')}</dt><dd className="text-ink/70 dark:text-white/70">{t(`ruleText.${f.rule}`, { unit })}{EVIDENCE[f.rule].ownThreshold && <span className="text-xs text-ink/40 max-md:text-[13px] dark:text-white/40"> · {t('ownSetting')}</span>}</dd>
                                             <dt className="text-ink/50 dark:text-white/50">{t('basisLabels.data')}</dt><dd className="text-ink/70 dark:text-white/70">{why(f)}</dd>
                                             <dt className="text-ink/50 dark:text-white/50">{t('basisLabels.research')}</dt><dd className="text-ink/70 dark:text-white/70">{t(`researchText.${f.rule}`)}<Sources sources={EVIDENCE[f.rule].sources} /></dd>
                                         </dl>
@@ -237,9 +241,9 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
 function Kpi({ label, value, note, good }: { label: string; value: React.ReactNode; note: string | null; good?: boolean }) {
     return (
         <div className="min-w-0 px-3.5 py-2.5">
-            <dt className="text-xs text-ink/50 dark:text-white/50">{label}</dt>
+            <dt className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{label}</dt>
             <dd className="text-[28px] font-semibold leading-tight tabular-nums">{value}</dd>
-            {note && <dd className={`truncate text-xs ${good ? 'text-emerald-700 dark:text-emerald-400' : 'text-ink/60 dark:text-white/60'}`}>{note}</dd>}
+            {note && <dd className={`truncate text-xs max-md:text-[13px] ${good ? 'text-emerald-700 dark:text-emerald-400' : 'text-ink/60 dark:text-white/60'}`}>{note}</dd>}
         </div>
     )
 }
@@ -254,7 +258,7 @@ function WeekDots({ days, zh }: { days: DayFacts[]; zh: boolean }) {
                 const missed = d.routine && !d.trained
                 const weekday = new Date(`${d.date}T12:00:00Z`).getUTCDay()
                 return (
-                    <div key={d.date} title={d.routine ?? undefined} className="flex flex-col items-center gap-1 text-[11px] text-ink/50 dark:text-white/50">
+                    <div key={d.date} title={d.routine ?? undefined} className="flex flex-col items-center gap-1 text-[11px] text-ink/50 max-md:text-xs dark:text-white/50">
                         <span className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${d.trained
                             ? 'bg-plate text-chalk dark:bg-chalk dark:text-plate'
                             : missed ? 'border-[1.5px] border-dashed border-amber-600 bg-amber-50 text-amber-700 dark:border-amber-400 dark:bg-amber-400/10 dark:text-amber-300'
@@ -273,7 +277,7 @@ function WeekDots({ days, zh }: { days: DayFacts[]; zh: boolean }) {
 function SectionTitle({ title, count }: { title: string; count: string | null }) {
     return (
         <h4 className="flex items-baseline justify-between gap-2 text-[15px] font-bold">
-            {title} {count && <span className="text-xs font-medium text-ink/50 dark:text-white/50">{count}</span>}
+            {title} {count && <span className="text-xs font-medium text-ink/50 max-md:text-[13px] dark:text-white/50">{count}</span>}
         </h4>
     )
 }
@@ -289,7 +293,7 @@ function Reason({ tag, tone, children }: { tag: string; tone: 'data' | 'study'; 
     const style = tone === 'data' ? 'bg-[#C8955A]/15 text-[#A8742F] dark:text-[#D9AA6E]' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300'
     return (
         <div className="grid grid-cols-[auto_1fr] items-baseline gap-2">
-            <dt className={`whitespace-nowrap rounded-md px-1.5 text-[11px] font-bold ${style}`}>{tag}</dt>
+            <dt className={`whitespace-nowrap rounded-md px-1.5 text-[11px] font-bold max-md:text-xs ${style}`}>{tag}</dt>
             <dd>{children}</dd>
         </div>
     )
@@ -298,7 +302,7 @@ function Reason({ tag, tone, children }: { tag: string; tone: 'data' | 'study'; 
 /** Papers, each linking to its DOI. They come from code (lib/report/evidence), never from the model. */
 function Sources({ sources }: { sources: Source[] }) {
     return (
-        <span className="text-xs text-ink/50 dark:text-white/50">
+        <span className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">
             {' · '}
             {sources.map((s, i) => (
                 <span key={s.doi}>
@@ -324,19 +328,19 @@ function Row({ title, take, tone, open, onToggle, children }: {
         : 'bg-ink/5 text-ink/70 dark:bg-white/10 dark:text-white/70'
     return (
         <div>
-            <button type="button" onClick={onToggle} aria-expanded={open} className="flex w-full items-center gap-2.5 px-3.5 py-3 text-left text-sm font-bold">
+            <button type="button" onClick={onToggle} aria-expanded={open} className="flex w-full items-center gap-2.5 px-3.5 py-3 text-left text-sm font-bold max-md:min-h-[52px] max-md:px-0 max-md:text-[15px]">
                 <span className="flex-1">{title}</span>
-                {take && <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-bold ${chip}`}>{take}</span>}
+                {take && <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-bold max-md:text-[13px] ${chip}`}>{take}</span>}
                 <span className={`text-ink/40 transition-transform motion-reduce:transition-none dark:text-white/40 ${open ? 'rotate-180' : ''}`} aria-hidden>▾</span>
             </button>
-            {open && <div className="space-y-3 px-3.5 pb-3.5">{children}</div>}
+            {open && <div className="space-y-3 px-3.5 pb-3.5 max-md:px-0 max-md:pb-4">{children}</div>}
         </div>
     )
 }
 
 function Legend({ items }: { items: [string, string][] }) {
     return (
-        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] text-ink/50 dark:text-white/50">
+        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] text-ink/50 max-md:text-xs dark:text-white/50">
             {items.map(([color, label]) => <span key={label} className="flex items-center gap-1"><i className={`inline-block h-2.5 w-2.5 rounded-sm ${color}`} />{label}</span>)}
         </div>
     )
@@ -360,7 +364,7 @@ function MuscleBars({ muscles, label }: { muscles: ReportV3['facts']['muscles'];
                     <span className={`text-right font-semibold tabular-nums ${m.status === 'low' ? 'text-amber-700 dark:text-amber-400' : ''}`}>{m.perWeek}</span>
                 </div>
             ))}
-            <div className="grid grid-cols-[76px_1fr_44px] gap-2 text-[10px] text-ink/40 dark:text-white/40">
+            <div className="grid grid-cols-[76px_1fr_44px] gap-2 text-[10px] text-ink/40 max-md:text-xs dark:text-white/40">
                 <span />
                 <div className="relative h-3">{[0, 10, 20].map((v) => <span key={v} className="absolute -translate-x-1/2 tabular-nums" style={{ left: pct(v) }}>{v}</span>)}</div>
                 <span />
@@ -379,16 +383,16 @@ function LiftTable({ lifts, name, set, prev, trendLabel, trendNote }: {
 }) {
     const color = (l: LiftFacts) => l.trend === 'up' ? 'text-emerald-700 dark:text-emerald-400' : l.trend === 'down' ? 'text-amber-700 dark:text-amber-400' : 'text-ink/60 dark:text-white/60'
     return (
-        <div className="divide-y divide-ink/10 rounded-lg border border-ink/10 dark:divide-white/10 dark:border-white/10">
+        <div className="divide-y divide-ink/10 rounded-lg border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
             {lifts.map((l) => (
-                <div key={l.exerciseId} className="grid grid-cols-[1fr_auto_76px] items-center gap-2.5 px-3 py-2">
+                <div key={l.exerciseId} className="grid grid-cols-[1fr_auto_76px] items-center gap-2.5 px-3 py-2 max-md:px-0 max-md:py-2.5">
                     <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold">{name(l)}</p>
+                        <p className="truncate text-sm font-semibold max-md:text-[15px]">{name(l)}</p>
                         <p className="text-[13px] tabular-nums text-ink/60 dark:text-white/60">{prev(l)} → {set(l)}</p>
                     </div>
-                    <p className={`text-right text-xs font-bold ${color(l)}`}>
+                    <p className={`text-right text-xs font-bold max-md:text-[13px] ${color(l)}`}>
                         {trendLabel(l)}
-                        {trendNote(l) && <small className="block text-[11px] font-medium text-ink/50 dark:text-white/50">{trendNote(l)}</small>}
+                        {trendNote(l) && <small className="block text-[11px] font-medium text-ink/50 max-md:text-xs dark:text-white/50">{trendNote(l)}</small>}
                     </p>
                     <Sparkline values={l.series} className={color(l)} label={name(l)} />
                 </div>

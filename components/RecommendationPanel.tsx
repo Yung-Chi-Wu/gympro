@@ -42,6 +42,8 @@ interface StrengthHistoryPoint {
     [muscleGroup: string]: string | number
 }
 
+// The latest report on the dashboard, in one card. On a phone nothing inside the card is a
+// box of its own (ReportView flattens the same way): sections are set apart by lines.
 export function RecommendationPanel({ userId, language, weightUnit }: RecommendationPanelProps) {
     const supabase = createClient()
     const t = useTranslations('report')
@@ -52,57 +54,55 @@ export function RecommendationPanel({ userId, language, weightUnit }: Recommenda
     const [strengthHistory, setStrengthHistory] = useState<StrengthHistoryPoint[]>([])
     const [muscleGroupsInHistory, setMuscleGroupsInHistory] = useState<string[]>([])
 
-    const checkStatus = useCallback(async () => {
-        const { data } = await supabase
-            .from('period_reports')
-            .select('status, recommendation, period_start')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-
-        if (!data) return
-
-        setStatus(data.status as Status)
-        setPeriodStart(data.period_start)
-        if (data.status === 'completed') {
-            setRecommendation(data.recommendation as unknown as AiRecommendation)
-        }
-    }, [supabase, userId])
-
-    const loadStrengthHistory = useCallback(async () => {
-        const { data } = await supabase
-            .from('period_reports')
-            .select('period_start, recommendation')
-            .eq('user_id', userId)
-            .eq('status', 'completed')
-            .order('period_start', { ascending: false })
-            .limit(6)
-
-        const chronological = (data ?? []).slice().reverse()
-        const groups = new Set<string>()
-
-        const points: StrengthHistoryPoint[] = chronological.map((row) => {
-            const rec = row.recommendation as unknown as AiRecommendation
-            const point: StrengthHistoryPoint = { label: formatShortDate(row.period_start) }
-            for (const [muscle, data] of Object.entries(rec.strengthIndex ?? {})) {
-                point[muscle] = data.currentIndex
-                groups.add(muscle)
+    // State is set when the query answers, never while an effect runs
+    const checkStatus = useCallback(() => supabase
+        .from('period_reports')
+        .select('status, recommendation, period_start')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+            if (!data) return
+            setStatus(data.status as Status)
+            setPeriodStart(data.period_start)
+            if (data.status === 'completed') {
+                setRecommendation(data.recommendation as unknown as AiRecommendation)
             }
-            return point
-        })
+        }), [supabase, userId])
 
-        setStrengthHistory(points)
-        setMuscleGroupsInHistory(Array.from(groups).sort())
-    }, [supabase, userId])
+    const loadStrengthHistory = useCallback(() => supabase
+        .from('period_reports')
+        .select('period_start, recommendation')
+        .eq('user_id', userId)
+        .eq('status', 'completed')
+        .order('period_start', { ascending: false })
+        .limit(6)
+        .then(({ data }) => {
+            const chronological = (data ?? []).slice().reverse()
+            const groups = new Set<string>()
+
+            const points: StrengthHistoryPoint[] = chronological.map((row) => {
+                const rec = row.recommendation as unknown as AiRecommendation
+                const point: StrengthHistoryPoint = { label: formatShortDate(row.period_start) }
+                for (const [muscle, data] of Object.entries(rec.strengthIndex ?? {})) {
+                    point[muscle] = data.currentIndex
+                    groups.add(muscle)
+                }
+                return point
+            })
+
+            setStrengthHistory(points)
+            setMuscleGroupsInHistory(Array.from(groups).sort())
+        }), [supabase, userId])
 
     useEffect(() => {
-        checkStatus()
+        void checkStatus()
     }, [checkStatus])
 
     useEffect(() => {
         if (status === 'completed') {
-            loadStrengthHistory()
+            void loadStrengthHistory()
         }
     }, [status, loadStrengthHistory])
 
@@ -115,13 +115,13 @@ export function RecommendationPanel({ userId, language, weightUnit }: Recommenda
     }, [status, checkStatus])
 
     return (
-        <div className="rounded-xl border border-ink/10 bg-white p-6 space-y-4">
+        <div className="space-y-4 rounded-[14px] border border-line bg-card p-4 md:p-6">
             {status === 'idle' && (
-                <p className="text-sm text-ink/60">{t('idle')}</p>
+                <p className="text-[15px] text-muted md:text-sm">{t('idle')}</p>
             )}
 
             {status === 'pending' && (
-                <div className="flex items-center gap-3 text-gray-600">
+                <div className="flex items-center gap-3 text-muted">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
                     <span>{t('pending')}</span>
                 </div>
@@ -136,13 +136,12 @@ export function RecommendationPanel({ userId, language, weightUnit }: Recommenda
                     recommendation={recommendation}
                     strengthHistory={strengthHistory}
                     muscleGroups={muscleGroupsInHistory}
-                    language={language}
                 />
             )}
 
             {/* error_message is the English cause for logs; users get the localized line */}
             {status === 'insufficient_data' && (
-                <p className="text-ink/60 dark:text-white/60">{tV3('insufficient')}</p>
+                <p className="text-[15px] text-muted md:text-base">{tV3('insufficient')}</p>
             )}
 
             {/* A retried report is 'pending' again, which restarts the polling above */}
@@ -155,12 +154,10 @@ function RecommendationDisplay({
     recommendation,
     strengthHistory,
     muscleGroups,
-    language,
 }: {
     recommendation: AiRecommendation
     strengthHistory: StrengthHistoryPoint[]
     muscleGroups: string[]
-    language: string
 }) {
     const t = useTranslations('report')
     const [showMore, setShowMore] = useState(false)
@@ -177,8 +174,8 @@ function RecommendationDisplay({
         <div className="space-y-5">
             {/* ---------- Top row: Training Split + Body Metrics ---------- */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-ink/10 p-4">
-                    <h3 className="text-xs font-semibold text-ink/40 uppercase tracking-wide mb-2">
+                <div className="rounded-xl border border-ink/10 p-4 max-md:rounded-none max-md:border-0 max-md:border-t max-md:px-0 max-md:pb-0 max-md:pt-4 max-md:border-t-0 max-md:pt-0">
+                    <h3 className="text-xs font-semibold text-ink/40 uppercase tracking-wide max-md:text-[13px] mb-2">
                         {t('trainingSplit')}
                     </h3>
                     {pieData.length > 0 ? (
@@ -195,9 +192,9 @@ function RecommendationDisplay({
                             </ResponsiveContainer>
                         </div>
                     ) : (
-                        <p className="text-sm text-ink/40">{t('noData')}</p>
+                        <p className="text-sm text-ink/40 max-md:text-[15px]">{t('noData')}</p>
                     )}
-                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink/60">
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink/60 max-md:text-[13px]">
                         {pieData.map((entry, i) => (
                             <span key={entry.name} className="flex items-center gap-1 capitalize">
                                 <span
@@ -210,11 +207,11 @@ function RecommendationDisplay({
                     </div>
                 </div>
 
-                <div className="rounded-xl border border-ink/10 p-4">
-                    <h3 className="text-xs font-semibold text-ink/40 uppercase tracking-wide mb-2">
+                <div className="rounded-xl border border-ink/10 p-4 max-md:rounded-none max-md:border-0 max-md:border-t max-md:px-0 max-md:pb-0 max-md:pt-4">
+                    <h3 className="text-xs font-semibold text-ink/40 uppercase tracking-wide max-md:text-[13px] mb-2">
                         {t('bodyMetrics')}
                     </h3>
-                    <div className="grid grid-cols-2 gap-y-2 text-sm">
+                    <div className="grid grid-cols-2 gap-y-2 text-sm max-md:text-[15px]">
                         <MetricCell label={t('weight')} value={bodyMetrics?.weightKg ? `${bodyMetrics.weightKg} kg` : '—'} />
                         <MetricCell label={t('height')} value={bodyMetrics?.heightCm ? `${bodyMetrics.heightCm} cm` : '—'} />
                         <MetricCell label={t('bmi')} value={bodyMetrics?.bmi ? `${bodyMetrics.bmi}` : '—'} />
@@ -232,11 +229,11 @@ function RecommendationDisplay({
 
             {/* ---------- Strength trend ---------- */}
             {strengthHistory.length >= 2 && muscleGroups.length > 0 && (
-                <div className="rounded-xl border border-ink/10 p-4">
-                    <h3 className="text-xs font-semibold text-ink/40 uppercase tracking-wide mb-1">
+                <div className="rounded-xl border border-ink/10 p-4 max-md:rounded-none max-md:border-0 max-md:border-t max-md:px-0 max-md:pb-0 max-md:pt-4">
+                    <h3 className="text-xs font-semibold text-ink/40 uppercase tracking-wide max-md:text-[13px] mb-1">
                         {t('strengthTrend')}
                     </h3>
-                    <p className="text-xs text-ink/40 mb-2">{t('strengthTrendNote')}</p>
+                    <p className="text-xs text-ink/40 mb-2 max-md:text-[13px]">{t('strengthTrendNote')}</p>
                     <div className="h-48">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={strengthHistory} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
@@ -268,7 +265,7 @@ function RecommendationDisplay({
                     {severeImbalances.map((item, i) => (
                         <div
                             key={i}
-                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                            className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 max-md:text-[15px] md:border md:border-red-200"
                         >
                             <span className="font-semibold capitalize">⚠ {item.muscleGroup}</span>
                             {' — '}
@@ -286,36 +283,36 @@ function RecommendationDisplay({
                     <button
                         type="button"
                         onClick={() => setShowMore(true)}
-                        className="text-sm text-plate dark:text-[#C8955A] underline hover:opacity-70 transition-opacity"
+                        className="min-h-11 text-sm text-plate dark:text-[#C8955A] underline hover:opacity-70 transition-opacity max-md:text-[15px] md:min-h-0"
                     >
                         {t('readMore')}
                     </button>
                 ) : (
                     <div className="space-y-5 pt-2">
                         <div>
-                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 max-md:text-[13px]">
                                 {t('summary')}
                             </h3>
-                            <p className="text-sm text-gray-700">{recommendation.summary}</p>
+                            <p className="text-sm text-gray-700 max-md:text-[15px]">{recommendation.summary}</p>
                         </div>
 
                         <div>
-                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 max-md:text-[13px]">
                                 {t('progressiveOverload')}
                             </h3>
-                            <p className="text-sm text-gray-600">{recommendation.progressiveOverload.notes}</p>
+                            <p className="text-sm text-gray-600 max-md:text-[15px]">{recommendation.progressiveOverload.notes}</p>
                         </div>
 
                         {recommendation.muscleImbalances.length > 0 && (
                             <div>
-                                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 max-md:text-[13px]">
                                     {t('thingsToWatch')}
                                 </h3>
                                 <div className="space-y-2">
                                     {recommendation.muscleImbalances.map((imbalance, i) => (
                                         <div
                                             key={i}
-                                            className={`rounded border px-3 py-2 text-sm ${SEVERITY_STYLES[imbalance.severity] ?? ''}`}
+                                            className={`rounded px-3 py-2 text-sm max-md:border-0 max-md:text-[15px] md:border ${SEVERITY_STYLES[imbalance.severity] ?? ''}`}
                                         >
                                             <span className="font-semibold capitalize">{imbalance.muscleGroup}</span>
                                             {' — '}
@@ -327,17 +324,17 @@ function RecommendationDisplay({
                         )}
 
                         {recommendation.deloadRecommended && (
-                            <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                            <div className="rounded bg-red-50 px-3 py-2 text-sm text-red-800 max-md:text-[15px] md:border md:border-red-200">
                                 <span className="font-semibold">{t('deloadRecommended')} </span>
                                 {recommendation.deloadReason}
                             </div>
                         )}
 
                         <div>
-                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 max-md:text-[13px]">
                                 {t('whatToDoNext')}
                             </h3>
-                            <ul className="list-disc list-inside space-y-1 text-sm">
+                            <ul className="list-disc list-inside space-y-1 text-sm max-md:text-[15px]">
                                 {recommendation.actionItems.map((item, i) => (
                                     <li key={i}>{item}</li>
                                 ))}
@@ -347,7 +344,7 @@ function RecommendationDisplay({
                         <button
                             type="button"
                             onClick={() => setShowMore(false)}
-                            className="text-sm text-ink/50 dark:text-white/50 hover:text-ink dark:hover:text-white underline transition-colors"
+                            className="min-h-11 text-sm text-ink/50 dark:text-white/50 hover:text-ink dark:hover:text-white underline transition-colors max-md:text-[15px] md:min-h-0"
                         >
                             {t('showLess')}
                         </button>
@@ -361,7 +358,7 @@ function RecommendationDisplay({
 function MetricCell({ label, value }: { label: string; value: string }) {
     return (
         <div>
-            <span className="block text-xs text-ink/40">{label}</span>
+            <span className="block text-xs text-ink/40 max-md:text-[13px]">{label}</span>
             <span className="font-mono">{value}</span>
         </div>
     )
