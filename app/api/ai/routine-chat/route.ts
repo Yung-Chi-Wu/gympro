@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { errorText } from '@/lib/ai/trace'
+import { traceAfterResponse } from '@/lib/ai/trace-after'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -183,9 +185,12 @@ Output format:
     ? `使用者對「${questions[currentStep - 1].question}」的回答是：「${userAnswer}」`
     : `User answered "${userAnswer}" to the question: "${questions[currentStep - 1].question}"`
 
+  const model = 'claude-sonnet-4-6'
+  const traceInput = { step: currentStep, system: systemPrompt, user: userContent }
+  const started = Date.now()
   try {
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model,
       max_tokens: 256,
       system: systemPrompt,
       messages: [{ role: 'user', content: userContent }],
@@ -204,6 +209,10 @@ Output format:
         if (parsed.message) message = parsed.message
       } catch { /* 用預設訊息 */ }
     }
+    traceAfterResponse({
+      userId: user.id, feature: 'coach_chat', model, servedModel: response.model, status: 'ok',
+      latencyMs: Date.now() - started, usage: [response.usage], input: traceInput, output: { text: rawText, message },
+    })
 
     // 如果還有下一題
     if (nextQ) {
@@ -227,6 +236,10 @@ Output format:
 
   } catch (err) {
     console.error('Coach G chat error:', err)
+    traceAfterResponse({
+      userId: user.id, feature: 'coach_chat', model, status: 'error', error: errorText(err),
+      latencyMs: Date.now() - started, usage: [], input: traceInput,
+    })
     // fallback
     const fallbackMsg = zh ? '好的！' : 'Got it!'
     if (nextQ) {

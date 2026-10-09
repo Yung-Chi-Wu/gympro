@@ -2,7 +2,8 @@ import type { SQSEvent, SQSHandler, SQSRecord } from 'aws-lambda'
 import { getSupabaseClient, saveFailedStatus, saveInsufficientDataStatus, saveReport } from './supabase'
 import { analyze } from './report/analyze'
 import { fetchReportInputs } from './report/fetch'
-import { generateNarrative } from './report/narrative'
+import { generateNarrative, NARRATIVE_MODEL } from './report/narrative'
+import { errorText, recordTrace, usageOfError } from '../../../lib/ai/trace'
 import type { ReportV3 } from './report/types'
 import type { AnalysisRequestMessage } from './types'
 
@@ -35,7 +36,23 @@ async function processMessage(record: SQSRecord): Promise<void> {
 
     // Code decides every number and which rules fire; the model writes the headline and advice
     const analysis = analyze(inputs)
-    const { narrative } = await generateNarrative({ ...analysis, note: userNote ?? null, language, weightUnit })
+    const started = Date.now()
+    const traceInput = { periodStart, periodEnd, language, weightUnit, note: userNote ?? null }
+    let narrative: ReportV3['narrative']
+    try {
+      const res = await generateNarrative({ ...analysis, note: userNote ?? null, language, weightUnit })
+      narrative = res.narrative
+      await recordTrace(supabase, {
+        userId, feature: 'report', model: NARRATIVE_MODEL, servedModel: res.model, status: 'ok', latencyMs: Date.now() - started,
+        usage: [res.usage], input: { ...traceInput, prompt: res.prompt }, output: { narrative, attempts: res.attempts },
+      })
+    } catch (err) {
+      await recordTrace(supabase, {
+        userId, feature: 'report', model: NARRATIVE_MODEL, status: 'error', error: errorText(err), latencyMs: Date.now() - started,
+        usage: usageOfError(err), input: { ...traceInput, prompt: (err as { prompt?: string }).prompt ?? null },
+      })
+      throw err
+    }
     const report: ReportV3 = { version: 3, ...analysis, narrative }
     await saveReport(supabase, userId, periodStart, report, userNote ?? null)
     console.log(`Successfully saved recommendation for user ${userId} (messageId ${record.messageId})`)

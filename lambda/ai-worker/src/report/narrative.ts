@@ -166,34 +166,39 @@ export async function generateNarrative(input: NarrativeInput, model: string = N
     const usage = { input_tokens: 0, output_tokens: 0 } as Anthropic.Usage
     let lastProblem = ''
 
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        const startedAt = Date.now()
-        const response = await client.messages.create({
-            model,
-            max_tokens: 1024,
-            tools: [{ name: 'submit_report_text', description: 'Submit the headline and advice for the report.', input_schema: inputSchema as Anthropic.Tool.InputSchema }],
-            tool_choice: { type: 'tool', name: 'submit_report_text' },
-            messages: [{ role: 'user', content: prompt }],
-        })
-        usage.input_tokens += response.usage.input_tokens
-        usage.output_tokens += response.usage.output_tokens
-        console.log(JSON.stringify({
-            event: 'claude_call', model: response.model, attempt, stopReason: response.stop_reason,
-            inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens, durationMs: Date.now() - startedAt,
-        }))
-        if (response.stop_reason === 'max_tokens') throw new Error(`Claude response hit max_tokens (${response.usage.output_tokens} output tokens)`)
+    // A failed report still reports its brief and what the attempts used, for its trace
+    try {
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            const startedAt = Date.now()
+            const response = await client.messages.create({
+                model,
+                max_tokens: 1024,
+                tools: [{ name: 'submit_report_text', description: 'Submit the headline and advice for the report.', input_schema: inputSchema as Anthropic.Tool.InputSchema }],
+                tool_choice: { type: 'tool', name: 'submit_report_text' },
+                messages: [{ role: 'user', content: prompt }],
+            })
+            usage.input_tokens += response.usage.input_tokens
+            usage.output_tokens += response.usage.output_tokens
+            console.log(JSON.stringify({
+                event: 'claude_call', model: response.model, attempt, stopReason: response.stop_reason,
+                inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens, durationMs: Date.now() - startedAt,
+            }))
+            if (response.stop_reason === 'max_tokens') throw new Error(`Claude response hit max_tokens (${response.usage.output_tokens} output tokens)`)
 
-        const block = response.content.find((b) => b.type === 'tool_use')
-        const parsed = block?.type === 'tool_use' ? schema.safeParse(block.input) : null
-        if (!parsed) lastProblem = 'no tool_use block in the response'
-        else if (!parsed.success) lastProblem = parsed.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ')
-        else {
-            const { headline, actions } = parsed.data as { headline: string; actions: Record<string, string> }
-            const narrative: ReportNarrative = { headline, items: rulesOf(input.findings).map((rule) => ({ rule, action: actions[rule] })) }
-            if (headline.trim() && narrative.items.every((i) => i.action?.trim())) return { narrative, prompt, model: response.model, usage, attempts: attempt }
-            lastProblem = 'empty text'
+            const block = response.content.find((b) => b.type === 'tool_use')
+            const parsed = block?.type === 'tool_use' ? schema.safeParse(block.input) : null
+            if (!parsed) lastProblem = 'no tool_use block in the response'
+            else if (!parsed.success) lastProblem = parsed.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ')
+            else {
+                const { headline, actions } = parsed.data as { headline: string; actions: Record<string, string> }
+                const narrative: ReportNarrative = { headline, items: rulesOf(input.findings).map((rule) => ({ rule, action: actions[rule] })) }
+                if (headline.trim() && narrative.items.every((i) => i.action?.trim())) return { narrative, prompt, model: response.model, usage, attempts: attempt }
+                lastProblem = 'empty text'
+            }
+            console.warn(JSON.stringify({ event: 'claude_invalid_output', model: response.model, attempt, problem: lastProblem }))
         }
-        console.warn(JSON.stringify({ event: 'claude_invalid_output', model: response.model, attempt, problem: lastProblem }))
+        throw new Error(`Claude returned an invalid report ${MAX_ATTEMPTS} times: ${lastProblem}`)
+    } catch (err) {
+        throw Object.assign(err instanceof Error ? err : new Error(String(err)), { usage, prompt })
     }
-    throw new Error(`Claude returned an invalid report ${MAX_ATTEMPTS} times: ${lastProblem}`)
 }
