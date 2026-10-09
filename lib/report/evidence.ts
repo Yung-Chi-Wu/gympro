@@ -17,6 +17,9 @@ export type Source = {
     doi: string
 }
 
+/** Cited by two rules and the glossary: volume and frequency against growth and strength, sets counted fractionally */
+const PELLAND: Source = { author: 'Pelland', year: 2026, title: 'The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gains', journal: 'Sports Medicine', doi: '10.1007/s40279-025-02344-w' }
+
 export const EVIDENCE: Record<RuleId, { sources: Source[]; ownThreshold: boolean }> = {
     lift_stalled: {
         sources: [
@@ -46,7 +49,7 @@ export const EVIDENCE: Record<RuleId, { sources: Source[]; ownThreshold: boolean
             // More weekly sets, more growth (graded dose-response)
             { author: 'Schoenfeld', year: 2017, title: 'Dose-response relationship between weekly resistance training volume and increases in muscle mass: A systematic review and meta-analysis', journal: 'Journal of Sports Sciences', doi: '10.1080/02640414.2016.1210197' },
             // Growth keeps rising with volume, with diminishing returns and no sharp threshold
-            { author: 'Pelland', year: 2026, title: 'The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gains', journal: 'Sports Medicine', doi: '10.1007/s40279-025-02344-w' },
+            PELLAND,
             // Young trained men: 12-20 weekly sets per muscle as a standard recommendation
             { author: 'Baz-Valle', year: 2022, title: 'A Systematic Review of The Effects of Different Resistance Training Volumes on Muscle Hypertrophy', journal: 'Journal of Human Kinetics', doi: '10.2478/hukin-2022-0017' },
         ],
@@ -57,7 +60,7 @@ export const EVIDENCE: Record<RuleId, { sources: Source[]; ownThreshold: boolean
             // With volume equated, frequency does not meaningfully change muscle growth
             { author: 'Schoenfeld', year: 2019, title: 'How many times per week should a muscle be trained to maximize muscle hypertrophy? A systematic review and meta-analysis of studies examining the effects of resistance training frequency', journal: 'Journal of Sports Sciences', doi: '10.1080/02640414.2018.1555906' },
             // Frequency: negligible for growth, but strength rises with it (diminishing returns)
-            { author: 'Pelland', year: 2026, title: 'The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gains', journal: 'Sports Medicine', doi: '10.1007/s40279-025-02344-w' },
+            PELLAND,
         ],
         ownThreshold: false,
     },
@@ -70,4 +73,9 @@ export const EVIDENCE: Record<RuleId, { sources: Source[]; ownThreshold: boolean
         ],
         ownThreshold: true,
     },
+}
+
+/** The research behind a glossary entry: counting a secondary muscle's set as half fit the studies best of the methods compared */
+export const GLOSSARY_SOURCES: Partial<Record<string, Source[]>> = {
+    weeklySets: [PELLAND],
 }
