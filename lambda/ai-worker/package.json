@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "esbuild src/index.ts src/scheduler.ts --bundle --platform=node --target=node22 --outdir=dist",
-    "eval:build": "esbuild src/claude.ts --bundle --platform=node --target=node20 --format=cjs --outfile=evals/report/dist/claude.cjs"
+    "build": "esbuild src/index.ts src/scheduler.ts --bundle --platform=node --target=node22 --outdir=dist"
   },
   "keywords": [],
   "author": "",
