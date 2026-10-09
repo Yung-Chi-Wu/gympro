@@ -33,13 +33,13 @@ export async function fetchReportInputs(
     userId: string,
     periodStart: string,
     periodEnd: string
-): Promise<{ inputs: ReportInputs; language: string }> {
+): Promise<{ inputs: ReportInputs; language: string; weightUnit: 'kg' | 'lb' }> {
     const days = daysBetween(periodStart, periodEnd) + 1
     const lookbackStart = addDays(periodStart, -(WINDOWS - 1) * days)
 
     const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
-        .select('timezone, training_goal, language')
+        .select('timezone, training_goal, language, weight_unit')
         .eq('user_id', userId)
         .maybeSingle()
     if (profileError) throw new Error(`Failed to fetch profile: ${profileError.message}`)
@@ -94,6 +94,7 @@ export async function fetchReportInputs(
     return {
         inputs: { periodStart, periodEnd, sets, exercises, schedule, weighIns, goal: profile?.training_goal ?? null, routineLeads, previousFindings },
         language: profile?.language ?? 'en',
+        weightUnit: profile?.weight_unit === 'lb' ? 'lb' : 'kg',
     }
 }
 

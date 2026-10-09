@@ -18,11 +18,13 @@ import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { retryFailedReport } from '@/app/(app)/dashboard/period-actions'
 import type { AiRecommendation } from './types'
+import type { WeightUnit } from '@/lib/weight-unit'
 import { isReportV3, ReportView } from './report/ReportView'
 
 interface RecommendationPanelProps {
     userId: string
     language: string
+    weightUnit: WeightUnit
 }
 
 type Status = 'idle' | 'pending' | 'completed' | 'insufficient_data' | 'failed'
@@ -40,7 +42,7 @@ interface StrengthHistoryPoint {
     [muscleGroup: string]: string | number
 }
 
-export function RecommendationPanel({ userId, language }: RecommendationPanelProps) {
+export function RecommendationPanel({ userId, language, weightUnit }: RecommendationPanelProps) {
     const supabase = createClient()
     const t = useTranslations('report')
     const tV3 = useTranslations('reportV3')
@@ -139,7 +141,7 @@ export function RecommendationPanel({ userId, language }: RecommendationPanelPro
             )}
 
             {status === 'completed' && recommendation && isReportV3(recommendation) && (
-                <ReportView report={recommendation} language={language} />
+                <ReportView report={recommendation} language={language} weightUnit={weightUnit} />
             )}
 
             {status === 'completed' && recommendation && !isReportV3(recommendation) && (

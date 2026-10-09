@@ -1,0 +1,1 @@
+Code 7b03c12 on claude-sonnet-4-6 (the production model), 3 reps, 17 scenarios. The first run of the v3 report: code computes the facts and fires rules (check-rules.mjs: 17/17), the model writes the headline and advice. Harness approved by the user on 2026-10-08.

@@ -269,8 +269,8 @@
                 "not_done": "{sets} sets this {unit, select, week {week} other {cycle}}, no lighter week"
             },
             "weight_trend": {
-                "done": "Weight is heading the right way ({kg} kg)",
-                "not_done": "Still heading the wrong way ({kg} kg)"
+                "done": "Weight is heading the right way ({kg} {unit})",
+                "not_done": "Still heading the wrong way ({kg} {unit})"
             }
         },
         "nextTitle": "Next {unit, select, week {week} other {cycle}}",

@@ -1,0 +1,11 @@
+[
+  {
+    "role": "user",
+    "content": "You write the short text of a strength-training app's weekly report. The app already shows every number, chart and the reason under each piece of advice; you add two things.\n\nPeriod: 2026-09-28 to 2026-10-04 (one week, 7 days).\nStatus, decided by code: baseline (main lifts: 0 up, 0 flat, 0 down).\nSessions: 5. Sets: 57.\nMain lifts, best set this week:\n- 槓鈴臥推: 80kg x 8 (last week -), no earlier data\n- 深蹲: 100kg x 6 (last week -), no earlier data\n- 槓鈴划船: 70kg x 8 (last week -), no earlier data\n- 羅馬尼亞硬舉: 90kg x 8 (last week -), no earlier data\n- 肩推: 45kg x 8 (last week -), no earlier data\nNo new records.\nSets per muscle per week (range 10-20 for chest, back, legs, shoulders, glutes): chest 14, shoulders 14, triceps 4, back 6, biceps 3, legs 16.\nNo body weight logged.\nThe user's goal: not set.\nThe user's note for this week: none.\nRules that fired. Advise only on these, by id:\n- id \"low_volume:back\", priority 50, data {\"sets\":6,\"perWeek\":6,\"previousPerWeek\":null,\"target\":10}. Advice: Add 2-4 sets a week for that muscle, ideally in a session the user already does.\n\n1. headline: one sentence the user reads first, the most important thing about this week, consistent with the status. It may use a number from above. At most 40 characters.\n2. items: advice for at most 3 of the fired rules, most important first: usually by priority, but the goal or the note may change the order. A deload, if it fired, is always included and first. Each action is one or two short sentences saying exactly what to do next week, with the exercise, sets, weights or reps from the data. Don't repeat the reason; the app shows it.\n\nUse only the numbers above; never invent data. No myths, no diagnosis, no scolding. Plain text only: no Markdown, no lists inside a field. Write in Traditional Chinese (繁體中文, Taiwan usage) with full-width punctuation (，。！？「」), and use the Chinese exercise names given above."
+  },
+  {
+    "role": "tool_call",
+    "name": "submit_report_text",
+    "content": "{\n  \"headline\": \"開訓第一週，5次訓練扎實完成！\",\n  \"items\": [\n    {\n      \"findingId\": \"low_volume:back\",\n      \"action\": \"下週替背部多安排2至4組。可在現有課表的某一堂中加入槓鈴划船，目標每週至少達到10組。\"\n    }\n  ]\n}"
+  }
+]

@@ -20,6 +20,8 @@ export function languageCorrect(text, language) {
 }
 
 const MARKDOWN = /\*\*|__|`|^\s*#|^\s*[-*]\s|^\s*\d+\.\s/m
+// A weight in the other unit than the user's
+const WRONG_UNIT = { kg: /\d\s*(lbs?|磅)/i, lb: /\d\s*(kg|公斤)/i }
 
 export function programmaticGrade(c, out) {
     const n = out?.narrative ?? {}
@@ -38,6 +40,7 @@ export function programmaticGrade(c, out) {
         headline_short: headline && headlineLength <= (c.language === 'zh-TW' ? 45 : 30) ? 1 : 0,
         plain_text: MARKDOWN.test(narrativeText(n)) ? 0 : 1,
         language_correct: languageCorrect(narrativeText(n), c.language) ? 1 : 0,
+        unit_correct: WRONG_UNIT[c.weightUnit ?? 'kg'].test(narrativeText(n)) ? 0 : 1,
     }
     const explanation = {
         advice_valid: unknown.length ? `建議了沒有觸發的規則：${unknown.join('、')}`
@@ -51,6 +54,7 @@ export function programmaticGrade(c, out) {
         headline_short: `標題長度 ${headlineLength}${c.language === 'zh-TW' ? ' 字（上限 45）' : ' 個字（上限 30）'}`,
         plain_text: grade.plain_text ? '沒有 Markdown' : '有 Markdown 符號',
         language_correct: grade.language_correct ? `語言符合 ${c.language}` : `語言不符合 ${c.language}，或中文用了半形標點`,
+        unit_correct: grade.unit_correct ? `重量單位都是 ${c.weightUnit ?? 'kg'}` : `出現了不是 ${c.weightUnit ?? 'kg'} 的重量單位`,
     }
     return { grade, explanation }
 }

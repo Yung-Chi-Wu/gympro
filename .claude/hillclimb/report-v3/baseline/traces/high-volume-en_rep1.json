@@ -1,0 +1,11 @@
+[
+  {
+    "role": "user",
+    "content": "You write the short text of a strength-training app's weekly report. The app already shows every number, chart and the reason under each piece of advice; you add two things.\n\nPeriod: 2026-09-28 to 2026-10-04 (one week, 7 days).\nStatus, decided by code: progressing (main lifts: 5 up, 0 flat, 0 down).\nSessions: 6. Sets: 80 (last week 80).\nMain lifts, best set this week:\n- Barbell Bench Press: 82.5kg x 8 (last week 80kg x 8), up 3.1%\n- Barbell Back Squat: 100kg x 6 (last week 97.5kg x 6), up 2.6%\n- Barbell Row: 70kg x 8 (last week 67.5kg x 8), up 3.7%\n- Romanian Deadlift: 90kg x 8 (last week 87.5kg x 8), up 2.9%\n- Incline Dumbbell Press: 26kg x 10 (last week 25kg x 10), up 4%\nNew records: Barbell Bench Press 82.5kg x 8; Barbell Back Squat 100kg x 6; Barbell Row 70kg x 8; Romanian Deadlift 90kg x 8; Incline Dumbbell Press 26kg x 10.\nSets per muscle per week (range 10-20 for chest, back, legs, shoulders, glutes): chest 26, shoulders 12, triceps 6, back 14, biceps 6, legs 16.\nNo body weight logged.\nThe user's goal: \"Bigger chest\".\nThe user's note for this week: none.\nNo rules fired this period.\n\n1. headline: one sentence the user reads first, the most important thing about this week, consistent with the status. It may use a number from above. At most 25 words.\n2. items: leave it empty: nothing fired, so give no advice.\n\nUse only the numbers above; never invent data. No myths, no diagnosis, no scolding. Plain text only: no Markdown, no lists inside a field. Write in English."
+  },
+  {
+    "role": "tool_call",
+    "name": "submit_report_text",
+    "content": "{\n  \"headline\": \"Outstanding week: all 5 main lifts hit new personal records, including a milestone 100 kg squat.\",\n  \"items\": []\n}"
+  }
+]

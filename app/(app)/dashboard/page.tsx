@@ -149,7 +149,7 @@ export default async function DashboardPage() {
             <h2 className="text-lg font-bold uppercase tracking-wide border-b border-ink/10 pb-2">
               {tReport('sectionTitle')}
             </h2>
-            <RecommendationPanel userId={user.id} language={language} />
+            <RecommendationPanel userId={user.id} language={language} weightUnit={weightUnit} />
           </div>
         </div>
 
@@ -159,7 +159,7 @@ export default async function DashboardPage() {
             <h2 className="text-lg font-bold uppercase tracking-wide border-b border-ink/10 pb-2">
               {tReport('sectionTitle')}
             </h2>
-            <RecommendationPanel userId={user.id} language={language} />
+            <RecommendationPanel userId={user.id} language={language} weightUnit={weightUnit} />
           </div>
         </div>
       </div>

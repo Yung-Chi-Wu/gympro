@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
+import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
 import type { DayFacts, Finding, FollowUp, LiftFacts, ReportV3 } from '@/lib/report/types'
 import { BodyMap } from './BodyMap'
 import { Sparkline } from './Sparkline'
@@ -23,7 +24,7 @@ const STATUS_COLOR: Record<ReportV3['facts']['status'], string> = {
 
 const shortDate = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`
 
-export function ReportView({ report, language }: { report: ReportV3; language: string }) {
+export function ReportView({ report, language, weightUnit }: { report: ReportV3; language: string; weightUnit: WeightUnit }) {
     const t = useTranslations('reportV3')
     const zh = language === 'zh-TW'
     const { facts, findings, watching, followUps, narrative } = report
@@ -36,11 +37,14 @@ export function ReportView({ report, language }: { report: ReportV3; language: s
     const muscle = (g: string) => getMuscleGroupLabel(g, language)
     const muscles = (list: string) => list.split(', ').filter(Boolean).map(muscle).join(zh ? '、' : ', ')
     const liftName = (x: { name: string; nameZh: string | null } | Data) => String((zh && x.nameZh) || x.name)
+    // Weights are stored in kg and shown in the user's unit
+    const weight = (kg: number) => `${toDisplayWeight(kg, weightUnit)}${weightUnit}`
     const setText = (raw: unknown, bodyweight: unknown) => {
         if (raw == null) return '—'
         const [w, r] = String(raw).split('x')
-        return Number(bodyweight) ? t('reps', { n: r }) : `${w}kg × ${r}`
+        return Number(bodyweight) ? t('reps', { n: r }) : `${weight(Number(w))} × ${r}`
     }
+    const bodyWeight = (kg: number) => toDisplayWeight(kg, weightUnit)
     const routineList = (s: unknown) => String(s ?? '').split(', ').join(zh ? '、' : ', ')
 
     const advised = (f: Finding | FollowUp) => t(`advised.${f.rule}`, { lift: liftName(f.data), muscle: muscle(String(f.subject ?? '')), unit })
@@ -67,7 +71,7 @@ export function ReportView({ report, language }: { report: ReportV3; language: s
             case 'low_volume': return t(`result.low_volume.${f.status}`, { n: Number(d.nowPerWeek) })
             case 'missed_sessions': return t(`result.missed_sessions.${f.status}`, { done: Number(d.nowDone), planned: Number(d.nowPlanned), unit })
             case 'deload': return t(`result.deload.${f.status}`, { sets: Number(d.nowSets), unit })
-            case 'weight_trend': return t(`result.weight_trend.${f.status}`, { kg: Number(d.nowKg) })
+            case 'weight_trend': return t(`result.weight_trend.${f.status}`, { kg: bodyWeight(Number(d.nowKg)), unit: weightUnit })
         }
     }
 
@@ -99,8 +103,8 @@ export function ReportView({ report, language }: { report: ReportV3; language: s
                     note={facts.records.length ? facts.records.slice(0, 2).map(liftName).join(zh ? '、' : ', ') : t('kpi.noRecords', { unit })} good={facts.records.length > 0} />
                 <Kpi label={t('kpi.mainLifts')} value={<>{facts.liftsSummary.up}<small className="text-base font-medium text-ink/40 dark:text-white/40"> {t('kpi.up')}</small></>}
                     note={t('kpi.rest', { flat: facts.liftsSummary.flat, down: facts.liftsSummary.down })} />
-                <Kpi label={t('kpi.weight')} value={facts.bodyWeight.latestKg != null ? <>{facts.bodyWeight.latestKg}<small className="text-base font-medium text-ink/40 dark:text-white/40"> kg</small></> : '—'}
-                    note={facts.bodyWeight.changeKg != null ? t('kpi.weightChange', { unit, change: `${facts.bodyWeight.changeKg > 0 ? '+' : ''}${facts.bodyWeight.changeKg}` }) : facts.bodyWeight.latestKg == null ? t('kpi.noWeight') : null} />
+                <Kpi label={t('kpi.weight')} value={facts.bodyWeight.latestKg != null ? <>{bodyWeight(facts.bodyWeight.latestKg)}<small className="text-base font-medium text-ink/40 dark:text-white/40"> {weightUnit}</small></> : '—'}
+                    note={facts.bodyWeight.changeKg != null ? t('kpi.weightChange', { unit, change: `${facts.bodyWeight.changeKg > 0 ? '+' : ''}${bodyWeight(facts.bodyWeight.changeKg)}` }) : facts.bodyWeight.latestKg == null ? t('kpi.noWeight') : null} />
             </dl>
 
             <WeekDots days={facts.sessions.days} zh={zh} />
@@ -168,7 +172,7 @@ export function ReportView({ report, language }: { report: ReportV3; language: s
                                     {facts.records.map((r) => (
                                         <li key={r.exerciseId} className="flex items-center gap-2.5 rounded-lg bg-[#C8955A]/15 px-3 py-2 text-sm">
                                             <span className="text-xs font-bold tracking-wider text-[#A8742F] dark:text-[#D9AA6E]">PR</span>
-                                            <b className="flex-1 font-semibold">{liftName(r)} {r.bodyweight ? t('reps', { n: r.best.reps }) : `${r.best.weightKg}kg × ${r.best.reps}`}</b>
+                                            <b className="flex-1 font-semibold">{liftName(r)} {r.bodyweight ? t('reps', { n: r.best.reps }) : `${weight(r.best.weightKg)} × ${r.best.reps}`}</b>
                                             <span className="text-xs text-ink/50 dark:text-white/50">{shortDate(r.date)}</span>
                                         </li>
                                     ))}
@@ -186,7 +190,7 @@ export function ReportView({ report, language }: { report: ReportV3; language: s
                                 <div className="grid grid-cols-[1fr_auto] items-center gap-3">
                                     <Sparkline values={facts.bodyWeight.series} width={220} height={56} className="w-full text-[#C8955A]" label={t('section.weight')} />
                                     <div className="text-right">
-                                        <p className="text-2xl font-semibold tabular-nums">{facts.bodyWeight.latestKg}<small className="text-sm font-medium text-ink/40 dark:text-white/40"> kg</small></p>
+                                        <p className="text-2xl font-semibold tabular-nums">{bodyWeight(facts.bodyWeight.latestKg)}<small className="text-sm font-medium text-ink/40 dark:text-white/40"> {weightUnit}</small></p>
                                         <p className="text-xs text-ink/50 dark:text-white/50">{t('weighIns', { n: facts.bodyWeight.weighIns, unit })}</p>
                                     </div>
                                 </div>

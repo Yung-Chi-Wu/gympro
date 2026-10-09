@@ -283,6 +283,15 @@ export const SCENARIOS = [
         expect: { status: 'progressing', findings: [] },
     },
     {
+        id: 'lb-user-zh',
+        why: '用磅記錄的使用者（資料庫存公斤）：臥推卡在 225 磅（102.06 公斤）三週。報告裡所有重量都要用磅，加重幅度也要用磅（上肢 5 磅）。',
+        language: 'zh-TW', weightUnit: 'lb', goal: '增肌', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH, routines: PPL,
+        progress: { bench: ['97.52x8', '99.79x8', '102.06x8', '102.06x8', '102.06x8', '102.06x8'] },
+        weights: [80.29, 80.29, 80.29, 80.29, 80.29, 80.29],
+        expect: { status: 'progressing', findings: ['lift_stalled:ex-bench'] },
+    },
+    {
         id: 'legs-once-chronic-en',
         why: 'Legs are trained once a week by plan, 8 sets every week: a real volume gap, not a missed session. The squat still counts as a main lift because it leads its routine.',
         language: 'en', goal: 'Build muscle', note: null,

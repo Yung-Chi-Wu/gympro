@@ -9,6 +9,7 @@ import {
 import { WeightTrendCard } from '@/components/WeightTrendCard'
 import type { PeriodOption } from '@/app/(app)/history/page'
 import type { AiRecommendation } from './types'
+import type { WeightUnit } from '@/lib/weight-unit'
 import { isReportV3, ReportView } from './report/ReportView'
 
 interface WeightEntry {
@@ -30,6 +31,7 @@ interface HistoryListProps {
     periods: PeriodOption[]
     reports: ReportRow[]
     language: string
+    weightUnit: WeightUnit
     weightEntries: WeightEntry[]
 }
 
@@ -40,7 +42,7 @@ const SEVERITY_STYLES: Record<string, string> = {
     severe: 'bg-red-50 text-red-800 border-red-200',
 }
 
-export function HistoryList({ userId, periods, reports, language, weightEntries }: HistoryListProps) {
+export function HistoryList({ userId, periods, reports, language, weightUnit, weightEntries }: HistoryListProps) {
     const zh = language === 'zh-TW'
     const reportByPeriodStart = new Map(reports.map((r) => [r.period_start, r]))
 
@@ -61,6 +63,7 @@ export function HistoryList({ userId, periods, reports, language, weightEntries 
                             report={reportByPeriodStart.get(period.start) ?? null}
                             userId={userId}
                             language={language}
+                            weightUnit={weightUnit}
                         />
                     ))}
                 </div>
@@ -74,9 +77,10 @@ interface PeriodRowProps {
     report: ReportRow | null
     userId: string
     language: string
+    weightUnit: WeightUnit
 }
 
-function PeriodRow({ period, report, userId, language }: PeriodRowProps) {
+function PeriodRow({ period, report, userId, language, weightUnit }: PeriodRowProps) {
     return (
         <div className="rounded-xl border border-ink/10 bg-white overflow-hidden">
             <div className="px-4 py-3 border-b border-ink/10 bg-ink/[0.02]">
@@ -92,7 +96,7 @@ function PeriodRow({ period, report, userId, language }: PeriodRowProps) {
                 language={language}
             />
 
-            <ReportSection report={report} language={language} />
+            <ReportSection report={report} language={language} weightUnit={weightUnit} />
         </div>
     )
 }
@@ -186,7 +190,7 @@ function TrainingLogSection({
     )
 }
 
-function ReportSection({ report, language }: { report: ReportRow | null; language: string }) {
+function ReportSection({ report, language, weightUnit }: { report: ReportRow | null; language: string; weightUnit: WeightUnit }) {
     const zh = language === 'zh-TW'
     const t = useTranslations('report')
     const tV3 = useTranslations('reportV3')
@@ -234,7 +238,7 @@ function ReportSection({ report, language }: { report: ReportRow | null; languag
                         <p className="text-sm text-ink/60">{tV3('insufficient')}</p>
                     )}
 
-                    {v3 && <ReportView report={v3} language={language} />}
+                    {v3 && <ReportView report={v3} language={language} weightUnit={weightUnit} />}
 
                     {report?.status === 'failed' && (
                         <p className="text-sm text-red-600">

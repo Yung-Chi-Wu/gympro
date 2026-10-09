@@ -269,8 +269,8 @@
                 "not_done": "這{unit, select, week {週} other {輪}} {sets} 組，沒有減量"
             },
             "weight_trend": {
-                "done": "體重方向回來了（{kg} kg）",
-                "not_done": "體重還在往反方向（{kg} kg）"
+                "done": "體重方向回來了（{kg} {unit}）",
+                "not_done": "體重還在往反方向（{kg} {unit}）"
             }
         },
         "nextTitle": "下{unit, select, week {週} other {輪}}重點",

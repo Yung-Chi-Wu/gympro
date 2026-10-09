@@ -21,7 +21,7 @@ async function processMessage(record: SQSRecord): Promise<void> {
   const supabase = await getSupabaseClient()
 
   try {
-    const { inputs, language: profileLanguage } = await fetchReportInputs(supabase, userId, periodStart, periodEnd)
+    const { inputs, language: profileLanguage, weightUnit } = await fetchReportInputs(supabase, userId, periodStart, periodEnd)
     const language = messageLanguage ?? profileLanguage
 
     const totalSets = inputs.sets.filter((s) => s.date >= periodStart).length
@@ -35,7 +35,7 @@ async function processMessage(record: SQSRecord): Promise<void> {
 
     // Code decides every number and which rules fire; the model writes the headline and advice
     const analysis = analyze(inputs)
-    const { narrative } = await generateNarrative({ ...analysis, note: userNote ?? null, language })
+    const { narrative } = await generateNarrative({ ...analysis, note: userNote ?? null, language, weightUnit })
     const report: ReportV3 = { version: 3, ...analysis, narrative }
     await saveReport(supabase, userId, periodStart, report, userNote ?? null)
     console.log(`Successfully saved recommendation for user ${userId} (messageId ${record.messageId})`)

@@ -46,6 +46,8 @@ for (const c of SCENARIOS) {
     }
     check(programmaticGrade(c, broken({ headline: zh ? '這週'.repeat(30) : 'word '.repeat(40) })).grade.headline_short === 0, `${c.id}: a long headline should fail`)
     check(programmaticGrade(c, broken({ headline: `**${ideal.narrative.headline}**` })).grade.plain_text === 0, `${c.id}: Markdown should fail`)
+    const wrong = (c.weightUnit ?? 'kg') === 'lb' ? '臥推 102.5kg × 8' : 'bench 225 lb x 8'
+    check(programmaticGrade(c, broken({ items: ideal.narrative.items.map((i) => ({ ...i, action: `${i.action} ${wrong}` })), headline: `${ideal.narrative.headline} ${wrong}` })).grade.unit_correct === 0, `${c.id}: a weight in the wrong unit should fail`)
     if (zh) {
         check(programmaticGrade(c, broken({ headline: '這週很穩定,繼續保持' })).grade.language_correct === 0, `${c.id}: half-width punctuation should fail`)
         check(programmaticGrade(c, broken({ headline: '这周训练很稳定' })).grade.language_correct === 0, `${c.id}: Simplified Chinese should fail`)

@@ -182,7 +182,7 @@ async function runCase(c, ctx) {
   const analysis = analyze(inputsFor(c));
   let res;
   try {
-    res = await generateNarrative({ ...analysis, note: c.note ?? null, language: c.language }, ctx.model ?? NARRATIVE_MODEL);
+    res = await generateNarrative({ ...analysis, note: c.note ?? null, language: c.language, weightUnit: c.weightUnit ?? 'kg' }, ctx.model ?? NARRATIVE_MODEL);
   } catch (e) {
     // Production throws on a cut-off response rather than saving a partial report
     if (/max_tokens/.test(String(e?.message))) e.failure_class = 'truncated';
