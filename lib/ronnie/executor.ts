@@ -319,7 +319,8 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             const dates = `${monday < dateFrom ? dateFrom : monday} to ${sunday > dateTo ? dateTo : sunday}`
             const clipped = monday < dateFrom || (monday !== thisMonday && sunday > dateTo)
             const day = (Date.parse(today) - Date.parse(monday)) / 86_400_000 + 1
-            const name = monday === thisMonday ? `This week so far, day ${day} of 7`
+            // "today's sets included": told only "so far", the model guessed today's sets were missing
+            const name = monday === thisMonday ? `This week so far, day ${day} of 7, today's sets included`
                 : monday === shiftDate(thisMonday, -7) ? 'Last week'
                 : 'Week'
             return describe(`${name}${clipped ? ', partial' : ''} (${dates})`, weeks.get(monday)!)
