@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { unitLabel } from '@/lib/report/volume'
 import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
-import type { DayFacts, Finding, FollowUp, LiftFacts, ReportV3 } from '@/lib/report/types'
+import { EVIDENCE } from '@/lib/report/evidence'
+import type { DayFacts, Finding, FollowUp, LiftFacts, ReportV3, RuleId } from '@/lib/report/types'
 import { BodyMap } from './BodyMap'
 import { Sparkline } from './Sparkline'
 
@@ -145,7 +146,7 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
                                 <dl className="space-y-1 pl-[34px] text-[13px] text-ink/70 dark:text-white/70">
                                     {item.findings.map((f) => <Reason key={f.id} tag={t('why')} tone="data">{why(f)}</Reason>)}
                                     <Reason tag={t('research')} tone="study">
-                                        {t(`researchText.${item.findings[0].rule}`)} <span className="text-xs text-ink/40 dark:text-white/40">· {t('researchPending')}</span>
+                                        {t(`researchText.${item.findings[0].rule}`)}<Sources rule={item.findings[0].rule} />
                                     </Reason>
                                 </dl>
                             </li>
@@ -208,9 +209,9 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
                                     <div key={f.id} className="space-y-1.5 rounded-lg border border-ink/10 p-3 text-[13px] dark:border-white/10">
                                         <h4 className="text-sm font-semibold">{advised(f)}</h4>
                                         <dl className="grid grid-cols-[72px_1fr] gap-x-2.5 gap-y-1">
-                                            <dt className="text-ink/50 dark:text-white/50">{t('basisLabels.rule')}</dt><dd className="text-ink/70 dark:text-white/70">{t(`ruleText.${f.rule}`, { unit })}</dd>
+                                            <dt className="text-ink/50 dark:text-white/50">{t('basisLabels.rule')}</dt><dd className="text-ink/70 dark:text-white/70">{t(`ruleText.${f.rule}`, { unit })}{EVIDENCE[f.rule].ownThreshold && <span className="text-xs text-ink/40 dark:text-white/40"> · {t('ownSetting')}</span>}</dd>
                                             <dt className="text-ink/50 dark:text-white/50">{t('basisLabels.data')}</dt><dd className="text-ink/70 dark:text-white/70">{why(f)}</dd>
-                                            <dt className="text-ink/50 dark:text-white/50">{t('basisLabels.research')}</dt><dd className="text-ink/70 dark:text-white/70">{t(`researchText.${f.rule}`)} <span className="text-xs text-ink/40 dark:text-white/40">· {t('researchPending')}</span></dd>
+                                            <dt className="text-ink/50 dark:text-white/50">{t('basisLabels.research')}</dt><dd className="text-ink/70 dark:text-white/70">{t(`researchText.${f.rule}`)}<Sources rule={f.rule} /></dd>
                                         </dl>
                                     </div>
                                 ))}
@@ -291,6 +292,22 @@ function Reason({ tag, tone, children }: { tag: string; tone: 'data' | 'study'; 
             <dt className={`whitespace-nowrap rounded-md px-1.5 text-[11px] font-bold ${style}`}>{tag}</dt>
             <dd>{children}</dd>
         </div>
+    )
+}
+
+/** A rule's papers, each linking to its DOI. They come from code (lib/report/evidence), never from the model. */
+function Sources({ rule }: { rule: RuleId }) {
+    return (
+        <span className="text-xs text-ink/50 dark:text-white/50">
+            {' · '}
+            {EVIDENCE[rule].sources.map((s, i) => (
+                <span key={s.doi}>
+                    {i > 0 && '; '}
+                    <a href={`https://doi.org/${s.doi}`} target="_blank" rel="noopener noreferrer" title={`${s.title}. ${s.journal}`}
+                        className="underline decoration-dotted underline-offset-2 hover:text-ink dark:hover:text-white">{s.author} et al., {s.year}</a>
+                </span>
+            ))}
+        </span>
     )
 }
 

@@ -277,7 +277,7 @@
         "noAdvice": "Nothing to change this {unit, select, week {week} other {cycle}}. Keep going as planned.",
         "why": "Why",
         "research": "Research",
-        "researchPending": "citation pending",
+        "ownSetting": "threshold set by GymPro",
         "whyText": {
             "lift_stalled": "{lift}: best set {best} for {n} {unit, select, week {weeks} other {cycles}} running",
             "lift_regressed": "{lift}: down from {previous} to {best}",
@@ -288,12 +288,12 @@
             "weight_trend": "Your goal is to {direction, select, gain {gain} other {lose}} weight, and it has gone {direction, select, gain {down} other {up}} {n} {unit, select, week {weeks} other {cycles}} running"
         },
         "researchText": {
-            "lift_stalled": "Double progression: add reps at the same weight, then add weight",
-            "lift_regressed": "A short dip usually comes from recovery; hold the weight first",
-            "deload": "When fatigue builds up, a lighter week helps performance recover",
-            "low_volume": "Weekly sets and muscle growth: the dose-response",
-            "missed_sessions": "Volume and frequency shape how fast you progress",
-            "weight_trend": "Gaining muscle needs a calorie surplus; losing fat needs a deficit"
+            "lift_stalled": "Adding reps and adding weight both work as progression; double progression adds reps first, then weight",
+            "lift_regressed": "A short dip can be fatigue that recovery reverses; a drop that persists is the warning sign",
+            "deload": "Deloading rests mostly on coaches' experience, with few trials; in one study a scheduled week off led to smaller strength gains",
+            "low_volume": "More weekly sets build more muscle, with diminishing returns and no sharp threshold; 10 is GymPro's low-volume line, and 12–20 suits growing more",
+            "missed_sessions": "A missed session costs that week's sets; with total sets equal, how often you train barely changes growth but does help strength",
+            "weight_trend": "Losing 0.5–1% of body weight a week keeps more muscle on a cut; a modest surplus helps a bulk, but how much is unsettled"
         },
         "readMore": "See the full analysis",
         "showLess": "Hide the full analysis",
