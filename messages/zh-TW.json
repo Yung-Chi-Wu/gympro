@@ -370,7 +370,9 @@
         "lastYear": "最近一年",
         "showMore": "顯示更多",
         "noReports": "還沒有報告。每一期結束後，報告會自動產生。",
-        "olderReports": "看更早的報告"
+        "olderReports": "看更早的報告",
+        "dayExercises": "{count} 個動作",
+        "weightLabel": "體重"
     },
     "auth": {
         "loginTitle": "登入 GymPro",

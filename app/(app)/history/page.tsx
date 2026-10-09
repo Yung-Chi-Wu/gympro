@@ -109,7 +109,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-5 md:space-y-4">
             <h1 className="text-2xl font-bold max-md:sr-only">{t('title')}</h1>
             <HistoryTabs current={tab} />
             {content}

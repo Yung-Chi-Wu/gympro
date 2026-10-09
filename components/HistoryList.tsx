@@ -31,8 +31,9 @@ import { FailedReport } from './report/FailedReport'
 
 export type HistoryTab = 'training' | 'weight' | 'reports'
 
+// Phone sizes first (44px targets, 15px text), the denser desktop ones from md
 const CARD = 'rounded-[14px] border border-line bg-card p-4'
-const BUTTON = 'inline-flex min-h-9 items-center justify-center gap-1 whitespace-nowrap rounded-[9px] border border-line bg-card px-3 text-[13px] font-bold transition-colors hover:bg-done disabled:opacity-50'
+const BUTTON = 'inline-flex min-h-11 items-center justify-center gap-1 whitespace-nowrap rounded-[9px] border border-line bg-card px-4 text-[15px] font-bold transition-colors hover:bg-done disabled:opacity-50 md:min-h-9 md:px-3 md:text-[13px]'
 
 // ---------- Dates ----------
 
@@ -83,7 +84,7 @@ export function HistoryTabs({ current }: { current: HistoryTab }) {
                     href={href}
                     scroll={false}
                     aria-current={tab === current ? 'page' : undefined}
-                    className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors ${tab === current ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink'}`}
+                    className={`-mb-px flex min-h-11 items-center border-b-2 px-4 text-[15px] font-medium transition-colors md:min-h-0 md:px-3 md:py-2 md:text-sm ${tab === current ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink'}`}
                 >
                     {t(`tabs.${tab}`)}
                 </Link>
@@ -279,9 +280,9 @@ export function HistoryTraining({
             </div>
 
             {/* Phone: the days, grouped by period */}
-            <div className={`space-y-3 @split:hidden ${opened ? 'hidden' : ''}`}>
+            <div className={`space-y-6 md:space-y-3 @split:hidden ${opened ? 'hidden' : ''}`}>
                 <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs text-muted">
+                    <span className="text-[13px] text-muted md:text-xs">
                         {list.month ? formatMonth(list.month, language) : t('recentPeriods', { count: PERIODS_PER_PAGE })}
                     </span>
                     <div className="flex items-center gap-3">
@@ -289,13 +290,13 @@ export function HistoryTraining({
                             <button
                                 type="button"
                                 onClick={() => setList({ from: today, count: PERIODS_PER_PAGE, month: null })}
-                                className="min-h-8 text-xs font-medium text-accent"
+                                className="min-h-11 text-[13px] font-medium text-accent md:min-h-8 md:text-xs"
                             >
                                 {t('backToRecent')}
                             </button>
                         )}
                         {firstDate && (
-                            <label className="relative inline-flex min-h-8 items-center gap-1 rounded-full bg-done px-3 text-xs text-muted">
+                            <label className="relative inline-flex min-h-11 items-center gap-1 rounded-full bg-done px-4 text-[13px] text-muted md:min-h-8 md:px-3 md:text-xs">
                                 {t('jumpToMonth')}
                                 <span aria-hidden="true">▾</span>
                                 <input
@@ -319,22 +320,22 @@ export function HistoryTraining({
                     </div>
                 </div>
 
-                {!firstDate && <p className={`${CARD} text-sm text-muted`}>{t('noHistory')}</p>}
+                {!firstDate && <p className={`${CARD} text-[15px] text-muted md:text-sm`}>{t('noHistory')}</p>}
 
                 {firstDate && listPeriods.map((period) => {
                     const trained = trainedIn(period)
                     return (
-                        <section key={period.start} className="space-y-1.5">
-                            <h2 className="flex flex-wrap items-center gap-x-1.5 px-1 text-xs tracking-wide text-faint">
+                        <section key={period.start} className="space-y-2 md:space-y-1.5">
+                            <h2 className="flex flex-wrap items-center gap-x-1.5 gap-y-1 px-1 text-[13px] tracking-wide text-muted md:text-xs md:text-faint">
                                 {period.current && <span>{t('thisPeriod')}</span>}
                                 <span className="font-mono">{formatRange(period)}</span>
                                 <span aria-hidden="true">·</span>
                                 <span>{sessions(period)}</span>
                                 <TrendChip report={reportFor(period)} />
                             </h2>
-                            <div className="rounded-[14px] border border-line bg-card px-3">
+                            <div className="rounded-[14px] border border-line bg-card px-4 md:px-3">
                                 {trained.length === 0 ? (
-                                    <p className="py-3 text-sm text-faint">{t('noTraining')}</p>
+                                    <p className="py-4 text-[15px] text-faint md:py-3 md:text-sm">{t('noTraining')}</p>
                                 ) : (
                                     <ul className="divide-y divide-line">
                                         {trained.map((date) => (
@@ -364,7 +365,7 @@ export function HistoryTraining({
                 {selected ? (
                     <DayDetail date={selected} day={days[selected]} language={language} units={units} />
                 ) : (
-                    <div className={`${CARD} py-10 text-center text-sm text-muted`}>
+                    <div className={`${CARD} py-10 text-center text-[15px] text-muted md:text-sm`}>
                         {loading ? t('loading') : t('noTrainingThisMonth')}
                     </div>
                 )}
@@ -376,9 +377,9 @@ export function HistoryTraining({
 function LoadError({ onRetry }: { onRetry: () => void }) {
     const t = useTranslations('history')
     return (
-        <p role="alert" className="flex items-center justify-between gap-3 text-sm text-miss">
+        <p role="alert" className="flex items-center justify-between gap-3 text-[15px] text-miss md:text-sm">
             {t('loadError')}
-            <button type="button" onClick={onRetry} className="font-medium underline">{t('retry')}</button>
+            <button type="button" onClick={onRetry} className="min-h-11 font-medium underline md:min-h-0">{t('retry')}</button>
         </p>
     )
 }
@@ -388,13 +389,13 @@ function TrendChip({ report }: { report: PeriodReportStatus | null }) {
     const t = useTranslations('history')
     const tV3 = useTranslations('reportV3')
     if (!report) return null
-    if (report.status === 'pending') return <span className="whitespace-nowrap rounded-full bg-done px-2 text-xs text-muted">{t('reportPending')}</span>
+    if (report.status === 'pending') return <span className="whitespace-nowrap rounded-full bg-done px-2 text-[13px] text-muted md:text-xs">{t('reportPending')}</span>
     if (!report.trend) return null
     const tone = report.trend === 'progressing'
         ? 'bg-good-soft text-good'
         : report.trend === 'regressing' ? 'bg-accent-soft text-miss' : 'bg-done text-muted'
     return (
-        <span className={`whitespace-nowrap rounded-full px-2 text-xs font-medium ${tone}`}>
+        <span className={`whitespace-nowrap rounded-full px-2 text-[13px] font-medium md:text-xs ${tone}`}>
             {t('reportTrend', { trend: tV3(`status.${report.trend}`) })}
         </span>
     )
@@ -411,10 +412,10 @@ function DayRow({ day, language, units, onOpen }: { day: HistoryDay; language: s
         : day.exercises.map((ex) => ex.name).join(t('listJoiner'))
 
     return (
-        <button type="button" onClick={onOpen} className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 py-2.5 text-left">
+        <button type="button" onClick={onOpen} className="grid min-h-16 w-full grid-cols-[minmax(0,1fr)_auto] content-center items-center gap-x-2 gap-y-0.5 py-2.5 text-left md:min-h-0 md:gap-y-0">
             <span className="truncate font-bold">{formatDay(day.date, language)}{t('separator')}{title}</span>
             <Icon name="forward" className="row-span-2 size-4 text-faint" />
-            <span className="truncate text-xs text-muted">
+            <span className="truncate text-[13px] text-muted md:text-xs">
                 {t('daySets', { count: setCount(day) })}{t('separator')}{highlight}
             </span>
         </button>
@@ -489,20 +490,25 @@ function DayDetail({ date, day, language, units }: { date: string; day: HistoryD
             <button
                 type="button"
                 onClick={() => closeSubPage('day')}
-                className="hidden items-center gap-0.5 text-sm font-medium text-accent md:@max-split:flex"
+                className="hidden min-h-9 items-center gap-0.5 text-sm font-medium text-accent md:@max-split:flex"
             >
                 <Icon name="back" className="size-4" />
                 {t('title')}
             </button>
 
-            <div>
-                <p className="font-mono text-xs tracking-wider text-faint">{formatDay(date, language)}</p>
+            <div className="space-y-0.5">
+                <p className="font-mono text-[13px] tracking-wider text-faint md:text-xs">{formatDay(date, language)}</p>
                 <h2 className="text-xl font-bold">{title}</h2>
+                {day && trained && (
+                    <p className="text-[15px] text-muted md:hidden">
+                        {t('daySets', { count: setCount(day) })}{t('separator')}{t('dayExercises', { count: day.exercises.length })}
+                    </p>
+                )}
             </div>
 
             {day && trained && (
                 <>
-                    <div className="grid max-w-xs grid-cols-2 gap-2">
+                    <div className="hidden max-w-xs grid-cols-2 gap-2 md:grid">
                         <div className="grid rounded-[10px] bg-done px-3 py-2">
                             <span className="text-[11px] text-muted">{t('statSets')}</span>
                             <span className="font-mono text-base font-bold">{setCount(day)}</span>
@@ -515,12 +521,12 @@ function DayDetail({ date, day, language, units }: { date: string; day: HistoryD
 
                     <ul className="divide-y divide-line">
                         {day.exercises.map((ex) => (
-                            <li key={ex.exerciseId} className="space-y-0.5 py-2.5">
+                            <li key={ex.exerciseId} className="space-y-1 py-3 md:space-y-0.5 md:py-2.5">
                                 <p className="font-bold">{ex.name}</p>
                                 <p className="text-[13px] text-muted">
                                     <SummaryLine t={ts} logType={ex.logType} sets={ex.sets} units={units} />
                                 </p>
-                                <p className="flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-xs text-muted">
+                                <p className="flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-[13px] text-muted md:text-xs">
                                     {ex.sets.map((s, i) => (
                                         <span key={i} className="whitespace-nowrap">
                                             <span className="text-faint">{i + 1}</span> {compactSet(ts, ex.logType, s, units)}
@@ -534,7 +540,7 @@ function DayDetail({ date, day, language, units }: { date: string; day: HistoryD
             )}
 
             {day?.note && (
-                <p className="rounded-[10px] border border-line px-3 py-2 text-[13px] text-muted">
+                <p className="border-t border-line pt-3 text-[15px] text-muted md:rounded-[10px] md:border md:px-3 md:py-2 md:text-[13px]">
                     {t('noteLine', { note: day.note })}
                 </p>
             )}
@@ -564,18 +570,18 @@ export function HistoryWeight({ entries, weightUnit, language, timeZone }: {
     const weighIns = entries.filter((e) => e.weightKg !== null).reverse()
 
     return (
-        <div className="max-w-3xl space-y-4">
-            <WeightTrendCard entries={entries} language={language} />
+        <div className="max-w-3xl space-y-5 md:space-y-4">
+            <WeightTrendCard entries={entries} language={language} weightUnit={weightUnit} />
 
             <section className={`${CARD} space-y-1`}>
-                <h2 className="text-[15px] font-bold">{t('weighIns')}</h2>
-                <p className="text-xs text-muted">{t('lastYear')}</p>
+                <h2 className="text-base font-bold md:text-[15px]">{t('weighIns')}</h2>
+                <p className="text-[13px] text-muted md:text-xs">{t('lastYear')}</p>
                 {weighIns.length === 0 ? (
-                    <p className="py-2 text-sm text-muted">{t('noWeightData')}</p>
+                    <p className="py-2 text-[15px] text-muted md:text-sm">{t('noWeightData')}</p>
                 ) : (
                     <ul className="divide-y divide-line">
                         {weighIns.slice(0, shown).map((e) => (
-                            <li key={e.id} className="flex items-center justify-between py-2 text-sm">
+                            <li key={e.id} className="flex min-h-[52px] items-center justify-between text-[15px] md:min-h-0 md:py-2 md:text-sm">
                                 <span>{formatDay(localDate(timeZone, new Date(e.recordedAt)), language)}</span>
                                 <span className="font-mono font-bold">
                                     {toDisplayWeight(e.weightKg as number, weightUnit)} <span className="font-medium text-muted">{weightUnit}</span>
@@ -646,11 +652,11 @@ export function HistoryReports({ initialReports, cycle, language, weightUnit }: 
     }
 
     if (reports.length === 0) {
-        return <p className={`${CARD} max-w-3xl text-sm text-muted`}>{t('noReports')}</p>
+        return <p className={`${CARD} max-w-3xl text-[15px] text-muted md:text-sm`}>{t('noReports')}</p>
     }
 
     return (
-        <div className="max-w-3xl space-y-3">
+        <div className="max-w-3xl space-y-4 md:space-y-3">
             {reports.map((report) => (
                 <ReportItem
                     key={report.period_start}
@@ -703,10 +709,10 @@ function ReportItem({ report, periodEnd, language, weightUnit }: {
                 type="button"
                 onClick={() => setIsOpen((v) => !v)}
                 aria-expanded={isOpen}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                className="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left md:min-h-0"
             >
                 <span className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-sm font-bold">{formatRange({ start: report.period_start, end: periodEnd })}</span>
+                    <span className="font-mono text-[15px] font-bold md:text-sm">{formatRange({ start: report.period_start, end: periodEnd })}</span>
                     <TrendChip report={{ periodStart: report.period_start, status: report.status, trend: v3?.facts.status ?? null }} />
                 </span>
                 <Icon name="forward" className={`size-4 text-faint transition-transform ${isOpen ? 'rotate-90' : ''}`} />
@@ -715,14 +721,14 @@ function ReportItem({ report, periodEnd, language, weightUnit }: {
             {isOpen && (
                 <div className="space-y-4 border-t border-line px-4 py-4">
                     {report.status === 'pending' && (
-                        <div className="flex items-center gap-2 text-sm text-muted">
+                        <div className="flex items-center gap-2 text-[15px] text-muted md:text-sm">
                             <div className="h-3 w-3 animate-spin rounded-full border-2 border-line border-t-ink" />
                             {t('pending')}
                         </div>
                     )}
 
                     {report.status === 'insufficient_data' && (
-                        <p className="text-sm text-muted">{tV3('insufficient')}</p>
+                        <p className="text-[15px] text-muted md:text-sm">{tV3('insufficient')}</p>
                     )}
 
                     {v3 && <ReportView report={v3} language={language} weightUnit={weightUnit} />}
@@ -731,13 +737,13 @@ function ReportItem({ report, periodEnd, language, weightUnit }: {
 
                     {rec && (
                         <div className="space-y-4">
-                            <p className="font-medium text-sm">{rec.headline}</p>
+                            <p className="font-medium text-[15px] md:text-sm">{rec.headline}</p>
 
                             {!showMore ? (
                                 <button
                                     type="button"
                                     onClick={() => setShowMore(true)}
-                                    className="text-sm text-accent underline hover:opacity-70 transition-opacity"
+                                    className="min-h-11 text-[15px] text-accent underline hover:opacity-70 transition-opacity md:min-h-0 md:text-sm"
                                 >
                                     {t('readMore')}
                                 </button>
@@ -745,7 +751,7 @@ function ReportItem({ report, periodEnd, language, weightUnit }: {
                                 <div className="space-y-4">
                                     {Object.keys(rec.volumeSplit ?? {}).length > 0 && (
                                         <div>
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-ink/40 mb-2">
+                                            <p className="text-[13px] font-semibold uppercase tracking-wide text-ink/40 md:text-xs mb-2">
                                                 {t('trainingSplit')}
                                             </p>
                                             <div className="h-36">
@@ -769,29 +775,29 @@ function ReportItem({ report, periodEnd, language, weightUnit }: {
                                     )}
 
                                     <div>
-                                        <p className="text-xs font-semibold uppercase tracking-wide text-ink/40 mb-1">
+                                        <p className="text-[13px] font-semibold uppercase tracking-wide text-ink/40 md:text-xs mb-1">
                                             {t('summary')}
                                         </p>
-                                        <p className="text-sm text-gray-700">{rec.summary}</p>
+                                        <p className="text-[15px] text-gray-700 md:text-sm">{rec.summary}</p>
                                     </div>
 
                                     <div>
-                                        <p className="text-xs font-semibold uppercase tracking-wide text-ink/40 mb-1">
+                                        <p className="text-[13px] font-semibold uppercase tracking-wide text-ink/40 md:text-xs mb-1">
                                             {t('progressiveOverload')}
                                         </p>
-                                        <p className="text-sm text-gray-600">{rec.progressiveOverload.notes}</p>
+                                        <p className="text-[15px] text-gray-600 md:text-sm">{rec.progressiveOverload.notes}</p>
                                     </div>
 
                                     {rec.muscleImbalances.length > 0 && (
                                         <div>
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-ink/40 mb-2">
+                                            <p className="text-[13px] font-semibold uppercase tracking-wide text-ink/40 md:text-xs mb-2">
                                                 {t('thingsToWatch')}
                                             </p>
                                             <div className="space-y-2">
                                                 {rec.muscleImbalances.map((item, i) => (
                                                     <div
                                                         key={i}
-                                                        className={`rounded border px-3 py-2 text-sm ${SEVERITY_STYLES[item.severity] ?? ''}`}
+                                                        className={`rounded px-3 py-2 text-[15px] max-md:border-0 md:border md:text-sm ${SEVERITY_STYLES[item.severity] ?? ''}`}
                                                     >
                                                         <span className="font-semibold capitalize">{item.muscleGroup}</span>
                                                         {' — '}
@@ -803,17 +809,17 @@ function ReportItem({ report, periodEnd, language, weightUnit }: {
                                     )}
 
                                     {rec.deloadRecommended && (
-                                        <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                                        <div className="rounded bg-red-50 px-3 py-2 text-[15px] text-red-800 md:border md:border-red-200 md:text-sm">
                                             <span className="font-semibold">{t('deloadRecommended')} </span>
                                             {rec.deloadReason}
                                         </div>
                                     )}
 
                                     <div>
-                                        <p className="text-xs font-semibold uppercase tracking-wide text-ink/40 mb-2">
+                                        <p className="text-[13px] font-semibold uppercase tracking-wide text-ink/40 md:text-xs mb-2">
                                             {t('whatToDoNext')}
                                         </p>
-                                        <ul className="list-disc list-inside space-y-1 text-sm">
+                                        <ul className="list-disc list-inside space-y-1 text-[15px] md:text-sm">
                                             {rec.actionItems.map((item, i) => (
                                                 <li key={i}>{item}</li>
                                             ))}
@@ -823,7 +829,7 @@ function ReportItem({ report, periodEnd, language, weightUnit }: {
                                     <button
                                         type="button"
                                         onClick={() => setShowMore(false)}
-                                        className="text-sm text-ink/40 underline"
+                                        className="min-h-11 text-[15px] text-ink/40 underline md:min-h-0 md:text-sm"
                                     >
                                         {t('showLess')}
                                     </button>

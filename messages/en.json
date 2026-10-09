@@ -370,7 +370,9 @@
         "lastYear": "The last 12 months",
         "showMore": "Show more",
         "noReports": "No reports yet. One is made automatically when each period ends.",
-        "olderReports": "Show earlier reports"
+        "olderReports": "Show earlier reports",
+        "dayExercises": "{count, plural, one {# exercise} other {# exercises}}",
+        "weightLabel": "Weight"
     },
     "auth": {
         "loginTitle": "Log in to GymPro",
