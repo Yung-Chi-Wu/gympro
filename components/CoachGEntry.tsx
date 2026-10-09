@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { CoachGModal } from './CoachGModal'
 
 interface CoachGEntryProps {
@@ -8,10 +9,16 @@ interface CoachGEntryProps {
     routineCount: number
     language: string
     trainingGoal: string | null
+    /**
+     * With routines: 'button' sits in the page header, 'card' below the phone's list.
+     * Without routines both are the big invitation, so the page shows only one of them.
+     */
+    variant?: 'button' | 'card'
 }
 
-export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal }: CoachGEntryProps) {
+export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal, variant = 'button' }: CoachGEntryProps) {
     const zh = language === 'zh-TW'
+    const t = useTranslations('routines')
     const [showModal, setShowModal] = useState(false)
     const [showWarning, setShowWarning] = useState(false)
 
@@ -32,7 +39,7 @@ export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal 
         <>
             {/* 入口按鈕 */}
             {!hasRoutines ? (
-                <div className="rounded-xl border-2 border-dashed border-ink/20 p-8 text-center space-y-4">
+                <div className="rounded-[14px] border-2 border-dashed border-line p-8 text-center space-y-4">
                     <div className="text-4xl">🤖</div>
                     <div>
                         <p className="font-semibold text-lg">
@@ -45,15 +52,23 @@ export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal 
                         </p>
                     </div>
                     <button type="button" onClick={handleOpen}
-                        className="rounded-xl bg-plate dark:bg-white px-6 py-3 font-semibold text-chalk dark:text-[#1A1814] hover:opacity-90 transition-opacity">
+                        className="rounded-[9px] bg-accent px-6 py-3 font-bold text-accent-ink hover:opacity-90 transition-opacity">
                         ✨ {zh ? '讓 AI 幫我設計' : 'Design with AI'}
                     </button>
                 </div>
-            ) : (
+            ) : variant === 'button' ? (
                 <button type="button" onClick={handleOpen}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#C8955A]/40 bg-[#C8955A]/8 px-3 py-1.5 text-sm font-medium text-[#C8955A] hover:bg-[#C8955A]/15 transition-colors shrink-0 whitespace-nowrap">
-                    ✨ {zh ? 'AI 設計課表' : 'AI Design'}
+                    className="inline-flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-[9px] border border-line bg-card px-3 text-[13px] font-bold transition-colors hover:bg-done">
+                    {t('coachGButton')}
                 </button>
+            ) : (
+                <div className="flex flex-col items-center gap-2 rounded-[14px] border border-line bg-card p-4 text-center">
+                    <span className="text-[13px] text-muted">{t('coachGPrompt')}</span>
+                    <button type="button" onClick={handleOpen}
+                        className="inline-flex min-h-9 items-center rounded-[9px] border border-line bg-card px-3 text-[13px] font-bold transition-colors hover:bg-done">
+                        {t('coachGButton')}
+                    </button>
+                </div>
             )}
 
             {/* 警告 modal */}

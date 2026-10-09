@@ -1,15 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type Dispatch, type SetStateAction } from 'react'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { toFriendlyError } from '@/lib/friendly-error'
+import { addDays, daysBetween } from '@/lib/periods'
+
+// The training cycle: how many days one round lasts and which routine each day trains.
+// Side by side with the routines (@split) it is one strip of days with today outlined;
+// 編輯循環 turns the days into pickers and shows the length and delete controls. On a
+// phone (the 循環 tab) the days are a list, always editable.
 
 interface RoutineOption {
     id: string
     name: string
 }
 
-interface CycleDayState {
+export interface CycleDayState {
     dayIndex: number
     routineId: string | null
 }
@@ -17,8 +24,12 @@ interface CycleDayState {
 interface CycleSchedulerProps {
     userId: string
     routines: RoutineOption[]
-    initialCycle: { id: string; cycleLength: number } | null
-    initialCycleDays: CycleDayState[]
+    initialCycle: { id: string; cycleLength: number; startDate: string } | null
+    /** The cycle's days; the routines page keeps them, so its list can say which days each routine is on */
+    days: CycleDayState[]
+    setDays: Dispatch<SetStateAction<CycleDayState[]>>
+    /** Today in the user's time zone, YYYY-MM-DD */
+    today: string
     language: string
 }
 
@@ -27,31 +38,37 @@ type PendingLengthChange = {
     canContinue: boolean
 }
 
+const INPUT = 'w-full rounded-[9px] border border-line bg-card px-3 py-2 text-sm'
+const PRIMARY = 'rounded-[9px] bg-accent px-4 py-2 text-sm font-bold text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50'
+
 export function CycleScheduler({
     userId,
     routines,
     initialCycle,
-    initialCycleDays,
+    days,
+    setDays,
+    today,
     language,
 }: CycleSchedulerProps) {
     const supabase = createClient()
     const zh = language === 'zh-TW'
+    const t = useTranslations('routines')
 
     const [cycleId, setCycleId] = useState<string | null>(initialCycle?.id ?? null)
     const [cycleLength, setCycleLength] = useState<number>(initialCycle?.cycleLength ?? 7)
+    const [startDate, setStartDate] = useState<string | null>(initialCycle?.startDate ?? null)
     const [lengthInput, setLengthInput] = useState(String(initialCycle?.cycleLength ?? 7))
     const [todayDayInput, setTodayDayInput] = useState('1')
-    const [days, setDays] = useState<CycleDayState[]>(
-        initialCycleDays.length > 0
-            ? initialCycleDays
-            : Array.from({ length: initialCycle?.cycleLength ?? 0 }, (_, i) => ({
-                dayIndex: i + 1,
-                routineId: null,
-            }))
-    )
     const [pending, setPending] = useState<PendingLengthChange | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [isSaving, setIsSaving] = useState(false)
+    const [editing, setEditing] = useState(false)
+
+    // Which day of the cycle today is, counted the way the dashboard counts it
+    const todayIndex = cycleId && startDate
+        ? (((daysBetween(startDate, today) % cycleLength) + cycleLength) % cycleLength) + 1
+        : null
+    const routineName = (id: string | null) => routines.find((r) => r.id === id)?.name ?? null
 
     async function handleCreateCycle(e: React.FormEvent) {
         e.preventDefault()
@@ -72,8 +89,7 @@ export function CycleScheduler({
 
         setIsSaving(true)
         try {
-            const startDate = addDaysToDate(new Date(), -(todayDay - 1))
-            const startDateIso = startDate.toISOString().split('T')[0]
+            const startDateIso = addDays(today, -(todayDay - 1))
             const { data: cycle, error: cycleError } = await supabase
                 .from('training_cycles')
                 .insert({ user_id: userId, cycle_length: length, start_date: startDateIso })
@@ -92,7 +108,10 @@ export function CycleScheduler({
 
             setCycleId(cycle.id)
             setCycleLength(length)
+            setStartDate(startDateIso)
             setDays(newDays.map((d) => ({ dayIndex: d.day_index, routineId: null })))
+            // A new cycle's days are all rest days: go straight to picking routines
+            setEditing(true)
         } catch (err) {
             setError(err instanceof Error ? err.message : (zh ? '發生錯誤，請再試一次。' : 'Something went wrong.'))
         } finally {
@@ -118,9 +137,11 @@ export function CycleScheduler({
 
             await clearEmptyTodayWorkout(userId)
             setCycleId(null)
+            setStartDate(null)
             setDays([])
             setLengthInput('7')
             setTodayDayInput('1')
+            setEditing(false)
         } catch (err) {
             setError(err instanceof Error ? err.message : (zh ? '發生錯誤，請再試一次。' : 'Something went wrong.'))
         } finally {
@@ -177,7 +198,7 @@ export function CycleScheduler({
                 cycle_length: pending.newLength,
             }
             if (resetStartDate) {
-                updates.start_date = new Date().toISOString().split('T')[0]
+                updates.start_date = today
             }
 
             const { error: updateError } = await supabase
@@ -212,6 +233,7 @@ export function CycleScheduler({
             }
 
             setCycleLength(pending.newLength)
+            if (resetStartDate) setStartDate(today)
             setPending(null)
         } catch (err) {
             setError(err instanceof Error ? err.message : (zh ? '發生錯誤，請再試一次。' : 'Something went wrong.'))
@@ -237,188 +259,189 @@ export function CycleScheduler({
     }
 
     return (
-        <section className="space-y-4">
-            <h2 className="text-lg font-semibold uppercase tracking-wide">
-                {zh ? '訓練循環' : 'Training Cycle'}
-            </h2>
+        <section className="space-y-3 rounded-[14px] border border-line bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <h2 className="text-[15px] font-bold tracking-wide">{t('trainingCycle')}</h2>
+                    {cycleId && todayIndex && (
+                        <p className="text-[13px] text-muted">{t('cycleSummary', { length: cycleLength, today: todayIndex })}</p>
+                    )}
+                </div>
+                {cycleId && (
+                    <button
+                        type="button"
+                        onClick={() => setEditing((v) => !v)}
+                        className="hidden min-h-9 shrink-0 text-[13px] font-medium text-accent @split:block"
+                    >
+                        {editing ? t('doneEditingCycle') : t('editCycle')}
+                    </button>
+                )}
+            </div>
 
-            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+            {error && <p role="alert" className="text-sm text-miss">{error}</p>}
 
             {!cycleId ? (
-                <form
-                    onSubmit={handleCreateCycle}
-                    className="rounded-xl border border-ink/10 bg-white p-6 space-y-3"
-                >
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">
-                                {zh ? '循環幾天一輪？' : 'Cycle length (days)'}
-                            </label>
+                <form onSubmit={handleCreateCycle} className="space-y-3">
+                    <p className="text-[13px] text-muted">{t('noCycleHint')}</p>
+                    <div className="grid max-w-md grid-cols-2 gap-3">
+                        <label className="space-y-1">
+                            <span className="text-xs font-medium text-muted">{t('cycleLengthLabel')}</span>
                             <input
                                 type="text"
                                 inputMode="numeric"
                                 value={lengthInput}
                                 onChange={(e) => setLengthInput(e.target.value)}
-                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                className={`${INPUT} font-mono`}
                             />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">
-                                {zh ? '今天是第幾天？' : 'Today is day...'}
-                            </label>
+                        </label>
+                        <label className="space-y-1">
+                            <span className="text-xs font-medium text-muted">{t('todayDayLabel')}</span>
                             <input
                                 type="text"
                                 inputMode="numeric"
                                 value={todayDayInput}
                                 onChange={(e) => setTodayDayInput(e.target.value)}
-                                className="w-full rounded-md border px-3 py-2 text-sm"
+                                className={`${INPUT} font-mono`}
                             />
-                        </div>
+                        </label>
                     </div>
-                    <button
-                        type="submit"
-                        disabled={isSaving}
-                        className="rounded-md bg-plate px-4 py-2 font-display uppercase tracking-wide text-chalk hover:bg-plate-light disabled:opacity-50"
-                    >
-                        {isSaving ? (zh ? '建立中...' : 'Creating...') : (zh ? '建立循環' : 'Create Cycle')}
+                    <button type="submit" disabled={isSaving} className={PRIMARY}>
+                        {isSaving ? t('creating') : t('createCycle')}
                     </button>
                 </form>
             ) : (
                 <>
+                    {/* The days: a list on a phone, one strip side by side with the routines */}
+                    <ol className="grid gap-1.5 @split:flex @split:gap-1.5 @split:overflow-x-auto @split:pb-1">
+                        {days.map((day) => {
+                            const name = routineName(day.routineId)
+                            const isToday = day.dayIndex === todayIndex
+                            return (
+                                <li
+                                    key={day.dayIndex}
+                                    aria-current={isToday ? 'date' : undefined}
+                                    className={`flex items-center justify-between gap-3 rounded-[10px] border px-3 py-1.5 @split:min-w-[92px] @split:flex-1 @split:flex-col @split:items-stretch @split:justify-start @split:gap-0.5 @split:px-1.5 @split:py-2 @split:text-center ${name ? 'border-line bg-card' : 'border-dashed border-line'} ${isToday ? 'shadow-[inset_0_0_0_1.5px_var(--color-accent)]' : ''}`}
+                                >
+                                    <span className={`shrink-0 text-xs @split:text-[11px] ${isToday ? 'font-bold text-accent' : 'text-faint'}`}>
+                                        {t('dayN', { n: day.dayIndex })}
+                                        {isToday && <span className="@split:hidden">{t('todayMark')}</span>}
+                                    </span>
+
+                                    {/* Side by side, the name; the picker while editing. On a phone, always the picker. */}
+                                    <span className={`truncate text-[13px] font-bold ${name ? '' : 'font-medium text-faint'} hidden ${editing ? '' : '@split:block'}`}>
+                                        {name ?? t('restDay')}
+                                    </span>
+                                    <span className={`min-w-0 flex-1 @split:flex-none ${editing ? '' : '@split:hidden'}`}>
+                                        {routines.length === 0 ? (
+                                            <span className="block py-2 text-right text-[13px] text-faint @split:text-center">{t('addRoutineFirst')}</span>
+                                        ) : (
+                                            <select
+                                                value={name ? day.routineId ?? '' : ''}
+                                                onChange={(e) => handleDayChange(day.dayIndex, e.target.value)}
+                                                aria-label={t('dayN', { n: day.dayIndex })}
+                                                className="w-full rounded-[9px] border border-line bg-card px-2 py-1.5 text-sm"
+                                            >
+                                                <option value="">{t('restDay')}</option>
+                                                {routines.map((r) => (
+                                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                                ))}
+                                            </select>
+                                        )}
+                                    </span>
+                                </li>
+                            )
+                        })}
+                    </ol>
+
+                    {/* Length and delete: always on a phone, while editing side by side */}
                     <form
                         onSubmit={handleRequestLengthChange}
-                        className="rounded-xl border border-ink/10 bg-white p-4"
+                        className={`flex flex-wrap items-center gap-3 border-t border-line pt-3 ${editing ? '' : '@split:hidden'}`}
                     >
-                        <div className="flex items-center gap-3">
-                            <label className="text-sm text-ink/50 shrink-0">
-                                {zh ? '循環天數' : 'Cycle days'}
-                            </label>
-
-                            {/* 減號 */}
+                        <span className="text-[13px] text-muted">{t('cycleLength')}</span>
+                        <div className="flex items-center gap-1">
                             <button
                                 type="button"
                                 onClick={() => setLengthInput(String(Math.max(1, Number(lengthInput) - 1)))}
-                                className="w-7 h-7 rounded-full border border-ink/20 dark:border-white/20 flex items-center justify-center text-ink/50 hover:text-ink hover:border-ink/40 transition-colors text-lg leading-none"
+                                aria-label={t('shorterCycle')}
+                                className="flex size-8 items-center justify-center rounded-full border border-line text-lg leading-none text-muted hover:text-ink"
                             >
                                 −
                             </button>
-
-                            {/* 天數數字 */}
                             <input
                                 type="text"
                                 inputMode="numeric"
                                 value={lengthInput}
                                 onChange={(e) => setLengthInput(e.target.value)}
-                                className="w-10 text-center text-base font-semibold bg-transparent border-none outline-none"
+                                aria-label={t('cycleLength')}
+                                className="w-12 border-none bg-transparent text-center font-mono font-bold outline-none"
                             />
-
-                            {/* 加號 */}
                             <button
                                 type="button"
                                 onClick={() => setLengthInput(String(Number(lengthInput) + 1))}
-                                className="w-7 h-7 rounded-full border border-ink/20 dark:border-white/20 flex items-center justify-center text-ink/50 hover:text-ink hover:border-ink/40 transition-colors text-lg leading-none"
+                                aria-label={t('longerCycle')}
+                                className="flex size-8 items-center justify-center rounded-full border border-line text-lg leading-none text-muted hover:text-ink"
                             >
                                 ＋
                             </button>
+                        </div>
+                        <button type="submit" disabled={isSaving} className="rounded-[9px] border border-line px-3 py-1.5 text-[13px] font-bold disabled:opacity-50">
+                            {t('updateLength')}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleDeleteCycle}
+                            disabled={isSaving}
+                            className="ml-auto text-[13px] text-faint transition-colors hover:text-miss disabled:opacity-50"
+                        >
+                            {t('deleteCycle')}
+                        </button>
+                    </form>
+                </>
+            )}
 
-                            <button
-                                type="submit"
-                                disabled={isSaving}
-                                className="ml-1 rounded-lg bg-plate dark:bg-white px-3 py-1.5 text-xs font-medium text-chalk dark:text-[#1A1814] disabled:opacity-50 hover:opacity-90 transition-opacity"
-                            >
-                                {zh ? '儲存' : 'Save'}
-                            </button>
-
+            {pending && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
+                    <div className="w-full max-w-sm space-y-4 rounded-[14px] bg-card p-6">
+                        <h3 className="font-semibold">
+                            {zh ? '變更循環天數？' : 'Change cycle length?'}
+                        </h3>
+                        <p className="text-sm text-muted">
+                            {zh
+                                ? `從 ${cycleLength} 天改成 ${pending.newLength} 天會影響你目前在循環中的位置。`
+                                : `Changing from ${cycleLength} to ${pending.newLength} days affects where you are in the cycle.`}
+                        </p>
+                        <div className="flex flex-col gap-2">
+                            {pending.canContinue && (
+                                <button
+                                    type="button"
+                                    onClick={() => applyLengthChange(false)}
+                                    disabled={isSaving}
+                                    className="rounded-[9px] border border-line px-4 py-2 text-sm disabled:opacity-50"
+                                >
+                                    {zh ? '保留目前的進度，只延長循環天數' : 'Keep my current day, just extend the cycle'}
+                                </button>
+                            )}
                             <button
                                 type="button"
-                                onClick={handleDeleteCycle}
+                                onClick={() => applyLengthChange(true)}
                                 disabled={isSaving}
-                                className="ml-auto text-xs text-ink/30 hover:text-red-500 dark:text-white/30 dark:hover:text-red-400 disabled:opacity-50 transition-colors"
+                                className={PRIMARY}
                             >
-                                {zh ? '刪除' : 'Delete'}
+                                {zh ? '從第一天重新開始' : 'Restart from Day 1'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPending(null)}
+                                disabled={isSaving}
+                                className="rounded-[9px] px-4 py-2 text-sm text-muted disabled:opacity-50"
+                            >
+                                {zh ? '取消' : 'Cancel'}
                             </button>
                         </div>
-                    </form>
-
-                    <div className="rounded-xl border border-ink/10 bg-white p-6 space-y-2">
-                        {days.map((day) => (
-                            <div key={day.dayIndex} className="flex items-center justify-between gap-3">
-                                <span className="text-sm font-medium w-20 shrink-0">
-                                    {zh ? `第 ${day.dayIndex} 天` : `Day ${day.dayIndex}`}
-                                </span>
-                                {routines.length === 0 ? (
-                                    <div className="flex-1 rounded-md border border-dashed px-3 py-2 text-sm text-ink/40">
-                                        {zh ? '先建立課表再來排程' : 'Add a routine first'}
-                                    </div>
-                                ) : (
-                                    <select
-                                        value={day.routineId ?? ''}
-                                        onChange={(e) => handleDayChange(day.dayIndex, e.target.value)}
-                                        className="flex-1 rounded-md border px-3 py-2 text-sm"
-                                    >
-                                        <option value="">{zh ? '休息日' : 'Rest day'}</option>
-                                        {routines.map((r) => (
-                                            <option key={r.id} value={r.id}>{r.name}</option>
-                                        ))}
-                                    </select>
-                                )}
-                            </div>
-                        ))}
                     </div>
-                </>
-            )
-            }
-
-            {
-                pending && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
-                        <div className="w-full max-w-sm space-y-4 rounded-xl bg-white p-6">
-                            <h3 className="font-semibold">
-                                {zh ? '變更循環天數？' : 'Change cycle length?'}
-                            </h3>
-                            <p className="text-sm text-ink/60">
-                                {zh
-                                    ? `從 ${cycleLength} 天改成 ${pending.newLength} 天會影響你目前在循環中的位置。`
-                                    : `Changing from ${cycleLength} to ${pending.newLength} days affects where you are in the cycle.`}
-                            </p>
-                            <div className="flex flex-col gap-2">
-                                {pending.canContinue && (
-                                    <button
-                                        type="button"
-                                        onClick={() => applyLengthChange(false)}
-                                        disabled={isSaving}
-                                        className="rounded-md border px-4 py-2 text-sm disabled:opacity-50"
-                                    >
-                                        {zh ? '保留目前的進度，只延長循環天數' : 'Keep my current day, just extend the cycle'}
-                                    </button>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={() => applyLengthChange(true)}
-                                    disabled={isSaving}
-                                    className="rounded-md bg-plate px-4 py-2 font-display uppercase tracking-wide text-chalk hover:bg-plate-light disabled:opacity-50"
-                                >
-                                    {zh ? '從第一天重新開始' : 'Restart from Day 1'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setPending(null)}
-                                    disabled={isSaving}
-                                    className="rounded-md px-4 py-2 text-sm text-ink/60 disabled:opacity-50"
-                                >
-                                    {zh ? '取消' : 'Cancel'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-        </section >
+                </div>
+            )}
+        </section>
     )
-}
-
-function addDaysToDate(date: Date, days: number): Date {
-    const result = new Date(date)
-    result.setDate(result.getDate() + days)
-    return result
 }

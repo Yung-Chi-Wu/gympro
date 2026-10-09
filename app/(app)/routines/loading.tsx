@@ -1,31 +1,20 @@
+// While 課表 loads: the cycle strip and two panes side by side, the list on a phone
 export default function RoutinesLoading() {
     return (
-        <div className="py-8 space-y-10">
-            <div className="h-10 w-40 rounded-lg bg-ink/10 animate-pulse" />
-
-            <div className="space-y-4">
-                <div className="h-6 w-32 rounded bg-ink/10 animate-pulse" />
-                <div className="rounded-xl border border-ink/10 bg-white p-6">
-                    <div className="h-10 w-24 rounded bg-ink/10 animate-pulse" />
-                </div>
-                <div className="rounded-xl border border-ink/10 bg-white p-6 space-y-3">
-                    {[...Array(4)].map((_, i) => (
-                        <div key={i} className="flex gap-3">
-                            <div className="h-8 w-16 rounded bg-ink/10 animate-pulse" />
-                            <div className="h-8 flex-1 rounded bg-ink/10 animate-pulse" />
+        <div className="space-y-4">
+            <div className="h-8 w-28 rounded-lg bg-ink/10 animate-pulse max-md:hidden" />
+            <div className="h-9 w-40 rounded-[9px] bg-ink/10 animate-pulse @split:hidden" />
+            <div className="hidden h-28 rounded-[14px] border border-line bg-card @split:block" />
+            <div className="gap-4 @split:grid @split:grid-cols-[minmax(220px,300px)_minmax(0,1fr)]">
+                <div className="space-y-4 rounded-[14px] border border-line bg-card p-4">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="space-y-1.5">
+                            <div className="h-4 w-24 rounded bg-ink/10 animate-pulse" />
+                            <div className="h-3 w-40 rounded bg-ink/10 animate-pulse" />
                         </div>
                     ))}
                 </div>
-            </div>
-
-            <div className="space-y-4">
-                <div className="h-6 w-28 rounded bg-ink/10 animate-pulse" />
-                <div className="h-12 rounded-md bg-ink/10 animate-pulse" />
-                {[...Array(3)].map((_, i) => (
-                    <div key={i} className="rounded-xl border border-ink/10 bg-white p-4">
-                        <div className="h-6 w-32 rounded bg-ink/10 animate-pulse" />
-                    </div>
-                ))}
+                <div className="hidden h-80 rounded-[14px] border border-line bg-card @split:block" />
             </div>
         </div>
     )
