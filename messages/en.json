@@ -7,10 +7,78 @@
         "logout": "Log out"
     },
     "welcome": {
-        "headline": "GymPro",
-        "tagline": "Track your training, follow your routines, and get AI-powered feedback every period — built for lifters who want to see real progress.",
-        "login": "Log In",
-        "signup": "Create an Account"
+        "meta": {
+            "title": "GymPro · Training log with an AI coach",
+            "description": "Plan routines, log every set, and ask Ronnie, an AI coach that checks your actual workouts before it answers. In English and Traditional Chinese."
+        },
+        "login": "Log in",
+        "signup": "Get started",
+        "hasAccount": "Already have an account?",
+        "hero": {
+            "eyebrow": "Training log + AI coach",
+            "title": "A training log with a <em>coach who reads it</em>.",
+            "body": "Plan your routines, log every set, and ask Ronnie, GymPro's AI coach, whenever you're not sure what to do next. Ronnie looks at what you've actually trained before answering, and can adjust today's workout for you."
+        },
+        "chat": {
+            "label": "Example chat: Ronnie suggests a substitute, and today's workout changes only when you tap Swap.",
+            "subtitle": "AI Personal Coach",
+            "user": "My lower back is tight today. Can I swap squats for something easier on it?",
+            "reply": "I'd swap Barbell Back Squat for Leg Press today: it's easier on your lower back. Go lighter than usual, and stop if it starts to hurt.",
+            "swapCard": "Barbell Back Squat → Leg Press",
+            "swap": "Swap",
+            "swapped": "✓ Swapped \"Barbell Back Squat\" for \"Leg Press\" today",
+            "placeholder": "Ask Ronnie anything…"
+        },
+        "how": {
+            "eyebrow": "How it works",
+            "title": "Plan, log, ask, review",
+            "intro": "Four parts that feed each other: the more you log, the more Ronnie and your reports have to work with.",
+            "plan": {
+                "step": "Plan",
+                "title": "Build routines and a cycle",
+                "body": "Pick exercises from the built-in library, set sets and reps, and arrange routines into a cycle of any length, rest days included. Or answer a few questions and let Coach G draft routines and a cycle for you to review before saving."
+            },
+            "log": {
+                "step": "Log",
+                "title": "Log every set",
+                "body": "The Today card opens on the day's routine from your cycle. Enter reps and weight as you go, in kg or lb, and add or drop exercises when plans change."
+            },
+            "ask": {
+                "step": "Ask",
+                "title": "Ask Ronnie",
+                "body": "Ronnie checks your workouts and routines before answering. It can add or swap exercises in today's workout, find an exercise from a description in English or Chinese, and suggest routine changes that only apply once you confirm."
+            },
+            "review": {
+                "step": "Review",
+                "title": "Get a report every period",
+                "body": "When a period ends (a week, or one full cycle), an AI Coach Report is written for you: training split, strength trend, progressive overload and what to do next, taking your notes for the period into account. History keeps past periods and your weight trend."
+            }
+        },
+        "mock": {
+            "planLabel": "Example cycle: Push Day, Pull Day, Leg Day, then a rest day. Today is day 3, Leg Day.",
+            "day": "Day {n}",
+            "push": "Push Day",
+            "pull": "Pull Day",
+            "legs": "Leg Day",
+            "logLabel": "Example of logging sets: Leg Press, two sets of 10 at 100 kg and one set of 8.",
+            "legPress": "Leg Press",
+            "askLabel": "Example: asking Ronnie for an upper-chest exercise and getting Incline Dumbbell Bench Press with an Add to today button.",
+            "askQuestion": "Something for upper chest?",
+            "askExercise": "Incline Dumbbell Bench Press",
+            "addToday": "Add to today",
+            "reviewLabel": "Example AI Coach Report with a training split bar and a rising strength trend line."
+        },
+        "details": {
+            "label": "Also",
+            "languages": "English & 繁體中文",
+            "units": "kg or lb",
+            "themes": "Light & dark mode",
+            "install": "Add to your home screen"
+        },
+        "cta": {
+            "title": "Ready for your next session?",
+            "body": "Set up a routine, log your first set, and let Ronnie take it from there."
+        }
     },
     "dashboard": {
         "welcome": "Welcome back,",
