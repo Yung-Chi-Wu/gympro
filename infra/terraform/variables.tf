@@ -29,3 +29,15 @@ variable "vercel_environments" {
   type        = list(string)
   default     = ["production"]
 }
+
+variable "ai_errors_per_hour_alarm" {
+  description = "Failed AI calls in one hour that raise the gympro-ai-errors alarm"
+  type        = number
+  default     = 3
+}
+
+variable "ai_daily_cost_alarm_usd" {
+  description = "US$ of AI calls over 24 hours above which the gympro-ai-daily-cost alarm fires"
+  type        = number
+  default     = 2
+}

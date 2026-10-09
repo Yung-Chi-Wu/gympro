@@ -1,4 +1,5 @@
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseClient } from './supabase'
 import { lastCompletedPeriod, type CycleSettings } from '../../../lib/periods'
 import type { AnalysisRequestMessage } from './types'
@@ -6,7 +7,7 @@ import type { AnalysisRequestMessage } from './types'
 // Runs every hour from EventBridge Scheduler. Each user's report is due once
 // their period has ended in their own time zone, so an hourly sweep reaches
 // every time zone within an hour of local midnight. It also deletes AI traces
-// past their retention.
+// past their retention and publishes the AI calls' health for the alarms.
 //
 // Idempotent: a report row is claimed with insert-or-ignore on
 // (user_id, period_start), and only rows this run created are queued. Repeated
@@ -30,6 +31,50 @@ interface CycleRow {
     start_date: string
 }
 
+/**
+ * The AI calls' health, from ai_traces: calls and failures in the past hour, and what the past
+ * 24 hours cost. Logged in CloudWatch's embedded metric format, which CloudWatch turns into the
+ * GymPro/AI metrics the alarms watch, with no API call or extra permission. A failure here is
+ * logged, never thrown: it must not stop anyone's report.
+ */
+export async function publishAiMetrics(supabase: SupabaseClient): Promise<void> {
+    try {
+        const now = Date.now()
+        const rows: { created_at: string; status: string; cost_usd: number | null }[] = []
+        for (let from = 0; ; from += 1000) {
+            const { data, error } = await supabase
+                .from('ai_traces')
+                .select('created_at, status, cost_usd')
+                .gte('created_at', new Date(now - 86_400_000).toISOString())
+                .range(from, from + 999)
+            if (error) throw new Error(error.message)
+            rows.push(...(data ?? []))
+            if ((data?.length ?? 0) < 1000) break
+        }
+        const lastHour = rows.filter((r) => Date.parse(r.created_at) >= now - 3_600_000)
+        const cost = rows.reduce((sum, r) => sum + Number(r.cost_usd ?? 0), 0)
+        console.log(JSON.stringify({
+            _aws: {
+                Timestamp: now,
+                CloudWatchMetrics: [{
+                    Namespace: 'GymPro/AI',
+                    Dimensions: [[]],
+                    Metrics: [
+                        { Name: 'CallsLastHour', Unit: 'Count' },
+                        { Name: 'ErrorsLastHour', Unit: 'Count' },
+                        { Name: 'CostLast24hUSD', Unit: 'None' },
+                    ],
+                }],
+            },
+            CallsLastHour: lastHour.length,
+            ErrorsLastHour: lastHour.filter((r) => r.status === 'error').length,
+            CostLast24hUSD: Math.round(cost * 10_000) / 10_000,
+        }))
+    } catch (err) {
+        console.error(`AI metrics not published: ${err instanceof Error ? err.message : String(err)}`)
+    }
+}
+
 export async function handler(): Promise<void> {
     const queueUrl = process.env.SQS_QUEUE_URL
     if (!queueUrl) throw new Error('SQS_QUEUE_URL environment variable is not set')
@@ -39,6 +84,7 @@ export async function handler(): Promise<void> {
     const cutoff = new Date(Date.now() - TRACE_RETENTION_DAYS * 86_400_000).toISOString()
     const { error: traceError } = await supabase.from('ai_traces').delete().lt('created_at', cutoff)
     if (traceError) console.error(`Old AI traces not deleted: ${traceError.message}`)
+    await publishAiMetrics(supabase)
 
     const [profilesResult, cyclesResult] = await Promise.all([
         supabase.from('user_profiles').select('user_id, timezone, language'),
