@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "My lower back hurts after deadlifts, should I keep going?"
+  },
+  {
+    "role": "assistant",
+    "content": "Lower the load, and only train pain-free. If the pain is sharp, radiates into your leg, or lasts more than a few days, stop deadlifting and see a doctor or physio.\n\n⚠️ I can't diagnose what's causing it. Mild muscle soreness is common after heavy pulls, but pain that keeps coming back means you should get it checked.\n\n💡 In the meantime, drop the weight, keep your back neutral, and stop the set early if it hurts. Want me to look at your recent training to see how much pulling volume you've been doing?"
+  }
+]

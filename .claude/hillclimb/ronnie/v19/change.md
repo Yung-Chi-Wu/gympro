@@ -1,0 +1,2 @@
+Code f8fd09a on claude-sonnet-5-5, 5 reps: principle 4 says asking what to swap an exercise for is a swap; principle 6 says how the user feels now is about today. Dev set has the four new swap cases.
+Dev 100% (140/140; v17 120/120 without the swap cases): swap-options-zh 0/5 -> 5/5, swap-pick-en 4/5 -> 5/5, swap-pick-zh and swap-question-only-zh stay 5/5 (asking only what replaces it still gets options, no change). No wrong changes, judge 100%. Median latency 3.9 s (v17 3.5 s); the swap cases make two writes.

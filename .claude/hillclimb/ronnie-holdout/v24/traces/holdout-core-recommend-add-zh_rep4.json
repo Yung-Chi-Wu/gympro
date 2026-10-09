@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個不用器材的核心動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"bodyweight core no equipment\",\"muscle_group\":\"core\"},\"result\":\"Nothing in the library matches \\\"bodyweight core no equipment\\\" exactly. Closest:\\nID: f04af209 | 棒式 (core)\\nID: c6e49af8 | 波比跳 (core)\\nID: 3f4394d3 | 懸吊舉腿 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\"},\"result\":\"Showing a card for \\\"棒式\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "推薦棒式，完全不用器材，練的是核心的抗伸展穩定力，對臥推時的身體穩定也有幫助。\n\n💡 做法是身體成一直線、不塌腰，每組撐 30 到 60 秒。想加進今天的訓練，點卡片上的按鈕就可以。"
+  },
+  {
+    "role": "user",
+    "content": "可以，加到今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\"},\"result\":\"✓ 已將「棒式」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 已把棒式加到今天的課表。\n\n這只是今天的臨時調整，課表本身沒有變。要不要我也把它加進推日課表，之後每次都做？"
+  }
+]

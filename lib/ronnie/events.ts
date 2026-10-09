@@ -31,10 +31,12 @@ export interface ResolvedRow {
 export type RonnieEvent =
     | { kind: 'proposal'; status: 'confirmed' | 'cancelled' | 'expired'; proposal: RoutineProposal; rows: ResolvedRow[] }
     | { kind: 'recommendation_added'; exerciseName: string }
+    | { kind: 'recommendation_swapped'; exerciseName: string; replacedName: string }
 
 /** For the model. A removal keeps what the row was, so Ronnie can put it back as it was if asked. */
 export function eventForModel(e: RonnieEvent): string {
     if (e.kind === 'recommendation_added') return `${EVENT_PREFIX} The user tapped Add to today: "${e.exerciseName}" is now in today's workout.`
+    if (e.kind === 'recommendation_swapped') return `${EVENT_PREFIX} The user tapped Swap: "${e.replacedName}" was removed from today's workout and "${e.exerciseName}" added. Routines unchanged.`
     const what = describeProposal(e.proposal, false)
     if (e.status === 'cancelled') return `${EVENT_PREFIX} The user cancelled the proposal (${what}); routines unchanged.`
     if (e.status === 'expired') return `${EVENT_PREFIX} The proposal expired and was not applied (${what}).`
@@ -47,6 +49,7 @@ export function eventForModel(e: RonnieEvent): string {
 /** For the chat window: one short line under the card. */
 export function eventForDisplay(e: RonnieEvent, zh: boolean): string {
     if (e.kind === 'recommendation_added') return zh ? `✓ 已把「${e.exerciseName}」加入今天的訓練` : `✓ Added "${e.exerciseName}" to today's workout`
+    if (e.kind === 'recommendation_swapped') return zh ? `✓ 已把今天的「${e.replacedName}」換成「${e.exerciseName}」` : `✓ Swapped "${e.replacedName}" for "${e.exerciseName}" today`
     if (e.status === 'cancelled') return zh ? `已取消：${describeProposal(e.proposal, true)}` : `Cancelled: ${describeProposal(e.proposal, false)}`
     if (e.status === 'expired') return zh ? '提議已過期，沒有套用' : 'The proposal expired and was not applied'
     if (!e.rows.length) return zh ? '課表已經是這樣了，沒有變更' : 'Nothing to change; the routines already were that way'

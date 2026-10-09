@@ -1,0 +1,2 @@
+Code 91f91e6 (main after PR #6) on claude-sonnet-5-5, 5 reps, only the four new swap cases (swap-options-zh, the user's own phrasing, added after the first three): the baseline before the fix. Harness change (swap cases, $any in grade.mjs) approved by the user.
+Swap cases 14/20 (70%): swap-pick-zh 5/5, swap-pick-en 4/5, swap-question-only-zh 5/5, swap-options-zh 0/5. On "要換肩推有什麼動作" Ronnie showed a recommend card and left the Overhead Press in today's workout, the bug the user hit; principle 3 (recommend) won over principle 4 (swap now).

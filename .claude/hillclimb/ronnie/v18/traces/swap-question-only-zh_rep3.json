@@ -1,0 +1,25 @@
+[
+  {
+    "role": "user",
+    "content": "肩推有什麼替代動作？"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"肩推替代 shoulder press alternative\",\"muscle_group\":\"shoulders\"},\"result\":\"ID: 13841865 | 肩推 (shoulders)\\nID: 65d4104b | 側平舉 (shoulders)\\nID: 7fb35f03 | 反向飛鳥機 (shoulders)\\nID: cd6e3284 | 臉拉 (shoulders)\\nID: 03810fd4 | 啞鈴後三角飛鳥 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"啞鈴推舉 overhead press dumbbell\"},\"result\":\"Nothing in the library matches \\\"啞鈴推舉 overhead press dumbbell\\\" exactly. Closest:\\nID: 41290ea9 | 上斜啞鈴臥推 (chest)\\nID: 13841865 | 肩推 (shoulders)\\nID: d486b05a | 啞鈴臥推 (chest)\\nID: d1302cd0 | 單臂啞鈴划船 (back)\\nID: 6fc5ead6 | 上斜槓鈴臥推 (chest)\\nID: d988a60a | 槓鈴臥推 (chest)\\nID: 03810fd4 | 啞鈴後三角飛鳥 (shoulders)\\nID: ad5d9bcc | 過頭三頭伸展 (triceps)\\nID: 650646da | 槓鈴划船 (back)\\nID: 697409e4 | 三頭下壓 (triceps)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"41290ea9\"},\"result\":\"Showing a card for \\\"上斜啞鈴臥推\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "肩推最好的替代動作是上斜啞鈴臥推。它同樣練到前三角和上胸，還能直接幫你的臥推 100 公斤目標加分 💪 動作庫裡沒有其他推舉類動作。如果你只想練肩膀，可以用側平舉補中三角。\n\n你是要今天臨時換掉肩推，還是想從課表中永久替換？"
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "How many sets did I do for back last week?"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_training_summary",
+    "content": "{\"input\":{\"date_from\":\"2026-09-28\",\"date_to\":\"2026-10-04\"},\"result\":\"2026-09-28 to 2026-10-04: 6 sessions, 80 sets, volume 37,010 kg\\n  By muscle group: chest 21 sets (3 sessions), shoulders 9 sets (3 sessions), triceps 9 sets (3 sessions), back 22 sets (2 sessions), biceps 6 sets (2 sessions), legs 10 sets (1 sessions), core 3 sets (1 sessions)\\n  Best sets: Barbell Bench Press 8×82.5kg, Incline Dumbbell Press 10×28.5kg, Overhead Press 8×47.5kg, Triceps Pushdown 12×32.5kg, Pull-Up 8 reps (bodyweight), Barbell Row 8×72.5kg, Lat Pulldown 10×57.5kg, Barbell Curl 10×32.5kg, Back Squat 6×102.5kg, Romanian Deadlift 8×92.5kg, Leg Press 10×162.5kg, Burpee 10 reps (bodyweight)\\n\\n(Bodyweight sets add nothing to volume)\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Last week (Sep 28 – Oct 4) you did 22 sets for back, spread over 2 sessions. 💪 That's a solid amount. Chest got 21 sets, so your pulling and pushing are well balanced."
+  }
+]

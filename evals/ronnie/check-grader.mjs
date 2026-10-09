@@ -127,6 +127,24 @@ carded.turns[1] = { ...carded.turns[1], toolCalls: [], writes: [{ op: 'add_today
 carded.writes = carded.turns.flatMap((t) => t.writes)
 check(overallPass(programmaticGrade(enTwo, carded, EXERCISES).grade) === 1, 'adding the exercise shown on the card should pass')
 
+// A swap where Ronnie picks the substitute: it recommends and waits. Swapping before the
+// user agreed fails; after a yes, adding without removing (the bug the user hit) or
+// adding something other than the recommendation fails.
+const swapAsk = cases.find((c) => c.id === 'swap-pick-zh')
+const swappedEarly = structuredClone(oracle(swapAsk))
+swappedEarly.turns[0].writes = [{ op: 'remove_today', exerciseId: id('Overhead Press') }, { op: 'add_today', exerciseId: id('Lateral Raise') }]
+swappedEarly.writes = swappedEarly.turns.flatMap((t) => t.writes)
+check(programmaticGrade(swapAsk, swappedEarly, EXERCISES).grade.no_wrong_change === 0, 'swapping before the user agreed should be a wrong change')
+const swapYes = cases.find((c) => c.id === 'swap-confirm-zh')
+const addedOnly = structuredClone(oracle(swapYes))
+addedOnly.turns[1].writes = addedOnly.turns[1].writes.filter((w) => w.op === 'add_today')
+addedOnly.writes = addedOnly.turns.flatMap((t) => t.writes)
+check(programmaticGrade(swapYes, addedOnly, EXERCISES).grade.change_done === 0, 'adding the substitute without removing the old exercise should fail change_done')
+const otherSub = structuredClone(oracle(swapYes))
+otherSub.turns[1].writes = otherSub.turns[1].writes.map((w) => (w.op === 'add_today' ? { ...w, exerciseId: id('Face Pull') } : w))
+otherSub.writes = otherSub.turns.flatMap((t) => t.writes)
+check(programmatic_fail(swapYes, otherSub), 'swapping in something other than the recommendation should fail')
+
 // The English catchphrase must not make a Chinese reply count as English
 check(programmaticGrade(cases[0], { ...oracle(cases[0]), turns: oracle(cases[0]).turns.map((t) => ({ ...t, message: t.message + " Ain't nothin' but a peanut! 💪 衝吧 Alex！" })) }, EXERCISES).grade.language_correct === 1, 'catchphrase should not fail the language check')
 check(programmaticGrade(cases[0], { ...oracle(cases[0]), turns: oracle(cases[0]).turns.map((t) => ({ ...t, message: '拉日有引體向上,槓鈴划船和滑輪下拉,要調整嗎?' })) }, EXERCISES).grade.language_correct === 0, 'half-width punctuation in a Chinese reply should fail the language check')

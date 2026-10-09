@@ -1,0 +1,2 @@
+Code f2f4503 on claude-sonnet-5-5, 5 reps; the runner now rebuilds the bundle and rows record its commit. Everything on this branch since v17: training summary names weeks (this week: day N of 7, today's sets included) and counts per exercise; swap card the user confirms; reply layout rule. Harness approved by the user (swap cases, runner rebuild).
+Holdout 100% (25/25), same as v17. Median latency 3.4 s.

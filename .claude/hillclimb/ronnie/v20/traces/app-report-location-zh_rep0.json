@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "我的 AI 報告在哪裡看？"
+  },
+  {
+    "role": "assistant",
+    "content": "AI 報告在「訓練紀錄」（History）頁面就能看到 📊 如果你想重新設計整份課表，可以到「訓練課表」頁面找 Coach G。"
+  }
+]

@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個不用器材的核心動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"不用器材 核心 徒手\",\"muscle_group\":\"core\"},\"result\":\"Nothing in the library matches \\\"不用器材 核心 徒手\\\" exactly. Closest:\\nID: c6e49af8 | 波比跳 (core)\\nID: f04af209 | 棒式 (core)\\nID: 3f4394d3 | 懸吊舉腿 (core)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\"},\"result\":\"Showing a card for \\\"棒式\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "我推薦棒式 💪 不用任何器材，主要練核心抗伸展的穩定能力，對臥推時身體繃緊也有幫助。建議做 3 組，每組撐 30～60 秒，全程保持身體一直線。想加進今天的訓練，按卡片上的按鈕就可以。"
+  },
+  {
+    "role": "user",
+    "content": "可以，加到今天的課表"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\"},\"result\":\"✓ 已將「棒式」加入今天的課表\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 已把棒式加進今天的課表。建議推完主項目後再做，3 組，每組撐 30～60 秒。"
+  }
+]

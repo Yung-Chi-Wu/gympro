@@ -1,0 +1,4 @@
+Code 79ea578 on claude-sonnet-5-5, 5 reps: v19's swap fix plus get_training_summary naming this week (so far, day N of 7) and last week, marking clipped weeks partial, and giving sets, sessions and best set per exercise instead of best sets only.
+Knowledge 93% (37/40); v19 83%, v17 90%. bench-plateau-zh 1/5 -> 4/5: no run mixed up the weeks or read bench sets off the chest total. The one failure says every session was 4 sets though today has 3 logged so far. Other failures: volume-zh 4/5 (no 'near failure', as in v17 and v19), creatine-zh 4/5 (wrote 3-5 公斤 for grams, new and once).
+
+CORRECTION (2026-10-08): the eval bundle (evals/ronnie/dist/ronnie.cjs) was not rebuilt after 79ea578, so v20 ran v19's code (f8fd09a): the training-summary change was never tested here. v20 is a second run of v19's code. Read it as test-retest noise: knowledge-bench-plateau-zh scored 1/5 in v19 and 4/5 in v20 on identical code, and swap-pick-en 5/5 then 4/5.

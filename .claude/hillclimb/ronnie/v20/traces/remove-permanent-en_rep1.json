@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "Take burpees out of all my routines for good."
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"burpees\"},\"result\":\"ID: c6e49af8 | Burpee (core)\\nID: 23bc61ff | Push-Up (chest)\\nID: 0f6a6808 | Deadlift (back)\\nID: 1ca807a6 | Pull-Up (back)\\nID: f04af209 | Plank (core)\\nID: 3f4394d3 | Hanging Leg Raise (core)\\nID: 03bae642 | Dips (triceps)\\nID: d1302cd0 | One-Arm Dumbbell Row (back)\\nID: 5866803c | Back Squat (legs)\\nID: a726ab1a | Low-to-High Cable Fly (chest)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "propose_routine_change",
+    "content": "{\"input\":{\"exercise_id\":\"c6e49af8\",\"change\":\"remove\"},\"result\":\"Proposed, not applied yet: remove \\\"Burpee\\\" from 「腿日」 (the only routines with this exercise). It takes effect when the user confirms it in the app.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Ready: remove \"Burpee\" from 「腿日」 - tap Confirm in the app to apply."
+  }
+]

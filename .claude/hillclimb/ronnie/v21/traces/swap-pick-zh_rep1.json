@@ -1,0 +1,25 @@
+[
+  {
+    "role": "user",
+    "content": "我今天肩膀有點不舒服，肩推要換成什麼？"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | 槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | 上斜啞鈴臥推: no sets yet\\nID: 13841865 | 肩推: no sets yet\\nID: 697409e4 | 三頭下壓: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"shoulder-friendly alternative to overhead press, lateral raise\",\"muscle_group\":\"shoulders\"},\"result\":\"Nothing in the library matches \\\"shoulder-friendly alternative to overhead press, lateral raise\\\" exactly. Closest:\\nID: 65d4104b | 側平舉 (shoulders)\\nID: 13841865 | 肩推 (shoulders)\\nID: 03810fd4 | 啞鈴後三角飛鳥 (shoulders)\\nID: 7fb35f03 | 反向飛鳥機 (shoulders)\\nID: cd6e3284 | 臉拉 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"65d4104b\",\"replaces_exercise_id\":\"13841865\"},\"result\":\"Showing a card that swaps \\\"肩推\\\" for \\\"側平舉\\\" in today's workout. Nothing changes until the user taps Swap.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "🔄 我推薦用側平舉換掉肩推。它的負重輕，不用把手臂舉到頭頂上方，對不舒服的肩膀壓力比較小。點卡片就能一鍵替換。\n\n做的時候用輕重量，動作控制好，舉到與肩同高就好。如果出現刺痛或不適加劇，就先停下來，持續不好的話請找專業人員評估。\n\n要不要也告訴我是肩膀哪個位置不舒服？連今天的臥推我也可以幫你評估要不要調整。"
+  }
+]

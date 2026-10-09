@@ -1,0 +1,35 @@
+[
+  {
+    "role": "user",
+    "content": "My elbow's bugging me today. What should I do instead of triceps pushdowns?"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"low elbow stress triceps alternative\",\"muscle_group\":\"triceps\"},\"result\":\"Nothing in the library matches \\\"low elbow stress triceps alternative\\\" exactly. Closest:\\nID: 697409e4 | Triceps Pushdown (triceps)\\nID: 03bae642 | Dips (triceps)\\nID: ad5d9bcc | Overhead Triceps Extension (triceps)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "remove_exercise_today",
+    "content": "{\"input\":{\"exercise_name\":\"Triceps Pushdown\",\"exercise_id\":\"697409e4\"},\"result\":\"✓ Removed \\\"Triceps Pushdown\\\" from today only (routines unchanged)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"chest fly or machine press, light elbow-friendly\",\"muscle_group\":\"chest\"},\"result\":\"Nothing in the library matches \\\"chest fly or machine press, light elbow-friendly\\\" exactly. Closest:\\nID: a726ab1a | Low-to-High Cable Fly (chest)\\nID: 41290ea9 | Incline Dumbbell Press (chest)\\nID: 6fc5ead6 | Incline Barbell Press (chest)\\nID: d486b05a | Dumbbell Bench Press (chest)\\nID: d988a60a | Barbell Bench Press (chest)\\nID: 23bc61ff | Push-Up (chest)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"a726ab1a\"},\"result\":\"Showing a card for \\\"Low-to-High Cable Fly\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "I took Triceps Pushdown out of today's workout only. Your routine is unchanged. 💪 Dips and overhead extensions load the elbow even more, so I'd skip those too. I'm suggesting Low-to-High Cable Fly instead, which works your chest with little elbow stress. Keep the load light and the movement pain-free. If the elbow gets sharp or the pain lingers, stop and get it checked by a professional. Also watch for any twinge on your presses today."
+  }
+]

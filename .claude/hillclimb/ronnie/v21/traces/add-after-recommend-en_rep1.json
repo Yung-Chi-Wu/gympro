@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"upper chest\",\"muscle_group\":\"chest\"},\"result\":\"Nothing in the library matches \\\"upper chest\\\" exactly. Closest:\\nID: 23bc61ff | Push-Up (chest)\\nID: 41290ea9 | Incline Dumbbell Press (chest)\\nID: 6fc5ead6 | Incline Barbell Press (chest)\\nID: a726ab1a | Low-to-High Cable Fly (chest)\\nID: d486b05a | Dumbbell Bench Press (chest)\\nID: d988a60a | Barbell Bench Press (chest)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"41290ea9\"},\"result\":\"\\\"Incline Dumbbell Press\\\" is already in today's workout; no card shown. Recommend another, or tell the user.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "The Incline Dumbbell Press is the best pick for your upper chest, and it's already in today's push day workout.\n\n💡 Set the bench to about 30°. Steeper angles shift the work onto your shoulders. It also helps your bench press goal by building the upper chest and your pressing strength."
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "assistant",
+    "content": "✅ Incline Dumbbell Press is already in today's workout, so you don't need to add it again.\n\nDo you want me to add another upper chest exercise, like the Low-to-High Cable Fly?"
+  }
+]

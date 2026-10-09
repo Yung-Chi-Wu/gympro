@@ -1,0 +1,30 @@
+[
+  {
+    "role": "user",
+    "content": "My elbow's bugging me today. What should I do instead of triceps pushdowns?"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"low elbow stress triceps alternative\",\"muscle_group\":\"triceps\"},\"result\":\"Nothing in the library matches \\\"low elbow stress triceps alternative\\\" exactly. Closest:\\nID: 697409e4 | Triceps Pushdown (triceps)\\nID: 03bae642 | Dips (triceps)\\nID: ad5d9bcc | Overhead Triceps Extension (triceps)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"chest fly machine\",\"muscle_group\":\"chest\"},\"result\":\"Nothing in the library matches \\\"chest fly machine\\\" exactly. Closest:\\nID: a726ab1a | Low-to-High Cable Fly (chest)\\nID: d988a60a | Barbell Bench Press (chest)\\nID: d486b05a | Dumbbell Bench Press (chest)\\nID: 41290ea9 | Incline Dumbbell Press (chest)\\nID: 6fc5ead6 | Incline Barbell Press (chest)\\nID: 23bc61ff | Push-Up (chest)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"a726ab1a\",\"replaces_exercise_id\":\"697409e4\"},\"result\":\"Showing a card that swaps \\\"Triceps Pushdown\\\" for \\\"Low-to-High Cable Fly\\\" in today's workout. Nothing changes until the user taps Swap.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "🔄 I'd swap pushdowns for Low-to-High Cable Fly. It keeps your chest working with very little elbow load. Dips and overhead extensions stress the elbow even more, so I'd skip them today. Tap the card to swap.\n\n⚠️ Your bench and presses also load the elbow. Keep the weight lighter and stop any movement that hurts. If the pain is sharp or doesn't go away, see a professional.\n\nIs the pain worse when you press, or only when you straighten your arm?"
+  }
+]

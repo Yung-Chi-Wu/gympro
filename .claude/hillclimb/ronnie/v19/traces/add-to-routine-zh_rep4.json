@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "以後拉日加入臉拉，每次 3 組 15 下"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"臉拉 face pull\",\"muscle_group\":\"shoulders\"},\"result\":\"ID: cd6e3284 | 臉拉 (shoulders)\\nID: 65d4104b | 側平舉 (shoulders)\\nID: 13841865 | 肩推 (shoulders)\\nID: 7fb35f03 | 反向飛鳥機 (shoulders)\\nID: 03810fd4 | 啞鈴後三角飛鳥 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "propose_routine_change",
+    "content": "{\"input\":{\"exercise_id\":\"cd6e3284\",\"routine_name\":\"拉日\",\"change\":\"add\",\"target_sets\":3,\"target_reps\":15},\"result\":\"Proposed, not applied yet: add \\\"臉拉\\\" to 「拉日」 (3 x 15). It takes effect when the user confirms it in the app.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "已準備好：把「臉拉」加到「拉日」（3 組 × 15 下），在 app 裡按「確認」後生效。"
+  }
+]

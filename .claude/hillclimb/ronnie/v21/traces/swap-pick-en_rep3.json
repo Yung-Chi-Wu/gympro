@@ -1,0 +1,30 @@
+[
+  {
+    "role": "user",
+    "content": "My elbow's bugging me today. What should I do instead of triceps pushdowns?"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"low elbow stress triceps alternative\",\"muscle_group\":\"triceps\"},\"result\":\"Nothing in the library matches \\\"low elbow stress triceps alternative\\\" exactly. Closest:\\nID: 697409e4 | Triceps Pushdown (triceps)\\nID: 03bae642 | Dips (triceps)\\nID: ad5d9bcc | Overhead Triceps Extension (triceps)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"triceps kickback or machine, light, joint friendly\"},\"result\":\"Nothing in the library matches \\\"triceps kickback or machine, light, joint friendly\\\" exactly. Closest:\\nID: 697409e4 | Triceps Pushdown (triceps)\\nID: 03bae642 | Dips (triceps)\\nID: 263ada72 | Lat Pulldown (back)\\nID: 7fb35f03 | Reverse Pec Deck (shoulders)\\nID: 461557d5 | Seated Cable Row (back)\\nID: 03810fd4 | Rear Delt Dumbbell Fly (shoulders)\\nID: d1302cd0 | One-Arm Dumbbell Row (back)\\nID: ad5d9bcc | Overhead Triceps Extension (triceps)\\nID: 650646da | Barbell Row (back)\\nID: d9911659 | Hammer Curl (biceps)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"7fb35f03\",\"replaces_exercise_id\":\"697409e4\"},\"result\":\"Showing a card that swaps \\\"Triceps Pushdown\\\" for \\\"Reverse Pec Deck\\\" in today's workout. Nothing changes until the user taps Swap.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "🔄 I'd swap the pushdowns for Reverse Pec Deck. The other triceps options in the library, Dips and Overhead Triceps Extension, put even more stress on the elbow. The pec deck works your rear delts and upper back and puts almost no load on the elbow. Tap the card to swap.\n\n⚠️ Keep the pressing light and pain-free today. If the elbow pain is sharp or sticks around, stop pressing and have a professional look at it. Does the elbow hurt during the bench press too?"
+  }
+]

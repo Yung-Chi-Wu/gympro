@@ -1,0 +1,1 @@
+[v24] 20/20 done (20 ok, 0 failed), 73s elapsed, ~0s left

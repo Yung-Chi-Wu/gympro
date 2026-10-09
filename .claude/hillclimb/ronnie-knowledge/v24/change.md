@@ -1,0 +1,2 @@
+Code f2f4503 on claude-sonnet-5-5, 5 reps; the runner now rebuilds the bundle and rows record its commit. Everything on this branch since v17: training summary names weeks (this week: day N of 7, today's sets included) and counts per exercise; swap card the user confirms; reply layout rule. Harness approved by the user (swap cases, runner rebuild).
+Knowledge 100% (40/40), first time; v17 90%. bench-plateau-zh 5/5: on v19's code it scored 1/5 and 4/5 in two runs, so 5 reps can't prove the summary fix, but no run mixed up the weeks or the chest total. Median latency 2.7 s.

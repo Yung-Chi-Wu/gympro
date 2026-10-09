@@ -1,0 +1,35 @@
+[
+  {
+    "role": "user",
+    "content": "My elbow's bugging me today. What should I do instead of triceps pushdowns?"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"low elbow stress triceps alternative\",\"muscle_group\":\"triceps\"},\"result\":\"Nothing in the library matches \\\"low elbow stress triceps alternative\\\" exactly. Closest:\\nID: 697409e4 | Triceps Pushdown (triceps)\\nID: 03bae642 | Dips (triceps)\\nID: ad5d9bcc | Overhead Triceps Extension (triceps)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"triceps kickback or machine press light\"},\"result\":\"Nothing in the library matches \\\"triceps kickback or machine press light\\\" exactly. Closest:\\nID: 697409e4 | Triceps Pushdown (triceps)\\nID: 7fb35f03 | Reverse Pec Deck (shoulders)\\nID: 263ada72 | Lat Pulldown (back)\\nID: 03bae642 | Dips (triceps)\\nID: 03810fd4 | Rear Delt Dumbbell Fly (shoulders)\\nID: d1302cd0 | One-Arm Dumbbell Row (back)\\nID: 461557d5 | Seated Cable Row (back)\\nID: a726ab1a | Low-to-High Cable Fly (chest)\\nID: 68be0377 | Leg Press (legs)\\nID: 650646da | Barbell Row (back)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "remove_exercise_today",
+    "content": "{\"input\":{\"exercise_name\":\"Triceps Pushdown\",\"exercise_id\":\"697409e4\"},\"result\":\"✓ Removed \\\"Triceps Pushdown\\\" from today only (routines unchanged)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"a726ab1a\"},\"result\":\"✓ Added \\\"Low-to-High Cable Fly\\\" to today's workout\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "I swapped Triceps Pushdown for Low-to-High Cable Fly in today's workout. It's a chest move with very little elbow load, and your routine is unchanged. 💪 I skipped dips and overhead extensions because they stress the elbow even more. Keep the weight light and stay pain-free. If the bench or presses make the elbow worse, stop. If the pain is sharp or doesn't go away, get it checked by a professional."
+  }
+]

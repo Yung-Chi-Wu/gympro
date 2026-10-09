@@ -1,3 +1,4 @@
+import type { RecommendationCard } from './conversation'
 import type { LibraryExercise, RonnieData, RoutineProposal } from './data'
 import { describeProposal } from './events'
 import { gatedSearch, latinTokens, searchLibrary } from './search'
@@ -22,8 +23,8 @@ export interface RonnieExecutor {
     readonly needsDashboardReload: boolean
     /** Routine changes proposed this turn, shown as cards to confirm. */
     readonly proposals: (RoutineProposal & { id: string })[]
-    /** Exercises recommended this turn, shown as cards with an Add to today button. */
-    readonly recommendations: { exerciseId: string; exerciseName: string }[]
+    /** Exercises recommended this turn, shown as cards with an Add to today or a Swap button. */
+    readonly recommendations: RecommendationCard[]
     /** What this turn changed or proposed, in the user's language: the reply when the model's can't be used. */
     readonly confirmations: string[]
 }
@@ -74,7 +75,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
     let needsDashboardReload = false
     let removalAttempts = 0
     const proposals: (RoutineProposal & { id: string })[] = []
-    const recommendations: { exerciseId: string; exerciseName: string }[] = []
+    const recommendations: RecommendationCard[] = []
     const confirmations: string[] = []
 
     const nameOf = (ex: { name: string; name_zh_tw: string | null } | null | undefined) =>
@@ -196,11 +197,26 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             return changed(`✓ 已將「${name}」從今天課表移除（不影響固定課表）`, `✓ Removed "${name}" from today only (routines unchanged)`)
         },
 
+        // The user's own choice is done right away (add/remove above); Ronnie's choice waits for
+        // the user's tap, and a swap card swaps both at once so nothing is left half done.
         async recommend_exercise(input) {
             const exercise = await findExercise(input.exercise_id)
             if (!exercise) return UNKNOWN_ID
-            recommendations.push({ exerciseId: exercise.id, exerciseName: nameOf(exercise) })
-            return `Showing a card for "${nameOf(exercise)}" with an Add to today button.`
+            // Today's exercises, or the routine's plan if today's workout hasn't started
+            const range = todayRange()
+            const workout = await data.getLatestWorkoutBetween(range.start, range.end)
+            const routineId = workout ? null : await data.getTodayRoutineId()
+            const planned = workout?.workout_planned_exercises ?? (routineId ? await data.getRoutineExercises(routineId) : [])
+            if (planned.some((pe) => pe.exercise_id === exercise.id)) return `"${nameOf(exercise)}" is already in today's workout; no card shown. Recommend another, or tell the user.`
+            if (!input.replaces_exercise_id) {
+                recommendations.push({ exerciseId: exercise.id, exerciseName: nameOf(exercise) })
+                return `Showing a card for "${nameOf(exercise)}" with an Add to today button.`
+            }
+            const replaced = planned.find((pe) => pe.exercise_id === input.replaces_exercise_id)
+            if (!replaced) return "The exercise to replace isn't in today's workout; no card shown. Get its ID from get_today_workout."
+            const replacesName = nameOf(replaced.exercises)
+            recommendations.push({ exerciseId: exercise.id, exerciseName: nameOf(exercise), replacesExerciseId: replaced.exercise_id, replacesName })
+            return `Showing a card that swaps "${replacesName}" for "${nameOf(exercise)}" in today's workout. Nothing changes until the user taps Swap on it. Say which exercise you suggest and why, and that Swap on the card makes the change.`
         },
 
         get_training_summary: (input) => trainingSummary(input.date_from, input.date_to),
@@ -254,7 +270,10 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         },
     }
 
-    // Weekly totals (Monday to Sunday) computed here, so the model never does the arithmetic
+    // Weekly totals (Monday to Sunday) computed here, so the model never does the arithmetic.
+    // This week and last week are named, and this week says how far in it is: with dates
+    // alone the model called last week's 21 chest sets "this week". Each exercise gets its
+    // own sets and sessions, so bench press sets aren't read off the chest total.
     async function trainingSummary(dateFrom: string, dateTo: string): Promise<string> {
         const workouts = await workoutsBetween(dateFrom, dateTo)
         const sets = workouts.length ? await data.getSets(workouts.map((w) => w.id)) : []
@@ -272,27 +291,39 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             const groupSets = sets.filter((s) => group.some((w) => w.id === s.workout_id))
             const volume = groupSets.reduce((sum, s) => sum + s.reps * s.weight_kg, 0)
             const muscles = new Map<string, { sets: number; sessions: Set<string> }>()
-            const best = new Map<string, { reps: number; weight_kg: number }>()
+            const perExercise = new Map<string, { sets: number; sessions: Set<string>; best: { reps: number; weight_kg: number } }>()
             for (const st of groupSets) {
                 const muscle = byId.get(st.exercise_id)?.muscle_group ?? 'other'
                 const m = muscles.get(muscle) ?? { sets: 0, sessions: new Set<string>() }
                 m.sets++
                 m.sessions.add(st.workout_id)
                 muscles.set(muscle, m)
-                const b = best.get(st.exercise_id)
-                if (!b || st.weight_kg > b.weight_kg || (st.weight_kg === b.weight_kg && st.reps > b.reps)) best.set(st.exercise_id, st)
+                const e = perExercise.get(st.exercise_id) ?? { sets: 0, sessions: new Set<string>(), best: st }
+                e.sets++
+                e.sessions.add(st.workout_id)
+                if (st.weight_kg > e.best.weight_kg || (st.weight_kg === e.best.weight_kg && st.reps > e.best.reps)) e.best = st
+                perExercise.set(st.exercise_id, e)
             }
             return [
                 `${label}: ${group.length} sessions, ${groupSets.length} sets, volume ${Math.round(volume).toLocaleString('en-US')} kg`,
                 `  By muscle group: ${[...muscles].map(([m, v]) => `${m} ${v.sets} sets (${v.sessions.size} sessions)`).join(', ')}`,
-                `  Best sets: ${[...best].map(([id, b]) => `${nameOf(byId.get(id))} ${setText(b)}`).join(', ')}`,
+                `  By exercise: ${[...perExercise].map(([id, v]) => `${nameOf(byId.get(id))} ${v.sets} sets (${v.sessions.size} sessions), best ${setText(v.best)}`).join('; ')}`,
             ].join('\n')
         }
 
+        const today = localDateStr(now(), timeZone)
+        const thisMonday = mondayOf(today)
         const sections = [...weeks.keys()].sort().map((monday) => {
             // Clipped to the requested range, so a partial week says so
             const sunday = shiftDate(monday, 6)
-            return describe(`${monday < dateFrom ? dateFrom : monday} to ${sunday > dateTo ? dateTo : sunday}`, weeks.get(monday)!)
+            const dates = `${monday < dateFrom ? dateFrom : monday} to ${sunday > dateTo ? dateTo : sunday}`
+            const clipped = monday < dateFrom || (monday !== thisMonday && sunday > dateTo)
+            const day = (Date.parse(today) - Date.parse(monday)) / 86_400_000 + 1
+            // "today's sets included": told only "so far", the model guessed today's sets were missing
+            const name = monday === thisMonday ? `This week so far, day ${day} of 7, today's sets included`
+                : monday === shiftDate(thisMonday, -7) ? 'Last week'
+                : 'Week'
+            return describe(`${name}${clipped ? ', partial' : ''} (${dates})`, weeks.get(monday)!)
         })
         if (weeks.size > 1) sections.push(describe(`Total ${dateFrom} to ${dateTo}`, trained))
         if (sets.some((s) => s.weight_kg === 0)) sections.push('(Bodyweight sets add nothing to volume)')
@@ -303,7 +334,8 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         async executeTool(toolName, rawInput) {
             const tool = tools[toolName]
             if (!tool) return `Unknown tool ${toolName}`
-            const input = rawInput.exercise_id ? { ...rawInput, exercise_id: await resolveId(String(rawInput.exercise_id)) } : rawInput
+            const input = { ...rawInput }
+            for (const key of ['exercise_id', 'replaces_exercise_id']) if (input[key]) input[key] = await resolveId(String(input[key]))
             return tool(input)
         },
         get needsDashboardReload() {

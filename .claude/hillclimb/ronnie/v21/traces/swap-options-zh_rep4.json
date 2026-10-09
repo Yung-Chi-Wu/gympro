@@ -1,0 +1,25 @@
+[
+  {
+    "role": "user",
+    "content": "我肩膀不舒服要換肩推有什麼動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | 槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | 上斜啞鈴臥推: no sets yet\\nID: 13841865 | 肩推: no sets yet\\nID: 697409e4 | 三頭下壓: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"shoulder-friendly press alternative to overhead press, landmine press\",\"muscle_group\":\"shoulders\"},\"result\":\"Nothing in the library matches \\\"shoulder-friendly press alternative to overhead press, landmine press\\\" exactly. Closest:\\nID: 13841865 | 肩推 (shoulders)\\nID: 65d4104b | 側平舉 (shoulders)\\nID: 7fb35f03 | 反向飛鳥機 (shoulders)\\nID: 03810fd4 | 啞鈴後三角飛鳥 (shoulders)\\nID: cd6e3284 | 臉拉 (shoulders)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"65d4104b\",\"replaces_exercise_id\":\"13841865\"},\"result\":\"Showing a card that swaps \\\"肩推\\\" for \\\"側平舉\\\" in today's workout. Nothing changes until the user taps Swap.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "⚠️ 做側平舉時如果還是會痛，就停下來。如果是尖銳的痛，或是痛了好幾天，請找專業人員檢查。\n\n你是哪個動作、哪個角度會不舒服？"
+  }
+]
