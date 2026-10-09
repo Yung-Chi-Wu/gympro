@@ -57,8 +57,15 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
     },
     {
         name: 'recommend_exercise',
-        description: "Show one recommended exercise as a card with an Add to today button. It changes nothing; for an explicit request to add an exercise, use add_exercise_today.",
-        input_schema: { type: 'object', properties: { exercise_id: exerciseId('search_exercises') }, required: ['exercise_id'] },
+        description: "Show one recommended exercise as a card. With replaces_exercise_id the card's button swaps it for that exercise in today's workout; without, it adds it to today. It changes nothing until the user taps the button; for an explicit request to add an exercise, use add_exercise_today.",
+        input_schema: {
+            type: 'object',
+            properties: {
+                exercise_id: exerciseId('search_exercises'),
+                replaces_exercise_id: { ...exerciseId('get_today_workout'), description: "Optional: the exercise in today's workout it would replace, ID from get_today_workout" },
+            },
+            required: ['exercise_id'],
+        },
     },
     {
         name: 'get_training_summary',

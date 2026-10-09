@@ -14,6 +14,9 @@ export type ProposalCard = RoutineProposal & { id: string; status?: ProposalStat
 export interface RecommendationCard {
     exerciseId: string
     exerciseName: string
+    /** A swap card: the button replaces this exercise in today's workout with the recommended one */
+    replacesExerciseId?: string
+    replacesName?: string
 }
 
 export type DisplayItem =

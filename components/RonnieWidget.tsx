@@ -8,7 +8,7 @@ import { isSubmitEnter } from '@/lib/keyboard'
 // Ronnie's chat window. The conversation lives on the server (one per day); this
 // shows it, sends one message at a time, and handles the cards' buttons:
 //   proposal: Confirm applies a routine change - a removal asks a second time first
-//   recommendation: Add to today
+//   recommendation: Add to today, or Swap (removes the exercise it replaces and adds it)
 // Each button's outcome is recorded in the conversation by the server, so Ronnie knows.
 
 interface RonnieWidgetProps {
@@ -165,7 +165,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
             const res = await fetch('/api/ai/coach/recommendations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ exerciseId: rec.exerciseId, language }),
+                body: JSON.stringify({ exerciseId: rec.exerciseId, replacesExerciseId: rec.replacesExerciseId, language }),
             })
             const data = await res.json().catch(() => null)
             if (!res.ok || !data?.status) throw new Error(`Add failed: ${res.status}`)
@@ -221,17 +221,19 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         )
     }
 
+    // A swap card says what goes out and what comes in; its button does both
     function renderRecommendation(rec: RecommendationCard) {
         const added = addedToday.has(rec.exerciseId)
+        const swap = !!rec.replacesExerciseId
         return (
             <div key={rec.exerciseId} className="mt-2 rounded-xl border border-ink/10 dark:border-white/10 p-3 text-xs flex items-center justify-between gap-2">
-                <span>💡 {rec.exerciseName}</span>
+                <span>{swap ? `🔄 ${rec.replacesName} → ${rec.exerciseName}` : `💡 ${rec.exerciseName}`}</span>
                 {added ? (
-                    <span className="text-ink/50 dark:text-white/50">{zh ? '已加入 ✓' : 'Added ✓'}</span>
+                    <span className="text-ink/50 dark:text-white/50">{swap ? (zh ? '已替換 ✓' : 'Swapped ✓') : (zh ? '已加入 ✓' : 'Added ✓')}</span>
                 ) : (
                     <button type="button" disabled={busyCard === rec.exerciseId} onClick={() => addRecommendation(rec)}
                         className="px-3 py-1 rounded-lg text-white disabled:opacity-50 shrink-0" style={{ backgroundColor: ACCENT }}>
-                        {zh ? '加入今天' : 'Add to today'}
+                        {swap ? (zh ? '替換' : 'Swap') : (zh ? '加入今天' : 'Add to today')}
                     </button>
                 )}
             </div>

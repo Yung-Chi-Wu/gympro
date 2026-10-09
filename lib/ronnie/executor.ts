@@ -1,3 +1,4 @@
+import type { RecommendationCard } from './conversation'
 import type { LibraryExercise, RonnieData, RoutineProposal } from './data'
 import { describeProposal } from './events'
 import { gatedSearch, latinTokens, searchLibrary } from './search'
@@ -22,8 +23,8 @@ export interface RonnieExecutor {
     readonly needsDashboardReload: boolean
     /** Routine changes proposed this turn, shown as cards to confirm. */
     readonly proposals: (RoutineProposal & { id: string })[]
-    /** Exercises recommended this turn, shown as cards with an Add to today button. */
-    readonly recommendations: { exerciseId: string; exerciseName: string }[]
+    /** Exercises recommended this turn, shown as cards with an Add to today or a Swap button. */
+    readonly recommendations: RecommendationCard[]
     /** What this turn changed or proposed, in the user's language: the reply when the model's can't be used. */
     readonly confirmations: string[]
 }
@@ -74,7 +75,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
     let needsDashboardReload = false
     let removalAttempts = 0
     const proposals: (RoutineProposal & { id: string })[] = []
-    const recommendations: { exerciseId: string; exerciseName: string }[] = []
+    const recommendations: RecommendationCard[] = []
     const confirmations: string[] = []
 
     const nameOf = (ex: { name: string; name_zh_tw: string | null } | null | undefined) =>
@@ -196,11 +197,26 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             return changed(`✓ 已將「${name}」從今天課表移除（不影響固定課表）`, `✓ Removed "${name}" from today only (routines unchanged)`)
         },
 
+        // The user's own choice is done right away (add/remove above); Ronnie's choice waits for
+        // the user's tap, and a swap card swaps both at once so nothing is left half done.
         async recommend_exercise(input) {
             const exercise = await findExercise(input.exercise_id)
             if (!exercise) return UNKNOWN_ID
-            recommendations.push({ exerciseId: exercise.id, exerciseName: nameOf(exercise) })
-            return `Showing a card for "${nameOf(exercise)}" with an Add to today button.`
+            // Today's exercises, or the routine's plan if today's workout hasn't started
+            const range = todayRange()
+            const workout = await data.getLatestWorkoutBetween(range.start, range.end)
+            const routineId = workout ? null : await data.getTodayRoutineId()
+            const planned = workout?.workout_planned_exercises ?? (routineId ? await data.getRoutineExercises(routineId) : [])
+            if (planned.some((pe) => pe.exercise_id === exercise.id)) return `"${nameOf(exercise)}" is already in today's workout; no card shown. Recommend another, or tell the user.`
+            if (!input.replaces_exercise_id) {
+                recommendations.push({ exerciseId: exercise.id, exerciseName: nameOf(exercise) })
+                return `Showing a card for "${nameOf(exercise)}" with an Add to today button.`
+            }
+            const replaced = planned.find((pe) => pe.exercise_id === input.replaces_exercise_id)
+            if (!replaced) return "The exercise to replace isn't in today's workout; no card shown. Get its ID from get_today_workout."
+            const replacesName = nameOf(replaced.exercises)
+            recommendations.push({ exerciseId: exercise.id, exerciseName: nameOf(exercise), replacesExerciseId: replaced.exercise_id, replacesName })
+            return `Showing a card that swaps "${replacesName}" for "${nameOf(exercise)}" in today's workout. Nothing changes until the user taps Swap.`
         },
 
         get_training_summary: (input) => trainingSummary(input.date_from, input.date_to),
@@ -317,7 +333,8 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         async executeTool(toolName, rawInput) {
             const tool = tools[toolName]
             if (!tool) return `Unknown tool ${toolName}`
-            const input = rawInput.exercise_id ? { ...rawInput, exercise_id: await resolveId(String(rawInput.exercise_id)) } : rawInput
+            const input = { ...rawInput }
+            for (const key of ['exercise_id', 'replaces_exercise_id']) if (input[key]) input[key] = await resolveId(String(input[key]))
             return tool(input)
         },
         get needsDashboardReload() {
