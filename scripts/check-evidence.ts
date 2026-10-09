@@ -1,10 +1,11 @@
 // Free check of the report's research table (lib/report/evidence.ts): every rule has at
-// least one paper and a claim in both languages, and every DOI still resolves at doi.org.
+// least one paper and a claim in both languages, and every DOI (rules and glossary) still
+// resolves at doi.org.
 // Run: npm run check:evidence
 
 import en from '../messages/en.json'
 import zh from '../messages/zh-TW.json'
-import { EVIDENCE } from '../lib/report/evidence'
+import { EVIDENCE, GLOSSARY_SOURCES } from '../lib/report/evidence'
 
 const DOI = /^10\.\d{4,9}\/\S+$/
 
@@ -31,6 +32,12 @@ async function main() {
         if (!sources.length) problems.push(`${rule}: no source`)
         for (const s of sources) {
             if (!DOI.test(s.doi)) problems.push(`${rule}: malformed DOI ${s.doi}`)
+            else dois.add(s.doi)
+        }
+    }
+    for (const [entry, sources] of Object.entries(GLOSSARY_SOURCES)) {
+        for (const s of sources ?? []) {
+            if (!DOI.test(s.doi)) problems.push(`glossary ${entry}: malformed DOI ${s.doi}`)
             else dois.add(s.doi)
         }
     }

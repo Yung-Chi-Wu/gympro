@@ -1,5 +1,7 @@
 // Programmatic checks for the v3 report text. Pure functions of (case, output), so
-// check-grader.mjs can exercise them offline. `output` is { narrative, findings, status, brief }.
+// check-grader.mjs can exercise them offline. `output` is { narrative, findings, status, brief,
+// names, options }: names maps each finding id to the muscle or lift its rule's action must
+// mention, options to the exercises a low muscle's action offers to choose between.
 
 // Characters that only appear in Simplified Chinese, for the zh-TW check
 const SIMPLIFIED_ONLY = /[这们训练进动议还时对说体发让点从过关应经]/g
@@ -26,17 +28,33 @@ const WRONG_UNIT = { kg: /\d\s*(lbs?|磅)/i, lb: /\d\s*(kg|公斤)/i }
 export function programmaticGrade(c, out) {
     const n = out?.narrative ?? {}
     const items = n.items ?? []
-    const fired = (out?.findings ?? []).map((f) => f.id)
-    const chosen = items.map((i) => i.findingId)
-    const unknown = chosen.filter((id) => !fired.includes(id))
-    const deloadFired = fired.includes('deload:-')
+    const findings = out?.findings ?? []
+    const fired = [...new Set(findings.map((f) => f.rule))]
+    const chosen = items.map((i) => i.rule)
+    const unknown = chosen.filter((r) => !fired.includes(r))
+    const missing = fired.filter((r) => !chosen.includes(r))
+    const deloadFired = fired.includes('deload')
+    // Every finding's muscle or lift named in its rule's action
+    const unnamed = findings.filter((f) => {
+        const name = out?.names?.[f.id]
+        const action = items.find((i) => i.rule === f.rule)?.action ?? ''
+        return name && !action.toLowerCase().includes(name.toLowerCase())
+    }).map((f) => out.names[f.id])
+    // Both ways to add a low muscle's sets named, so the user can choose. With a note the judge
+    // decides instead (note_fits): a note about pain can rule one out.
+    const optionsApply = !c.note && findings.some((f) => out?.options?.[f.id]?.length)
+    const unoffered = findings.flatMap((f) => {
+        const action = items.find((i) => i.rule === f.rule)?.action ?? ''
+        return (out?.options?.[f.id] ?? []).filter((name) => !action.toLowerCase().includes(name.toLowerCase()))
+    })
     const headline = String(n.headline ?? '')
     const headlineLength = c.language === 'zh-TW' ? [...headline.replace(/\s/g, '')].length : headline.split(/\s+/).filter(Boolean).length
 
     const grade = {
-        advice_valid: !unknown.length && new Set(chosen).size === chosen.length && chosen.length <= 3 && (fired.length > 0) === (chosen.length > 0) ? 1 : 0,
-        deload_first: deloadFired ? (chosen[0] === 'deload:-' ? 1 : 0) : null,
-        top_included: fired.length ? (chosen.includes(fired[0]) ? 1 : 0) : null,
+        advice_valid: !unknown.length && !missing.length && new Set(chosen).size === chosen.length ? 1 : 0,
+        deload_first: deloadFired ? (chosen[0] === 'deload' ? 1 : 0) : null,
+        covers_all: findings.length ? (unnamed.length ? 0 : 1) : null,
+        options_named: optionsApply ? (unoffered.length ? 0 : 1) : null,
         headline_short: headline && headlineLength <= (c.language === 'zh-TW' ? 45 : 30) ? 1 : 0,
         plain_text: MARKDOWN.test(narrativeText(n)) ? 0 : 1,
         language_correct: languageCorrect(narrativeText(n), c.language) ? 1 : 0,
@@ -44,13 +62,12 @@ export function programmaticGrade(c, out) {
     }
     const explanation = {
         advice_valid: unknown.length ? `建議了沒有觸發的規則：${unknown.join('、')}`
-            : chosen.length > 3 ? `寫了 ${chosen.length} 項，超過 3 項`
+            : missing.length ? `觸發的規則沒有建議：${missing.join('、')}`
             : new Set(chosen).size !== chosen.length ? '同一條規則寫了兩次'
-            : fired.length && !chosen.length ? '有觸發規則卻沒有給建議'
-            : !fired.length && chosen.length ? '沒有觸發規則卻給了建議'
-            : `建議 ${chosen.length} 項，都來自觸發的規則（${fired.length} 條）`,
-        deload_first: deloadFired ? (chosen[0] === 'deload:-' ? '減量排第一' : '減量沒有排第一') : undefined,
-        top_included: fired.length ? (chosen.includes(fired[0]) ? `最優先的 ${fired[0]} 有寫到` : `漏掉最優先的 ${fired[0]}`) : undefined,
+            : `觸發的 ${fired.length} 種規則各有一條建議`,
+        deload_first: deloadFired ? (chosen[0] === 'deload' ? '減量排第一' : '減量沒有排第一') : undefined,
+        covers_all: findings.length ? (unnamed.length ? `建議沒有提到：${unnamed.join('、')}` : '每個肌群和動作都有提到') : undefined,
+        options_named: optionsApply ? (unoffered.length ? `沒有給的選項：${unoffered.join('、')}` : '加組數的選項都有列出') : undefined,
         headline_short: `標題長度 ${headlineLength}${c.language === 'zh-TW' ? ' 字（上限 45）' : ' 個字（上限 30）'}`,
         plain_text: grade.plain_text ? '沒有 Markdown' : '有 Markdown 符號',
         language_correct: grade.language_correct ? `語言符合 ${c.language}` : `語言不符合 ${c.language}，或中文用了半形標點`,

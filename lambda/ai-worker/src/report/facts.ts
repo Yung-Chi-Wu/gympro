@@ -1,4 +1,5 @@
 import { addDays, daysBetween } from '../../../../lib/periods'
+import { hasTarget, setWeights, VOLUME_UNIT_IDS } from '../../../../lib/report/volume'
 import type { BestSet, ExerciseInfo, LiftFacts, LoggedSet, MuscleFacts, RecordFacts, ReportFacts, ReportInputs, ReportStatus } from './types'
 
 // Every number in the report, computed from the logged sets. Pure: the same inputs
@@ -10,11 +11,9 @@ import type { BestSet, ExerciseInfo, LiftFacts, LoggedSet, MuscleFacts, RecordFa
 export const WINDOWS = 6
 /** Estimated-1RM changes within ±1.5% count as flat: rounding, or one rep at a light weight */
 export const FLAT_BAND = 0.015
-/** Hard sets per muscle per week where growth is well supported */
+/** Hard sets per muscle per week where growth is well supported. Which muscles it applies to,
+ *  and how a set counts toward them, is in lib/report/volume.ts. */
 export const VOLUME_RANGE = { low: 10, high: 20 } as const
-/** Groups the weekly range applies to. Arms get much of their work from presses and rows, which
- *  aren't counted until exercises list secondary muscles; core and cardio have no set target. */
-export const VOLUME_GROUPS = ['chest', 'back', 'legs', 'shoulders', 'glutes']
 const NOT_LIFTS = new Set(['cardio', 'core'])
 const MAIN_LIFTS = 5
 
@@ -58,25 +57,41 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
         days: dayList.map((date) => ({ date, routine: planFor.get(date) ?? null, trained: trainedDates.has(date) })),
     }
 
-    // Sets per muscle group, scaled to a week
-    const setsByGroup = (sets: LoggedSet[]) => {
+    // Sets per volume unit, scaled to a week: 1 for a primary muscle, 0.5 for a secondary one
+    const setsByUnit = (sets: LoggedSet[]) => {
         const out = new Map<string, number>()
         for (const s of sets) {
-            const g = byId.get(s.exerciseId)?.muscleGroup ?? 'other'
-            out.set(g, (out.get(g) ?? 0) + 1)
+            const e = byId.get(s.exerciseId)
+            if (!e) continue
+            for (const [unit, w] of setWeights(e.primaryMuscles, e.secondaryMuscles, e.muscleGroup)) out.set(unit, (out.get(unit) ?? 0) + w)
         }
         return out
     }
     const perWeek = (n: number) => round1((n * 7) / days)
-    const nowGroups = setsByGroup(current)
-    const prevGroups = setsByGroup(inWindow(1))
-    const recentGroups = new Set([1, 2, 3].flatMap((k) => [...setsByGroup(inWindow(k)).keys()]))
-    const groups = [...new Set([...nowGroups.keys(), ...VOLUME_GROUPS.filter((g) => recentGroups.has(g))])].filter((g) => g !== 'other')
-    const muscles: MuscleFacts[] = groups.map((group) => {
-        const sets = nowGroups.get(group) ?? 0
+    // What the planned sessions that weren't trained would have added, from their routines' target sets
+    const missedUnits = new Map<string, number>()
+    for (const d of inputs.schedule ?? []) {
+        if (!d.routine || trainedDates.has(d.date)) continue
+        for (const p of d.plan) {
+            const e = byId.get(p.exerciseId)
+            if (!e) continue
+            for (const [unit, w] of setWeights(e.primaryMuscles, e.secondaryMuscles, e.muscleGroup)) missedUnits.set(unit, (missedUnits.get(unit) ?? 0) + w * p.sets)
+        }
+    }
+    const nowUnits = setsByUnit(current)
+    const prevUnits = setsByUnit(inWindow(1))
+    const recentUnits = new Set([1, 2, 3].flatMap((k) => [...setsByUnit(inWindow(k)).keys()]))
+    // In the units' own order; a unit with a range stays listed while it was trained recently
+    const units = VOLUME_UNIT_IDS.filter((u) => nowUnits.has(u) || (hasTarget(u) && recentUnits.has(u)))
+    const muscles: MuscleFacts[] = units.map((group) => {
+        const sets = nowUnits.get(group) ?? 0
         const week = perWeek(sets)
-        const status = !VOLUME_GROUPS.includes(group) ? 'no_target' : week < VOLUME_RANGE.low ? 'low' : week > VOLUME_RANGE.high ? 'high' : 'ok'
-        return { group, sets, perWeek: week, previousPerWeek: hasHistory ? perWeek(prevGroups.get(group) ?? 0) : null, status }
+        const status = !hasTarget(group) ? 'no_target' : week < VOLUME_RANGE.low ? 'low' : week > VOLUME_RANGE.high ? 'high' : 'ok'
+        return {
+            group, sets, perWeek: week, status,
+            previousPerWeek: hasHistory ? perWeek(prevUnits.get(group) ?? 0) : null,
+            missedPerWeek: inputs.schedule ? perWeek(missedUnits.get(group) ?? 0) : null,
+        }
     })
 
     // Lifts

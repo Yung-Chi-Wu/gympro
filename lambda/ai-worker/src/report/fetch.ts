@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { addDays, daysBetween } from '../../../../lib/periods'
+import { SUGGESTED_NAMES } from '../../../../lib/report/volume'
 import { WINDOWS } from './facts'
 import type { ExerciseInfo, Finding, LoggedSet, ReportInputs, ScheduledDay } from './types'
 
@@ -83,9 +84,10 @@ export async function fetchReportInputs(
         : []
     const sets = [...earlier, ...recent]
 
-    const [exercises, schedule, weighIns, routineLeads, previousFindings] = await Promise.all([
-        fetchExercises(supabase, [...new Set(sets.map((s) => s.exerciseId))]),
-        fetchSchedule(supabase, userId, periodStart, days),
+    const schedule = await fetchSchedule(supabase, userId, periodStart, days)
+    const plannedIds = (schedule ?? []).flatMap((d) => d.plan.map((p) => p.exerciseId))
+    const [exercises, weighIns, routineLeads, previousFindings] = await Promise.all([
+        fetchExercises(supabase, [...new Set([...sets.map((s) => s.exerciseId), ...plannedIds])]),
         fetchWeighIns(supabase, userId, utcFrom, utcTo, localDate, lookbackStart, periodEnd),
         fetchRoutineLeads(supabase, userId),
         fetchPreviousFindings(supabase, userId, periodStart),
@@ -98,11 +100,20 @@ export async function fetchReportInputs(
     }
 }
 
+/** The exercises the user logged or planned, plus the library's staples a low muscle's advice may suggest. */
 async function fetchExercises(supabase: SupabaseClient, ids: string[]): Promise<ExerciseInfo[]> {
-    if (!ids.length) return []
-    const { data, error } = await supabase.from('exercises').select('id, name, name_zh_tw, muscle_group').in('id', ids)
-    if (error) throw new Error(`Failed to fetch exercises: ${error.message}`)
-    return (data ?? []).map((e) => ({ id: e.id, name: e.name, nameZh: e.name_zh_tw, muscleGroup: e.muscle_group }))
+    const columns = 'id, name, name_zh_tw, muscle_group, primary_muscles, secondary_muscles'
+    const [used, staples] = await Promise.all([
+        ids.length ? supabase.from('exercises').select(columns).in('id', ids) : { data: [], error: null },
+        supabase.from('exercises').select(columns).in('name', SUGGESTED_NAMES).not('is_custom', 'is', true),
+    ])
+    if (used.error) throw new Error(`Failed to fetch exercises: ${used.error.message}`)
+    if (staples.error) throw new Error(`Failed to fetch suggested exercises: ${staples.error.message}`)
+    const rows = [...(used.data ?? []), ...(staples.data ?? []).filter((e) => !ids.includes(e.id))]
+    return rows.map((e) => ({
+        id: e.id, name: e.name, nameZh: e.name_zh_tw, muscleGroup: e.muscle_group,
+        primaryMuscles: e.primary_muscles ?? [], secondaryMuscles: e.secondary_muscles ?? [],
+    }))
 }
 
 /** The cycle's routine for each day of the period, or null without a cycle. */
@@ -116,16 +127,22 @@ async function fetchSchedule(supabase: SupabaseClient, userId: string, periodSta
     if (!cycle) return null
     const { data: cycleDays, error: daysError } = await supabase
         .from('cycle_days')
-        .select('day_index, routines ( name )')
+        .select('day_index, routines ( name, routine_exercises ( exercise_id, target_sets ) )')
         .eq('training_cycle_id', cycle.id)
     if (daysError) throw new Error(`Failed to fetch cycle days: ${daysError.message}`)
-    const routineFor = new Map(((cycleDays ?? []) as unknown as { day_index: number; routines: { name: string } | null }[])
-        .map((d) => [d.day_index, d.routines?.name ?? null]))
+    type Row = { day_index: number; routines: { name: string; routine_exercises: { exercise_id: string; target_sets: number | null }[] } | null }
+    const routineFor = new Map(((cycleDays ?? []) as unknown as Row[]).map((d) => [d.day_index, d.routines]))
     return Array.from({ length: days }, (_, i) => {
         const date = addDays(periodStart, i)
         const since = daysBetween(cycle.start_date, date)
         const dayIndex = (((since % cycle.cycle_length) + cycle.cycle_length) % cycle.cycle_length) + 1
-        return { date, routine: since < 0 ? null : routineFor.get(dayIndex) ?? null }
+        const routine = since < 0 ? null : routineFor.get(dayIndex) ?? null
+        return {
+            date,
+            routine: routine?.name ?? null,
+            // A routine exercise with no target counts as 3 sets, the app's default
+            plan: (routine?.routine_exercises ?? []).map((re) => ({ exerciseId: re.exercise_id, sets: re.target_sets ?? 3 })),
+        }
     })
 }
 

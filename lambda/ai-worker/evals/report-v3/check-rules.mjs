@@ -38,6 +38,20 @@ for (const sc of SCENARIOS) {
         if (!(perWeek(sets + addSets) >= 10 && perWeek(sets + addSets - 1) < 10)) problems.push(`${f.id}: addSets ${addSets} with ${sets} sets in ${r.facts.period.days} days`)
     }
 
+    // Options: an exercise the user does that trains the muscle, and a staple they don't do yet
+    const inputs = inputsFor(sc)
+    const theirs = new Set([...inputs.sets.map((s) => s.exerciseId), ...(inputs.schedule ?? []).flatMap((d) => d.plan.map((p) => p.exerciseId))])
+    for (const f of r.findings.filter((x) => x.rule === 'low_volume')) {
+        const d = f.data
+        if (d.addTo == null && d.newExercise == null) problems.push(`${f.id}: no option to offer`)
+        if (d.addToId != null && !theirs.has(d.addToId)) problems.push(`${f.id}: addTo ${d.addTo} is not an exercise the user does`)
+        if (d.newExerciseId != null && theirs.has(d.newExerciseId)) problems.push(`${f.id}: newExercise ${d.newExercise} is one the user already does`)
+        const want = sc.expect.options?.[f.id]
+        if (!want) continue
+        const got = { ...d, addTo: d.addToId }
+        for (const [k, v] of Object.entries(want)) if (got[k] !== v) problems.push(`${f.id}: ${k} ${JSON.stringify(got[k])}, expected ${JSON.stringify(v)}`)
+    }
+
     if (problems.length) failed++
     console.log(`${problems.length ? 'FAIL' : 'ok  '} ${sc.id}${problems.map((p) => `\n       ${p}`).join('')}`)
     if (show === sc.id) console.log(JSON.stringify({ ...r, facts: { ...r.facts, sessions: { ...r.facts.sessions, days: r.facts.sessions.days.length } } }, null, 1))

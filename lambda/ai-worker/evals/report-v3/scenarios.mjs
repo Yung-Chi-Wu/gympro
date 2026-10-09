@@ -6,6 +6,8 @@
 // exercise in a window is logged at that window's weight x reps, oldest window
 // first in `progress`. Window 0 is the reported period.
 
+import { createRequire } from 'node:module'
+
 const LIBRARY = [
     ['bench', 'Barbell Bench Press', '槓鈴臥推', 'chest'],
     ['incline', 'Incline Dumbbell Press', '上斜啞鈴臥推', 'chest'],
@@ -17,23 +19,42 @@ const LIBRARY = [
     ['row', 'Barbell Row', '槓鈴划船', 'back'],
     ['pulldown', 'Lat Pulldown', '滑輪下拉', 'back'],
     ['curl', 'Barbell Curl', '槓鈴彎舉', 'biceps'],
+    ['facepull', 'Face Pull', '臉拉', 'shoulders'],
     ['squat', 'Barbell Back Squat', '深蹲', 'legs'],
     ['rdl', 'Romanian Deadlift', '羅馬尼亞硬舉', 'legs'],
     ['legpress', 'Leg Press', '腿推機', 'legs'],
+    ['legcurl', 'Leg Curl', '腿彎舉', 'legs'],
     ['hipthrust', 'Hip Thrust', '臀推', 'glutes'],
     ['plank', 'Plank', '棒式', 'core'],
 ]
-export const EXERCISES = LIBRARY.map(([key, name, nameZh, muscleGroup]) => ({ id: `ex-${key}`, name, nameZh, muscleGroup }))
+// Each takes the reviewed muscles of its counterpart in the real library
+const ATTRIBUTES = createRequire(import.meta.url)('../../../../supabase/data/exercise-attributes.json')
+const LIBRARY_NAME = { 'Incline Dumbbell Press': 'Incline Dumbbell Bench Press', Dips: 'Triceps Dip' }
+function musclesOf(name) {
+    const a = ATTRIBUTES.find((x) => x.name === (LIBRARY_NAME[name] ?? name))
+    if (!a) throw new Error(`scenario exercise ${name} has no counterpart in exercise-attributes.json`)
+    return { primaryMuscles: a.primary, secondaryMuscles: a.secondary }
+}
+// The rest of the library, untrained, as the report sees it: a low muscle's advice may suggest one of its staples
+const IN_SCENARIOS = new Set(LIBRARY.map(([, name]) => LIBRARY_NAME[name] ?? name))
+export const EXERCISES = [
+    ...LIBRARY.map(([key, name, nameZh, muscleGroup]) => ({ id: `ex-${key}`, name, nameZh, muscleGroup, ...musclesOf(name) })),
+    ...ATTRIBUTES.filter((a) => !IN_SCENARIOS.has(a.name))
+        .map((a) => ({ id: a.id, name: a.name, nameZh: a.nameZh, muscleGroup: a.muscleGroup, primaryMuscles: a.primary, secondaryMuscles: a.secondary })),
+]
 
-// Compound lifts get 4 sets, accessories fewer, as most programs do
+// Compound lifts get 4 sets, accessories fewer, as most programs do. Trained twice a week it
+// puts every muscle with a range at 10 or more (a secondary muscle counting half): side and
+// rear delts 10, quads 14, hamstrings 12; back and glutes go over 20, which is no rule. So a
+// scenario's own signal is the only thing that fires.
 const PPL = {
     push: [['bench', 4], ['ohp', 4], ['incline', 3], ['lateral', 3], ['pushdown', 2]],
-    pull: [['row', 4], ['pulldown', 3], ['curl', 2]],
-    legs: [['squat', 4], ['rdl', 4]],
+    pull: [['row', 4], ['pulldown', 3], ['facepull', 3], ['curl', 3]],
+    legs: [['squat', 4], ['rdl', 4], ['legpress', 3], ['legcurl', 2]],
 }
 const DEFAULTS = {
     bench: '80x8', incline: '26x10', ohp: '45x8', lateral: '10x12', pushdown: '30x12', dips: '0x10', pullup: '0x8',
-    row: '70x8', pulldown: '55x10', curl: '30x10', squat: '100x6', rdl: '90x8', legpress: '160x10', hipthrust: '100x10', plank: '0x60',
+    row: '70x8', pulldown: '55x10', curl: '30x10', facepull: '15x15', squat: '100x6', rdl: '90x8', legpress: '160x10', legcurl: '40x12', hipthrust: '100x10', plank: '0x60',
 }
 
 const addDays = (iso, n) => {
@@ -81,7 +102,11 @@ export function inputsFor(sc) {
         periodEnd,
         sets,
         exercises: EXERCISES,
-        schedule: sc.cycle ? sc.plan.map((routine, i) => ({ date: addDays(sc.periodStart, i), routine: routine ? sc.routineNames[routine] : null })) : null,
+        schedule: sc.cycle ? sc.plan.map((routine, i) => ({
+            date: addDays(sc.periodStart, i),
+            routine: routine ? sc.routineNames[routine] : null,
+            plan: routine ? sc.routines[routine].map(([key, sets]) => ({ exerciseId: `ex-${key}`, sets })) : [],
+        })) : null,
         weighIns,
         goal: sc.goal ?? null,
         routineLeads: Object.values(sc.routines).map((r) => `ex-${r[0][0]}`),
@@ -96,10 +121,11 @@ const WEEK = ['push', 'pull', 'legs', 'push', 'legs', 'pull', null]
 // expect.findings: exactly these finding ids, highest priority first
 // expect.watching: these rule:subject pairs are watched (others may be too)
 // expect.followUps: id -> status
+// expect.options: finding id -> the low-volume options code must pick (addTo is an exercise id, newExercise a library name)
 export const SCENARIOS = [
     {
         id: 'mockup-week-zh',
-        why: '草稿上的那一週：臥推停滯 3 週（目標是臥推）。週五腿日沒練，腿只剩 8 組，但上週腿是夠的，所以算在漏練裡，不另外說訓練量不足（一個原因只說一次）。划船持平 2 週、體重下降 3 週都只是觀察。上週建議肩推衝次數，這週做到了。',
+        why: '草稿上的那一週：臥推停滯 3 週（目標是臥推）。週五腿日沒練，股四頭和腿後側只剩 7 組和 6 組，但上週都夠，所以算在漏練裡，不另外說訓練量不足（一個原因只說一次）。划船持平 2 週、體重下降 3 週都只是觀察。上週建議肩推衝次數，這週做到了。',
         language: 'zh-TW', goal: '增肌，三個月內臥推 100kg', note: null,
         periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH, routines: PPL, skip: [4],
         progress: {
@@ -157,19 +183,31 @@ export const SCENARIOS = [
     },
     {
         id: 'first-report-zh',
-        why: '第一份報告：沒有之前的資料，狀態是「基準」，不能說停滯或退步；背每週只有 6 組，訓練量規則照樣成立。',
+        why: '第一份報告：沒有之前的資料，狀態是「基準」，不能說停滯或退步。拉日一週只排一次：背 9 組（划船、下拉 6 組，加上側平舉順帶練到上斜方的半組）、肩後束 1.5 組（划船算半組）、二頭 6 組都偏低，訓練量規則照樣成立，而且三個肌群合成一條建議。',
         language: 'zh-TW', goal: null, note: null,
         periodStart: '2026-09-28', plan: ['push', 'pull', 'legs', null, 'push', null, 'legs'], cycle: false, routines: { ...PPL, pull: [['row', 3], ['pulldown', 3], ['curl', 3]] }, history: 0,
-        expect: { status: 'baseline', findings: ['low_volume:back'], records: [] },
+        expect: {
+            status: 'baseline', findings: ['low_volume:back', 'low_volume:rear_delts', 'low_volume:biceps'], records: [],
+            // Rear delts need 9 more: 18 sets of rows (half each) is no real option, so only the new exercise
+            options: { 'low_volume:rear_delts': { addTo: null, newExercise: 'Rear Delt Machine' }, 'low_volume:biceps': { addTo: 'ex-curl', addToSets: 4, newExercise: 'Dumbbell Curl' } },
+        },
     },
     {
         id: 'cycle-4day-en',
-        why: 'A 4-day cycle: sets are scaled to a week. Shoulders get 3 sets in 4 days, about 5 a week, which is low; chest 7 sets in 4 days is about 12 a week, fine.',
+        why: 'A 4-day cycle: sets are scaled to a week. The side delts get only the overhead press, 3 sets counting half, so 1.5 in 4 days, about 2.6 a week, which is low; chest 7 sets in 4 days is about 12 a week, fine, and every other muscle with a range is too.',
         language: 'en', goal: 'Get stronger', note: null,
         periodStart: '2026-10-02', plan: ['push', 'pull', 'legs', null], cycle: true, routineNames: NAMES_EN,
-        routines: { push: [['bench', 4], ['incline', 3], ['ohp', 3]], pull: [['row', 4], ['pulldown', 3], ['curl', 3]], legs: [['squat', 4], ['rdl', 4]] },
+        routines: {
+            push: [['bench', 4], ['incline', 3], ['ohp', 3], ['pushdown', 2]],
+            pull: [['row', 4], ['pulldown', 3], ['facepull', 4], ['curl', 3]],
+            legs: [['squat', 4], ['legpress', 2], ['rdl', 4], ['legcurl', 2]],
+        },
         progress: { squat: ['100x5', '102.5x5', '105x5', '107.5x5', '110x5', '112.5x5'] },
-        expect: { status: 'progressing', findings: ['low_volume:shoulders'], records: ['ex-squat'] },
+        expect: {
+            status: 'progressing', findings: ['low_volume:side_delts'], records: ['ex-squat'],
+            // 10 more overhead-press sets (half each) is no real option, so only the new exercise
+            options: { 'low_volume:side_delts': { addTo: null, newExercise: 'Lateral Raise' } },
+        },
     },
     {
         id: 'fat-loss-weight-up-zh',
@@ -184,13 +222,17 @@ export const SCENARIOS = [
         why: 'Pull-ups and dips are bodyweight: they progress by reps, and a rep record counts as a record.',
         language: 'en', goal: 'More pull-ups', note: null,
         periodStart: '2026-09-28', plan: WEEK, cycle: false,
-        routines: { push: [['dips', 4], ['bench', 3], ['incline', 2]], pull: [['pullup', 4], ['row', 3]], legs: [['squat', 4], ['rdl', 3]] },
+        routines: {
+            push: [['dips', 4], ['bench', 3], ['incline', 2], ['lateral', 5], ['pushdown', 1]],
+            pull: [['pullup', 4], ['row', 3], ['facepull', 4], ['curl', 2]],
+            legs: [['squat', 4], ['rdl', 3], ['legpress', 3], ['legcurl', 2]],
+        },
         progress: { pullup: ['0x6', '0x6', '0x7', '0x7', '0x8', '0x9'], dips: ['0x8', '0x9', '0x10', '0x10', '0x11', '0x12'] },
         expect: { status: 'progressing', findings: [], records: ['ex-pullup', 'ex-dips'] },
     },
     {
         id: 'busy-week-note-zh',
-        why: '出差少練兩次：漏練規則成立。胸、背、肩因此低於 10 組，但上週都夠，算在漏練裡。報告要把備註考慮進去，不能責怪。',
+        why: '出差少練兩次：漏練規則成立。胸、肩中束、肩後束、二頭、三頭因此低於 10 組，但上週都夠，算在漏練裡。報告要把備註考慮進去，不能責怪。',
         language: 'zh-TW', goal: '維持體能', note: '這週出差，只練了四次',
         periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH, routines: PPL, skip: [3, 5],
         expect: { status: 'progressing', findings: ['missed_sessions:-'] },
@@ -228,7 +270,11 @@ export const SCENARIOS = [
         why: 'The goal names the squat, which has few sets, so it is still a main lift, and its stall ranks first.',
         language: 'en', goal: 'Squat 140 kg', note: null,
         periodStart: '2026-09-28', plan: WEEK, cycle: false,
-        routines: { push: [['bench', 4], ['incline', 4], ['ohp', 4], ['lateral', 4], ['pushdown', 4]], pull: [['row', 4], ['pulldown', 4], ['curl', 4]], legs: [['squat', 2], ['legpress', 4], ['rdl', 4]] },
+        routines: {
+            push: [['bench', 4], ['incline', 4], ['ohp', 4], ['lateral', 4], ['pushdown', 4]],
+            pull: [['row', 4], ['pulldown', 4], ['facepull', 3], ['curl', 4]],
+            legs: [['squat', 2], ['legpress', 4], ['rdl', 4], ['legcurl', 2]],
+        },
         progress: {
             squat: ['110x5', '112.5x5', '115x5', '115x5', '115x5', '115x5'],
             bench: ['70x8', '72.5x8', '75x8', '77.5x8', '80x8', '82.5x8'],
@@ -240,7 +286,11 @@ export const SCENARIOS = [
         why: 'Chest gets 26 sets a week: above the range, but that is not a rule. The report must not invent a volume warning.',
         language: 'en', goal: 'Bigger chest', note: null,
         periodStart: '2026-09-28', plan: WEEK, cycle: false,
-        routines: { push: [['bench', 5], ['incline', 4], ['ohp', 3], ['lateral', 3], ['pushdown', 3]], pull: [['row', 4], ['pulldown', 3], ['curl', 3], ['bench', 4]], legs: [['squat', 4], ['rdl', 4]] },
+        routines: {
+            push: [['bench', 5], ['incline', 4], ['ohp', 3], ['lateral', 4], ['pushdown', 3]],
+            pull: [['row', 4], ['pulldown', 3], ['facepull', 3], ['curl', 3], ['bench', 4]],
+            legs: [['squat', 4], ['rdl', 4], ['legpress', 3], ['legcurl', 2]],
+        },
         progress: { bench: ['70x8', '72.5x8', '75x8', '77.5x8', '80x8', '82.5x8'] },
         expect: { status: 'progressing', findings: [], records: ['ex-bench'] },
     },
@@ -293,11 +343,11 @@ export const SCENARIOS = [
     },
     {
         id: 'shoulder-pain-note-zh',
-        why: '肩膀只有側平舉，每週 4 組，一直偏低：訓練量規則成立。但備註說做側平舉右肩會痛，所以建議不能只是多做側平舉，要換不痛的做法。備註不一定要回覆，要的是建議配合它。',
+        why: '肩中束只有側平舉，每週 4 組，一直偏低：訓練量規則成立（肩前束有推的動作，不設範圍）。但備註說做側平舉右肩會痛，所以建議不能只是多做側平舉，要換不痛的做法。備註不一定要回覆，要的是建議配合它。',
         language: 'zh-TW', goal: '增肌', note: '側平舉的時候右肩會卡卡的，有點痛',
         periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH,
         routines: { ...PPL, push: [['bench', 4], ['incline', 3], ['lateral', 2], ['pushdown', 2]] },
-        expect: { status: 'progressing', findings: ['low_volume:shoulders'] },
+        expect: { status: 'progressing', findings: ['low_volume:side_delts'] },
     },
     {
         id: 'knee-note-missed-legs-en',
@@ -307,10 +357,32 @@ export const SCENARIOS = [
         expect: { status: 'progressing', findings: ['missed_sessions:-'] },
     },
     {
+        id: 'first-report-missed-legs-en',
+        why: "A first report (no earlier weeks) with Friday's leg day missed: quads and hamstrings are low only because of it, since the routine's planned sets would have brought both into range. One cause, one finding: they fold into the missed session even with no last week to compare with. Found on the owner's own first week.",
+        language: 'en', goal: 'Build muscle', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_EN, routines: PPL, skip: [4], history: 0,
+        expect: { status: 'baseline', findings: ['missed_sessions:-'], records: [] },
+    },
+    {
         id: 'legs-once-chronic-en',
-        why: 'Legs are trained once a week by plan, 8 sets every week: a real volume gap, not a missed session. The squat still counts as a main lift because it leads its routine.',
+        why: 'Legs are trained once a week by plan, every week: quads get 7 sets and hamstrings 6, a real volume gap, not a missed session (glutes, at 11, are fine). The squat still counts as a main lift because it leads its routine.',
         language: 'en', goal: 'Build muscle', note: null,
         periodStart: '2026-09-28', plan: ['push', 'pull', 'legs', 'push', 'pull', null, null], cycle: true, routineNames: NAMES_EN, routines: PPL,
-        expect: { status: 'progressing', findings: ['low_volume:legs'] },
+        expect: {
+            status: 'progressing', findings: ['low_volume:quads', 'low_volume:hamstrings'],
+            // The user already does both hamstring staples, so the only option is more of what they do
+            options: { 'low_volume:quads': { addTo: 'ex-squat', addToSets: 3, newExercise: 'Leg Extension' }, 'low_volume:hamstrings': { addTo: 'ex-rdl', addToSets: 4, newExercise: null } },
+        },
+    },
+    {
+        id: 'biceps-from-pulls-zh',
+        why: '拉日沒有彎舉，二頭只靠划船和下拉順帶練到（各算半組），每週 7 組，差 3 組。建議要給兩種選擇讓使用者挑：在槓鈴划船多做 6 組（順帶練到的算半組，所以要加倍，而且要說明），或加一個新動作啞鈴彎舉 3 組。',
+        language: 'zh-TW', goal: '增肌', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH,
+        routines: { ...PPL, pull: [['row', 4], ['pulldown', 3], ['facepull', 3]] },
+        expect: {
+            status: 'progressing', findings: ['low_volume:biceps'],
+            options: { 'low_volume:biceps': { addTo: 'ex-row', addToSets: 6, addToHalf: 1, newExercise: 'Dumbbell Curl', newExerciseSets: 3 } },
+        },
     },
 ]

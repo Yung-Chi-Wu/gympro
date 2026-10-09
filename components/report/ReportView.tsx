@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
+import { unitLabel } from '@/lib/report/volume'
 import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
-import { EVIDENCE } from '@/lib/report/evidence'
-import type { DayFacts, Finding, FollowUp, LiftFacts, ReportV3, RuleId } from '@/lib/report/types'
+import { EVIDENCE, GLOSSARY_SOURCES, type Source } from '@/lib/report/evidence'
+import type { DayFacts, Finding, FollowUp, LiftFacts, ReportV3 } from '@/lib/report/types'
 import { BodyMap } from './BodyMap'
 import { Sparkline } from './Sparkline'
 
@@ -35,7 +36,8 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
     const [section, setSection] = useState<string | null>(null)
     const row = (id: string) => ({ open: section === id, onToggle: () => setSection(section === id ? null : id) })
 
-    const muscle = (g: string) => getMuscleGroupLabel(g, language)
+    // Volume units (side delts, quads...); reports saved before the split name categories
+    const muscle = (g: string) => unitLabel(g, language, (x) => getMuscleGroupLabel(x, language))
     const muscles = (list: string) => list.split(', ').filter(Boolean).map(muscle).join(zh ? '、' : ', ')
     const liftName = (x: { name: string; nameZh: string | null } | Data) => String((zh && x.nameZh) || x.name)
     // Weights are stored in kg and shown in the user's unit
@@ -76,7 +78,10 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
         }
     }
 
-    const items = narrative.items.map((i) => ({ ...i, finding: findings.find((f) => f.id === i.findingId) })).filter((i) => i.finding)
+    // One item per fired rule, with every finding of it; reports saved before that have one per finding
+    const items = narrative.items
+        .map((i) => ({ ...i, findings: findings.filter((f) => (i.rule ? f.rule === i.rule : f.id === i.findingId)) }))
+        .filter((i) => i.findings.length)
     const missed = facts.sessions.planned != null ? facts.sessions.planned - facts.sessions.done : 0
     const lowGroups = facts.muscles.filter((m) => m.status === 'low').map((m) => m.group)
     const weightWatch = watching.find((w) => w.rule === 'weight_trend')
@@ -133,15 +138,15 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
                 ) : (
                     <ol className="space-y-2.5">
                         {items.map((item, i) => (
-                            <li key={item.findingId} className="space-y-2 rounded-xl border border-ink/10 p-3.5 dark:border-white/10">
+                            <li key={item.rule ?? item.findingId} className="space-y-2 rounded-xl border border-ink/10 p-3.5 dark:border-white/10">
                                 <div className="grid grid-cols-[24px_1fr] items-start gap-2.5">
                                     <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-plate text-xs font-bold text-chalk dark:bg-chalk dark:text-plate">{i + 1}</span>
                                     <p className="font-semibold leading-relaxed">{item.action}</p>
                                 </div>
                                 <dl className="space-y-1 pl-[34px] text-[13px] text-ink/70 dark:text-white/70">
-                                    <Reason tag={t('why')} tone="data">{why(item.finding!)}</Reason>
+                                    {item.findings.map((f) => <Reason key={f.id} tag={t('why')} tone="data">{why(f)}</Reason>)}
                                     <Reason tag={t('research')} tone="study">
-                                        {t(`researchText.${item.finding!.rule}`)}<Sources rule={item.finding!.rule} />
+                                        {t(`researchText.${item.findings[0].rule}`)}<Sources sources={EVIDENCE[item.findings[0].rule].sources} />
                                     </Reason>
                                 </dl>
                             </li>
@@ -206,7 +211,7 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
                                         <dl className="grid grid-cols-[72px_1fr] gap-x-2.5 gap-y-1">
                                             <dt className="text-ink/50 dark:text-white/50">{t('basisLabels.rule')}</dt><dd className="text-ink/70 dark:text-white/70">{t(`ruleText.${f.rule}`, { unit })}{EVIDENCE[f.rule].ownThreshold && <span className="text-xs text-ink/40 dark:text-white/40"> · {t('ownSetting')}</span>}</dd>
                                             <dt className="text-ink/50 dark:text-white/50">{t('basisLabels.data')}</dt><dd className="text-ink/70 dark:text-white/70">{why(f)}</dd>
-                                            <dt className="text-ink/50 dark:text-white/50">{t('basisLabels.research')}</dt><dd className="text-ink/70 dark:text-white/70">{t(`researchText.${f.rule}`)}<Sources rule={f.rule} /></dd>
+                                            <dt className="text-ink/50 dark:text-white/50">{t('basisLabels.research')}</dt><dd className="text-ink/70 dark:text-white/70">{t(`researchText.${f.rule}`)}<Sources sources={EVIDENCE[f.rule].sources} /></dd>
                                         </dl>
                                     </div>
                                 ))}
@@ -217,7 +222,7 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
                                 {(['mainLifts', 'bestSet', 'e1rm', 'record', 'weeklySets', 'status'] as const).map((k) => (
                                     <div key={k}>
                                         <dt className="font-semibold">{t(`glossary.${k}.term`)}</dt>
-                                        <dd className="text-ink/70 dark:text-white/70">{t(`glossary.${k}.text`, { unit })}</dd>
+                                        <dd className="text-ink/70 dark:text-white/70">{t(`glossary.${k}.text`, { unit })}{GLOSSARY_SOURCES[k] && <Sources sources={GLOSSARY_SOURCES[k]} />}</dd>
                                     </div>
                                 ))}
                             </dl>
@@ -290,12 +295,12 @@ function Reason({ tag, tone, children }: { tag: string; tone: 'data' | 'study'; 
     )
 }
 
-/** A rule's papers, each linking to its DOI. They come from code (lib/report/evidence), never from the model. */
-function Sources({ rule }: { rule: RuleId }) {
+/** Papers, each linking to its DOI. They come from code (lib/report/evidence), never from the model. */
+function Sources({ sources }: { sources: Source[] }) {
     return (
         <span className="text-xs text-ink/50 dark:text-white/50">
             {' · '}
-            {EVIDENCE[rule].sources.map((s, i) => (
+            {sources.map((s, i) => (
                 <span key={s.doi}>
                     {i > 0 && '; '}
                     <a href={`https://doi.org/${s.doi}`} target="_blank" rel="noopener noreferrer" title={`${s.title}. ${s.journal}`}
@@ -338,15 +343,15 @@ function Legend({ items }: { items: [string, string][] }) {
 }
 
 const AXIS_MAX = 24
-// Big groups with a weekly range first, then the ones without
-const MUSCLE_ORDER = ['chest', 'back', 'shoulders', 'legs', 'glutes', 'biceps', 'triceps', 'core']
+// Top to bottom of the body; shoulders and legs are categories in reports saved before the split
+const MUSCLE_ORDER = ['chest', 'back', 'shoulders', 'front_delts', 'side_delts', 'rear_delts', 'biceps', 'triceps', 'core', 'glutes', 'legs', 'quads', 'hamstrings', 'calves']
 
 function MuscleBars({ muscles, label }: { muscles: ReportV3['facts']['muscles']; label: (g: string) => string }) {
     const pct = (v: number) => `${(Math.min(v, AXIS_MAX) / AXIS_MAX) * 100}%`
     return (
         <div className="space-y-2">
             {[...muscles].sort((a, b) => (MUSCLE_ORDER.indexOf(a.group) + 1 || 99) - (MUSCLE_ORDER.indexOf(b.group) + 1 || 99)).map((m) => (
-                <div key={m.group} className="grid grid-cols-[40px_1fr_56px] items-center gap-2 text-[13px]" role="img" aria-label={`${label(m.group)} ${m.perWeek}`}>
+                <div key={m.group} className="grid grid-cols-[76px_1fr_44px] items-center gap-2 text-[13px]" role="img" aria-label={`${label(m.group)} ${m.perWeek}`}>
                     <span className="text-ink/70 dark:text-white/70">{label(m.group)}</span>
                     <div className="relative h-3.5 overflow-hidden rounded bg-ink/10 dark:bg-white/10">
                         {m.status !== 'no_target' && <div className="absolute inset-y-0 border-x border-dashed border-[#C8955A] bg-[#C8955A]/20" style={{ left: pct(10), width: pct(10) }} />}
@@ -355,7 +360,7 @@ function MuscleBars({ muscles, label }: { muscles: ReportV3['facts']['muscles'];
                     <span className={`text-right font-semibold tabular-nums ${m.status === 'low' ? 'text-amber-700 dark:text-amber-400' : ''}`}>{m.perWeek}</span>
                 </div>
             ))}
-            <div className="grid grid-cols-[40px_1fr_56px] gap-2 text-[10px] text-ink/40 dark:text-white/40">
+            <div className="grid grid-cols-[76px_1fr_44px] gap-2 text-[10px] text-ink/40 dark:text-white/40">
                 <span />
                 <div className="relative h-3">{[0, 10, 20].map((v) => <span key={v} className="absolute -translate-x-1/2 tabular-nums" style={{ left: pct(v) }}>{v}</span>)}</div>
                 <span />

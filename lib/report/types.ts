@@ -8,6 +8,9 @@ export interface ExerciseInfo {
     name: string
     nameZh: string | null
     muscleGroup: string
+    /** From the exercise library; empty for a custom exercise (see lib/report/volume.ts) */
+    primaryMuscles: string[]
+    secondaryMuscles: string[]
 }
 
 /** One logged set. Dates are YYYY-MM-DD in the user's own time zone. */
@@ -23,6 +26,8 @@ export interface ScheduledDay {
     date: string
     /** The routine planned that day, or null for a rest day */
     routine: string | null
+    /** The routine's exercises and target sets, as the routine is now */
+    plan: { exerciseId: string; sets: number }[]
 }
 
 export interface ReportInputs {
@@ -72,11 +77,15 @@ export interface LiftFacts {
 }
 
 export interface MuscleFacts {
+    /** A volume unit (lib/report/volume.ts); reports saved before the split hold category names */
     group: string
+    /** Can be fractional: a secondary muscle counts half a set */
     sets: number
     /** Sets scaled to 7 days, so a 4-day cycle compares with the weekly range */
     perWeek: number
     previousPerWeek: number | null
+    /** What the sessions missed this period would have added, scaled to 7 days; null without a cycle */
+    missedPerWeek: number | null
     status: 'low' | 'ok' | 'high' | 'no_target'
 }
 
@@ -153,8 +162,11 @@ export interface FollowUp {
 
 export interface ReportNarrative {
     headline: string
-    items: { findingId: string; action: string }[]
+    /** One action per fired rule, covering every finding of it, in priority order. Reports saved
+     *  before 2026-10-09 have one item per finding (findingId) instead. */
+    items: NarrativeItem[]
 }
+export type NarrativeItem = { action: string } & ({ rule: RuleId; findingId?: undefined } | { findingId: string; rule?: undefined })
 
 export interface ReportV3 {
     version: 3
