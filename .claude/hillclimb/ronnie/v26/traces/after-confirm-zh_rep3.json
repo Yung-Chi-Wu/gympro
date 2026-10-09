@@ -1,0 +1,32 @@
+[
+  {
+    "role": "user",
+    "content": "以後所有課表都不要再排波比跳了"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"波比跳 burpee\"},\"result\":\"ID: c6e49af8 | 波比跳: core; trains cardio; joint load: shoulder medium, lower back medium, knee medium\\nID: 23bc61ff | 伏地挺身: chest; trains chest; low joint load\\nID: f04af209 | 棒式: core; trains abs; low joint load\\nID: 03bae642 | 雙槓撐體: triceps; trains triceps; joint load: shoulder high, elbow medium\\nID: 1ca807a6 | 引體向上: back; trains lats; joint load: shoulder medium\\nID: 3f4394d3 | 懸吊舉腿: core; trains abs; joint load: shoulder medium\\nID: 5866803c | 深蹲: legs; trains quads, glutes; joint load: lower back medium, knee medium\\nID: a726ab1a | 低位繩索飛鳥: chest; trains upper chest; low joint load\\nID: 13841865 | 肩推: shoulders; trains front delts; joint load: shoulder medium, elbow medium, lower back medium\\nID: 697409e4 | 三頭下壓: triceps; trains triceps; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "propose_routine_change",
+    "content": "{\"input\":{\"change\":\"remove\",\"exercise_id\":\"c6e49af8\"},\"result\":\"Proposed, not applied yet: remove \\\"波比跳\\\" from 「腿日」 (the only routines with this exercise). It takes effect when the user confirms it in the app.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "已準備好：從「腿日」移除「波比跳」，在 app 裡按「確認」後生效。"
+  },
+  {
+    "role": "app_event",
+    "content": "[App event] The user confirmed the proposal and it was applied: remove \"波比跳\" from 「腿日」 (腿日: was 3 x 10, position 4)."
+  },
+  {
+    "role": "user",
+    "content": "波比跳還在腿日嗎？"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 不在了，「波比跳」已從腿日移除，目前所有課表都沒有它。\n\n如果之後想再避開它，告訴我一聲，我會幫你挑其他替代動作。"
+  }
+]
