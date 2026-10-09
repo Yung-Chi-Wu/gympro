@@ -100,7 +100,7 @@ export function buildPrompt(input: NarrativeInput): string {
         const d = f.data
         const name = (k: 'addTo' | 'newExercise') => String((zh && d[`${k}Zh`]) || d[k])
         return [
-            d.addTo != null && `${d.addToSets} more ${d.addToSets === 1 ? 'set' : 'sets'} each ${unit} of ${name('addTo')}, on top of the sets they do now${d.addToHalf ? ` (it trains the ${muscleName(String(f.subject))} on the side, so each set counts half; say so)` : ''}`,
+            d.addTo != null && `${d.addToSets} more ${d.addToSets === 1 ? 'set' : 'sets'} each ${unit} of ${name('addTo')}, on top of the sets they do now${d.addToHalf ? ` (it trains the ${muscleName(String(f.subject))} only as a secondary muscle${zh ? ', 順帶練到' : ''}, so each set counts half; say so)` : ''}`,
             d.newExercise != null && `add ${name('newExercise')}, a new exercise, for ${d.newExerciseSets} sets each ${unit}`,
         ].filter(Boolean)
     }
