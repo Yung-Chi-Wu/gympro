@@ -45,6 +45,24 @@ export function setWeights(primary: readonly string[], secondary: readonly strin
     })
 }
 
+/**
+ * Staple exercises to suggest when a unit is low, by library name, best first. Each mainly
+ * trains its unit, is easy to learn, and loads the joints lightly where the unit allows
+ * (the report Lambda suggests the first one the user doesn't already do).
+ */
+export const SUGGESTED_EXERCISES: Partial<Record<VolumeUnit, readonly string[]>> = {
+    chest: ['Machine Chest Press', 'Pec Deck Fly', 'Dumbbell Bench Press'],
+    back: ['Lat Pulldown', 'Seated Cable Row', 'Machine Row'],
+    side_delts: ['Lateral Raise', 'Cable Lateral Raise', 'Machine Lateral Raise'],
+    rear_delts: ['Rear Delt Machine', 'Face Pull', 'Cable Rear Delt Fly'],
+    quads: ['Leg Press', 'Leg Extension', 'Goblet Squat'],
+    hamstrings: ['Leg Curl', 'Romanian Deadlift'],
+    glutes: ['Hip Thrust', 'Hip Thrust Machine', 'Glute Bridge'],
+    biceps: ['Dumbbell Curl', 'Cable Curl', 'Machine Curl'],
+    triceps: ['Triceps Pushdown', 'Rope Pushdown', 'Machine Triceps Extension'],
+}
+export const SUGGESTED_NAMES = [...new Set(Object.values(SUGGESTED_EXERCISES).flat())]
+
 /** A unit's name; reports saved before the split use category names, which fall back to `category`. */
 export function unitLabel(unit: string, language: string, category: (g: string) => string): string {
     const u = VOLUME_UNITS[unit as VolumeUnit]

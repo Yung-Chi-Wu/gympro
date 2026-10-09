@@ -11,7 +11,7 @@ import { inputsFor, SCENARIOS } from './scenarios.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 execFileSync(join(here, '..', '..', 'node_modules/.bin/esbuild'), ['evals/report-v3/entry.ts', '--bundle', '--platform=node', '--format=cjs', '--outfile=evals/report-v3/dist/report.cjs', '--log-level=warning'], { cwd: join(here, '..', '..'), stdio: 'inherit' })
-const { analyze, findingName } = createRequire(import.meta.url)(join(here, 'dist', 'report.cjs'))
+const { analyze, findingName, optionNames } = createRequire(import.meta.url)(join(here, 'dist', 'report.cjs'))
 
 let failures = 0
 const check = (ok, msg) => { if (!ok) { failures++; console.log(`FAIL ${msg}`) } }
@@ -20,15 +20,17 @@ for (const c of SCENARIOS) {
     const { findings, facts } = analyze(inputsFor(c))
     const zh = c.language === 'zh-TW'
     // Ideal: one action per fired rule in priority order (a deload first), naming every item of it
+    // and, for a low muscle, both exercises to choose between
     const names = Object.fromEntries(findings.map((f) => [f.id, findingName(f, c.language)]))
+    const options = Object.fromEntries(findings.map((f) => [f.id, optionNames(f, c.language)]))
     const rules = [...new Set(findings.map((f) => f.rule))]
-    const named = (r) => findings.filter((f) => f.rule === r && names[f.id]).map((f) => names[f.id]).join(zh ? '、' : ', ')
+    const named = (r) => findings.filter((f) => f.rule === r).flatMap((f) => [names[f.id], ...options[f.id]]).filter(Boolean).join(zh ? '、' : ', ')
     const ideal = {
         narrative: {
             headline: zh ? '這週整體穩定，照下面的重點調整就好。' : 'A steady week; the points below are what to adjust.',
             items: rules.map((r) => ({ rule: r, action: `${named(r)}${zh ? '下週照這個方向調整。' : ' adjust this next week.'}` })),
         },
-        findings, status: facts.status, brief: '', names,
+        findings, status: facts.status, brief: '', names, options,
     }
     const g = programmaticGrade(c, ideal).grade
     check(overallPass(g) === 1, `${c.id}: the ideal text should pass, got ${JSON.stringify(g)}`)
@@ -44,6 +46,13 @@ for (const c of SCENARIOS) {
         if (withName) {
             const dropName = ideal.narrative.items.map((i) => ({ ...i, action: i.action.replaceAll(names[withName.id], '') }))
             check(programmaticGrade(c, broken({ items: dropName })).grade.covers_all === 0, `${c.id}: an action that leaves out ${names[withName.id]} should fail`)
+        }
+        const withOption = findings.find((f) => options[f.id].length)
+        if (withOption) {
+            const option = options[withOption.id].at(-1)
+            const dropOption = ideal.narrative.items.map((i) => ({ ...i, action: i.action.replaceAll(option, '') }))
+            const g = programmaticGrade(c, broken({ items: dropOption })).grade
+            check(c.note ? g.options_named === null : g.options_named === 0, `${c.id}: an action that leaves out ${option} should ${c.note ? 'be left to the judge (a note)' : 'fail'}`)
         }
     } else {
         check(programmaticGrade(c, broken({ items: [{ rule: 'low_volume', action: 'x' }] })).grade.advice_valid === 0, `${c.id}: advice when nothing fired should fail`)

@@ -18,7 +18,7 @@ const advice = (unit: WeightUnit, period: string): Record<RuleId, string> => ({
     deload: 'Plan one lighter week: the same exercises at about half of each lift\'s sets this period (listed above) and clearly lighter weights, then build back up. If the note mentions sleep or stress, suggest looking at it; don\'t claim it is the cause.',
     lift_regressed: 'Hold the weight for now, check recovery (sleep, food, stress) and technique, and aim to get back to the earlier level before pushing on.',
     lift_stalled: `Double progression: keep the weight and add reps on every set until all sets reach the top of the rep range, then add the smallest jump (${unit === 'lb' ? '5 lb upper body, 10 lb lower body' : '2.5 kg upper body, 5 kg lower body'}).`,
-    low_volume: `Add addSets sets (from the data) each ${period} for that muscle, which brings it to 10 a week, spread over sessions the user already does.`,
+    low_volume: `It takes addSets more sets each ${period} to bring the muscle to 10 a week. Give the user two ways to choose between, with the exercises in its data: addToSets more sets of addTo, which they already do (addToHalf 1 means it trains the muscle on the side, so each set counts half and it takes twice as many; say so), or adding newExercise for newExerciseSets sets. When one is null, give the other alone. Use these exercises, not others, unless the note rules one out.`,
     missed_sessions: 'Name the missed sessions and suggest a realistic way to fit the work in or plan around those days. Never scold; if the note explains it, acknowledge that.',
     weight_trend: 'Body weight is moving against the goal: suggest a small daily calorie change (about 200-300 kcal) and steady weigh-ins, not a crash diet.',
 })
@@ -50,6 +50,15 @@ export function findingName(f: Finding, language: string): string | null {
     return null
 }
 
+/** The exercises a low muscle's action offers the user to choose between, as its action must name them. */
+export function optionNames(f: Finding, language: string): string[] {
+    if (f.rule !== 'low_volume') return []
+    const zh = language === 'zh-TW'
+    return (['addTo', 'newExercise'] as const)
+        .map((k) => (zh ? f.data[`${k}Zh`] : null) ?? f.data[k])
+        .filter((v): v is string => typeof v === 'string')
+}
+
 /** The fired rules, most important first (findings come sorted by priority). */
 const rulesOf = (findings: Finding[]): RuleId[] => [...new Set(findings.map((f) => f.rule))]
 
@@ -79,7 +88,8 @@ export function buildPrompt(input: NarrativeInput): string {
     // Finding data keeps weights in kg ("82.5x8"); the model sees the user's unit. previousValue
     // is an internal estimated 1RM for the follow-up, not something to quote. In a 7-day period
     // perWeek is the same number as sets, and two names for one number read as two numbers.
-    const hidden = new Set(['previousValue', ...(facts.period.days === 7 ? ['perWeek'] : [])])
+    // Exercise ids are for the app; a suggested exercise goes by its name in the user's language.
+    const hidden = new Set(['previousValue', 'addToId', 'newExerciseId', 'addToZh', 'newExerciseZh', ...(facts.period.days === 7 ? ['perWeek'] : [])])
     // Muscles by name, in the user's language like exercise names
     const muscleName = (g: string) => unitLabel(g, language, (x) => x)
     const dataFor = (f: Finding) => Object.fromEntries([
@@ -88,6 +98,7 @@ export function buildPrompt(input: NarrativeInput): string {
             const m = typeof v === 'string' && /^(\d+(?:\.\d+)?)x(\d+)$/.exec(v)
             if (m) return [k, f.data.bodyweight ? `${m[2]} reps (bodyweight)` : `${w(Number(m[1]))} x ${m[2]}`]
             if (k === 'lowGroups' && typeof v === 'string') return [k, v.split(', ').map(muscleName).join(', ')]
+            if ((k === 'addTo' || k === 'newExercise') && zh && v != null) return [k, f.data[`${k}Zh`] ?? v]
             return [k.replace(/Kg$/, ''), (k === 'latestKg' || k === 'changeKg') && typeof v === 'number' ? w(v) : v]
         }),
     ])

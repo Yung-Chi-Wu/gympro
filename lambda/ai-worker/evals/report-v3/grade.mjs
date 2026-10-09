@@ -1,6 +1,7 @@
 // Programmatic checks for the v3 report text. Pure functions of (case, output), so
 // check-grader.mjs can exercise them offline. `output` is { narrative, findings, status, brief,
-// names }: names maps each finding id to the muscle or lift its rule's action must mention.
+// names, options }: names maps each finding id to the muscle or lift its rule's action must
+// mention, options to the exercises a low muscle's action offers to choose between.
 
 // Characters that only appear in Simplified Chinese, for the zh-TW check
 const SIMPLIFIED_ONLY = /[这们训练进动议还时对说体发让点从过关应经]/g
@@ -39,6 +40,13 @@ export function programmaticGrade(c, out) {
         const action = items.find((i) => i.rule === f.rule)?.action ?? ''
         return name && !action.toLowerCase().includes(name.toLowerCase())
     }).map((f) => out.names[f.id])
+    // Both ways to add a low muscle's sets named, so the user can choose. With a note the judge
+    // decides instead (note_fits): a note about pain can rule one out.
+    const optionsApply = !c.note && findings.some((f) => out?.options?.[f.id]?.length)
+    const unoffered = findings.flatMap((f) => {
+        const action = items.find((i) => i.rule === f.rule)?.action ?? ''
+        return (out?.options?.[f.id] ?? []).filter((name) => !action.toLowerCase().includes(name.toLowerCase()))
+    })
     const headline = String(n.headline ?? '')
     const headlineLength = c.language === 'zh-TW' ? [...headline.replace(/\s/g, '')].length : headline.split(/\s+/).filter(Boolean).length
 
@@ -46,6 +54,7 @@ export function programmaticGrade(c, out) {
         advice_valid: !unknown.length && !missing.length && new Set(chosen).size === chosen.length ? 1 : 0,
         deload_first: deloadFired ? (chosen[0] === 'deload' ? 1 : 0) : null,
         covers_all: findings.length ? (unnamed.length ? 0 : 1) : null,
+        options_named: optionsApply ? (unoffered.length ? 0 : 1) : null,
         headline_short: headline && headlineLength <= (c.language === 'zh-TW' ? 45 : 30) ? 1 : 0,
         plain_text: MARKDOWN.test(narrativeText(n)) ? 0 : 1,
         language_correct: languageCorrect(narrativeText(n), c.language) ? 1 : 0,
@@ -58,6 +67,7 @@ export function programmaticGrade(c, out) {
             : `觸發的 ${fired.length} 種規則各有一條建議`,
         deload_first: deloadFired ? (chosen[0] === 'deload' ? '減量排第一' : '減量沒有排第一') : undefined,
         covers_all: findings.length ? (unnamed.length ? `建議沒有提到：${unnamed.join('、')}` : '每個肌群和動作都有提到') : undefined,
+        options_named: optionsApply ? (unoffered.length ? `沒有給的選項：${unoffered.join('、')}` : '加組數的選項都有列出') : undefined,
         headline_short: `標題長度 ${headlineLength}${c.language === 'zh-TW' ? ' 字（上限 45）' : ' 個字（上限 30）'}`,
         plain_text: grade.plain_text ? '沒有 Markdown' : '有 Markdown 符號',
         language_correct: grade.language_correct ? `語言符合 ${c.language}` : `語言不符合 ${c.language}，或中文用了半形標點`,

@@ -178,7 +178,7 @@ async function loadCases() {
 
 /** Code computes the facts and rules, then the real generateNarrative() writes the text. */
 async function runCase(c, ctx) {
-  const { analyze, findingName, generateNarrative, NARRATIVE_MODEL } = loadWorker();
+  const { analyze, findingName, generateNarrative, NARRATIVE_MODEL, optionNames } = loadWorker();
   const analysis = analyze(inputsFor(c));
   let res;
   try {
@@ -191,9 +191,11 @@ async function runCase(c, ctx) {
     throw e;
   }
   return {
-    // names: what each finding's action must mention (a muscle or a lift), for the coverage check
+    // names: what each finding's action must mention (a muscle or a lift), for the coverage check;
+    // options: the exercises a low muscle's action offers to choose between
     output: { narrative: res.narrative, findings: analysis.findings, status: analysis.facts.status, brief: res.prompt,
-      names: Object.fromEntries(analysis.findings.map((f) => [f.id, findingName(f, c.language)])) },
+      names: Object.fromEntries(analysis.findings.map((f) => [f.id, findingName(f, c.language)])),
+      options: Object.fromEntries(analysis.findings.map((f) => [f.id, optionNames(f, c.language)])) },
     transcript: [
       { role: 'user', content: res.prompt },
       { role: 'tool_call', name: 'submit_report_text', content: JSON.stringify(res.narrative, null, 2) },

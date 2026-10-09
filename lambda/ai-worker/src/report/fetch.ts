@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { addDays, daysBetween } from '../../../../lib/periods'
+import { SUGGESTED_NAMES } from '../../../../lib/report/volume'
 import { WINDOWS } from './facts'
 import type { ExerciseInfo, Finding, LoggedSet, ReportInputs, ScheduledDay } from './types'
 
@@ -99,11 +100,17 @@ export async function fetchReportInputs(
     }
 }
 
+/** The exercises the user logged or planned, plus the library's staples a low muscle's advice may suggest. */
 async function fetchExercises(supabase: SupabaseClient, ids: string[]): Promise<ExerciseInfo[]> {
-    if (!ids.length) return []
-    const { data, error } = await supabase.from('exercises').select('id, name, name_zh_tw, muscle_group, primary_muscles, secondary_muscles').in('id', ids)
-    if (error) throw new Error(`Failed to fetch exercises: ${error.message}`)
-    return (data ?? []).map((e) => ({
+    const columns = 'id, name, name_zh_tw, muscle_group, primary_muscles, secondary_muscles'
+    const [used, staples] = await Promise.all([
+        ids.length ? supabase.from('exercises').select(columns).in('id', ids) : { data: [], error: null },
+        supabase.from('exercises').select(columns).in('name', SUGGESTED_NAMES).not('is_custom', 'is', true),
+    ])
+    if (used.error) throw new Error(`Failed to fetch exercises: ${used.error.message}`)
+    if (staples.error) throw new Error(`Failed to fetch suggested exercises: ${staples.error.message}`)
+    const rows = [...(used.data ?? []), ...(staples.data ?? []).filter((e) => !ids.includes(e.id))]
+    return rows.map((e) => ({
         id: e.id, name: e.name, nameZh: e.name_zh_tw, muscleGroup: e.muscle_group,
         primaryMuscles: e.primary_muscles ?? [], secondaryMuscles: e.secondary_muscles ?? [],
     }))

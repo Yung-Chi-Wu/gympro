@@ -1,6 +1,6 @@
 {
   "flow": "report-v3",
-  "description": "Weekly report v3 (lambda/ai-worker src/report): code computes facts and fires rules, the model writes the headline and advice; 18 scenarios with planted signals",
+  "description": "Weekly report v3 (lambda/ai-worker src/report): code computes facts and fires rules, the model writes the headline and advice; 22 scenarios with planted signals",
   "metrics": [
     {
       "id": "pass",
@@ -20,6 +20,11 @@
     {
       "id": "covers_all",
       "label": "每個項目都有寫到",
+      "kind": "binary"
+    },
+    {
+      "id": "options_named",
+      "label": "加組數選項都有列",
       "kind": "binary"
     },
     {

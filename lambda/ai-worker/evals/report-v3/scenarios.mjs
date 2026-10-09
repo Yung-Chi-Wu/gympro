@@ -35,7 +35,13 @@ function musclesOf(name) {
     if (!a) throw new Error(`scenario exercise ${name} has no counterpart in exercise-attributes.json`)
     return { primaryMuscles: a.primary, secondaryMuscles: a.secondary }
 }
-export const EXERCISES = LIBRARY.map(([key, name, nameZh, muscleGroup]) => ({ id: `ex-${key}`, name, nameZh, muscleGroup, ...musclesOf(name) }))
+// The rest of the library, untrained, as the report sees it: a low muscle's advice may suggest one of its staples
+const IN_SCENARIOS = new Set(LIBRARY.map(([, name]) => LIBRARY_NAME[name] ?? name))
+export const EXERCISES = [
+    ...LIBRARY.map(([key, name, nameZh, muscleGroup]) => ({ id: `ex-${key}`, name, nameZh, muscleGroup, ...musclesOf(name) })),
+    ...ATTRIBUTES.filter((a) => !IN_SCENARIOS.has(a.name))
+        .map((a) => ({ id: a.id, name: a.name, nameZh: a.nameZh, muscleGroup: a.muscleGroup, primaryMuscles: a.primary, secondaryMuscles: a.secondary })),
+]
 
 // Compound lifts get 4 sets, accessories fewer, as most programs do. Trained twice a week it
 // puts every muscle with a range at 10 or more (a secondary muscle counting half): side and
@@ -115,6 +121,7 @@ const WEEK = ['push', 'pull', 'legs', 'push', 'legs', 'pull', null]
 // expect.findings: exactly these finding ids, highest priority first
 // expect.watching: these rule:subject pairs are watched (others may be too)
 // expect.followUps: id -> status
+// expect.options: finding id -> the low-volume options code must pick (addTo is an exercise id, newExercise a library name)
 export const SCENARIOS = [
     {
         id: 'mockup-week-zh',
@@ -179,7 +186,11 @@ export const SCENARIOS = [
         why: '第一份報告：沒有之前的資料，狀態是「基準」，不能說停滯或退步。拉日一週只排一次：背 9 組（划船、下拉 6 組，加上側平舉順帶練到上斜方的半組）、肩後束 1.5 組（划船算半組）、二頭 6 組都偏低，訓練量規則照樣成立，而且三個肌群合成一條建議。',
         language: 'zh-TW', goal: null, note: null,
         periodStart: '2026-09-28', plan: ['push', 'pull', 'legs', null, 'push', null, 'legs'], cycle: false, routines: { ...PPL, pull: [['row', 3], ['pulldown', 3], ['curl', 3]] }, history: 0,
-        expect: { status: 'baseline', findings: ['low_volume:back', 'low_volume:rear_delts', 'low_volume:biceps'], records: [] },
+        expect: {
+            status: 'baseline', findings: ['low_volume:back', 'low_volume:rear_delts', 'low_volume:biceps'], records: [],
+            // Rear delts need 9 more: 18 sets of rows (half each) is no real option, so only the new exercise
+            options: { 'low_volume:rear_delts': { addTo: null, newExercise: 'Rear Delt Machine' }, 'low_volume:biceps': { addTo: 'ex-curl', addToSets: 4, newExercise: 'Dumbbell Curl' } },
+        },
     },
     {
         id: 'cycle-4day-en',
@@ -192,7 +203,11 @@ export const SCENARIOS = [
             legs: [['squat', 4], ['legpress', 2], ['rdl', 4], ['legcurl', 2]],
         },
         progress: { squat: ['100x5', '102.5x5', '105x5', '107.5x5', '110x5', '112.5x5'] },
-        expect: { status: 'progressing', findings: ['low_volume:side_delts'], records: ['ex-squat'] },
+        expect: {
+            status: 'progressing', findings: ['low_volume:side_delts'], records: ['ex-squat'],
+            // 10 more overhead-press sets (half each) is no real option, so only the new exercise
+            options: { 'low_volume:side_delts': { addTo: null, newExercise: 'Lateral Raise' } },
+        },
     },
     {
         id: 'fat-loss-weight-up-zh',
@@ -353,6 +368,21 @@ export const SCENARIOS = [
         why: 'Legs are trained once a week by plan, every week: quads get 7 sets and hamstrings 6, a real volume gap, not a missed session (glutes, at 11, are fine). The squat still counts as a main lift because it leads its routine.',
         language: 'en', goal: 'Build muscle', note: null,
         periodStart: '2026-09-28', plan: ['push', 'pull', 'legs', 'push', 'pull', null, null], cycle: true, routineNames: NAMES_EN, routines: PPL,
-        expect: { status: 'progressing', findings: ['low_volume:quads', 'low_volume:hamstrings'] },
+        expect: {
+            status: 'progressing', findings: ['low_volume:quads', 'low_volume:hamstrings'],
+            // The user already does both hamstring staples, so the only option is more of what they do
+            options: { 'low_volume:quads': { addTo: 'ex-squat', addToSets: 3, newExercise: 'Leg Extension' }, 'low_volume:hamstrings': { addTo: 'ex-rdl', addToSets: 4, newExercise: null } },
+        },
+    },
+    {
+        id: 'biceps-from-pulls-zh',
+        why: '拉日沒有彎舉，二頭只靠划船和下拉順帶練到（各算半組），每週 7 組，差 3 組。建議要給兩種選擇讓使用者挑：在槓鈴划船多做 6 組（順帶練到的算半組，所以要加倍，而且要說明），或加一個新動作啞鈴彎舉 3 組。',
+        language: 'zh-TW', goal: '增肌', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH,
+        routines: { ...PPL, pull: [['row', 4], ['pulldown', 3], ['facepull', 3]] },
+        expect: {
+            status: 'progressing', findings: ['low_volume:biceps'],
+            options: { 'low_volume:biceps': { addTo: 'ex-row', addToSets: 6, addToHalf: 1, newExercise: 'Dumbbell Curl', newExerciseSets: 3 } },
+        },
     },
 ]
