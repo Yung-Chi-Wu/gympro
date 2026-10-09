@@ -73,10 +73,12 @@ const COMMON_TIMEZONES = [
 
 const LANGUAGE_NAMES: Record<string, string> = { en: 'English', 'zh-TW': '繁體中文' }
 
+// Phone sizes first (44px targets, 52px rows, 15px text), the denser desktop ones from md
 const CARD = 'rounded-[14px] border border-line bg-card p-4'
-const INPUT = 'w-full rounded-[9px] border border-line bg-card px-3 py-2'
-const PRIMARY = 'inline-flex min-h-10 items-center justify-center rounded-[9px] bg-accent px-5 text-sm font-bold text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50'
-const ROW = 'flex min-h-12 w-full items-center gap-3 py-2.5 text-left'
+const INPUT = 'h-11 w-full rounded-[9px] border border-line bg-card px-3 md:h-auto md:py-2'
+const TEXTAREA = 'w-full rounded-[9px] border border-line bg-card px-3 py-2.5 md:py-2'
+const PRIMARY = 'inline-flex min-h-11 items-center justify-center rounded-[9px] bg-accent px-5 text-[15px] font-bold text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50 md:min-h-10 md:text-sm'
+const ROW = 'flex min-h-[52px] w-full items-center gap-3 py-2.5 text-left md:min-h-12'
 
 // The theme is only known in the browser: the server and the first render show none
 const subscribeNothing = () => () => {}
@@ -217,11 +219,11 @@ export function ProfileSettingsForm({ userId, initial }: { userId: string; initi
                 </div>
 
                 {/* Phone: every setting, grouped, with its value */}
-                <div className={`space-y-4 @split:hidden ${item ? 'hidden' : ''}`}>
+                <div className={`space-y-6 @split:hidden ${item ? 'hidden' : ''}`}>
                     {PHONE_GROUPS.map(({ key, fields }) => (
-                        <section key={key} className="space-y-1.5">
-                            <h2 className="px-1 text-xs tracking-wider text-faint">{t(`groups.${key}`)}</h2>
-                            <ul className="divide-y divide-line rounded-[14px] border border-line bg-card px-3">
+                        <section key={key} className="space-y-2">
+                            <h2 className="px-1 text-[13px] tracking-wider text-muted">{t(`groups.${key}`)}</h2>
+                            <ul className="divide-y divide-line rounded-[14px] border border-line bg-card px-4">
                                 {key === 'account' ? accountRows : fields.map((field) => (
                                     <li key={field}>
                                         <button type="button" onClick={() => openSubPage('item', field)} className={ROW}>
@@ -325,7 +327,7 @@ function SettingsForm({ title, fields, values, onSave, isZhTW, single = false }:
 
             <div className="flex flex-wrap items-center justify-end gap-3">
                 {status && (
-                    <p role="status" className={`text-sm ${status.ok ? 'text-good' : 'text-miss'}`}>{status.text}</p>
+                    <p role="status" className={`text-[15px] md:text-sm ${status.ok ? 'text-good' : 'text-miss'}`}>{status.text}</p>
                 )}
                 <button type="submit" disabled={saving} className={`${PRIMARY} ${single ? '@max-split:w-full' : ''}`}>
                     {saving ? t('saving') : t('save')}
@@ -380,7 +382,7 @@ function FieldEditor({ field, value, onChange, hideLabel, isZhTW }: {
             break
         }
         case 'trainingGoal':
-            control = <textarea id={id} value={value} onChange={(e) => onChange(e.target.value)} rows={4} placeholder={t('trainingGoalPlaceholder')} className={INPUT} />
+            control = <textarea id={id} value={value} onChange={(e) => onChange(e.target.value)} rows={4} placeholder={t('trainingGoalPlaceholder')} className={TEXTAREA} />
             break
         case 'weightUnit':
             control = <Segmented id={id} options={['kg', 'lb']} value={value} onChange={onChange} />
@@ -402,9 +404,9 @@ function FieldEditor({ field, value, onChange, hideLabel, isZhTW }: {
 
     return (
         <div className="space-y-1.5">
-            <label htmlFor={id} className={hideLabel ? 'sr-only' : 'block text-xs font-medium text-muted'}>{t(`fields.${field}`)}</label>
+            <label htmlFor={id} className={hideLabel ? 'sr-only' : 'block text-[13px] font-medium text-muted md:text-xs'}>{t(`fields.${field}`)}</label>
             {control}
-            {hint && <p className="text-xs text-muted">{hint}</p>}
+            {hint && <p className="text-[13px] text-muted md:text-xs">{hint}</p>}
         </div>
     )
 }
@@ -420,7 +422,7 @@ function Segmented({ id, options, value, onChange }: { id: string; options: stri
                     role="radio"
                     aria-checked={value === option}
                     onClick={() => onChange(option)}
-                    className={`min-h-10 min-w-16 px-4 font-mono text-sm font-bold ${value === option ? 'bg-ink text-card' : 'text-faint'}`}
+                    className={`min-h-11 min-w-16 px-5 font-mono text-[15px] font-bold md:min-h-10 md:px-4 md:text-sm ${value === option ? 'bg-ink text-card' : 'text-faint'}`}
                 >
                     {option}
                 </button>
