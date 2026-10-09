@@ -28,6 +28,7 @@ interface DashboardClientShellProps {
     latestWeightKg: number | null
     period: Period | null
     periodNote: string
+    // Today's note, in today's log
     dayNote: string
 }
 
@@ -69,6 +70,7 @@ export function DashboardClientShell({
                 weightUnit={weightUnit}
                 distanceUnit={distanceUnit}
                 routineName={routineName}
+                initialDayNote={dayNote}
             />
             <PeriodLogCard
                 language={language}
@@ -76,7 +78,6 @@ export function DashboardClientShell({
                 weightUnit={weightUnit}
                 period={period}
                 initialNote={periodNote}
-                initialDayNote={dayNote}
             />
         </>
     )

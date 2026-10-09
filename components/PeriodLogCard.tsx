@@ -1,8 +1,8 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { logBodyWeight, saveDayNote, savePeriodNote } from '@/app/(app)/dashboard/period-actions'
+import { logBodyWeight, savePeriodNote } from '@/app/(app)/dashboard/period-actions'
 import { toStorageKg, toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
 import type { Period } from '@/lib/periods'
 
@@ -10,37 +10,28 @@ interface PeriodLogCardProps {
     language: string
     latestWeightKg: number | null
     weightUnit: WeightUnit
-    // null when a custom cycle hasn't started yet: weight and today's note can still be logged
+    // null when a custom cycle hasn't started yet: weight can still be logged
     period: Period | null
     // A note for the whole period, from before day notes; shown only while this period has one
     initialNote: string
-    initialDayNote: string
 }
 
 type Feedback = { success: boolean; message: string } | null
 
-// The day_notes table allows 200 characters, so a week of notes can't drown the report's brief
-const DAY_NOTE_MAX = 200
-
-// Weight and today's note are saved independently, any day, trained or not.
+// Body weight, any day. Today's note sits in today's log (DayNoteField).
 // The report itself is generated automatically once the period ends.
-export function PeriodLogCard({ language, latestWeightKg, weightUnit, period, initialNote, initialDayNote }: PeriodLogCardProps) {
+export function PeriodLogCard({ language, latestWeightKg, weightUnit, period, initialNote }: PeriodLogCardProps) {
     const t = useTranslations('periodLog')
     const zh = language === 'zh-TW'
-    const dayNoteId = useId()
 
     const [weightDisplay, setWeightDisplay] = useState(
         latestWeightKg ? String(toDisplayWeight(latestWeightKg, weightUnit)) : ''
     )
-    const [dayNote, setDayNote] = useState(initialDayNote)
-    const [savedDayNote, setSavedDayNote] = useState(initialDayNote)
     const [note, setNote] = useState(initialNote)
     const [savedNote, setSavedNote] = useState(initialNote)
     const [savingWeight, setSavingWeight] = useState(false)
-    const [savingDayNote, setSavingDayNote] = useState(false)
     const [savingNote, setSavingNote] = useState(false)
     const [weightFeedback, setWeightFeedback] = useState<Feedback>(null)
-    const [dayNoteFeedback, setDayNoteFeedback] = useState<Feedback>(null)
     const [noteFeedback, setNoteFeedback] = useState<Feedback>(null)
 
     async function handleWeightSubmit(e: React.FormEvent) {
@@ -55,22 +46,6 @@ export function PeriodLogCard({ language, latestWeightKg, weightUnit, period, in
         const result = await logBodyWeight(toStorageKg(weightNum, weightUnit))
         setSavingWeight(false)
         setWeightFeedback(result.success ? { success: true, message: t('weightSaved') } : { success: false, message: result.message ?? '' })
-    }
-
-    // Saving an empty note deletes it, so Delete is the same call
-    async function saveToday(text: string) {
-        const trimmed = text.trim()
-        setSavingDayNote(true)
-        setDayNoteFeedback(null)
-        const result = await saveDayNote(trimmed)
-        setSavingDayNote(false)
-        if (result.success) {
-            setDayNote(trimmed)
-            setSavedDayNote(trimmed)
-        }
-        setDayNoteFeedback(result.success
-            ? { success: true, message: trimmed ? t('dayNoteSaved') : t('dayNoteDeleted') }
-            : { success: false, message: result.message ?? '' })
     }
 
     async function handleNoteSubmit(e: React.FormEvent) {
@@ -124,48 +99,6 @@ export function PeriodLogCard({ language, latestWeightKg, weightUnit, period, in
                 {weightFeedback && (
                     <p className={`text-sm ${weightFeedback.success ? 'text-green-700' : 'text-red-600'}`}>
                         {weightFeedback.message}
-                    </p>
-                )}
-            </form>
-
-            <form onSubmit={(e) => { e.preventDefault(); saveToday(dayNote) }} className="space-y-1">
-                <label htmlFor={dayNoteId} className="text-sm font-medium">{t('dayNoteLabel')}</label>
-                <textarea
-                    id={dayNoteId}
-                    value={dayNote}
-                    onChange={(e) => setDayNote(e.target.value)}
-                    rows={2}
-                    maxLength={DAY_NOTE_MAX}
-                    placeholder={t('dayNotePlaceholder')}
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                />
-                <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-ink/40">
-                        {t('dayNoteHint')} <span className="tabular-nums">{dayNote.length}/{DAY_NOTE_MAX}</span>
-                    </p>
-                    <div className="flex shrink-0 items-center gap-3">
-                        {savedDayNote && (
-                            <button
-                                type="button"
-                                onClick={() => saveToday('')}
-                                disabled={savingDayNote}
-                                className="text-sm text-ink/40 hover:text-red-600 active:opacity-50 disabled:opacity-50"
-                            >
-                                {t('deleteDayNote')}
-                            </button>
-                        )}
-                        <button
-                            type="submit"
-                            disabled={savingDayNote || dayNote.trim() === savedDayNote}
-                            className={buttonClass}
-                        >
-                            {savingDayNote ? t('saving') : t('saveDayNote')}
-                        </button>
-                    </div>
-                </div>
-                {dayNoteFeedback && (
-                    <p className={`text-sm ${dayNoteFeedback.success ? 'text-green-700' : 'text-red-600'}`}>
-                        {dayNoteFeedback.message}
                     </p>
                 )}
             </form>

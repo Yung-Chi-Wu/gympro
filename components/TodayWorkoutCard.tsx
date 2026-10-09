@@ -12,6 +12,7 @@ import { fieldValue, fitsLogType, hasWeight, isValidField, LOG_FIELDS, logTypeOf
 import type { ExerciseOption } from './log-types'
 import { exerciseLogUnits, findTodayWorkoutId, lastSessionSets, loadTodayWorkout, type TodayExercise } from '@/lib/today-workout'
 import { cellText, compactSet, fieldLabel, SummaryLine } from './set-format'
+import { DayNoteField } from './DayNoteField'
 
 interface TodayWorkoutCardProps {
     userId: string
@@ -29,6 +30,8 @@ interface TodayWorkoutCardProps {
     weightUnit: WeightUnit
     distanceUnit: DistanceUnit
     routineName: string | null
+    /** Today's note, shown at the bottom of the log */
+    initialDayNote: string
 }
 
 // Today's log: every exercise, strength or cardio, is a table of sets whose columns come from
@@ -63,6 +66,7 @@ export function TodayWorkoutCard({
     weightUnit: readingUnit,
     distanceUnit: initialDistanceUnit,
     routineName,
+    initialDayNote,
 }: TodayWorkoutCardProps) {
     const t = useTranslations('today')
     const ts = useTranslations('sets')
@@ -371,6 +375,8 @@ export function TodayWorkoutCard({
                             {t('addExercise')}
                         </button>
                     )}
+
+                    <DayNoteField initialNote={initialDayNote} />
                 </>
             )}
 
