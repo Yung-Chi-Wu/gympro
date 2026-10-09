@@ -20,15 +20,13 @@
             "body": "Plan your routines, log every set, and ask Ronnie, GymPro's AI coach, whenever you're not sure what to do next. Ronnie looks at what you've actually trained before answering, and can adjust today's workout for you."
         },
         "chat": {
-            "label": "Example chat: Ronnie swaps an exercise in today's workout, then asks before changing a routine.",
+            "label": "Example chat: Ronnie suggests a substitute, and today's workout changes only when you tap Swap.",
             "subtitle": "AI Personal Coach",
             "user": "My lower back is tight today. Can I swap squats for something easier on it?",
-            "reply": "Done. I took Barbell Back Squat out of today's workout and added Leg Press. Go lighter than usual, and stop if it starts to hurt.",
-            "ask": "Want Leg Press in your Leg Day routine too? That one's permanent, so it's your call.",
-            "cardTitle": "Routine change · needs your OK",
-            "cardBody": "Add \"Leg Press\" to Leg Day (3 × 10)",
-            "cancel": "Cancel",
-            "confirm": "Confirm",
+            "reply": "I'd swap Barbell Back Squat for Leg Press today: it's easier on your lower back. Go lighter than usual, and stop if it starts to hurt.",
+            "swapCard": "Barbell Back Squat → Leg Press",
+            "swap": "Swap",
+            "swapped": "✓ Swapped \"Barbell Back Squat\" for \"Leg Press\" today",
             "placeholder": "Ask Ronnie anything…"
         },
         "how": {

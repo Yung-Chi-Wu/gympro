@@ -33,18 +33,17 @@ export async function RonnieChatMock() {
                     </p>
                 </div>
                 <RonnieBubble delay={300}>{t('reply')}</RonnieBubble>
-                <RonnieBubble delay={600}>{t('ask')}</RonnieBubble>
-                <div className="ml-8 space-y-2 rounded-xl border border-amber-500/40 bg-amber-50 p-3 text-xs dark:bg-amber-500/10 motion-safe:animate-rise"
-                    style={{ animationDelay: '900ms' }}>
-                    <p className="font-semibold">{t('cardTitle')}</p>
-                    <p>{t('cardBody')}</p>
-                    <div className="flex justify-end gap-2">
-                        <span className="rounded-md border border-ink/20 px-3 py-1">{t('cancel')}</span>
-                        <span className="rounded-md px-3 py-1 font-semibold text-[#1A1814]" style={{ backgroundColor: ACCENT }}>
-                            {t('confirm')}
-                        </span>
-                    </div>
+                {/* The swap card as the app draws it: nothing changes until the user taps Swap */}
+                <div className="ml-8 flex items-center justify-between gap-2 rounded-xl border border-ink/10 p-3 text-xs motion-safe:animate-rise"
+                    style={{ animationDelay: '600ms' }}>
+                    <span>🔄 {t('swapCard')}</span>
+                    <span className="shrink-0 rounded-lg px-3 py-1 font-semibold text-[#1A1814]" style={{ backgroundColor: ACCENT }}>
+                        {t('swap')}
+                    </span>
                 </div>
+                <p className="text-center text-xs text-ink/50 motion-safe:animate-rise" style={{ animationDelay: '900ms' }}>
+                    {t('swapped')}
+                </p>
             </div>
 
             <div className="border-t border-ink/10 p-3">
