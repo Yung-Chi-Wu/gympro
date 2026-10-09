@@ -84,7 +84,7 @@
         }
     },
     "dashboard": {
-        "welcome": "歡迎回來，",
+        "welcome": "歡迎回來，{name}",
         "aiReportTitle": "AI 教練報告"
     },
     "today": {
@@ -95,13 +95,14 @@
         "addExercise": "+ 新增動作",
         "addToToday": "加入",
         "cancel": "取消",
-        "remove": "移除",
         "add": "記錄",
         "reps": "次數",
         "kg": "公斤",
         "lb": "磅",
         "switchUnit": "切換單位",
-        "dayOf": "第 {day} 天 / 共 {total} 天"
+        "dayOf": "第 {day} 天 / 共 {total} 天",
+        "removeExercise": "移除這個動作",
+        "switchTo": "改用 {unit}"
     },
     "sets": {
         "set": "組",
@@ -119,7 +120,9 @@
         },
         "bodyweight": "自重",
         "summary": {
-            "notStarted": "還沒開始",
+            "target": "目標 <b>{sets}</b> 組",
+            "targetReps": "目標 <b>{sets}</b> 組 × <b>{reps}</b> 下",
+            "setsOf": "<b>{count}</b>/{target} 組",
             "separator": "・",
             "sets": "<b>{count}</b> 組",
             "best": "最佳 <b>{weight}</b> {unit} × <b>{reps}</b>",
@@ -143,29 +146,26 @@
         },
         "addSet": "新增第 {n} 組",
         "deleteSet": "刪除第 {n} 組",
-        "fieldOfSet": "第 {n} 組的{field}",
-        "logUnit": "{name}的記錄單位",
-        "distanceUnit": "距離單位"
+        "fieldOfSet": "第 {n} 組的{field}"
     },
     "periodLog": {
-        "title": "本週期紀錄",
-        "reportSchedule": "這個週期結束後（{end}），AI 報告會自動產生。",
-        "weightLabel": "體重",
-        "logWeight": "記錄",
-        "weightSaved": "體重已記錄。",
-        "weightError": "請輸入有效的體重。",
-        "dayNoteLabel": "今天的備註（選填）",
-        "dayNotePlaceholder": "例如：睡不好、加班到很晚、右肩有點卡",
-        "dayNoteHint": "有沒有練都可以寫，AI 報告會對照當天的訓練一起看。",
-        "saveDayNote": "儲存",
-        "deleteDayNote": "刪除",
-        "dayNoteSaved": "今天的備註已儲存。",
-        "dayNoteDeleted": "今天的備註已刪除。",
+        "reportSchedule": "{end}週期結束後，AI 報告會自動產生。",
         "periodNoteLabel": "這個週期的備註",
-        "periodNoteHint": "這是之前寫給整個週期的備註，還是會放進這個週期的報告；之後請寫在上面「今天的備註」。",
+        "periodNoteHint": "這是之前寫給整個週期的備註，還是會放進這個週期的報告；之後請寫在今天的紀錄裡。",
         "saveNote": "儲存備註",
         "noteSaved": "備註已儲存，會放進這個週期的報告。",
         "saving": "儲存中..."
+    },
+    "dayLog": {
+        "title": "今天的體重和備註（選填）",
+        "weight": "體重",
+        "note": "備註",
+        "notePlaceholder": "例如：睡不好、加班到很晚、右肩有點卡",
+        "hint": "有沒有練都可以填，AI 報告會對照當天的訓練一起看。清空再儲存就會刪除。",
+        "save": "儲存",
+        "saving": "儲存中...",
+        "saved": "已儲存。",
+        "weightInvalid": "請輸入有效的體重。"
     },
     "report": {
         "sectionTitle": "AI 教練報告",

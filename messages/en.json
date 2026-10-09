@@ -84,7 +84,7 @@
         }
     },
     "dashboard": {
-        "welcome": "Welcome back,",
+        "welcome": "Welcome back, {name}",
         "aiReportTitle": "AI Coach Report"
     },
     "today": {
@@ -95,13 +95,14 @@
         "addExercise": "+ Add an exercise",
         "addToToday": "Add",
         "cancel": "Cancel",
-        "remove": "Remove",
         "add": "Add",
         "reps": "Reps",
         "kg": "kg",
         "lb": "lb",
         "switchUnit": "Switch unit",
-        "dayOf": "Day {day} of {total}"
+        "dayOf": "Day {day} of {total}",
+        "removeExercise": "Remove this exercise",
+        "switchTo": "Switch to {unit}"
     },
     "sets": {
         "set": "Set",
@@ -119,7 +120,9 @@
         },
         "bodyweight": "BW",
         "summary": {
-            "notStarted": "Not started",
+            "target": "target <b>{sets}</b> {sets, plural, one {set} other {sets}}",
+            "targetReps": "target <b>{sets}</b> × <b>{reps}</b>",
+            "setsOf": "<b>{count}</b>/{target} sets",
             "separator": " · ",
             "sets": "<b>{count}</b> {count, plural, one {set} other {sets}}",
             "best": "best <b>{weight}</b> {unit} × <b>{reps}</b>",
@@ -143,29 +146,26 @@
         },
         "addSet": "Add set {n}",
         "deleteSet": "Delete set {n}",
-        "fieldOfSet": "Set {n}, {field}",
-        "logUnit": "Logging unit for {name}",
-        "distanceUnit": "Distance unit"
+        "fieldOfSet": "Set {n}, {field}"
     },
     "periodLog": {
-        "title": "This Period",
-        "reportSchedule": "Your AI report is generated automatically after this period ends ({end}).",
-        "weightLabel": "Body weight",
-        "logWeight": "Log",
-        "weightSaved": "Weight logged.",
-        "weightError": "Enter a valid weight.",
-        "dayNoteLabel": "Today's note (optional)",
-        "dayNotePlaceholder": "e.g. Slept badly, worked late, right shoulder felt stuck",
-        "dayNoteHint": "Write one any day, trained or not; your report reads it next to that day's training.",
-        "saveDayNote": "Save",
-        "deleteDayNote": "Delete",
-        "dayNoteSaved": "Today's note saved.",
-        "dayNoteDeleted": "Today's note deleted.",
+        "reportSchedule": "Your AI report is generated automatically when this period ends on {end}.",
         "periodNoteLabel": "Note for this period",
-        "periodNoteHint": "Your earlier note for the whole period still goes into this period's report; from now on, use today's note above.",
+        "periodNoteHint": "Your earlier note for the whole period still goes into this period's report; from now on, write in today's log.",
         "saveNote": "Save note",
         "noteSaved": "Note saved — it will be included in this period's report.",
         "saving": "Saving..."
+    },
+    "dayLog": {
+        "title": "Today's weight and note (optional)",
+        "weight": "Weight",
+        "note": "Note",
+        "notePlaceholder": "e.g. Slept badly, worked late, right shoulder felt stuck",
+        "hint": "Fill in any day, trained or not; your report reads them next to that day's training. Clear one and save to delete it.",
+        "save": "Save",
+        "saving": "Saving...",
+        "saved": "Saved.",
+        "weightInvalid": "Enter a valid weight."
     },
     "report": {
         "sectionTitle": "AI Coach Report",

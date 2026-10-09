@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { useTranslations } from 'next-intl'
 import type { LogType } from '@/lib/exercise-attributes'
 import { fieldValue, fitsLogType, isWeightField, summarize, type FieldKey, type SetValues, type SummaryPart, type Units } from '@/lib/set-log'
+import type { Target } from '@/lib/today-workout'
 
 // How sets read in the user's language (messages: sets): the logging table's headers and
 // cells, the summary under an exercise's name, and the compact sets in the history list.
@@ -55,14 +56,28 @@ export function compactSet(t: SetsT, logType: LogType, s: SetValues, units: Unit
     }
 }
 
-/** The line under an exercise's name, numbers in bold */
-export function SummaryLine({ t, logType, sets, units }: { t: SetsT; logType: LogType; sets: SetValues[]; units: Units }) {
+/** Log types whose target counts reps; for the others a target is a number of sets */
+const COUNTS_REPS = new Set<LogType>(['weight_reps', 'bodyweight', 'assisted'])
+
+/**
+ * The line under an exercise's name, numbers in bold. Before the first set it is the
+ * routine's target (nothing for an exercise added just for today); after, the sets
+ * logged, out of the target when there is one.
+ */
+export function SummaryLine({ t, logType, sets, units, target = null }: { t: SetsT; logType: LogType; sets: SetValues[]; units: Units; target?: Target | null }) {
     const parts = summarize(logType, sets, units)
-    if (!parts.length) return <>{t('summary.notStarted')}</>
     const b = (chunks: ReactNode) => <b className="font-mono font-bold text-ink">{chunks}</b>
+    if (!parts.length) {
+        if (!target) return null
+        return target.reps && COUNTS_REPS.has(logType)
+            ? <>{t.rich('summary.targetReps', { sets: target.sets, reps: target.reps, b })}</>
+            : <>{t.rich('summary.target', { sets: target.sets, b })}</>
+    }
     const partText = (p: SummaryPart) => {
         switch (p.kind) {
-            case 'sets': return t.rich('summary.sets', { count: p.count, b })
+            case 'sets': return target
+                ? t.rich('summary.setsOf', { count: p.count, target: target.sets, b })
+                : t.rich('summary.sets', { count: p.count, b })
             case 'best': return t.rich('summary.best', { weight: p.weight, unit: units.weight, reps: p.reps, b })
             case 'reps': return t.rich('summary.reps', { count: p.count, b })
             case 'seconds': return t.rich('summary.seconds', { count: p.count, b })
