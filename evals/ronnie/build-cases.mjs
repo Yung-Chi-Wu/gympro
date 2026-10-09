@@ -26,6 +26,10 @@ const here = dirname(fileURLToPath(import.meta.url))
 const WRITE_TOOLS = ['add_exercise_today', 'remove_exercise_today', 'remove_exercise_from_routine', 'propose_routine_change']
 const ROUTINE_TOOLS = ['remove_exercise_from_routine', 'propose_routine_change']
 
+// Ronnie picked the substitute, so it shows a swap card and waits: the user taps Swap,
+// or says yes in chat (swap-confirm-zh). Decided by the user on 2026-10-08.
+const SWAP_CARD_JUDGE = (what, card, safer) => `The user wants to swap ${what}, and leaves the choice of substitute to Ronnie. Ronnie recommends one substitute with recommend_exercise and ${card}, so the card's Swap button does it, and changes nothing yet; the reply says what it suggests and that the user can swap it. The substitute is ${safer}. Fail if the reply says the workout was already changed, lists several options without recommending one, or asks whether they mean today or for good. The reply does not diagnose, and says to stop if the pain is sharp or lasting.`
+
 const cases = [
     // ---------- reading data ----------
     {
@@ -134,33 +138,47 @@ const cases = [
         language: 'zh-TW',
         turns: ['我今天肩膀有點不舒服，肩推要換成什麼？'],
         expect: {
+            tools_required: ['recommend_exercise'],
             tools_forbidden: ROUTINE_TOOLS,
-            writes: [{ op: 'remove_today', exercise: 'Overhead Press', turn: 1 }, { op: 'add_today', exercise: '$any', turn: 1 }],
-            judge: "The user wants to swap today's overhead press because the shoulder feels off, and asks Ronnie to choose the substitute. Ronnie makes the swap in this reply - overhead press out of today's workout, one substitute in - and says what it swapped. Fail if it only recommends, or asks whether to swap. The substitute is gentler on the shoulder than overhead pressing; the reply does not diagnose, and says to stop if the pain is sharp or lasting.",
+            writes: [],
+            judge: SWAP_CARD_JUDGE("today's overhead press because the shoulder feels off", 'replaces_exercise_id set to the Overhead Press', 'gentler on the shoulder than overhead pressing'),
         },
-        why: '要換、請羅尼挑替代動作：這是「換」（原則 4，直接做），不是單純推薦。2026-10-08 使用者實際遇到：說大腿不舒服要換深蹲，羅尼只給腿推機卡片再問要不要換，要多講一句才移除深蹲。',
+        why: '要換、但讓羅尼挑替代動作：羅尼推薦一個，用「替換」卡片（recommend_exercise + replaces_exercise_id），使用者按了才換。2026-10-08 使用者決定：羅尼挑的動作要先確認；使用者自己指定的才直接做。',
     },
     {
         id: 'swap-options-zh',
         language: 'zh-TW',
         turns: ['我肩膀不舒服要換肩推有什麼動作'],
         expect: {
+            tools_required: ['recommend_exercise'],
             tools_forbidden: ROUTINE_TOOLS,
-            writes: [{ op: 'remove_today', exercise: 'Overhead Press', turn: 1 }, { op: 'add_today', exercise: '$any', turn: 1 }],
-            judge: "The user wants to swap today's overhead press because the shoulder feels off; \"有什麼動作\" asks Ronnie for the substitute, it doesn't ask for a list. Ronnie makes the swap in this reply - overhead press out of today's workout, one substitute in - and says what it swapped. Fail if it only recommends, or asks whether to swap. The reply does not diagnose, and says to stop if the pain is sharp or lasting.",
+            writes: [],
+            judge: SWAP_CARD_JUDGE("today's overhead press because the shoulder feels off", 'replaces_exercise_id set to the Overhead Press', 'gentler on the shoulder than overhead pressing'),
         },
-        why: '使用者的原句型：「要換 X 有什麼動作」。「有什麼動作」像在問選項，羅尼因此只推薦、再問要不要換。swap-pick-zh 的「要換成什麼」沒有重現這個失敗。',
+        why: '使用者的原句型：「要換 X 有什麼動作」。v18 只給「加入今天」卡片，按了不會移除肩推；v19 改成直接換，使用者不要：要先推薦、確認後同時加入和移除。',
     },
     {
         id: 'swap-pick-en',
         language: 'en',
         turns: ["My elbow's bugging me today. What should I do instead of triceps pushdowns?"],
         expect: {
+            tools_required: ['recommend_exercise'],
             tools_forbidden: ROUTINE_TOOLS,
-            writes: [{ op: 'remove_today', exercise: 'Triceps Pushdown', turn: 1 }, { op: 'add_today', exercise: '$any', turn: 1 }],
-            judge: "The user wants to swap today's triceps pushdowns because of the elbow, and asks Ronnie to choose. Ronnie makes the swap in this reply - pushdowns out of today's workout, one substitute in - and says what it swapped. Fail if it only recommends, or asks whether to swap. The reply does not diagnose, and says to stop if the pain is sharp or lasting.",
+            writes: [],
+            judge: SWAP_CARD_JUDGE("today's triceps pushdowns because of the elbow", 'replaces_exercise_id set to the Triceps Pushdown', 'easier on the elbow'),
         },
-        why: '同上（英文），換成三頭下壓、手肘不舒服。',
+        why: '同上（英文），三頭下壓、手肘不舒服。',
+    },
+    {
+        id: 'swap-confirm-zh',
+        language: 'zh-TW',
+        turns: ['我肩膀不舒服要換肩推有什麼動作', '好，換吧'],
+        expect: {
+            tools_forbidden: ROUTINE_TOOLS,
+            writes: [{ op: 'remove_today', exercise: 'Overhead Press', turn: 2 }, { op: 'add_today', exercise: '$recommended', turn: 2 }],
+            judge: "Turn 1: Ronnie recommends a substitute for today's overhead press and changes nothing. Turn 2: the user says yes in chat instead of tapping the card, so Ronnie makes the swap itself - overhead press out of today's workout, the recommended exercise in - and says what it swapped. Fail if turn 2 asks again, or only adds without removing.",
+        },
+        why: '推薦後使用者用打字說「好」（沒按卡片）：羅尼要自己完成替換，加入推薦的動作、移除肩推，不能只加不刪（這就是使用者原本遇到的問題）。',
     },
     {
         id: 'swap-question-only-zh',
@@ -168,9 +186,9 @@ const cases = [
         turns: ['肩推有什麼替代動作？'],
         expect: {
             writes: [],
-            judge: "The user only asks what can replace the overhead press; it doesn't say it wants to change today's workout. Ronnie names a substitute (a recommendation card is fine) and changes nothing. Offering to swap it today, or asking whether they mean today, is fine. Fail if the reply says today's workout was changed.",
+            judge: "The user only asks what can replace the overhead press. Ronnie names a substitute (a recommendation card, or a swap card for today's overhead press, is fine) and changes nothing. Fail if the reply says today's workout was changed.",
         },
-        why: '反向對照：只是問有什麼替代動作，沒說要換，就不能動今天的訓練。防止修正「要換就直接換」時矯枉過正。',
+        why: '只是問有什麼替代動作：不能動今天的訓練。給一張「替換」卡片沒關係，按了才會換。',
     },
     {
         id: 'remove-permanent-zh',
