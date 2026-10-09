@@ -6,7 +6,7 @@
 // scaffold; everything below the "harness" line is the scaffold unchanged apart
 // from the --only filter.
 //
-// From the repo root, after `npm run eval:ronnie:build`:
+// From the repo root (the runner rebuilds the bundle itself):
 //   AWS_PROFILE=gympro-terraform AWS_REGION=us-east-1 \
 //   node evals/ronnie/run-eval.mjs --flow .claude/hillclimb/ronnie --variant baseline --model claude-haiku-4-5 --reps 3
 //
@@ -26,6 +26,7 @@
 //   - served-model assertion (response model must match --model)
 //   - failed attempts land in errors.jsonl with a failure class (never in results.jsonl)
 
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { closeSync, constants as FS, existsSync, fstatSync, ftruncateSync, lstatSync, mkdirSync, openSync, readFileSync, realpathSync, writeFileSync, writeSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -143,9 +144,22 @@ const require = createRequire(import.meta.url);
 
 // The app under test: lib/ronnie plus the fixture user, bundled to CommonJS.
 // Loaded lazily so --help and the harness gate don't need AWS credentials.
+// Rebuilt from the current source on every run: a stale bundle once ran v19's code
+// under the names v20 and v21, so one fix looked like it worked and another like it
+// didn't. Each result row records the commit the bundle was built from.
 let bundle = null;
+let builtFrom = null;
 function loadRonnie() {
-  if (!bundle) bundle = require(join(HERE, 'dist', 'ronnie.cjs'));
+  if (!bundle) {
+    const root = join(HERE, '..', '..');
+    execFileSync(join(root, 'lambda/ai-worker/node_modules/.bin/esbuild'),
+      ['evals/ronnie/entry.ts', '--bundle', '--platform=node', '--target=node20', '--format=cjs', '--outfile=evals/ronnie/dist/ronnie.cjs', '--log-level=warning'],
+      { cwd: root, stdio: 'inherit' });
+    const git = (...a) => execFileSync('git', a, { cwd: root }).toString().trim();
+    builtFrom = git('rev-parse', '--short', 'HEAD') + (git('status', '--porcelain', '--', 'lib', 'evals/ronnie', 'app') ? '+uncommitted' : '');
+    eprint(`Built the Ronnie bundle from ${builtFrom}`);
+    bundle = require(join(HERE, 'dist', 'ronnie.cjs'));
+  }
   return bundle;
 }
 
@@ -560,7 +574,7 @@ async function main() {
                 ...(appRetry.count ? { retries: appRetry.count } : {}),
                 ...(judgeRetry.count ? { judge_retries: judgeRetry.count } : {}) }
             : c.meta,
-          model: run.model, usage: run.usage, stop_reason: run.stop_reason,
+          model: run.model, code: builtFrom, usage: run.usage, stop_reason: run.stop_reason,
           // The report keys on `status`, not stop_reason: a clipped answer is
           // counted and shown but kept out of the means. runCase may set
           // run.status to override the max_tokens rule.
