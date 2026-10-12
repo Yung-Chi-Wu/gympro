@@ -65,6 +65,8 @@ export function findingName(f: Finding, language: string): string | null {
 
 /** Where withExerciseOptions puts a low muscle's options in its data */
 const OPTION_FIELDS = ['addTo', 'addToZh', 'addToId', 'addToSets', 'addToHalf', 'newExercise', 'newExerciseZh', 'newExerciseId', 'newExerciseSets']
+/** cardio_first's data, for the app; the brief has each session as a sentence instead (cardioFirstSessions) */
+const CARDIO_FIRST_FIELDS = ['sessions', 'dates', 'date', 'routine', 'minutes', 'cardio', 'cardioZh', 'lift', 'liftZh']
 
 /** The exercises a low muscle's action offers the user to choose between, as its action must name them. */
 export function optionNames(f: Finding, language: string): string[] {
@@ -121,6 +123,7 @@ export function buildPrompt(input: NarrativeInput): string {
     // perWeek is the same number as sets, and two names for one number read as two numbers.
     // A low muscle's options go in as phrases (optionsOf), not as their fields.
     const hidden = new Set(['previousValue', ...OPTION_FIELDS, ...(facts.period.days === 7 ? ['perWeek'] : [])])
+    const hiddenFor = (f: Finding) => (f.rule === 'cardio_first' ? new Set([...hidden, ...CARDIO_FIRST_FIELDS]) : hidden)
     // Muscles by name, in the user's language like exercise names
     const muscleName = (g: string) => unitLabel(g, language, (x) => x)
     // Spelled out so "4 more sets" can't be read as "4 sets in all"; a missing option is left out
@@ -132,11 +135,20 @@ export function buildPrompt(input: NarrativeInput): string {
             d.newExercise != null && `add ${name('newExercise')}, a new exercise, for ${d.newExerciseSets} sets each ${unit}`,
         ].filter(Boolean)
     }
+    // Each session as a sentence that says the cardio came first: given "minutes: 20" and one
+    // day's routine, the model wrote that the cardio came after the squat, and that only one of
+    // two leg days was a leg day (v7)
+    const cardioFirstSessions = (f: Finding) => {
+        const dates = String(f.data.dates ?? '').split(', ')
+        return (facts.cardio?.legSessions ?? []).filter((x) => dates.includes(x.date) && x.cardio).map((x) =>
+            `${x.date}${x.routine ? ` (${x.routine})` : ''}: ${x.minutesBefore} min of ${nameOf(x.cardio!, zh)} logged before the first leg lift, ${nameOf(x.lift, zh)}`)
+    }
     const dataFor = (f: Finding) => Object.fromEntries([
         ...(f.rule === 'low_volume' && f.subject ? [['muscle', muscleName(f.subject)], ['options', optionsOf(f)]] : []),
+        ...(f.rule === 'cardio_first' ? [['sessions', cardioFirstSessions(f)]] : []),
         ...(f.rule === 'lift_regressed' && !f.data.bodyweight && typeof f.data.best === 'string'
             ? [['holdAt', `${w(Number(f.data.best.split('x')[0]))}${f.data.assisted ? ' assist' : ''}`]] : []),
-        ...Object.entries(f.data).filter(([k]) => !hidden.has(k)).map(([k, v]) => {
+        ...Object.entries(f.data).filter(([k]) => !hiddenFor(f).has(k)).map(([k, v]) => {
             const m = typeof v === 'string' && /^(\d+(?:\.\d+)?)x(\d+)$/.exec(v)
             if (m) return [k, f.data.assisted ? assisted(Number(m[1]), m[2]) : f.data.bodyweight ? `${m[2]} reps (bodyweight)` : `${w(Number(m[1]))} x ${m[2]}`]
             if (k === 'lowGroups' && typeof v === 'string') return [k, v.split(', ').map(muscleName).join(', ')]

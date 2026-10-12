@@ -1,0 +1,1 @@
+Cardio in the report (PR #23): the brief gets a cardio line (a fact, no advice on how much), the new rule cardio_first (15+ minutes of cardio logged before the first leg set) with advice to lift first, and assisted lifts read as "8 reps with 30 kg assist". The 24 earlier scenarios' briefs are byte-identical to v6, so only the 5 new scenarios run.
