@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Bundles built by esbuild for the evals, scripts and the Lambda
+    "**/dist/**",
+    // Agents' worktrees: other branches' copies of the repo
+    ".claude/**",
   ]),
 ]);
 

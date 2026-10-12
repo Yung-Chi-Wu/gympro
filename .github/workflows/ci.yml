@@ -1,0 +1,85 @@
+name: CI
+
+# The free checks, on every pull request and on main: types, lint, the build, the research
+# citations, and the offline evals (Ronnie's tools and grader, the report's rules and
+# grader). No model calls and no secrets. The paid evals (Ronnie's conversations, the
+# report's narrative) stay manual: they cost money and are run before a change to a prompt.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push to a branch cancels its run still in progress
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    name: App
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            lambda/ai-worker/package-lock.json
+      - run: npm ci
+      # The eval and script bundles are built with the Lambda's esbuild
+      - run: npm ci
+        working-directory: lambda/ai-worker
+
+      - name: Types
+        run: npx tsc --noEmit
+      - name: Types (evals and scripts)
+        run: npm run typecheck:evals
+      - name: Lint
+        run: npm run lint
+      - name: Research citations resolve
+        run: npm run check:evidence
+      - name: Ronnie's tools and grader (offline)
+        run: |
+          npm run eval:ronnie:build
+          node evals/ronnie/check-executor.mjs
+          node evals/ronnie/check-grader.mjs
+      # No environment variables: every page reads the session per request, so the build
+      # never connects to Supabase, Anthropic or AWS
+      - name: Build
+        run: npm run build
+
+  report-worker:
+    name: Report worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            lambda/ai-worker/package-lock.json
+      # The worker imports the app's lib/ (periods, traces, the report's volume table)
+      - run: npm ci
+      - run: npm ci
+        working-directory: lambda/ai-worker
+
+      - name: Types
+        run: npx tsc --noEmit
+        working-directory: lambda/ai-worker
+      - name: Report rules (offline)
+        run: node lambda/ai-worker/evals/report-v3/check-rules.mjs
+      - name: Report grader (offline)
+        run: node lambda/ai-worker/evals/report-v3/check-grader.mjs
+      - name: Bundle
+        run: npm run build
+        working-directory: lambda/ai-worker

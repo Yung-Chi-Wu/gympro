@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 
 interface BeforeInstallPromptEvent extends Event {
     prompt: () => Promise<void>
@@ -24,37 +24,50 @@ function isInStandaloneMode(): boolean {
         ('standalone' in navigator && (navigator as { standalone?: boolean }).standalone === true)
 }
 
+function dismissedBefore(): boolean {
+    try {
+        return !!localStorage.getItem('pwa_prompt_dismissed')
+    } catch {
+        return false
+    }
+}
+
+/** 已安裝或已關閉過就不顯示 */
+const wanted = () => !isInStandaloneMode() && !dismissedBefore()
+
+// Read when the banner renders; the server never shows it
+const subscribeNothing = () => () => {}
+const iosGuideWanted = () => isIos() && wanted()
+
 export function PwaInstallBanner({ language }: PwaInstallBannerProps) {
     const zh = language === 'zh-TW'
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
     const [showAndroid, setShowAndroid] = useState(false)
-    const [showIos, setShowIos] = useState(false)
+    // iOS：顯示手動引導，直到使用者關掉
+    const iosWanted = useSyncExternalStore(subscribeNothing, iosGuideWanted, () => false)
+    const [dismissed, setDismissed] = useState(false)
+    const showIos = iosWanted && !dismissed
 
     useEffect(() => {
-        // 已安裝或已關閉過就不顯示
-        if (isInStandaloneMode()) return
-        const dismissed = localStorage.getItem('pwa_prompt_dismissed')
-        if (dismissed) return
-
-        if (isIos()) {
-            // iOS：顯示手動引導
-            setShowIos(true)
-        } else {
-            // Android/Chrome：等待 beforeinstallprompt
-            function handler(e: Event) {
-                e.preventDefault()
-                setDeferredPrompt(e as BeforeInstallPromptEvent)
-                setShowAndroid(true)
-            }
-            window.addEventListener('beforeinstallprompt', handler)
-            return () => window.removeEventListener('beforeinstallprompt', handler)
+        if (isIos() || !wanted()) return
+        // Android/Chrome：等待 beforeinstallprompt
+        function handler(e: Event) {
+            e.preventDefault()
+            setDeferredPrompt(e as BeforeInstallPromptEvent)
+            setShowAndroid(true)
         }
+        window.addEventListener('beforeinstallprompt', handler)
+        return () => window.removeEventListener('beforeinstallprompt', handler)
     }, [])
 
     function handleDismiss() {
-        localStorage.setItem('pwa_prompt_dismissed', 'true')
+        try {
+            localStorage.setItem('pwa_prompt_dismissed', 'true')
+        } catch {
+            // Storage blocked: it hides for this visit only
+        }
         setShowAndroid(false)
-        setShowIos(false)
+        setDismissed(true)
     }
 
     async function handleAndroidInstall() {
