@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { addDays, daysBetween } from '../../../../lib/periods'
 import { SUGGESTED_NAMES } from '../../../../lib/report/volume'
+import { isCardio, logTypeOf } from '../../../../lib/set-log'
 import { WINDOWS } from './facts'
 import type { ExerciseInfo, Finding, LoggedSet, ReportInputs, ScheduledDay } from './types'
 
@@ -25,22 +26,28 @@ interface SetRow {
     exercise_id: string
     reps: number
     weight_kg: number
+    duration_s: number | null
+    speed_kmh: number | string | null
+    distance_m: number | string | null
+    assist_kg: number | string | null
+    created_at: string
     workout_id: string
     workouts: { performed_at: string }
 }
+const num = (v: number | string | null) => (v == null ? null : Number(v))
 
 export async function fetchReportInputs(
     supabase: SupabaseClient,
     userId: string,
     periodStart: string,
     periodEnd: string
-): Promise<{ inputs: ReportInputs; language: string; weightUnit: 'kg' | 'lb' }> {
+): Promise<{ inputs: ReportInputs; language: string; weightUnit: 'kg' | 'lb'; distanceUnit: 'km' | 'mi' }> {
     const days = daysBetween(periodStart, periodEnd) + 1
     const lookbackStart = addDays(periodStart, -(WINDOWS - 1) * days)
 
     const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
-        .select('timezone, training_goal, language, weight_unit')
+        .select('timezone, training_goal, language, weight_unit, distance_unit')
         .eq('user_id', userId)
         .maybeSingle()
     if (profileError) throw new Error(`Failed to fetch profile: ${profileError.message}`)
@@ -57,8 +64,14 @@ export async function fetchReportInputs(
         exerciseId: r.exercise_id,
         reps: r.reps,
         weightKg: Number(r.weight_kg),
+        durationS: r.duration_s,
+        speedKmh: num(r.speed_kmh),
+        distanceM: num(r.distance_m),
+        assistKg: num(r.assist_kg),
+        loggedAt: r.created_at,
     })
-    const setColumns = 'exercise_id, reps, weight_kg, workout_id, workouts!inner(performed_at)'
+    // Cardio, timed and assisted sets keep their values outside reps and weight (lib/set-log.ts)
+    const setColumns = 'exercise_id, reps, weight_kg, duration_s, speed_kmh, distance_m, assist_kg, created_at, workout_id, workouts!inner(performed_at)'
     const recent = (await fetchAll<SetRow>((from, to) => supabase
         .from('workout_sets')
         .select(setColumns)
@@ -98,12 +111,13 @@ export async function fetchReportInputs(
         inputs: { periodStart, periodEnd, sets, exercises, schedule, weighIns, goal: profile?.training_goal ?? null, routineLeads, previousFindings, notes },
         language: profile?.language ?? 'en',
         weightUnit: profile?.weight_unit === 'lb' ? 'lb' : 'kg',
+        distanceUnit: profile?.distance_unit === 'mi' ? 'mi' : 'km',
     }
 }
 
 /** The exercises the user logged or planned, plus the library's staples a low muscle's advice may suggest. */
 async function fetchExercises(supabase: SupabaseClient, ids: string[]): Promise<ExerciseInfo[]> {
-    const columns = 'id, name, name_zh_tw, muscle_group, primary_muscles, secondary_muscles'
+    const columns = 'id, name, name_zh_tw, muscle_group, primary_muscles, secondary_muscles, log_type'
     const [used, staples] = await Promise.all([
         ids.length ? supabase.from('exercises').select(columns).in('id', ids) : { data: [], error: null },
         supabase.from('exercises').select(columns).in('name', SUGGESTED_NAMES).not('is_custom', 'is', true),
@@ -113,7 +127,7 @@ async function fetchExercises(supabase: SupabaseClient, ids: string[]): Promise<
     const rows = [...(used.data ?? []), ...(staples.data ?? []).filter((e) => !ids.includes(e.id))]
     return rows.map((e) => ({
         id: e.id, name: e.name, nameZh: e.name_zh_tw, muscleGroup: e.muscle_group,
-        primaryMuscles: e.primary_muscles ?? [], secondaryMuscles: e.secondary_muscles ?? [],
+        primaryMuscles: e.primary_muscles ?? [], secondaryMuscles: e.secondary_muscles ?? [], logType: logTypeOf(e.log_type),
     }))
 }
 
@@ -164,15 +178,17 @@ async function fetchWeighIns(
         .filter((m) => m.date >= from && m.date <= to)
 }
 
-/** The first exercise of each routine. */
+/** The first exercise of each routine that isn't cardio: a routine may open with a warm-up on the bike. */
 async function fetchRoutineLeads(supabase: SupabaseClient, userId: string): Promise<string[]> {
     const { data, error } = await supabase
         .from('routines')
-        .select('routine_exercises ( exercise_id, order_index )')
+        .select('routine_exercises ( exercise_id, order_index, exercises ( muscle_group, log_type ) )')
         .eq('user_id', userId)
     if (error) throw new Error(`Failed to fetch routines: ${error.message}`)
-    return ((data ?? []) as { routine_exercises: { exercise_id: string; order_index: number }[] }[])
-        .map((r) => [...r.routine_exercises].sort((a, b) => a.order_index - b.order_index)[0]?.exercise_id)
+    type Row = { exercise_id: string; order_index: number; exercises: { muscle_group: string; log_type: string | null } | null }
+    const cardio = (r: Row) => !!r.exercises && (isCardio(logTypeOf(r.exercises.log_type)) || r.exercises.muscle_group === 'cardio')
+    return ((data ?? []) as unknown as { routine_exercises: Row[] }[])
+        .map((r) => [...r.routine_exercises].sort((a, b) => a.order_index - b.order_index).find((x) => !cardio(x))?.exercise_id)
         .filter((id): id is string => !!id)
 }
 

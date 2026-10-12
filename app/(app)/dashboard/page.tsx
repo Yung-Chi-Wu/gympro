@@ -176,7 +176,7 @@ export default async function DashboardPage() {
             )}
           </div>
           {period && periodNote && <PeriodNoteCard initialNote={periodNote} />}
-          <RecommendationPanel userId={user.id} language={language} weightUnit={weightUnit} />
+          <RecommendationPanel userId={user.id} language={language} weightUnit={weightUnit} distanceUnit={distanceUnit} />
         </section>
       </div>
     </div>

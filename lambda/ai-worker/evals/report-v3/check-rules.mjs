@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // Free check of the v3 report's code half: each scenario runs through analyze() and
 // must produce exactly the expected findings, status, follow-ups, watched items,
-// records and day notes, and the brief must carry the day notes as expected. No model calls.
+// records, day notes, cardio and main lifts, and the brief must carry the day notes as
+// expected. Cardio is never a main lift or a working set. No model calls.
 //   node lambda/ai-worker/evals/report-v3/check-rules.mjs [--show id]
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { inputsFor, SCENARIOS } from './scenarios.mjs'
+import { EXERCISES, inputsFor, SCENARIOS } from './scenarios.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const worker = join(here, '..', '..')
@@ -15,6 +16,8 @@ execFileSync(join(worker, 'node_modules/.bin/esbuild'), ['evals/report-v3/entry.
 const { analyze, buildPrompt } = createRequire(import.meta.url)(join(here, 'dist', 'report.cjs'))
 
 const show = process.argv.includes('--show') ? process.argv[process.argv.indexOf('--show') + 1] : null
+const CARDIO_TYPES = ['treadmill', 'cardio_level', 'rower', 'cardio_time']
+const logTypeOf = new Map(EXERCISES.map((e) => [e.id, e.logType]))
 let failed = 0
 for (const sc of SCENARIOS) {
     const r = analyze(inputsFor(sc))
@@ -31,6 +34,22 @@ for (const sc of SCENARIOS) {
     const records = r.facts.records.map((x) => x.exerciseId)
     for (const id of sc.expect.records ?? []) if (!records.includes(id)) problems.push(`no record for ${id} (records ${JSON.stringify(records)})`)
     if (sc.expect.records && !sc.expect.records.length && records.length) problems.push(`records ${JSON.stringify(records)}, expected none`)
+    // Cardio is a fact of its own: never a main lift, never a working set
+    const inputs0 = inputsFor(sc)
+    for (const l of r.facts.lifts) if (!['weight_reps', 'bodyweight', 'assisted'].includes(logTypeOf.get(l.exerciseId))) problems.push(`main lift ${l.exerciseId} is logged as ${logTypeOf.get(l.exerciseId)}`)
+    const working = inputs0.sets.filter((x) => x.date >= inputs0.periodStart && !CARDIO_TYPES.includes(logTypeOf.get(x.exerciseId))).length
+    if (r.facts.totalSets.now !== working) problems.push(`totalSets ${r.facts.totalSets.now}, expected ${working} working sets`)
+    if (sc.expect.cardio) {
+        const c = r.facts.cardio
+        const got = { minutes: c.minutes, days: c.days, legSessions: c.legSessions.length }
+        for (const [k, v] of Object.entries(sc.expect.cardio)) if (got[k] !== v) problems.push(`cardio ${k} ${got[k]}, expected ${v}`)
+    }
+    for (const [id, want] of Object.entries(sc.expect.lifts ?? {})) {
+        const l = r.facts.lifts.find((x) => x.exerciseId === id)
+        if (!l) problems.push(`${id} is not a main lift`)
+        else for (const [k, v] of Object.entries(want)) if (l[k] !== v) problems.push(`${id}: ${k} ${JSON.stringify(l[k])}, expected ${JSON.stringify(v)}`)
+    }
+
     // The sets a low-volume finding says to add are the fewest that reach 10 a week
     const perWeek = (sets) => (sets * 7) / r.facts.period.days
     for (const f of r.findings.filter((x) => x.rule === 'low_volume')) {
@@ -59,7 +78,7 @@ for (const sc of SCENARIOS) {
         const days = r.dayNotes.map(({ date, routine, trained }) => ({ date, routine, trained }))
         if (JSON.stringify(days) !== JSON.stringify(sc.expect.dayNotes)) problems.push(`day notes lined up as ${JSON.stringify(days)}, expected ${JSON.stringify(sc.expect.dayNotes)}`)
     }
-    const brief = buildPrompt({ ...r, note: sc.note ?? null, language: sc.language, weightUnit: sc.weightUnit ?? 'kg' })
+    const brief = buildPrompt({ ...r, note: sc.note ?? null, language: sc.language, weightUnit: sc.weightUnit ?? 'kg', distanceUnit: sc.distanceUnit ?? 'km' })
     for (const line of sc.expect.brief ?? []) if (!brief.split('\n').includes(line)) problems.push(`the brief has no line ${JSON.stringify(line)}`)
     if (!notes.length && /notes on single days/.test(brief)) problems.push('the brief lists day notes, but there are none')
 
@@ -76,6 +95,29 @@ for (const sc of SCENARIOS) {
     const ok = brief.split('\n').includes(want)
     if (!ok) failed++
     console.log(`${ok ? 'ok  ' : 'FAIL'} day notes without a cycle${ok ? '' : `\n       the brief has no line ${JSON.stringify(want)}`}`)
+}
+// Sets logged before their exercise had a log type have only reps x weight: an old treadmill set
+// adds no minutes, an old assisted set without its assist doesn't count for the lift
+{
+    const sc = SCENARIOS.find((x) => x.id === 'assisted-pullup-progress-zh')
+    const inputs = inputsFor({ ...sc, routines: { ...sc.routines, legs: [['treadmill', 2], ...sc.routines.legs] } })
+    const weekStart = inputs.periodStart
+    for (const x of inputs.sets) {
+        if (x.date >= weekStart) continue
+        if (x.exerciseId === 'ex-treadmill') Object.assign(x, { durationS: null, speedKmh: null, reps: 1, weightKg: 0 })
+        if (x.exerciseId === 'ex-assisted' && x.date < '2026-09-14') Object.assign(x, { assistKg: null })
+    }
+    const r = analyze(inputs)
+    const lift = r.facts.lifts.find((l) => l.exerciseId === 'ex-assisted')
+    const problems = [
+        r.facts.cardio.previousPerWeek !== 0 && `old treadmill sets gave ${r.facts.cardio.previousPerWeek} minutes last week`,
+        r.facts.cardio.minutes !== 40 && `cardio ${r.facts.cardio.minutes} minutes, expected 40`,
+        !lift?.assisted && 'the assisted pull-up is not read as assisted',
+        lift && lift.series.filter((v) => v != null).length !== 3 && `assisted series ${JSON.stringify(lift.series)}: old sets without assist should be left out`,
+        lift?.trend !== 'up' && `assisted trend ${lift?.trend}, expected up`,
+    ].filter(Boolean)
+    if (problems.length) failed++
+    console.log(`${problems.length ? 'FAIL' : 'ok  '} sets logged before log types${problems.map((p) => `\n       ${p}`).join('')}`)
 }
 console.log(failed ? `\n${failed} scenario(s) failed` : `\nAll ${SCENARIOS.length} scenarios behave as expected`)
 process.exit(failed ? 1 : 0)

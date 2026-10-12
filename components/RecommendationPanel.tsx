@@ -18,6 +18,7 @@ import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import type { AiRecommendation } from './types'
 import type { WeightUnit } from '@/lib/weight-unit'
+import type { DistanceUnit } from '@/lib/distance-unit'
 import { isReportV3, ReportView } from './report/ReportView'
 import { FailedReport } from './report/FailedReport'
 
@@ -25,6 +26,7 @@ interface RecommendationPanelProps {
     userId: string
     language: string
     weightUnit: WeightUnit
+    distanceUnit: DistanceUnit
 }
 
 type Status = 'idle' | 'pending' | 'completed' | 'insufficient_data' | 'failed'
@@ -44,7 +46,7 @@ interface StrengthHistoryPoint {
 
 // The latest report on the dashboard, in one card. On a phone nothing inside the card is a
 // box of its own (ReportView flattens the same way): sections are set apart by lines.
-export function RecommendationPanel({ userId, language, weightUnit }: RecommendationPanelProps) {
+export function RecommendationPanel({ userId, language, weightUnit, distanceUnit }: RecommendationPanelProps) {
     const supabase = createClient()
     const t = useTranslations('report')
     const tV3 = useTranslations('reportV3')
@@ -128,7 +130,7 @@ export function RecommendationPanel({ userId, language, weightUnit }: Recommenda
             )}
 
             {status === 'completed' && recommendation && isReportV3(recommendation) && (
-                <ReportView report={recommendation} language={language} weightUnit={weightUnit} />
+                <ReportView report={recommendation} language={language} weightUnit={weightUnit} distanceUnit={distanceUnit} />
             )}
 
             {status === 'completed' && recommendation && !isReportV3(recommendation) && (

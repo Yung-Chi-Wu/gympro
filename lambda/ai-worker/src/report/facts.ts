@@ -1,6 +1,8 @@
 import { addDays, daysBetween } from '../../../../lib/periods'
 import { hasTarget, setWeights, VOLUME_UNIT_IDS } from '../../../../lib/report/volume'
-import type { BestSet, ExerciseInfo, LiftFacts, LoggedSet, MuscleFacts, RecordFacts, ReportFacts, ReportInputs, ReportStatus } from './types'
+import { isCardio } from '../../../../lib/set-log'
+import type { LogType } from '../../../../lib/exercise-attributes'
+import type { BestSet, CardioFacts, ExerciseInfo, LiftFacts, LoggedSet, MuscleFacts, RecordFacts, ReportFacts, ReportInputs, ReportStatus } from './types'
 
 // Every number in the report, computed from the logged sets. Pure: the same inputs
 // give the same facts, so the rules and the eval can rely on them.
@@ -15,11 +17,42 @@ export const FLAT_BAND = 0.015
  *  and how a set counts toward them, is in lib/report/volume.ts. */
 export const VOLUME_RANGE = { low: 10, high: 20 } as const
 const NOT_LIFTS = new Set(['cardio', 'core'])
+/** Log types a main lift can have: a timed hold or a cardio machine has no best set to compare */
+const STRENGTH_LOG_TYPES = new Set<LogType>(['weight_reps', 'bodyweight', 'assisted'])
 const MAIN_LIFTS = 5
 
 /** Estimated one-rep max (Epley). */
-export const e1rm = (s: BestSet) => s.weightKg * (1 + s.reps / 30)
+export const e1rm = (s: { weightKg: number; reps: number }) => s.weightKg * (1 + s.reps / 30)
 const round1 = (n: number) => Math.round(n * 10) / 10
+
+/** Cardio: a cardio log type, or a custom exercise in the cardio category. Its sets aren't working sets. */
+export const isCardioExercise = (e: ExerciseInfo | undefined) => !!e && (isCardio(e.logType) || e.muscleGroup === 'cardio')
+
+/** The units a lower-body lift mainly trains: the ones cardio before it interferes with */
+const LOWER_BODY_UNITS = new Set(['quads', 'hamstrings', 'glutes'])
+/** A strength lift that mainly trains the legs; a custom exercise, by its legs or glutes category. */
+export function isLowerBodyLift(e: ExerciseInfo): boolean {
+    if (!STRENGTH_LOG_TYPES.has(e.logType) || NOT_LIFTS.has(e.muscleGroup)) return false
+    if (!e.primaryMuscles.length) return e.muscleGroup === 'legs' || e.muscleGroup === 'glutes'
+    return setWeights(e.primaryMuscles, [], e.muscleGroup).some(([unit]) => LOWER_BODY_UNITS.has(unit))
+}
+
+/**
+ * The sets that count for a lift, and how they compare. An assisted lift counts only sets that
+ * have their assist (one logged before the exercise had a log type has none) and is ordered by
+ * less assist, then more reps at the same assist, as the app and Ronnie read it: reps/1000 can't
+ * outweigh an assist step (at least 1 lb), so one number keeps that order. A bodyweight lift is
+ * compared by reps, a weighted one by estimated 1RM.
+ */
+function liftMeasure(e: ExerciseInfo, allSets: LoggedSet[]) {
+    const assisted = e.logType === 'assisted'
+    const sets = allSets.filter((s) => s.exerciseId === e.id && (!assisted || s.assistKg != null))
+    const bodyweight = !assisted && sets.every((s) => s.weightKg === 0)
+    const value = (s: BestSet | LoggedSet) => (assisted ? s.reps / 1000 - (s.assistKg ?? 0) : bodyweight ? s.reps : e1rm(s))
+    return { sets, assisted, bodyweight, value }
+}
+const bestOf = (s: LoggedSet, assisted: boolean): BestSet =>
+    assisted ? { weightKg: s.weightKg, reps: s.reps, assistKg: s.assistKg ?? 0 } : { weightKg: s.weightKg, reps: s.reps }
 
 /** Which window a date falls in: 0 for this period, 1 for the one before, -1 after it. */
 export function windowOfFor(periodStart: string, periodEnd: string) {
@@ -35,7 +68,7 @@ export function liftFor(inputs: ReportInputs, exerciseId: string): LiftFacts | n
     const e = inputs.exercises.find((x) => x.id === exerciseId)
     if (!e) return null
     const windowOf = windowOfFor(inputs.periodStart, inputs.periodEnd)
-    return inputs.sets.some((s) => s.exerciseId === exerciseId && windowOf(s.date) === 0) ? liftFacts(e, inputs.sets, windowOf, inputs.goal) : null
+    return liftMeasure(e, inputs.sets).sets.some((s) => windowOf(s.date) === 0) ? liftFacts(e, inputs.sets, windowOf, inputs.goal) : null
 }
 
 export function computeFacts(inputs: ReportInputs): ReportFacts {
@@ -46,6 +79,8 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
     const current = inWindow(0)
     const byId = new Map(inputs.exercises.map((e) => [e.id, e]))
     const hasHistory = inputs.sets.some((s) => s.date < periodStart)
+    // Working sets: a treadmill split logged as two sets isn't two sets of training
+    const working = (sets: LoggedSet[]) => sets.filter((s) => !isCardioExercise(byId.get(s.exerciseId)))
 
     // Sessions: a day with at least one set
     const trainedDates = new Set(current.map((s) => s.date))
@@ -96,7 +131,9 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
 
     // Lifts
     const goalDirection = goalDirectionOf(inputs.goal)
-    const trainedNow = [...new Set(current.map((s) => s.exerciseId))].map((id) => byId.get(id)).filter((e): e is ExerciseInfo => !!e && !NOT_LIFTS.has(e.muscleGroup))
+    const trainedNow = [...new Set(current.map((s) => s.exerciseId))].map((id) => byId.get(id))
+        .filter((e): e is ExerciseInfo => !!e && !NOT_LIFTS.has(e.muscleGroup) && STRENGTH_LOG_TYPES.has(e.logType))
+        .filter((e) => liftMeasure(e, current).sets.length > 0)
     const allLifts = trainedNow.map((e) => liftFacts(e, inputs.sets, windowOf, inputs.goal))
     // Main lifts: the goal's lifts and each routine's first exercise, then the most sets over the
     // last 4 periods (so one missed session doesn't drop a lift), then the most weight moved
@@ -111,13 +148,14 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
     // Records on the main lifts: this period's best beats every earlier set of the exercise
     const records: RecordFacts[] = []
     for (const lift of lifts) {
-        const earlier = inputs.sets.filter((s) => s.exerciseId === lift.exerciseId && s.date < periodStart)
+        const { sets, value } = liftMeasure(byId.get(lift.exerciseId)!, inputs.sets)
+        const earlier = sets.filter((s) => s.date < periodStart)
         if (!earlier.length || !lift.best) continue
-        const value = (s: BestSet) => (lift.bodyweight ? s.reps : e1rm(s))
         const before = Math.max(...earlier.map((s) => value(s)))
         if (value(lift.best) > before) {
-            const set = current.find((s) => s.exerciseId === lift.exerciseId && s.reps === lift.best!.reps && s.weightKg === lift.best!.weightKg)!
-            records.push({ exerciseId: lift.exerciseId, name: lift.name, nameZh: lift.nameZh, best: lift.best, bodyweight: lift.bodyweight, date: set.date })
+            const best = lift.best
+            const set = sets.find((s) => s.date >= periodStart && s.reps === best.reps && s.weightKg === best.weightKg && (best.assistKg == null || s.assistKg === best.assistKg))!
+            records.push({ exerciseId: lift.exerciseId, name: lift.name, nameZh: lift.nameZh, best, bodyweight: lift.bodyweight, assisted: !!lift.assisted, date: set.date })
         }
     }
 
@@ -135,7 +173,7 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
     return {
         period: { start: periodStart, end: periodEnd, days },
         sessions,
-        totalSets: { now: current.length, previous: hasHistory ? inWindow(1).length : null },
+        totalSets: { now: working(current).length, previous: hasHistory ? working(inWindow(1)).length : null },
         muscles,
         lifts,
         records,
@@ -143,37 +181,96 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
         status,
         liftsSummary,
         goal: { text: inputs.goal, direction: goalDirection },
+        cardio: cardioFacts(inputs, windowOf, hasHistory),
+    }
+}
+
+/**
+ * How much cardio, and what: minutes, and distance where the machine gives one. A cardio set
+ * logged before its exercise had a log type has no time, and isn't counted. On each lower-body
+ * day, the cardio minutes logged before the first leg set, in the order the sets were logged.
+ */
+function cardioFacts(inputs: ReportInputs, windowOf: (date: string) => number, hasHistory: boolean): CardioFacts {
+    const byId = new Map(inputs.exercises.map((e) => [e.id, e]))
+    const timed = (s: LoggedSet) => isCardioExercise(byId.get(s.exerciseId)) && s.durationS != null
+    const minutesOf = (sets: LoggedSet[]) => Math.round(sets.reduce((a, s) => a + (s.durationS ?? 0), 0) / 60)
+    const days = daysBetween(inputs.periodStart, inputs.periodEnd) + 1
+    const perWeek = (minutes: number) => Math.round((minutes * 7) / days)
+    const current = inputs.sets.filter((s) => windowOf(s.date) === 0)
+    const cardio = current.filter(timed)
+
+    const exercises = [...new Set(cardio.map((s) => s.exerciseId))].map((id) => {
+        const e = byId.get(id)!
+        const own = cardio.filter((s) => s.exerciseId === id)
+        const km = own.reduce((a, s) => a + ((s.speedKmh ?? 0) * (s.durationS ?? 0)) / 3600, 0)
+        return {
+            exerciseId: id, name: e.name, nameZh: e.nameZh, logType: e.logType,
+            minutes: minutesOf(own),
+            km: e.logType === 'treadmill' ? Math.round(km * 100) / 100 : null,
+            metres: e.logType === 'rower' ? own.reduce((a, s) => a + (s.distanceM ?? 0), 0) : null,
+            days: new Set(own.map((s) => s.date)).size,
+        }
+    }).sort((a, b) => b.minutes - a.minutes || a.name.localeCompare(b.name))
+
+    const routineOn = new Map((inputs.schedule ?? []).map((d) => [d.date, d.routine]))
+    const at = (s: LoggedSet) => Date.parse(s.loggedAt)
+    const legSessions = [...new Set(current.map((s) => s.workoutId))].flatMap((workoutId) => {
+        const sets = current.filter((s) => s.workoutId === workoutId).sort((a, b) => at(a) - at(b))
+        const firstLeg = sets.find((s) => byId.has(s.exerciseId) && isLowerBodyLift(byId.get(s.exerciseId)!))
+        if (!firstLeg) return []
+        const before = sets.filter((s) => timed(s) && at(s) < at(firstLeg))
+        const most = [...new Set(before.map((s) => s.exerciseId))]
+            .map((id) => ({ id, minutes: minutesOf(before.filter((s) => s.exerciseId === id)) }))
+            .sort((a, b) => b.minutes - a.minutes)[0]
+        const nameOf = (id: string) => ({ name: byId.get(id)!.name, nameZh: byId.get(id)!.nameZh })
+        return [{
+            date: firstLeg.date,
+            routine: routineOn.get(firstLeg.date) ?? null,
+            minutesBefore: minutesOf(before),
+            cardio: most ? nameOf(most.id) : null,
+            lift: nameOf(firstLeg.exerciseId),
+        }]
+    }).sort((a, b) => a.date.localeCompare(b.date))
+
+    return {
+        minutes: minutesOf(cardio),
+        perWeek: perWeek(minutesOf(cardio)),
+        previousPerWeek: hasHistory ? perWeek(minutesOf(inputs.sets.filter((s) => windowOf(s.date) === 1 && timed(s)))) : null,
+        days: new Set(cardio.map((s) => s.date)).size,
+        exercises,
+        legSessions,
     }
 }
 
 function liftFacts(e: ExerciseInfo, allSets: LoggedSet[], windowOf: (date: string) => number, goal: string | null): LiftFacts {
-    const sets = allSets.filter((s) => s.exerciseId === e.id)
-    const bodyweight = sets.every((s) => s.weightKg === 0)
-    const value = (s: BestSet) => (bodyweight ? s.reps : e1rm(s))
+    const { sets, assisted, bodyweight, value } = liftMeasure(e, allSets)
     const bestIn = (k: number) => {
         const inK = sets.filter((s) => windowOf(s.date) === k)
         return inK.length ? inK.reduce((a, b) => (value(b) > value(a) ? b : a)) : null
     }
     const bests = Array.from({ length: WINDOWS }, (_, k) => bestIn(k))
-    const series = bests.map((b) => (b ? round1(value(b)) : null)).reverse()
-    const best = bests[0] ? { weightKg: bests[0].weightKg, reps: bests[0].reps } : null
+    // An assisted lift's number is an order, not an amount: kept exact, never rounded
+    const series = bests.map((b) => (b ? (assisted ? value(b) : round1(value(b))) : null)).reverse()
+    const best = bests[0] ? bestOf(bests[0], assisted) : null
     const prevIndex = bests.findIndex((b, k) => k > 0 && b)
     const prev = prevIndex > 0 ? bests[prevIndex]! : null
 
+    // Reps and assist move in whole steps: any change counts. An estimated 1RM within the band is flat.
+    const exact = bodyweight || assisted
     let trend: LiftFacts['trend'] = 'new'
     let change: number | null = null
     if (best && prev) {
         const now = value(best)
         const before = value(prev)
-        change = bodyweight ? now - before : round1(((now - before) / before) * 100)
-        const up = bodyweight ? now > before : now > before * (1 + FLAT_BAND)
-        const down = bodyweight ? now < before : now < before * (1 - FLAT_BAND)
+        change = assisted ? null : bodyweight ? now - before : round1(((now - before) / before) * 100)
+        const up = exact ? now > before : now > before * (1 + FLAT_BAND)
+        const down = exact ? now < before : now < before * (1 - FLAT_BAND)
         trend = up ? 'up' : down ? 'down' : 'flat'
     }
 
     // Walk the trained windows oldest first
     const trained = series.filter((v): v is number => v != null)
-    const beats = (v: number, max: number) => (bodyweight ? v > max : v > max * (1 + FLAT_BAND))
+    const beats = (v: number, max: number) => (exact ? v > max : v > max * (1 + FLAT_BAND))
     let flatWindows = 0
     let max = trained[0] ?? 0
     for (const v of trained.slice(1)) {
@@ -183,7 +280,7 @@ function liftFacts(e: ExerciseInfo, allSets: LoggedSet[], windowOf: (date: strin
     }
     let downWindows = 0
     for (let i = trained.length - 1; i > 0; i--) {
-        const lower = bodyweight ? trained[i] < trained[i - 1] : trained[i] < trained[i - 1] * (1 - FLAT_BAND)
+        const lower = exact ? trained[i] < trained[i - 1] : trained[i] < trained[i - 1] * (1 - FLAT_BAND)
         if (!lower) break
         downWindows++
     }
@@ -195,8 +292,9 @@ function liftFacts(e: ExerciseInfo, allSets: LoggedSet[], windowOf: (date: strin
         muscleGroup: e.muscleGroup,
         sets: sets.filter((s) => windowOf(s.date) === 0).length,
         best,
-        previousBest: prev ? { weightKg: prev.weightKg, reps: prev.reps } : null,
+        previousBest: prev ? bestOf(prev, assisted) : null,
         bodyweight,
+        assisted,
         series,
         trend,
         change,

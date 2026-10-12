@@ -18,6 +18,8 @@ const REGRESSED_DROP_PCT = -5
 const STALL_WINDOWS = 3
 /** Body weight moving against the goal this many periods in a row */
 const WEIGHT_WINDOWS = 4
+/** Cardio minutes before the first leg set that make it more than a warm-up (5-10 minutes is one) */
+export const CARDIO_BEFORE_LEGS_MIN = 15
 
 const PRIORITY: Record<RuleId, number> = {
     deload: 100,
@@ -26,11 +28,14 @@ const PRIORITY: Record<RuleId, number> = {
     low_volume: 50,
     missed_sessions: 40,
     weight_trend: 30,
+    // Last: the order changes lower-body strength a little, and muscle growth not at all
+    cardio_first: 25,
 }
 /** A lift the goal names comes before the others */
 const GOAL_BONUS = 20
 
-const setText = (s: BestSet | null) => (s ? `${s.weightKg}x${s.reps}` : null)
+/** A set as finding data: "82.5x8" (kg x reps). For an assisted lift (assisted: 1) the number is the assist, as the bodyweight flag says to read only the reps. */
+const setText = (s: BestSet | null) => (s ? `${s.assistKg ?? s.weightKg}x${s.reps}` : null)
 const liftData = (l: LiftFacts) => ({
     name: l.name,
     nameZh: l.nameZh,
@@ -38,7 +43,11 @@ const liftData = (l: LiftFacts) => ({
     previousBest: setText(l.previousBest),
     change: l.change,
     bodyweight: l.bodyweight ? 1 : 0,
+    // Only when it is one, so other lifts' data stays as it was
+    ...(l.assisted ? { assisted: 1 } : {}),
 })
+/** Compared by reps or assist, which move in whole steps: no percentage applies */
+const byPercent = (l: LiftFacts) => !l.bodyweight && !l.assisted
 
 export function evaluateRules(facts: ReportFacts): { findings: Finding[]; watching: Watching[] } {
     const findings: Finding[] = []
@@ -48,7 +57,7 @@ export function evaluateRules(facts: ReportFacts): { findings: Finding[]; watchi
 
     // Deload: several main lifts dropped at once and more went down than up, which points at
     // fatigue rather than one lift
-    const dropped = facts.lifts.filter((l) => !l.bodyweight && l.trend === 'down' && (l.change ?? 0) <= DELOAD_DROP_PCT)
+    const dropped = facts.lifts.filter((l) => byPercent(l) && l.trend === 'down' && (l.change ?? 0) <= DELOAD_DROP_PCT)
     const deload = dropped.length >= 2 && facts.liftsSummary.down > facts.liftsSummary.up
     if (deload) {
         add('deload', null, {
@@ -61,7 +70,7 @@ export function evaluateRules(facts: ReportFacts): { findings: Finding[]; watchi
 
     for (const l of facts.lifts) {
         const bonus = l.goalLift ? GOAL_BONUS : 0
-        const sharpDrop = !l.bodyweight && (l.change ?? 0) <= REGRESSED_DROP_PCT
+        const sharpDrop = byPercent(l) && (l.change ?? 0) <= REGRESSED_DROP_PCT
         if (l.trend === 'down' && !deload && (sharpDrop || l.downWindows >= 2)) {
             // The level before the drop began, which a follow-up checks the lift got back to
             const before = l.series.filter((v) => v != null).at(-(l.downWindows + 1)) ?? null
@@ -114,6 +123,24 @@ export function evaluateRules(facts: ReportFacts): { findings: Finding[]; watchi
         watching.push({ rule: 'weight_trend', subject: null, data: { direction, periods: against, latestKg: w.latestKg, weighIns: w.weighIns, needed: WEIGHT_WINDOWS } })
     }
 
+    // Cardio before the leg lifts in the same session: lifting first gave more lower-body strength.
+    // One finding for the period, with the session that had the most cardio first.
+    const cardioFirst = (facts.cardio?.legSessions ?? []).filter((x) => x.minutesBefore >= CARDIO_BEFORE_LEGS_MIN)
+    if (cardioFirst.length) {
+        const most = [...cardioFirst].sort((a, b) => b.minutesBefore - a.minutesBefore || a.date.localeCompare(b.date))[0]
+        add('cardio_first', null, {
+            sessions: cardioFirst.length,
+            dates: cardioFirst.map((x) => x.date).join(', '),
+            date: most.date,
+            routine: most.routine,
+            minutes: most.minutesBefore,
+            cardio: most.cardio?.name ?? null,
+            cardioZh: most.cardio ? most.cardio.nameZh ?? most.cardio.name : null,
+            lift: most.lift.name,
+            liftZh: most.lift.nameZh ?? most.lift.name,
+        })
+    }
+
     findings.sort((a, b) => b.priority - a.priority)
     return { findings, watching }
 }
@@ -160,6 +187,13 @@ export function followUp(previous: Finding[] | null, facts: ReportFacts, liftOf:
                 const t = facts.bodyWeight.trendWindows
                 const stillAgainst = f.data.direction === 'gain' ? t < 0 : t > 0
                 return result(stillAgainst ? 'not_done' : 'done', { nowKg: facts.bodyWeight.latestKg })
+            }
+            case 'cardio_first': {
+                // Done when every lower-body session put the legs first; nothing to judge without one
+                const legs = facts.cardio?.legSessions ?? []
+                const still = legs.filter((x) => x.minutesBefore >= CARDIO_BEFORE_LEGS_MIN).length
+                if (!legs.length) return result('not_done', { legSessions: 0 })
+                return result(!still ? 'done' : still < legs.length ? 'partial' : 'not_done', { legSessions: legs.length, stillFirst: still })
             }
         }
     })
