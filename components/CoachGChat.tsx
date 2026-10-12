@@ -44,7 +44,8 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
     const zh = language === 'zh-TW'
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
-    const [isLoading, setIsLoading] = useState(false)
+    // The first question loads as soon as the chat opens
+    const [isLoading, setIsLoading] = useState(true)
     const [isGenerating, setIsGenerating] = useState(false)
     const [options, setOptions] = useState<string[]>([])
     const [selectedOptions, setSelectedOptions] = useState<string[]>([])
@@ -56,80 +57,84 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
 
     const STEP_KEYS = ['', 'days', 'duration', 'equipment', 'goals', 'level', 'injuries', 'notes']
 
-    useEffect(() => { startChat() }, [])
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages, options, isGenerating])
 
-    async function callChatAPI(step: number, userAnswer: string | null, updatedCollected: Record<string, string | string[] | null>) {
+    /** Clears the last question's choices before the next request; its answer fills them again */
+    function startRequest() {
         setIsLoading(true)
         setOptions([])
         setSelectedOptions([])
         setIsMultiSelect(false)
         setIsSkippable(false)
+    }
 
-        try {
-            const res = await fetch('/api/ai/routine-chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    currentStep: step,
-                    userAnswer,
-                    language,
-                    trainingGoal,
-                    collected: updatedCollected,
-                }),
-            })
+    /** One step of the chat from the API: the next question, or the answers to build routines from */
+    async function fetchStep(step: number, userAnswer: string | null, updatedCollected: Record<string, string | string[] | null>): Promise<ChatResponse> {
+        const res = await fetch('/api/ai/routine-chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                currentStep: step,
+                userAnswer,
+                language,
+                trainingGoal,
+                collected: updatedCollected,
+            }),
+        })
+        return res.json()
+    }
 
-            const data: ChatResponse = await res.json()
+    /** Shows a step: the next question with its choices, or builds the routines */
+    async function applyStep(data: ChatResponse) {
+        // 顯示 AI 的回應訊息
+        if (data.message) {
+            setMessages((prev) => [...prev, { role: 'assistant', content: data.message }])
+        }
 
-            // 顯示 AI 的回應訊息
-            if (data.message) {
-                setMessages((prev) => [...prev, { role: 'assistant', content: data.message }])
-            }
-
-            if (data.action === 'ask' && data.question) {
-                // 問題也加進 messages，這樣回答後不會消失
-                setMessages((prev) => [...prev, { role: 'assistant', content: data.question! }])
-                setOptions(data.options ?? [])
-                setIsMultiSelect(data.multi_select ?? false)
-                setIsSkippable(data.skippable ?? false)
-                if (data.nextStep) setCurrentStep(data.nextStep)
-            } else if (data.action === 'ready_to_generate' && data.collected) {
-                setIsLoading(false)
-                setIsGenerating(true)
-                try {
-                    const genRes = await fetch('/api/ai/generate-routine', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            collected: data.collected,
-                            language,
-                            trainingGoal,
-                        }),
-                    })
-                    const genData = await genRes.json()
-                    if (genData.action === 'generate_routine' && genData.routines) {
-                        onRoutinesGenerated(genData.routines, genData.cycle_length ?? genData.routines.length)
-                    }
-                } finally {
-                    setIsGenerating(false)
-                }
-                return
-            }
-        } catch {
-            setMessages((prev) => [...prev, {
-                role: 'assistant',
-                content: zh ? '發生錯誤，請再試一次。' : 'Something went wrong. Please try again.',
-            }])
-        } finally {
+        if (data.action === 'ask' && data.question) {
+            // 問題也加進 messages，這樣回答後不會消失
+            setMessages((prev) => [...prev, { role: 'assistant', content: data.question! }])
+            setOptions(data.options ?? [])
+            setIsMultiSelect(data.multi_select ?? false)
+            setIsSkippable(data.skippable ?? false)
+            if (data.nextStep) setCurrentStep(data.nextStep)
+        } else if (data.action === 'ready_to_generate' && data.collected) {
             setIsLoading(false)
+            setIsGenerating(true)
+            try {
+                const genRes = await fetch('/api/ai/generate-routine', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        collected: data.collected,
+                        language,
+                        trainingGoal,
+                    }),
+                })
+                const genData = await genRes.json()
+                if (genData.action === 'generate_routine' && genData.routines) {
+                    onRoutinesGenerated(genData.routines, genData.cycle_length ?? genData.routines.length)
+                }
+            } finally {
+                setIsGenerating(false)
+            }
         }
     }
 
-    async function startChat() {
-        await callChatAPI(0, null, {})
+    function showError() {
+        setMessages((prev) => [...prev, {
+            role: 'assistant',
+            content: zh ? '發生錯誤，請再試一次。' : 'Something went wrong. Please try again.',
+        }])
     }
+
+    // The first question, once the chat opens. State changes only when the answer arrives,
+    // and there is nothing to clear yet (isLoading starts true)
+    useEffect(() => {
+        fetchStep(0, null, {}).then(applyStep).catch(showError).finally(() => setIsLoading(false))
+    }, [])
 
     async function handleAnswer(answer: string) {
         if (!answer.trim() || isLoading || isGenerating) return
@@ -155,7 +160,14 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
         setCollected(updatedCollected)
 
         // 呼叫下一步
-        await callChatAPI(currentStep, answer, updatedCollected)
+        startRequest()
+        try {
+            await applyStep(await fetchStep(currentStep, answer, updatedCollected))
+        } catch {
+            showError()
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     return (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { MUSCLE_GROUPS, type ExerciseOption } from './log-types'
 
@@ -17,15 +17,10 @@ export function MuscleGroupExercisePicker({
     onChange,
     language = 'en',
 }: MuscleGroupExercisePickerProps) {
-    const [muscleGroup, setMuscleGroup] = useState<string>(() => {
-        const current = exercises.find((ex) => ex.id === value)
-        return current?.muscle_group ?? MUSCLE_GROUPS[0]
-    })
-
-    useEffect(() => {
-        const match = exercises.find((ex) => ex.id === value)
-        if (match) setMuscleGroup(match.muscle_group)
-    }, [value, exercises])
+    // The group picked by hand; it shows only while no exercise is selected (an empty group)
+    const [pickedGroup, setPickedGroup] = useState<string>(MUSCLE_GROUPS[0])
+    // Otherwise the selected exercise's group, so a value set from outside moves the group with it
+    const muscleGroup = exercises.find((ex) => ex.id === value)?.muscle_group ?? pickedGroup
 
     const exercisesInGroup = useMemo(
         () => exercises.filter((ex) => ex.muscle_group === muscleGroup),
@@ -33,7 +28,7 @@ export function MuscleGroupExercisePicker({
     )
 
     function handleMuscleGroupChange(newGroup: string) {
-        setMuscleGroup(newGroup)
+        setPickedGroup(newGroup)
         const firstInGroup = exercises.find((ex) => ex.muscle_group === newGroup)
         onChange(firstInGroup?.id ?? '')
     }
