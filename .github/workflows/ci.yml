@@ -50,12 +50,10 @@ jobs:
           npm run eval:ronnie:build
           node evals/ronnie/check-executor.mjs
           node evals/ronnie/check-grader.mjs
+      # No environment variables: every page reads the session per request, so the build
+      # never connects to Supabase, Anthropic or AWS
       - name: Build
         run: npm run build
-        env:
-          # Every page reads the session per request, so the build never calls Supabase
-          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
 
   report-worker:
     name: Report worker
