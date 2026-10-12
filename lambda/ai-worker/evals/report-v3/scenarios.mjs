@@ -4,8 +4,10 @@
 //
 // A scenario describes a repeating week (or cycle) of routines. Every set of an
 // exercise in a window is logged at that window's weight x reps, oldest window
-// first in `progress`. Window 0 is the reported period. `note` is the note for the
-// whole period; `dayNotes` maps a day of the period (its index in `plan`) to that day's note.
+// first in `progress`: '80x8' is 80 kg x 8, 'a30x8' 8 reps with 30 kg of assist, '10min' a
+// cardio set of 10 minutes (the treadmill at 10 km/h). Sets are logged in the routine's order.
+// Window 0 is the reported period. `note` is the note for the whole period; `dayNotes` maps a
+// day of the period (its index in `plan`) to that day's note.
 
 import { createRequire } from 'node:module'
 
@@ -27,6 +29,9 @@ const LIBRARY = [
     ['legcurl', 'Leg Curl', '腿彎舉', 'legs'],
     ['hipthrust', 'Hip Thrust', '臀推', 'glutes'],
     ['plank', 'Plank', '棒式', 'core'],
+    ['assisted', 'Assisted Pull-up', '輔助引體向上', 'back'],
+    ['treadmill', 'Treadmill', '跑步機', 'cardio'],
+    ['bike', 'Stationary Bike', '健身車', 'cardio'],
 ]
 // Each takes the reviewed muscles of its counterpart in the real library
 const ATTRIBUTES = createRequire(import.meta.url)('../../../../supabase/data/exercise-attributes.json')
@@ -34,15 +39,16 @@ const LIBRARY_NAME = { 'Incline Dumbbell Press': 'Incline Dumbbell Bench Press',
 function musclesOf(name) {
     const a = ATTRIBUTES.find((x) => x.name === (LIBRARY_NAME[name] ?? name))
     if (!a) throw new Error(`scenario exercise ${name} has no counterpart in exercise-attributes.json`)
-    return { primaryMuscles: a.primary, secondaryMuscles: a.secondary }
+    return { primaryMuscles: a.primary, secondaryMuscles: a.secondary, logType: a.logType }
 }
 // The rest of the library, untrained, as the report sees it: a low muscle's advice may suggest one of its staples
 const IN_SCENARIOS = new Set(LIBRARY.map(([, name]) => LIBRARY_NAME[name] ?? name))
 export const EXERCISES = [
     ...LIBRARY.map(([key, name, nameZh, muscleGroup]) => ({ id: `ex-${key}`, name, nameZh, muscleGroup, ...musclesOf(name) })),
     ...ATTRIBUTES.filter((a) => !IN_SCENARIOS.has(a.name))
-        .map((a) => ({ id: a.id, name: a.name, nameZh: a.nameZh, muscleGroup: a.muscleGroup, primaryMuscles: a.primary, secondaryMuscles: a.secondary })),
+        .map((a) => ({ id: a.id, name: a.name, nameZh: a.nameZh, muscleGroup: a.muscleGroup, primaryMuscles: a.primary, secondaryMuscles: a.secondary, logType: a.logType })),
 ]
+const CARDIO = new Set(EXERCISES.filter((e) => ['treadmill', 'cardio_level', 'rower', 'cardio_time'].includes(e.logType)).map((e) => e.id))
 
 // Compound lifts get 4 sets, accessories fewer, as most programs do. Trained twice a week it
 // puts every muscle with a range at 10 or more (a secondary muscle counting half): side and
@@ -56,6 +62,7 @@ const PPL = {
 const DEFAULTS = {
     bench: '80x8', incline: '26x10', ohp: '45x8', lateral: '10x12', pushdown: '30x12', dips: '0x10', pullup: '0x8',
     row: '70x8', pulldown: '55x10', curl: '30x10', facepull: '15x15', squat: '100x6', rdl: '90x8', legpress: '160x10', legcurl: '40x12', hipthrust: '100x10', plank: '0x60',
+    assisted: 'a30x8', treadmill: '10min', bike: '10min',
 }
 
 const addDays = (iso, n) => {
@@ -63,15 +70,20 @@ const addDays = (iso, n) => {
     d.setUTCDate(d.getUTCDate() + n)
     return d.toISOString().slice(0, 10)
 }
+/** A set as the report reads it, from '80x8', 'a30x8' or '10min' */
 const parse = (s) => {
-    const [w, r] = s.split('x').map(Number)
-    return { weightKg: w, reps: r }
+    const set = { reps: 0, weightKg: 0, durationS: null, speedKmh: null, distanceM: null, assistKg: null }
+    const minutes = /^(\d+)min$/.exec(s)
+    if (minutes) return { ...set, durationS: Number(minutes[1]) * 60 }
+    const [w, r] = s.replace(/^a/, '').split('x').map(Number)
+    return s.startsWith('a') ? { ...set, reps: r, assistKg: w } : { ...set, weightKg: w, reps: r }
 }
-/** Without a `progress` entry, a weighted lift creeps up a little every period; bodyweight ones stay put. */
+/** Without a `progress` entry, a weighted lift creeps up a little every period, an assisted one needs a little less help; bodyweight ones and cardio stay put. */
 function defaultAt(key, k) {
-    const { weightKg, reps } = parse(DEFAULTS[key])
-    const step = weightKg >= 40 ? 2.5 : weightKg >= 15 ? 1 : weightKg > 0 ? 0.5 : 0
-    return { weightKg: weightKg - step * k, reps }
+    const set = parse(DEFAULTS[key])
+    if (set.assistKg != null) return { ...set, assistKg: set.assistKg + 2.5 * k }
+    const step = set.weightKg >= 40 ? 2.5 : set.weightKg >= 15 ? 1 : set.weightKg > 0 ? 0.5 : 0
+    return { ...set, weightKg: set.weightKg - step * k }
 }
 
 /** Inputs for analyze(), from a scenario. */
@@ -85,10 +97,17 @@ export function inputsFor(sc) {
             if (!routine) return
             if ((k === 0 || sc.skipEveryPeriod) && sc.skip?.includes(i)) return
             const date = addDays(sc.periodStart, i - k * days)
+            let order = 0
             for (const [key, n] of sc.routines[routine]) {
                 const series = sc.progress?.[key]
-                const { weightKg, reps } = series ? parse(series[series.length - 1 - k] ?? series[0]) : defaultAt(key, k)
-                for (let j = 0; j < n; j++) sets.push({ date, workoutId: `w-${date}`, exerciseId: `ex-${key}`, reps, weightKg })
+                const set = series ? parse(series[series.length - 1 - k] ?? series[0]) : defaultAt(key, k)
+                // A treadmill set runs at 10 km/h, so it has a distance
+                if (key === 'treadmill' && set.durationS != null) set.speedKmh = 10
+                for (let j = 0; j < n; j++) {
+                    // Logged in the routine's order, three minutes apart, from 18:00 UTC
+                    const loggedAt = new Date(Date.parse(`${date}T18:00:00Z`) + order++ * 180_000).toISOString()
+                    sets.push({ date, workoutId: `w-${date}`, exerciseId: `ex-${key}`, ...set, loggedAt })
+                }
             }
         })
     }
@@ -110,7 +129,8 @@ export function inputsFor(sc) {
         })) : null,
         weighIns,
         goal: sc.goal ?? null,
-        routineLeads: Object.values(sc.routines).map((r) => `ex-${r[0][0]}`),
+        // The first exercise that isn't cardio, as fetch.ts reads it
+        routineLeads: Object.values(sc.routines).map((r) => `ex-${r.find(([key]) => !CARDIO.has(`ex-${key}`))[0]}`),
         previousFindings: sc.previousFindings ?? null,
         notes: Object.entries(sc.dayNotes ?? {}).map(([i, note]) => ({ date: addDays(sc.periodStart, Number(i)), note })),
     }
@@ -126,6 +146,8 @@ const WEEK = ['push', 'pull', 'legs', 'push', 'legs', 'pull', null]
 // expect.options: finding id -> the low-volume options code must pick (addTo is an exercise id, newExercise a library name)
 // expect.dayNotes: each day note's date, planned routine and whether it was trained, as code lines them up
 // expect.brief: lines the brief must contain word for word (how the day notes reach the model)
+// expect.cardio: this period's cardio minutes, cardio days and lower-body sessions
+// expect.lifts: main lift id -> its trend and whether it is read as an assisted lift
 export const SCENARIOS = [
     {
         id: 'mockup-week-zh',
@@ -412,6 +434,68 @@ export const SCENARIOS = [
             status: 'progressing', findings: ['lift_stalled:ex-bench'],
             dayNotes: [{ date: '2026-10-01', routine: 'Push Day', trained: true }],
             brief: ['- 2026-10-01 (Push Day, trained): "Front of my right shoulder hurt on the bench press today, mostly at the bottom of each rep"'],
+        },
+    },
+    {
+        id: 'cardio-before-legs-zh',
+        why: '兩次腿日都先跑 20 分鐘跑步機才深蹲：先練腿的規則成立，建議把跑步機放到腿部動作後面（或別的時間），5–10 分鐘的暖身可以。理由是下肢肌力，不能說有氧會害肌肉長不大，也不能叫使用者多做或少做有氧。有氧一週 40 分鐘只是事實，不給建議。跑步機不是主要動作，也不算進正式組數。',
+        language: 'zh-TW', goal: '增肌', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH,
+        routines: { ...PPL, legs: [['treadmill', 2], ...PPL.legs] },
+        expect: {
+            status: 'progressing', findings: ['cardio_first:-'],
+            cardio: { minutes: 40, days: 2, legSessions: 2 },
+            brief: ['Cardio this week (the app shows it as a fact; give no advice on how much cardio to do): 40 min on 2 days: 跑步機 40 min, 6.67 km. Last week: 40 min.'],
+        },
+    },
+    {
+        id: 'cardio-warmup-and-after-en',
+        why: "A lb and miles user. Cardio four days a week, 100 minutes in all, but never 15 minutes before a leg lift: a 10-minute bike warm-up before the squats, the treadmill after the leg work, and the treadmill first only on push days (the order matters for the legs). Nothing fires: the cardio is a fact, and the report must not advise on it.",
+        language: 'en', weightUnit: 'lb', distanceUnit: 'mi', goal: 'Build muscle', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_EN,
+        routines: { ...PPL, push: [['treadmill', 2], ...PPL.push], legs: [['bike', 1], ...PPL.legs, ['treadmill', 2]] },
+        expect: {
+            status: 'progressing', findings: [],
+            cardio: { minutes: 100, days: 4, legSessions: 2 },
+            brief: ['Cardio this week (the app shows it as a fact; give no advice on how much cardio to do): 100 min on 4 days: Treadmill 80 min, 8.28 mi; Stationary Bike 20 min. Last week: 100 min.'],
+        },
+    },
+    {
+        id: 'cardio-first-partial-zh',
+        why: '上週建議腿日先練腿：週三的腿日改成先練腿、跑步機放最後，週五的腿日還是先跑 20 分鐘，所以跟進是部分做到，規則這週也再成立一次（只有週五）。建議要具體說週五那天怎麼排，不能責怪。',
+        language: 'zh-TW', goal: '增肌', note: null,
+        periodStart: '2026-09-28', plan: ['push', 'pull', 'legs', 'push', 'legs2', 'pull', null], cycle: true,
+        routineNames: { ...NAMES_ZH, legs2: '腿日二' },
+        routines: { ...PPL, legs: [...PPL.legs, ['treadmill', 2]], legs2: [['treadmill', 2], ...PPL.legs] },
+        previousFindings: [{ id: 'cardio_first:-', rule: 'cardio_first', subject: null, priority: 25, data: { sessions: 2, dates: '2026-09-23, 2026-09-25', date: '2026-09-23', routine: '腿日', minutes: 20, cardio: 'Treadmill', cardioZh: '跑步機', lift: 'Barbell Back Squat', liftZh: '深蹲' } }],
+        expect: {
+            status: 'progressing', findings: ['cardio_first:-'],
+            followUps: { 'cardio_first:-': 'partial' },
+            cardio: { minutes: 40, days: 2, legSessions: 2 },
+        },
+    },
+    {
+        id: 'assisted-pullup-progress-zh',
+        why: '輔助引體向上每週少 2.5 公斤輔助、次數不變：輔助越少越強，所以是進步，而且這週是新紀錄。報告要用輔助公斤數說它，不能當成 0 公斤的自體重量動作。沒有規則成立。',
+        language: 'zh-TW', goal: '增肌', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH,
+        routines: { ...PPL, pull: [['assisted', 4], ...PPL.pull] },
+        expect: {
+            status: 'progressing', findings: [], records: ['ex-assisted'],
+            lifts: { 'ex-assisted': { trend: 'up', assisted: true } },
+        },
+    },
+    {
+        id: 'assisted-stalled-en',
+        why: "Assisted pull-ups have been at 30 kg of assist for 8 reps three weeks running: a stall. The advice keeps the assist and adds reps, then lowers the assist one step; it must not talk about adding weight.",
+        language: 'en', goal: 'Get my first pull-up', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_EN,
+        routines: { ...PPL, pull: [['assisted', 4], ...PPL.pull] },
+        progress: { assisted: ['a35x6', 'a32.5x6', 'a30x8', 'a30x8', 'a30x8', 'a30x8'] },
+        expect: {
+            status: 'progressing', findings: ['lift_stalled:ex-assisted'],
+            lifts: { 'ex-assisted': { trend: 'flat', assisted: true } },
+            brief: ['- Assisted Pull-up: 8 reps with 30 kg assist (last week 8 reps with 30 kg assist), flat (3 weeks without a new best), 8 sets this week'],
         },
     },
 ]

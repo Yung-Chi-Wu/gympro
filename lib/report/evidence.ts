@@ -5,11 +5,11 @@ import type { RuleId } from './types'
 // more than these papers do, then what GymPro does because of it. The report speaks with
 // one voice: the papers explain GymPro's advice and never sit beside it as a second
 // recommendation (a reader shown "GymPro: 10" next to "studies: 12-20" can't tell which
-// to follow). Every DOI was resolved through LibKey on 2026-10-09;
-// `npm run check:evidence` checks they still resolve and that every rule has a claim.
+// to follow). Every DOI was resolved through LibKey on 2026-10-09 (the cardio papers on
+// 2026-10-12); `npm run check:evidence` checks they still resolve and that every rule has a claim.
 //
-// ownThreshold: the rule's number (3 periods, -5%, -3%, 10 sets, 4 periods) is GymPro's
-// own setting, which no paper gives, and the report says so.
+// ownThreshold: the rule's number (3 periods, -5%, -3%, 10 sets, 4 periods, 15 minutes) is
+// GymPro's own setting, which no paper gives, and the report says so.
 
 export type Source = {
     /** First author's surname */
@@ -22,6 +22,9 @@ export type Source = {
 
 /** Cited by two rules and the glossary: volume and frequency against growth and strength, sets counted fractionally */
 const PELLAND: Source = { author: 'Pelland', year: 2026, title: 'The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gains', journal: 'Sports Medicine', doi: '10.1007/s40279-025-02344-w' }
+
+/** Cited by the cardio rule and the cardio facts: concurrent training against lifting alone, and the order within a session */
+const HELD: Source = { author: 'Held', year: 2026, title: 'Maximizing Adaptations in Concurrent Training: An Umbrella Review of Meta-analyses', journal: 'Sports Medicine', doi: '10.1007/s40279-026-02401-y' }
 
 export const EVIDENCE: Record<RuleId, { sources: Source[]; ownThreshold: boolean }> = {
     lift_stalled: {
@@ -76,6 +79,35 @@ export const EVIDENCE: Record<RuleId, { sources: Source[]; ownThreshold: boolean
         ],
         ownThreshold: true,
     },
+    cardio_first: {
+        sources: [
+            // Ten studies, 5+ weeks: resistance then endurance in one session, +6.9% lower-body dynamic strength; no difference in lower-body growth
+            { author: 'Eddens', year: 2018, title: 'The Role of Intra-Session Exercise Sequence in the Interference Effect: A Systematic Review with Meta-Analysis', journal: 'Sports Medicine', doi: '10.1007/s40279-017-0784-1' },
+            // Strength before endurance in the same session: lower-body 1RM 3.96 kg higher; aerobic capacity the same either way
+            { author: 'Murlasits', year: 2018, title: 'The physiological effects of concurrent strength and endurance training sequence: A systematic review and meta-analysis', journal: 'Journal of Sports Sciences', doi: '10.1080/02640414.2017.1364405' },
+            // Across meta-analyses the order was not significant, with a trend toward lifting first for strength
+            HELD,
+        ],
+        ownThreshold: true,
+    },
+}
+
+/**
+ * The research behind the cardio facts, which give no advice: cardio alongside lifting doesn't
+ * hold back muscle growth or maximal strength (messages: reportV3.cardio.researchText), and
+ * WHO's weekly amount of aerobic activity (reportV3.cardio.who).
+ */
+export const CARDIO_EVIDENCE: { research: Source[]; who: Source[] } = {
+    research: [
+        // 43 studies: concurrent training against the same lifting alone, no difference in hypertrophy or maximal strength; explosive strength blunted, more so in the same session
+        { author: 'Schumann', year: 2022, title: 'Compatibility of Concurrent Aerobic and Strength Training for Skeletal Muscle Size and Function: An Updated Systematic Review and Meta-Analysis', journal: 'Sports Medicine', doi: '10.1007/s40279-021-01587-7' },
+        // 17 meta-analyses: strength and hypertrophy comparable to lifting alone, aerobic capacity better
+        HELD,
+    ],
+    who: [
+        // Adults: 150-300 minutes of moderate aerobic activity a week, or 75-150 vigorous, counting all of daily life
+        { author: 'Bull', year: 2020, title: 'World Health Organization 2020 guidelines on physical activity and sedentary behaviour', journal: 'British Journal of Sports Medicine', doi: '10.1136/bjsports-2020-102955' },
+    ],
 }
 
 /** The research behind a glossary entry: counting a secondary muscle's set as half fit the studies best of the methods compared */

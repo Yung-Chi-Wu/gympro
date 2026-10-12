@@ -11,6 +11,7 @@ import {
 import { WeightTrendCard } from '@/components/WeightTrendCard'
 import type { AiRecommendation } from './types'
 import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
+import type { DistanceUnit } from '@/lib/distance-unit'
 import { addDays, localDate, periodEndFor, type CycleSettings } from '@/lib/periods'
 import type { Units } from '@/lib/set-log'
 import {
@@ -618,11 +619,12 @@ const SEVERITY_STYLES: Record<string, string> = {
 }
 
 /** Every period's report, newest first, a page at a time; each opens in place */
-export function HistoryReports({ initialReports, cycle, language, weightUnit }: {
+export function HistoryReports({ initialReports, cycle, language, weightUnit, distanceUnit }: {
     initialReports: ReportRow[]
     cycle: CycleSettings | null
     language: string
     weightUnit: WeightUnit
+    distanceUnit: DistanceUnit
 }) {
     const t = useTranslations('history')
     // The first page comes from the server (and refreshes with it); older pages are added here
@@ -664,6 +666,7 @@ export function HistoryReports({ initialReports, cycle, language, weightUnit }: 
                     periodEnd={periodEndFor(report.period_start, cycle)}
                     language={language}
                     weightUnit={weightUnit}
+                    distanceUnit={distanceUnit}
                 />
             ))}
             {loadError && <LoadError onRetry={loadOlder} />}
@@ -679,11 +682,12 @@ export function HistoryReports({ initialReports, cycle, language, weightUnit }: 
 }
 
 /** One report: its period and verdict; opened, the whole report */
-function ReportItem({ report, periodEnd, language, weightUnit }: {
+function ReportItem({ report, periodEnd, language, weightUnit, distanceUnit }: {
     report: ReportRow
     periodEnd: string
     language: string
     weightUnit: WeightUnit
+    distanceUnit: DistanceUnit
 }) {
     const t = useTranslations('report')
     const tV3 = useTranslations('reportV3')
@@ -731,7 +735,7 @@ function ReportItem({ report, periodEnd, language, weightUnit }: {
                         <p className="text-[15px] text-muted md:text-sm">{tV3('insufficient')}</p>
                     )}
 
-                    {v3 && <ReportView report={v3} language={language} weightUnit={weightUnit} />}
+                    {v3 && <ReportView report={v3} language={language} weightUnit={weightUnit} distanceUnit={distanceUnit} />}
 
                     {report.status === 'failed' && <FailedReport periodStart={report.period_start} onRetried={reload} />}
 

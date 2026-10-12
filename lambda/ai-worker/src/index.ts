@@ -22,10 +22,13 @@ async function processMessage(record: SQSRecord): Promise<void> {
   const supabase = await getSupabaseClient()
 
   try {
-    const { inputs, language: profileLanguage, weightUnit } = await fetchReportInputs(supabase, userId, periodStart, periodEnd)
+    const { inputs, language: profileLanguage, weightUnit, distanceUnit } = await fetchReportInputs(supabase, userId, periodStart, periodEnd)
     const language = messageLanguage ?? profileLanguage
 
-    const totalSets = inputs.sets.filter((s) => s.date >= periodStart).length
+    // Code decides every number and which rules fire; the model writes the headline and advice
+    const analysis = analyze(inputs)
+    // Working sets: a week of treadmill sets alone has nothing for a strength report to compare
+    const totalSets = analysis.facts.totalSets.now
     if (totalSets < MINIMUM_SETS_FOR_ANALYSIS) {
       console.log(
         `Skipping AI analysis for user ${userId}: only ${totalSets} sets logged (minimum ${MINIMUM_SETS_FOR_ANALYSIS})`
@@ -34,14 +37,12 @@ async function processMessage(record: SQSRecord): Promise<void> {
       return
     }
 
-    // Code decides every number and which rules fire; the model writes the headline and advice
-    const analysis = analyze(inputs)
     const started = Date.now()
     // The day notes go in as their own field, lined up with each day's plan, not only inside the brief
-    const traceInput = { periodStart, periodEnd, language, weightUnit, note: userNote ?? null, dayNotes: analysis.dayNotes }
+    const traceInput = { periodStart, periodEnd, language, weightUnit, distanceUnit, note: userNote ?? null, dayNotes: analysis.dayNotes }
     let narrative: ReportV3['narrative']
     try {
-      const res = await generateNarrative({ ...analysis, note: userNote ?? null, language, weightUnit })
+      const res = await generateNarrative({ ...analysis, note: userNote ?? null, language, weightUnit, distanceUnit })
       narrative = res.narrative
       await recordTrace(supabase, {
         userId, feature: 'report', model: NARRATIVE_MODEL, servedModel: res.model, status: 'ok', latencyMs: Date.now() - started,

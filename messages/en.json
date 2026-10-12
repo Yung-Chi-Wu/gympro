@@ -420,7 +420,8 @@
             "low_volume": "More sets for {muscle}",
             "missed_sessions": "Do every planned session",
             "deload": "A lighter {unit, select, week {week} other {cycle}}",
-            "weight_trend": "Adjust calories"
+            "weight_trend": "Adjust calories",
+            "cardio_first": "Legs before cardio on leg days"
         },
         "result": {
             "lift_stalled": {
@@ -450,6 +451,12 @@
             "weight_trend": {
                 "done": "Weight is heading the right way ({kg} {unit})",
                 "not_done": "Still heading the wrong way ({kg} {unit})"
+            },
+            "cardio_first": {
+                "done": "Legs came first on every leg day",
+                "partial": "Cardio still came first on {still} of {n} leg days",
+                "not_done": "Cardio still came first",
+                "noLegs": "No leg day this {unit, select, week {week} other {cycle}}"
             }
         },
         "nextTitle": "Next {unit, select, week {week} other {cycle}}",
@@ -465,7 +472,9 @@
             "low_volume": "{muscle}: {perWeek} sets a week; GymPro suggests 10–20",
             "missed_sessions": "{done} of {planned} planned sessions (missed: {routines})",
             "missedLow": "{groups} fell below 10 sets because of it",
-            "weight_trend": "Your goal is to {direction, select, gain {gain} other {lose}} weight, and it has gone {direction, select, gain {down} other {up}} {n} {unit, select, week {weeks} other {cycles}} running"
+            "weight_trend": "Your goal is to {direction, select, gain {gain} other {lose}} weight, and it has gone {direction, select, gain {down} other {up}} {n} {unit, select, week {weeks} other {cycles}} running",
+            "cardio_first": "{day}: {minutes} min of {cardio} before {lift}",
+            "cardioFirstMore": "Cardio came first on {n} leg days this {unit, select, week {week} other {cycle}} ({dates})"
         },
         "researchText": {
             "lift_stalled": "In a study, adding reps at the same weight built muscle and strength about as well as adding weight. So GymPro suggests adding reps first, then weight once every set reaches the top of the range (double progression).",
@@ -473,7 +482,8 @@
             "deload": "Deload weeks rest mostly on coaches' experience, with few trials; in one study, a scheduled week off midway led to smaller strength gains. So GymPro doesn't schedule deloads: it suggests a lighter week, not a week off, only when several main lifts drop together.",
             "low_volume": "Research gives no minimum: the more weekly sets, the more muscle, with smaller gains the higher you go. GymPro's floor of 10 is a starting point most routines can fit; going higher from there keeps adding growth.",
             "missed_sessions": "With total sets equal, how often you train barely changes growth but helps strength; what a missed session really costs is that week's sets. So GymPro suggests fitting the missed routines in, not swapping in other exercises.",
-            "weight_trend": "Losing 0.5–1% of body weight a week keeps more muscle on a cut; a modest surplus helps a bulk, but how much is unsettled. So GymPro suggests a small change in calories, not a crash diet."
+            "weight_trend": "Losing 0.5–1% of body weight a week keeps more muscle on a cut; a modest surplus helps a bulk, but how much is unsettled. So GymPro suggests a small change in calories, not a crash diet.",
+            "cardio_first": "Two meta-analyses found that lifting before cardio in the same session gave more lower-body strength (about 4 kg more on the 1RM), with no difference in muscle growth; a newer umbrella review saw the same trend, short of significance. So when cardio comes before the leg lifts on a leg day, GymPro suggests lifting first and doing the cardio after, or at another time."
         },
         "readMore": "See the full analysis",
         "showLess": "Hide the full analysis",
@@ -485,6 +495,8 @@
             "lifts": "Records and main lifts",
             "recordsCount": "{n, plural, one {# record} other {# records}}",
             "noRecords": "Main lifts",
+            "cardio": "Cardio",
+            "cardioTake": "{minutes} min",
             "weight": "Body weight",
             "watching": "Watching",
             "noWeight": "Not logged",
@@ -511,8 +523,20 @@
         "flatFor": "{unit, select, week {week} other {cycle}} {n}",
         "record": "Record",
         "reps": "{n} reps",
+        "assisted": "{n} reps, {assist} assist",
         "weighIns": "{n, plural, one {# weigh-in} other {# weigh-ins}} this {unit, select, week {week} other {cycle}}",
         "weightWatch": "Your goal is to {direction, select, gain {gain} other {lose}} weight, and it has gone {direction, select, gain {down} other {up}} {n} {unit, select, week {weeks} other {cycles}} running; a note comes after {needed}.",
+        "cardio": {
+            "total": "{minutes} min of cardio this {unit, select, week {week} other {cycle}}, on {days, plural, one {# day} other {# days}}.",
+            "perWeek": "About {n} min a week.",
+            "previous": "{unit, select, week {Last week: {n} min.} other {Last cycle: about {n} min a week.}}",
+            "none": "No cardio logged this {unit, select, week {week} other {cycle}}.",
+            "minutes": "{n} min",
+            "metres": "{n} m",
+            "note": "Minutes are each set's logged time; treadmill distance is speed × time.",
+            "researchText": "Meta-analyses found that adding cardio to lifting builds muscle and maximal strength about as well as lifting alone, with better aerobic fitness; explosive strength is what can be blunted, more so in the same session. So GymPro only records your cardio and never asks for more or less of it; its one note is to lift first on leg days.",
+            "who": "WHO suggests 150–300 minutes of moderate aerobic activity a week for adults, everyday activity like walking to work included; this counts only what you logged."
+        },
         "liftWatch": "{lift} has been flat {n} {unit, select, week {weeks} other {cycles}}; one more and it gets a note.",
         "basisLabels": {
             "rule": "Rule",
@@ -525,7 +549,8 @@
             "deload": "Two or more main lifts dropped 3% or more, and more went down than up",
             "low_volume": "Chest, back, side or rear delts, quads, hamstrings, glutes, biceps or triceps under 10 sets a week, and not just from a missed session",
             "missed_sessions": "Days your training cycle planned that weren't trained",
-            "weight_trend": "Body weight moving against the goal 4 {unit, select, week {weeks} other {cycles}} running"
+            "weight_trend": "Body weight moving against the goal 4 {unit, select, week {weeks} other {cycles}} running",
+            "cardio_first": "15 minutes or more of cardio before the first leg lift in the same session; a 5–10 minute warm-up doesn't count (the order is when each set was logged)"
         },
         "glossary": {
             "mainLifts": {
@@ -534,7 +559,7 @@
             },
             "bestSet": {
                 "term": "Best set",
-                "text": "The set with the highest estimated 1RM that {unit, select, week {week} other {cycle}}; reps for bodyweight exercises."
+                "text": "The set with the highest estimated 1RM that {unit, select, week {week} other {cycle}}; reps for bodyweight exercises, and for assisted ones the least assist, then reps."
             },
             "e1rm": {
                 "term": "Estimated 1RM",

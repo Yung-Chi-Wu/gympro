@@ -3,6 +3,8 @@
 // fire (facts.ts, rules.ts); the model only picks among the fired rules and writes
 // them in plain language (narrative.ts). The saved report is ReportV3.
 
+import type { LogType } from '../exercise-attributes'
+
 export interface ExerciseInfo {
     id: string
     name: string
@@ -11,15 +13,31 @@ export interface ExerciseInfo {
     /** From the exercise library; empty for a custom exercise (see lib/report/volume.ts) */
     primaryMuscles: string[]
     secondaryMuscles: string[]
+    /** How its sets are logged (lib/set-log.ts): a cardio set keeps its time outside reps and weight */
+    logType: LogType
 }
 
-/** One logged set. Dates are YYYY-MM-DD in the user's own time zone. */
+/**
+ * One logged set. Dates are YYYY-MM-DD in the user's own time zone. Every log type uses the
+ * same row: a cardio or timed set has 0 reps and 0 kg, its values in the fields below, and a
+ * set logged before its exercise had a log type has only reps and weight.
+ */
 export interface LoggedSet {
     date: string
     workoutId: string
     exerciseId: string
     reps: number
     weightKg: number
+    /** Cardio and timed sets */
+    durationS: number | null
+    /** Treadmill sets */
+    speedKmh: number | null
+    /** Rower sets: the machine's metres */
+    distanceM: number | null
+    /** Assisted sets: the machine's help */
+    assistKg: number | null
+    /** When the set was logged (ISO), which orders the sets of one session */
+    loggedAt: string
 }
 
 export interface ScheduledDay {
@@ -51,6 +69,8 @@ export interface ReportInputs {
 export interface BestSet {
     weightKg: number
     reps: number
+    /** Assisted lifts only: the machine's help, where less is stronger */
+    assistKg?: number
 }
 
 export type Trend = 'up' | 'flat' | 'down' | 'new'
@@ -66,10 +86,12 @@ export interface LiftFacts {
     previousBest: BestSet | null
     /** Bodyweight lifts are compared by reps; weighted lifts by estimated 1RM */
     bodyweight: boolean
-    /** One value per window, oldest first (estimated 1RM, or reps); null when not trained */
+    /** Assisted lifts are compared by assist, less first, then by reps; absent in reports saved before assisted lifts were read */
+    assisted?: boolean
+    /** One value per window, oldest first (estimated 1RM, or reps; for an assisted lift a number that orders by assist, then reps); null when not trained */
     series: (number | null)[]
     trend: Trend
-    /** Percent change of the estimated 1RM (weighted) or change in reps (bodyweight) against the last trained window */
+    /** Percent change of the estimated 1RM (weighted) or change in reps (bodyweight) against the last trained window; null for an assisted lift, whose sets say it */
     change: number | null
     /** Trained windows in a row, ending with this one, that didn't beat the best before them */
     flatWindows: number
@@ -108,7 +130,52 @@ export interface RecordFacts {
     nameZh: string | null
     best: BestSet
     bodyweight: boolean
+    assisted?: boolean
     date: string
+}
+
+/** One cardio exercise this period */
+export interface CardioExerciseFacts {
+    exerciseId: string
+    name: string
+    nameZh: string | null
+    logType: LogType
+    minutes: number
+    /** Treadmill: speed x time */
+    km: number | null
+    /** Rower: the machine's metres */
+    metres: number | null
+    /** Days it was done */
+    days: number
+}
+
+/** A session this period with a lower-body lift, and the cardio logged in it before that lift */
+export interface LegSessionFacts {
+    date: string
+    /** The routine the cycle planned that day, or null */
+    routine: string | null
+    /** Cardio minutes logged in the same session before its first lower-body set */
+    minutesBefore: number
+    /** The cardio done most before it; null when there was none */
+    cardio: { name: string; nameZh: string | null } | null
+    /** The session's first lower-body lift */
+    lift: { name: string; nameZh: string | null }
+}
+
+/**
+ * Cardio, reported as a fact: how much and what. The report gives no advice on how much cardio
+ * to do; the one rule about it is its order on a lower-body day (cardio_first).
+ */
+export interface CardioFacts {
+    /** Minutes this period, from every cardio set with its time */
+    minutes: number
+    /** Scaled to 7 days, like weekly sets */
+    perWeek: number
+    previousPerWeek: number | null
+    /** Days with cardio */
+    days: number
+    exercises: CardioExerciseFacts[]
+    legSessions: LegSessionFacts[]
 }
 
 export type ReportStatus = 'progressing' | 'stalling' | 'regressing' | 'baseline'
@@ -116,9 +183,10 @@ export type ReportStatus = 'progressing' | 'stalling' | 'regressing' | 'baseline
 export interface ReportFacts {
     period: { start: string; end: string; days: number }
     sessions: { done: number; planned: number | null; days: DayFacts[] }
+    /** Working sets: every set but cardio */
     totalSets: { now: number; previous: number | null }
     muscles: MuscleFacts[]
-    /** The main lifts: goal lifts first, then the most-trained exercises */
+    /** The main lifts: goal lifts first, then the most-trained exercises. Strength lifts only, never cardio or timed work. */
     lifts: LiftFacts[]
     records: RecordFacts[]
     bodyWeight: {
@@ -134,9 +202,11 @@ export interface ReportFacts {
     status: ReportStatus
     liftsSummary: { up: number; flat: number; down: number }
     goal: { text: string | null; direction: 'gain' | 'lose' | null }
+    /** Absent in reports saved before cardio was read */
+    cardio?: CardioFacts
 }
 
-export type RuleId = 'deload' | 'lift_regressed' | 'lift_stalled' | 'low_volume' | 'missed_sessions' | 'weight_trend'
+export type RuleId = 'deload' | 'lift_regressed' | 'lift_stalled' | 'low_volume' | 'missed_sessions' | 'weight_trend' | 'cardio_first'
 
 type Data = Record<string, number | string | null>
 

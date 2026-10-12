@@ -1,11 +1,11 @@
 // Free check of the report's research table (lib/report/evidence.ts): every rule has at
-// least one paper and a claim in both languages, and every DOI (rules and glossary) still
-// resolves at doi.org.
+// least one paper and a claim in both languages, the cardio facts too, and every DOI (rules,
+// glossary, cardio) still resolves at doi.org.
 // Run: npm run check:evidence
 
 import en from '../messages/en.json'
 import zh from '../messages/zh-TW.json'
-import { EVIDENCE, GLOSSARY_SOURCES } from '../lib/report/evidence'
+import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES } from '../lib/report/evidence'
 
 const DOI = /^10\.\d{4,9}\/\S+$/
 
@@ -24,6 +24,7 @@ async function main() {
         const claims: Record<string, string> = messages.reportV3.researchText
         for (const rule of rules) if (!claims[rule]?.trim()) problems.push(`${lang}: no researchText for ${rule}`)
         for (const key of Object.keys(claims)) if (!(key in EVIDENCE)) problems.push(`${lang}: researchText.${key} has no rule`)
+        for (const key of ['researchText', 'who'] as const) if (!messages.reportV3.cardio[key]?.trim()) problems.push(`${lang}: no cardio.${key}`)
     }
 
     const dois = new Set<string>()
@@ -35,9 +36,11 @@ async function main() {
             else dois.add(s.doi)
         }
     }
-    for (const [entry, sources] of Object.entries(GLOSSARY_SOURCES)) {
+    const cardio = Object.entries(CARDIO_EVIDENCE).map(([k, sources]) => [`cardio ${k}`, sources] as const)
+    for (const [entry, sources] of cardio) if (!sources.length) problems.push(`${entry}: no source`)
+    for (const [entry, sources] of [...Object.entries(GLOSSARY_SOURCES), ...cardio]) {
         for (const s of sources ?? []) {
-            if (!DOI.test(s.doi)) problems.push(`glossary ${entry}: malformed DOI ${s.doi}`)
+            if (!DOI.test(s.doi)) problems.push(`${entry}: malformed DOI ${s.doi}`)
             else dois.add(s.doi)
         }
     }

@@ -2,8 +2,9 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
 import { getClaudeClient } from '../claude'
 import { toDisplayWeight, type WeightUnit } from '../../../../lib/weight-unit'
+import { toDisplayDistance, type DistanceUnit } from '../../../../lib/distance-unit'
 import { unitLabel, VOLUME_UNITS, VOLUME_UNIT_IDS } from '../../../../lib/report/volume'
-import type { DayNote, Finding, FollowUp, LiftFacts, ReportFacts, ReportNarrative, RuleId, Watching } from './types'
+import type { CardioFacts, DayNote, Finding, FollowUp, LiftFacts, ReportFacts, ReportNarrative, RuleId, Watching } from './types'
 
 // The model's whole job in the report: one headline, and one plain-language action for each
 // rule code has already fired, covering every finding of that rule (all the muscles, all the
@@ -21,7 +22,14 @@ const advice = (unit: WeightUnit, period: string): Record<RuleId, string> => ({
     low_volume: `It takes addSets more sets each ${period} to bring the muscle to 10 a week. Offer the options in its data for the user to choose between, as given, with their exercises and set counts; if there is only one, give it alone (an option is left out when it isn't a sensible one, not because nothing trains the muscle). Add no exercise of your own unless a note rules an option out.`,
     missed_sessions: 'Name the missed sessions and suggest a realistic way to fit those routines in, as planned, or plan around those days. Making them up is what brings lowGroups (muscles low only because of these sessions) back into range, so don\'t swap in other exercises. Never scold; if a note explains it, acknowledge that.',
     weight_trend: 'Body weight is moving against the goal: suggest a small daily calorie change (about 200-300 kcal) and steady weigh-ins, not a crash diet.',
+    cardio_first: `On a lower-body day, do the leg lifts before the cardio (the cardio and lift in the data), or the cardio at another time; a 5-10 minute warm-up before lifting is fine. It is about leg strength: don't say cardio hurts muscle growth, and don't suggest doing more or less cardio.`,
 })
+
+/** Added to a lift rule's advice when one of its lifts is assisted, where less assist is the progress */
+const ASSISTED_ADVICE: Partial<Record<RuleId, string>> = {
+    lift_regressed: 'For an assisted lift, holdAt is the assist to stay at.',
+    lift_stalled: 'For an assisted lift, keep the assist and add reps, then lower the assist by the smallest step.',
+}
 
 export interface NarrativeInput {
     facts: ReportFacts
@@ -35,6 +43,8 @@ export interface NarrativeInput {
     language: string
     /** Weights are stored in kg; the brief, and so the text, uses the user's unit */
     weightUnit: WeightUnit
+    /** Treadmill distance, in km or miles; km when not given */
+    distanceUnit?: DistanceUnit
 }
 
 export interface NarrativeResult {
@@ -80,16 +90,31 @@ const nameOf = (l: { name: string; nameZh: string | null }, zh: boolean) => (zh 
 function liftLine(l: LiftFacts, zh: boolean, unit: string, setOf: (s: LiftFacts['best'], bodyweight: boolean) => string): string {
     const trend = l.trend === 'new' ? 'no earlier data'
         : l.trend === 'flat' ? `flat (${l.flatWindows} ${unit}s without a new best)`
+        : l.assisted ? `${l.trend} (less assist, or more reps at the same assist, is up)`
         : l.bodyweight ? `best reps ${l.trend} ${Math.abs(l.change ?? 0)}` : `estimated 1RM ${l.trend} ${Math.abs(l.change ?? 0)}%`
     return `- ${nameOf(l, zh)}: ${setOf(l.best, l.bodyweight)} (last ${unit} ${setOf(l.previousBest, l.bodyweight)}), ${trend}, ${l.sets} sets this ${unit}${l.goalLift ? ', named in the goal' : ''}`
 }
 
+/** Cardio as the app shows it: a fact, with distance where the machine gives one. None at all says nothing. */
+function cardioLine(c: CardioFacts | undefined, zh: boolean, unit: string, days: number, distanceUnit: DistanceUnit): string | null {
+    if (!c || (!c.minutes && !c.previousPerWeek)) return null
+    const scaled = days === 7 ? '' : ` (about ${c.perWeek} a week)`
+    const last = c.previousPerWeek != null ? ` Last ${unit}: ${c.previousPerWeek} min${days === 7 ? '' : ' a week'}.` : ''
+    const each = c.exercises.map((e) => {
+        const distance = e.km != null ? `, ${toDisplayDistance(e.km, distanceUnit)} ${distanceUnit}` : e.metres != null ? `, ${e.metres} m` : ''
+        return `${nameOf(e, zh)} ${e.minutes} min${distance}`
+    })
+    const what = c.minutes ? `${c.minutes} min${scaled} on ${c.days} ${c.days === 1 ? 'day' : 'days'}: ${each.join('; ')}.` : 'none.'
+    return `Cardio this ${unit} (the app shows it as a fact; give no advice on how much cardio to do): ${what}${last}`
+}
+
 export function buildPrompt(input: NarrativeInput): string {
-    const { facts, findings, watching, followUps, note, dayNotes, language, weightUnit } = input
+    const { facts, findings, watching, followUps, note, dayNotes, language, weightUnit, distanceUnit = 'km' } = input
     const zh = language === 'zh-TW'
     const unit = facts.period.days === 7 ? 'week' : 'cycle'
     const w = (kg: number) => `${toDisplayWeight(kg, weightUnit)} ${weightUnit}`
-    const setOf = (s: LiftFacts['best'], bodyweight: boolean) => (!s ? '-' : bodyweight ? `${s.reps} reps (bodyweight)` : `${w(s.weightKg)} x ${s.reps}`)
+    const assisted = (assistKg: number, reps: number | string) => `${reps} reps with ${w(assistKg)} assist`
+    const setOf = (s: LiftFacts['best'], bodyweight: boolean) => (!s ? '-' : s.assistKg != null ? assisted(s.assistKg, s.reps) : bodyweight ? `${s.reps} reps (bodyweight)` : `${w(s.weightKg)} x ${s.reps}`)
     const ADVICE = advice(weightUnit, unit)
     // Finding data keeps weights in kg ("82.5x8"); the model sees the user's unit. previousValue
     // is an internal estimated 1RM for the follow-up, not something to quote. In a 7-day period
@@ -109,10 +134,11 @@ export function buildPrompt(input: NarrativeInput): string {
     }
     const dataFor = (f: Finding) => Object.fromEntries([
         ...(f.rule === 'low_volume' && f.subject ? [['muscle', muscleName(f.subject)], ['options', optionsOf(f)]] : []),
-        ...(f.rule === 'lift_regressed' && !f.data.bodyweight && typeof f.data.best === 'string' ? [['holdAt', w(Number(f.data.best.split('x')[0]))]] : []),
+        ...(f.rule === 'lift_regressed' && !f.data.bodyweight && typeof f.data.best === 'string'
+            ? [['holdAt', `${w(Number(f.data.best.split('x')[0]))}${f.data.assisted ? ' assist' : ''}`]] : []),
         ...Object.entries(f.data).filter(([k]) => !hidden.has(k)).map(([k, v]) => {
             const m = typeof v === 'string' && /^(\d+(?:\.\d+)?)x(\d+)$/.exec(v)
-            if (m) return [k, f.data.bodyweight ? `${m[2]} reps (bodyweight)` : `${w(Number(m[1]))} x ${m[2]}`]
+            if (m) return [k, f.data.assisted ? assisted(Number(m[1]), m[2]) : f.data.bodyweight ? `${m[2]} reps (bodyweight)` : `${w(Number(m[1]))} x ${m[2]}`]
             if (k === 'lowGroups' && typeof v === 'string') return [k, v.split(', ').map(muscleName).join(', ')]
             return [k.replace(/Kg$/, ''), (k === 'latestKg' || k === 'changeKg') && typeof v === 'number' ? w(v) : v]
         }),
@@ -136,6 +162,7 @@ export function buildPrompt(input: NarrativeInput): string {
             const notes = [m.status === 'low' ? 'below the range' : m.status === 'high' ? 'above the range' : null, m.previousPerWeek != null ? `last ${unit} ${m.previousPerWeek}` : null].filter(Boolean)
             return `${muscleName(m.group)} ${m.perWeek}${notes.length ? ` (${notes.join('; ')})` : ''}`
         }).join(', ')}.`,
+        cardioLine(facts.cardio, zh, unit, facts.period.days, distanceUnit),
         facts.bodyWeight.latestKg != null ? `Body weight: ${w(facts.bodyWeight.latestKg)}${facts.bodyWeight.changeKg != null ? ` (${facts.bodyWeight.changeKg >= 0 ? '+' : '-'}${w(Math.abs(facts.bodyWeight.changeKg))})` : ''}, ${facts.bodyWeight.weighIns} weigh-in(s) this ${unit}.` : 'No body weight logged.',
         `Weights are in ${weightUnit}; write every weight in ${weightUnit}.`,
         `The user's goal: ${facts.goal.text ? `"${facts.goal.text}"` : 'not set'}.`,
@@ -144,7 +171,7 @@ export function buildPrompt(input: NarrativeInput): string {
             `The user's notes on single days, each after that day's plan and whether they trained (context too, not messages that need a reply):`,
             ...dayNotes.map((d) => `- ${d.date} (${dayOf(d)}): ${JSON.stringify(d.note)}`),
         ] : []),
-    ]
+    ].filter((line): line is string => line != null)
     if (followUps.length) {
         lines.push(`Last report's advice and how it went (the app shows this; mention it in the headline only if it matters):`,
             ...followUps.map((f) => `- ${f.id}: ${f.status}`))
@@ -153,7 +180,8 @@ export function buildPrompt(input: NarrativeInput): string {
     lines.push(findings.length
         ? `Rules that fired, most important first; each has one or more items:\n${rulesOf(findings).map((r) => {
             const fs = findings.filter((f) => f.rule === r)
-            return `- ${r} (priority ${Math.max(...fs.map((f) => f.priority))}). Advice: ${ADVICE[r]}\n${fs.map((f) => `    - ${itemName(f) ? `${itemName(f)}: ` : ''}data ${JSON.stringify(dataFor(f))}`).join('\n')}`
+            const advice = fs.some((f) => f.data.assisted) && ASSISTED_ADVICE[r] ? `${ADVICE[r]} ${ASSISTED_ADVICE[r]}` : ADVICE[r]
+            return `- ${r} (priority ${Math.max(...fs.map((f) => f.priority))}). Advice: ${advice}\n${fs.map((f) => `    - ${itemName(f) ? `${itemName(f)}: ` : ''}data ${JSON.stringify(dataFor(f))}`).join('\n')}`
         }).join('\n')}`
         : 'No rules fired this period.')
     if (watching.length) lines.push(`Watching, below threshold (do not advise on these): ${watching.map((w) => `${w.rule}${w.subject ? ` ${w.subject}` : ''}`).join(', ')}.`)

@@ -104,6 +104,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                 cycle={cycle}
                 language={language}
                 weightUnit={weightUnit}
+                distanceUnit={distanceUnit}
             />
         )
     }

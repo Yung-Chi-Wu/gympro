@@ -5,8 +5,9 @@ import { useTranslations } from 'next-intl'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { unitLabel } from '@/lib/report/volume'
 import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
-import { EVIDENCE, GLOSSARY_SOURCES, type Source } from '@/lib/report/evidence'
-import type { DayFacts, Finding, FollowUp, LiftFacts, ReportV3 } from '@/lib/report/types'
+import { toDisplayDistance, type DistanceUnit } from '@/lib/distance-unit'
+import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, type Source } from '@/lib/report/evidence'
+import type { BestSet, CardioFacts, DayFacts, Finding, FollowUp, LiftFacts, ReportV3 } from '@/lib/report/types'
 import { BodyMap } from './BodyMap'
 import { Sparkline } from './Sparkline'
 
@@ -30,7 +31,7 @@ const STATUS_COLOR: Record<ReportV3['facts']['status'], string> = {
 
 const shortDate = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`
 
-export function ReportView({ report, language, weightUnit }: { report: ReportV3; language: string; weightUnit: WeightUnit }) {
+export function ReportView({ report, language, weightUnit, distanceUnit = 'km' }: { report: ReportV3; language: string; weightUnit: WeightUnit; distanceUnit?: DistanceUnit }) {
     const t = useTranslations('reportV3')
     const zh = language === 'zh-TW'
     const { facts, findings, watching, followUps, narrative } = report
@@ -46,11 +47,14 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
     const liftName = (x: { name: string; nameZh: string | null } | Data) => String((zh && x.nameZh) || x.name)
     // Weights are stored in kg and shown in the user's unit
     const weight = (kg: number) => `${toDisplayWeight(kg, weightUnit)}${weightUnit}`
-    const setText = (raw: unknown, bodyweight: unknown) => {
+    /** A set in finding data ("82.5x8"); its flags say to read only the reps, or the number as the assist */
+    const setText = (raw: unknown, d: { bodyweight?: unknown; assisted?: unknown }) => {
         if (raw == null) return '—'
         const [w, r] = String(raw).split('x')
-        return Number(bodyweight) ? t('reps', { n: r }) : `${weight(Number(w))} × ${r}`
+        return Number(d.assisted) ? t('assisted', { n: r, assist: weight(Number(w)) }) : Number(d.bodyweight) ? t('reps', { n: r }) : `${weight(Number(w))} × ${r}`
     }
+    const bestText = (s: BestSet | null, bodyweight: boolean) =>
+        !s ? '—' : s.assistKg != null ? t('assisted', { n: s.reps, assist: weight(s.assistKg) }) : bodyweight ? t('reps', { n: s.reps }) : `${weight(s.weightKg)} × ${s.reps}`
     const bodyWeight = (kg: number) => toDisplayWeight(kg, weightUnit)
     const routineList = (s: unknown) => String(s ?? '').split(', ').join(zh ? '、' : ', ')
 
@@ -58,8 +62,8 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
     const why = (f: Finding) => {
         const d = f.data
         switch (f.rule) {
-            case 'lift_stalled': return t('whyText.lift_stalled', { lift: liftName(d), n: Number(d.flatWindows), unit, best: setText(d.best, d.bodyweight) })
-            case 'lift_regressed': return t('whyText.lift_regressed', { lift: liftName(d), previous: setText(d.previousBest, d.bodyweight), best: setText(d.best, d.bodyweight) })
+            case 'lift_stalled': return t('whyText.lift_stalled', { lift: liftName(d), n: Number(d.flatWindows), unit, best: setText(d.best, d) })
+            case 'lift_regressed': return t('whyText.lift_regressed', { lift: liftName(d), previous: setText(d.previousBest, d), best: setText(d.best, d) })
             case 'deload': return t('whyText.deload', { lifts: String(zh ? d.liftsZh : d.lifts) })
             case 'low_volume': return t('whyText.low_volume', { muscle: muscle(String(f.subject)), perWeek: Number(d.perWeek) })
             case 'missed_sessions': {
@@ -67,6 +71,13 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
                 return d.lowGroups ? `${base}${zh ? '，' : '; '}${t('whyText.missedLow', { groups: muscles(String(d.lowGroups)) })}` : base
             }
             case 'weight_trend': return t('whyText.weight_trend', { direction: String(d.direction), n: Number(d.periods), unit })
+            case 'cardio_first': {
+                const day = `${shortDate(String(d.date))}${d.routine ? ` ${d.routine}` : ''}`
+                const base = t('whyText.cardio_first', { day, minutes: Number(d.minutes), cardio: String((zh && d.cardioZh) || d.cardio), lift: String((zh && d.liftZh) || d.lift) })
+                if (Number(d.sessions) < 2) return base
+                const dates = String(d.dates).split(', ').map(shortDate).join(zh ? '、' : ', ')
+                return `${base}${zh ? '；' : '; '}${t('whyText.cardioFirstMore', { n: Number(d.sessions), dates, unit })}`
+            }
         }
     }
     const result = (f: FollowUp) => {
@@ -74,11 +85,13 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
         switch (f.rule) {
             case 'lift_stalled':
             case 'lift_regressed':
-                return d.trained === 0 ? t('result.notTrained', { unit }) : t(`result.${f.rule}.${f.status}`, { now: setText(d.now, d.bodyweight) })
+                return d.trained === 0 ? t('result.notTrained', { unit }) : t(`result.${f.rule}.${f.status}`, { now: setText(d.now, d) })
             case 'low_volume': return t(`result.low_volume.${f.status}`, { n: Number(d.nowPerWeek) })
             case 'missed_sessions': return t(`result.missed_sessions.${f.status}`, { done: Number(d.nowDone), planned: Number(d.nowPlanned), unit })
             case 'deload': return t(`result.deload.${f.status}`, { sets: Number(d.nowSets), unit })
             case 'weight_trend': return t(`result.weight_trend.${f.status}`, { kg: bodyWeight(Number(d.nowKg)), unit: weightUnit })
+            case 'cardio_first':
+                return d.legSessions === 0 ? t('result.cardio_first.noLegs', { unit }) : t(`result.cardio_first.${f.status}`, { n: Number(d.legSessions), still: Number(d.stillFirst), unit })
         }
     }
 
@@ -89,6 +102,8 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
     const missed = facts.sessions.planned != null ? facts.sessions.planned - facts.sessions.done : 0
     const lowGroups = facts.muscles.filter((m) => m.status === 'low').map((m) => m.group)
     const weightWatch = watching.find((w) => w.rule === 'weight_trend')
+    // Shown when there was cardio this period or the one before; reports saved before cardio was read have none
+    const cardio = facts.cardio && (facts.cardio.minutes > 0 || !!facts.cardio.previousPerWeek) ? facts.cardio : null
     const liftWatches = watching.filter((w) => w.rule === 'lift_stalled')
 
     return (
@@ -182,19 +197,24 @@ export function ReportView({ report, language, weightUnit }: { report: ReportV3;
                                     {facts.records.map((r) => (
                                         <li key={r.exerciseId} className="flex items-center gap-2.5 rounded-lg bg-[#C8955A]/15 px-3 py-2 text-sm max-md:rounded-none max-md:bg-transparent max-md:px-0 max-md:text-[15px]">
                                             <span className="text-xs font-bold tracking-wider text-[#A8742F] dark:text-[#D9AA6E]">PR</span>
-                                            <b className="flex-1 font-semibold">{liftName(r)} {r.bodyweight ? t('reps', { n: r.best.reps }) : `${weight(r.best.weightKg)} × ${r.best.reps}`}</b>
+                                            <b className="flex-1 font-semibold">{liftName(r)} {bestText(r.best, r.bodyweight)}</b>
                                             <span className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{shortDate(r.date)}</span>
                                         </li>
                                     ))}
                                 </ul>
                             )}
-                            <LiftTable lifts={facts.lifts} name={liftName} set={(l) => setText(l.best ? `${l.best.weightKg}x${l.best.reps}` : null, l.bodyweight)}
-                                prev={(l) => setText(l.previousBest ? `${l.previousBest.weightKg}x${l.previousBest.reps}` : null, l.bodyweight)}
+                            <LiftTable lifts={facts.lifts} name={liftName} set={(l) => bestText(l.best, l.bodyweight)}
+                                prev={(l) => bestText(l.previousBest, l.bodyweight)}
                                 trendLabel={(l) => t(`trend.${l.trend}`)}
                                 trendNote={(l) => l.trend === 'flat' && l.flatWindows ? t('flatFor', { n: l.flatWindows, unit }) : l.change != null && l.trend !== 'new' ? (l.bodyweight ? `${l.change > 0 ? '+' : ''}${l.change}` : `${l.change > 0 ? '+' : ''}${l.change}%`) : null} />
                             <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('liftsNote', { unit })}</p>
                             {liftWatches.map((w) => <WatchNote key={w.subject} label={`${t('section.watching')}${zh ? '：' : ': '}`}>{t('liftWatch', { lift: liftName(w.data), n: Number(w.data.flatWindows), unit })}</WatchNote>)}
                         </Row>
+                        {cardio && (
+                            <Row {...row('cardio')} title={t('section.cardio')} take={cardio.minutes ? t('section.cardioTake', { minutes: cardio.minutes }) : null}>
+                                <CardioSection cardio={cardio} unit={unit} zh={zh} name={liftName} distanceUnit={distanceUnit} research={t('research')} />
+                            </Row>
+                        )}
                         <Row {...row('weight')} title={t('section.weight')} take={weightWatch ? t('section.watching') : facts.bodyWeight.latestKg == null ? t('section.noWeight') : null}>
                             {facts.bodyWeight.latestKg != null && (
                                 <div className="grid grid-cols-[1fr_auto] items-center gap-3">
@@ -398,6 +418,47 @@ function LiftTable({ lifts, name, set, prev, trendLabel, trendNote }: {
                 </div>
             ))}
         </div>
+    )
+}
+
+/** Cardio as a fact: minutes and distance, what research says about cardio next to lifting, and WHO's weekly amount. No advice. */
+function CardioSection({ cardio, unit, zh, name, distanceUnit, research }: {
+    cardio: CardioFacts
+    unit: 'week' | 'cycle'
+    zh: boolean
+    name: (x: { name: string; nameZh: string | null }) => string
+    distanceUnit: DistanceUnit
+    research: string
+}) {
+    const t = useTranslations('reportV3.cardio')
+    const summary = [
+        cardio.minutes ? t('total', { minutes: cardio.minutes, days: cardio.days, unit }) : t('none', { unit }),
+        cardio.minutes && unit === 'cycle' ? t('perWeek', { n: cardio.perWeek }) : null,
+        cardio.previousPerWeek != null ? t('previous', { n: cardio.previousPerWeek, unit }) : null,
+    ].filter(Boolean).join(zh ? '' : ' ')
+    return (
+        <>
+            <p className="text-sm max-md:text-[15px]">{summary}</p>
+            {cardio.exercises.length > 0 && (
+                <ul className="divide-y divide-ink/10 rounded-lg border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
+                    {cardio.exercises.map((e) => (
+                        <li key={e.exerciseId} className="flex items-baseline justify-between gap-2.5 px-3 py-2 text-sm max-md:px-0 max-md:py-2.5 max-md:text-[15px]">
+                            <span className="min-w-0 truncate font-semibold">{name(e)}</span>
+                            <span className="whitespace-nowrap tabular-nums text-ink/70 dark:text-white/70">
+                                {t('minutes', { n: e.minutes })}
+                                {e.km != null && ` · ${toDisplayDistance(e.km, distanceUnit)} ${distanceUnit}`}
+                                {e.metres != null && ` · ${t('metres', { n: e.metres })}`}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            )}
+            <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('note')}</p>
+            <dl className="space-y-1 text-[13px] text-ink/70 dark:text-white/70">
+                <Reason tag={research} tone="study">{t('researchText')}<Sources sources={CARDIO_EVIDENCE.research} /></Reason>
+            </dl>
+            <p className="text-[13px] text-ink/70 dark:text-white/70">{t('who')}<Sources sources={CARDIO_EVIDENCE.who} /></p>
+        </>
     )
 }
 
