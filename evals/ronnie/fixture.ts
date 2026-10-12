@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import attributes from '../../supabase/data/exercise-attributes.json'
 import type { PlannedExercise, RonnieData, RoutineProposal } from '../../lib/ronnie/data'
+import { logTypeOf, setValuesOf } from '../../lib/set-log'
 import type { ResolvedRow } from '../../lib/ronnie/events'
 import { dateGuide, localDateStr } from '../../lib/ronnie/time'
 
@@ -70,7 +71,7 @@ const attributesOf = (name: string) => {
     const real = (LIBRARY_NAME[name] ?? name).toLowerCase()
     const a = attributes.find((x) => x.name.toLowerCase() === real)
     if (!a) throw new Error(`fixture exercise ${name} has no counterpart in exercise-attributes.json`)
-    return { primary_muscles: a.primary, secondary_muscles: a.secondary, joint_load: a.jointLoad as Record<string, string> }
+    return { primary_muscles: a.primary, secondary_muscles: a.secondary, joint_load: a.jointLoad as Record<string, string>, log_type: logTypeOf(a.logType) }
 }
 
 export const EXERCISES = EXERCISE_LIST.map(([name, name_zh_tw, muscle_group]) => ({
@@ -230,7 +231,9 @@ export function createFixtureData({ nearest }: { nearest?: RonnieData['nearestEx
             return w ? { id: w.id, workout_planned_exercises: planned(w) } : null
         },
         async getSets(workoutIds) {
-            return sets.filter((s) => workoutIds.includes(s.workout_id))
+            return sets
+                .filter((s) => workoutIds.includes(s.workout_id))
+                .map((s) => ({ workout_id: s.workout_id, exercise_id: s.exercise_id, ...setValuesOf(s) }))
         },
         async ensureTodayWorkout() {
             return today.id

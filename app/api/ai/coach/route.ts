@@ -74,6 +74,7 @@ export async function POST(request: Request) {
     const executor = createRonnieExecutor({
         data: ctx.data, language, timeZone: ctx.timeZone, todayRoutineName: ctx.todayRoutineName,
         weightUnit: ctx.userContext.weightUnit === 'lb' ? 'lb' : 'kg',
+        distanceUnit: ctx.distanceUnit,
     })
     const sent = [...conv.messages, { role: 'user' as const, content: message }]
     // The trace keeps what Ronnie was given: the system prompt with the user's context, and today's conversation so far

@@ -1,5 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '../types/database.types'
+import type { LogType } from '../exercise-attributes'
+import { logTypeOf, setValuesOf, type SetValues } from '../set-log'
+import { SET_COLUMNS } from '../today-workout'
 import { localDateStr, localDateToUtcRange } from './time'
 
 // Everything Ronnie's tools read or write, behind one interface. Production uses
@@ -26,6 +29,14 @@ export interface LibraryExercise {
     secondary_muscles: string[]
     /** Joint -> low/medium/high; null for custom exercises */
     joint_load: Record<string, string> | null
+    /** How its sets are logged (lib/set-log.ts): a treadmill set is minutes and speed, not reps x weight */
+    log_type: LogType
+}
+
+/** A logged set, every column of it, with the workout and exercise it belongs to */
+export interface WorkoutSet extends SetValues {
+    workout_id: string
+    exercise_id: string
 }
 
 /**
@@ -69,7 +80,7 @@ export interface RonnieData {
     getLatestWorkoutBetween(startIso: string, endIso: string): Promise<
         { id: string; workout_planned_exercises: PlannedExercise[] | null } | null
     >
-    getSets(workoutIds: string[]): Promise<{ workout_id: string; exercise_id: string; reps: number; weight_kg: number }[]>
+    getSets(workoutIds: string[]): Promise<WorkoutSet[]>
 
     // ---------- writes (each returns an error message, or null on success) ----------
     /** Today's workout id, creating it from today's routine if it doesn't exist yet. */
@@ -155,8 +166,8 @@ export function createSupabaseRonnieData(
 
         async listExercises() {
             // RLS already limits custom exercises to the user who created them
-            const { data } = await supabase.from('exercises').select('id, name, name_zh_tw, muscle_group, primary_muscles, secondary_muscles, joint_load')
-            return (data ?? []).map((e) => ({ ...e, joint_load: e.joint_load as Record<string, string> | null }))
+            const { data } = await supabase.from('exercises').select('id, name, name_zh_tw, muscle_group, primary_muscles, secondary_muscles, joint_load, log_type')
+            return (data ?? []).map((e) => ({ ...e, joint_load: e.joint_load as Record<string, string> | null, log_type: logTypeOf(e.log_type) }))
         },
 
         async nearestExercises(query) {
@@ -202,11 +213,13 @@ export function createSupabaseRonnieData(
         },
 
         async getSets(workoutIds) {
+            // Every column: cardio, timed and assisted sets keep their values outside reps and weight_kg
             const { data } = await supabase
                 .from('workout_sets')
-                .select('workout_id, exercise_id, reps, weight_kg')
+                .select(`workout_id, exercise_id, ${SET_COLUMNS}`)
                 .in('workout_id', workoutIds)
-            return (data ?? []) as Awaited<ReturnType<RonnieData['getSets']>>
+            type Row = Parameters<typeof setValuesOf>[0] & { workout_id: string; exercise_id: string }
+            return ((data ?? []) as unknown as Row[]).map((r) => ({ workout_id: r.workout_id, exercise_id: r.exercise_id, ...setValuesOf(r) }))
         },
 
         async ensureTodayWorkout() {
