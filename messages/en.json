@@ -456,24 +456,24 @@
         "nextCount": "{n, plural, one {# point} other {# points}}",
         "noAdvice": "Nothing to change this {unit, select, week {week} other {cycle}}. Keep going as planned.",
         "why": "Why",
-        "research": "Research",
+        "research": "Basis",
         "ownSetting": "threshold set by GymPro",
         "whyText": {
             "lift_stalled": "{lift}: best set {best} for {n} {unit, select, week {weeks} other {cycles}} running",
             "lift_regressed": "{lift}: down from {previous} to {best}",
             "deload": "{lifts} all went down",
-            "low_volume": "{muscle}: {perWeek} sets a week; 10–20 is the range",
+            "low_volume": "{muscle}: {perWeek} sets a week; GymPro suggests 10–20",
             "missed_sessions": "{done} of {planned} planned sessions (missed: {routines})",
             "missedLow": "{groups} fell below 10 sets because of it",
             "weight_trend": "Your goal is to {direction, select, gain {gain} other {lose}} weight, and it has gone {direction, select, gain {down} other {up}} {n} {unit, select, week {weeks} other {cycles}} running"
         },
         "researchText": {
-            "lift_stalled": "Adding reps and adding weight both work as progression; double progression adds reps first, then weight",
-            "lift_regressed": "A short dip can be fatigue that recovery reverses; a drop that persists is the warning sign",
-            "deload": "Deloading rests mostly on coaches' experience, with few trials; in one study a scheduled week off led to smaller strength gains",
-            "low_volume": "More weekly sets build more muscle, with diminishing returns and no sharp threshold; 10 is GymPro's low-volume line, and 12–20 suits growing more",
-            "missed_sessions": "A missed session costs that week's sets; with total sets equal, how often you train barely changes growth but does help strength",
-            "weight_trend": "Losing 0.5–1% of body weight a week keeps more muscle on a cut; a modest surplus helps a bulk, but how much is unsettled"
+            "lift_stalled": "In a study, adding reps at the same weight built muscle and strength about as well as adding weight. So GymPro suggests adding reps first, then weight once every set reaches the top of the range (double progression).",
+            "lift_regressed": "A short dip is often fatigue that recovery reverses; a drop that lasts is the warning sign of overtraining. So GymPro suggests holding the weight and looking after recovery, rather than adding load or stopping.",
+            "deload": "Deload weeks rest mostly on coaches' experience, with few trials; in one study, a scheduled week off midway led to smaller strength gains. So GymPro doesn't schedule deloads: it suggests a lighter week, not a week off, only when several main lifts drop together.",
+            "low_volume": "Research gives no minimum: the more weekly sets, the more muscle, with smaller gains the higher you go. GymPro's floor of 10 is a starting point most routines can fit; going higher from there keeps adding growth.",
+            "missed_sessions": "With total sets equal, how often you train barely changes growth but helps strength; what a missed session really costs is that week's sets. So GymPro suggests fitting the missed routines in, not swapping in other exercises.",
+            "weight_trend": "Losing 0.5–1% of body weight a week keeps more muscle on a cut; a modest surplus helps a bulk, but how much is unsettled. So GymPro suggests a small change in calories, not a crash diet."
         },
         "readMore": "See the full analysis",
         "showLess": "Hide the full analysis",
@@ -517,7 +517,7 @@
         "basisLabels": {
             "rule": "Rule",
             "data": "Your numbers",
-            "research": "Research"
+            "research": "Basis"
         },
         "ruleText": {
             "lift_stalled": "A main lift's best set hasn't improved for 3 {unit, select, week {weeks} other {cycles}}",
