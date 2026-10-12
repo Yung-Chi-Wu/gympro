@@ -456,24 +456,24 @@
         "nextCount": "{n} 項",
         "noAdvice": "這{unit, select, week {週} other {輪}}沒有需要調整的地方，照目前的安排繼續。",
         "why": "為什麼",
-        "research": "研究",
+        "research": "依據",
         "ownSetting": "門檻是 GymPro 的設定",
         "whyText": {
             "lift_stalled": "{lift}連續 {n} {unit, select, week {週} other {輪}}最佳都是 {best}",
             "lift_regressed": "{lift}從 {previous} 降到 {best}",
             "deload": "{lifts} 同時退步",
-            "low_volume": "{muscle}每週 {perWeek} 組，建議 10–20 組",
+            "low_volume": "{muscle}每週 {perWeek} 組，GymPro 建議 10–20 組",
             "missed_sessions": "排了 {planned} 次，練了 {done} 次（沒練：{routines}）",
             "missedLow": "{groups}因此低於 10 組",
             "weight_trend": "目標是{direction, select, gain {增肌} other {減脂}}，體重連續 {n} {unit, select, week {週} other {輪}}{direction, select, gain {下降} other {上升}}"
         },
         "researchText": {
-            "lift_stalled": "加次數或加重量都能有效漸進；雙重漸進是先加次數，做滿再加重",
-            "lift_regressed": "短期的表現下滑可能只是疲勞，恢復後會回升；長期持續下滑才是警訊",
-            "deload": "減量主要依據教練的經驗共識，對照實驗很少；一項研究固定排一週停練，肌力進步反而較少",
-            "low_volume": "組數越多肌肉長得越多，但效益遞減，沒有明確門檻；10 組是 GymPro 的偏低提醒線，想長更多肌肉可以往 12–20 組",
-            "missed_sessions": "漏練少掉的是當週組數；總組數相同時，練的次數對增肌影響很小，對肌力則有幫助",
-            "weight_trend": "減脂時每週減 0.5–1% 體重較能保住肌肉；增肌時適度的熱量盈餘有幫助，但多少才夠還沒有定論"
+            "lift_stalled": "研究發現，重量不變、只加次數，肌肉和力量的進步跟加重量差不多。所以 GymPro 建議先加次數，每組都做滿再加重（雙重漸進）。",
+            "lift_regressed": "短期的表現下滑常常只是疲勞，恢復後就會回升；長期持續下滑才是過度訓練的警訊。所以 GymPro 先建議維持重量、照顧恢復，不急著加重或停練。",
+            "deload": "減量週的做法主要來自教練的經驗共識，對照研究很少；一項研究在課程中間固定停練一週，肌力進步反而比較少。所以 GymPro 不排固定的減量週，只在多個主要動作一起退步時，才建議練輕一點的一週，而不是完全停練。",
+            "low_volume": "研究沒有「最少要幾組」的門檻：每週組數越多，肌肉長得越多，只是越往上效益越小。GymPro 以 10 組為下限，是大多數課表排得進去的起點；做到之後往上加，還會繼續進步。",
+            "missed_sessions": "總組數相同時，一週練幾次對增肌影響很小，對肌力則有幫助；漏練真正少掉的是當週的組數。所以 GymPro 建議把沒練的課表找時間補上，而不是換成別的動作。",
+            "weight_trend": "減脂時每週減 0.5–1% 體重較能保住肌肉；增肌時適度的熱量盈餘有幫助，但多少才夠還沒有定論。所以 GymPro 建議小幅調整熱量，不建議激烈節食。"
         },
         "readMore": "看完整分析",
         "showLess": "收起完整分析",
@@ -517,7 +517,7 @@
         "basisLabels": {
             "rule": "規則",
             "data": "你的數據",
-            "research": "研究"
+            "research": "依據"
         },
         "ruleText": {
             "lift_stalled": "同一個主要動作連續 3 {unit, select, week {週} other {輪}}，最佳重量和次數都沒變",

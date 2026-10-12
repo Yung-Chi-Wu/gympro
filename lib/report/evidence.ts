@@ -2,7 +2,10 @@ import type { RuleId } from './types'
 
 // The research behind each report rule. Citations live here, in code: the model never
 // writes one. Each rule's claim is in messages (reportV3.researchText), worded to say no
-// more than these papers do. Every DOI was resolved through LibKey on 2026-10-09;
+// more than these papers do, then what GymPro does because of it. The report speaks with
+// one voice: the papers explain GymPro's advice and never sit beside it as a second
+// recommendation (a reader shown "GymPro: 10" next to "studies: 12-20" can't tell which
+// to follow). Every DOI was resolved through LibKey on 2026-10-09;
 // `npm run check:evidence` checks they still resolve and that every rule has a claim.
 //
 // ownThreshold: the rule's number (3 periods, -5%, -3%, 10 sets, 4 periods) is GymPro's
