@@ -1,9 +1,12 @@
 import type { RecommendationCard } from './conversation'
-import type { LibraryExercise, RonnieData, RoutineProposal } from './data'
+import type { LibraryExercise, RonnieData, RoutineProposal, WorkoutSet } from './data'
 import { describeProposal } from './events'
 import { gatedSearch, latinTokens, searchLibrary } from './search'
 import { localDateStr, localDateToUtcRange } from './time'
 import { formatWeight, toDisplayWeight, type WeightUnit } from '../weight-unit'
+import { toDisplayDistance, type DistanceUnit } from '../distance-unit'
+import type { LogType } from '../exercise-attributes'
+import { fieldValue, fitsLogType, isCardio, type SetValues } from '../set-log'
 
 // Ronnie's tools. Results are for the model, so they are in English whatever the
 // user's language; exercise names follow the user's language (Ronnie quotes them),
@@ -17,6 +20,8 @@ export interface RonnieExecutorContext {
     todayRoutineName: string | null
     /** Sets are stored in kg; tool results give weights in the user's unit, which is what Ronnie must answer in */
     weightUnit?: WeightUnit
+    /** Likewise km or mi, for treadmill speed and distance */
+    distanceUnit?: DistanceUnit
     now?: () => Date
 }
 
@@ -83,7 +88,7 @@ const shiftDate = (iso: string, days: number) => {
 }
 const mondayOf = (iso: string) => shiftDate(iso, -((new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7))
 
-export function createRonnieExecutor({ data, language, timeZone, todayRoutineName, weightUnit = 'kg', now = () => new Date() }: RonnieExecutorContext): RonnieExecutor {
+export function createRonnieExecutor({ data, language, timeZone, todayRoutineName, weightUnit = 'kg', distanceUnit = 'km', now = () => new Date() }: RonnieExecutorContext): RonnieExecutor {
     const zh = language === 'zh-TW'
     let needsDashboardReload = false
     let removalAttempts = 0
@@ -93,8 +98,28 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
 
     const nameOf = (ex: { name: string; name_zh_tw: string | null } | null | undefined) =>
         (zh && ex?.name_zh_tw ? ex.name_zh_tw : ex?.name) ?? 'Unknown'
+    const units = { weight: weightUnit, distance: distanceUnit }
     // A bodyweight set is logged at 0 kg; said outright, since the model read 8×0kg as an assisted machine
-    const setText = (s: { reps: number; weight_kg: number }) => (s.weight_kg === 0 ? `${s.reps} reps (bodyweight)` : `${s.reps}×${formatWeight(s.weight_kg, weightUnit)}`)
+    const repsText = (s: SetValues) => (s.weightKg === 0 ? `${s.reps} reps (bodyweight)` : `${s.reps}×${formatWeight(s.weightKg, weightUnit)}`)
+    /**
+     * A set the way its exercise is logged. Cardio, timed and assisted sets keep their values outside
+     * reps and weight, so read as reps x weight a treadmill set was "0 reps (bodyweight)" (2026-10-12).
+     * A set logged before its exercise had a log type has only reps x weight, and reads that way.
+     */
+    const setText = (logType: LogType, s: SetValues) => {
+        if (!fitsLogType(logType, s)) return repsText(s)
+        const v = (key: Parameters<typeof fieldValue>[0]) => fieldValue(key, s, units)
+        switch (logType) {
+            case 'weight_reps': return repsText(s)
+            case 'bodyweight': return s.weightKg === 0 ? repsText(s) : `${s.reps} reps, +${formatWeight(s.weightKg, weightUnit)} added`
+            case 'assisted': return `${s.reps} reps, ${formatWeight(s.assistKg ?? 0, weightUnit)} assist (less assist is progress)`
+            case 'duration': return `${s.durationS} s`
+            case 'treadmill': return `${v('minutes')} min at ${v('speed')} ${distanceUnit === 'mi' ? 'mph' : 'km/h'}, ${v('incline')}% incline`
+            case 'cardio_level': return `${v('minutes')} min at level ${v('level')}`
+            case 'rower': return `${v('minutes')} min, ${v('metres')} m`
+            case 'cardio_time': return `${v('minutes')} min`
+        }
+    }
     const targets = (r: { target_sets: number | null; target_reps: number | null }) => `${r.target_sets ?? '?'} sets x ${r.target_reps ?? '?'} reps`
     /** A change to today's workout, worded for the user: also the tool's result. */
     const changed = (zhLine: string, enLine: string) => {
@@ -114,6 +139,9 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
     let library: LibraryExercise[] | null = null
     const exercises = async () => (library ??= await data.listExercises())
     const findExercise = async (id: string) => (await exercises()).find((e) => e.id === id)
+    /** Each exercise's log type, for describing its sets */
+    const logTypes = async () => new Map((await exercises()).map((e) => [e.id, e.log_type]))
+    const setsText = (types: Map<string, LogType>, sets: WorkoutSet[]) => sets.map((s) => setText(types.get(s.exercise_id) ?? 'weight_reps', s)).join(', ')
     async function shortId(id: string): Promise<string> {
         const prefix = id.slice(0, SHORT_ID_LENGTH)
         return (await exercises()).filter((e) => e.id.startsWith(prefix)).length > 1 ? id : prefix
@@ -152,11 +180,11 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         async get_workout_history(input) {
             const workouts = await workoutsBetween(input.date_from, input.date_to)
             if (!workouts.length) return 'No workouts in this period'
-            const sets = await data.getSets(workouts.map((w) => w.id))
+            const [sets, types] = await Promise.all([data.getSets(workouts.map((w) => w.id)), logTypes()])
             return workouts.map((w) => {
                 const date = localDateStr(new Date(w.performed_at), timeZone)
                 const lines = (w.workout_planned_exercises ?? []).map((pe) => {
-                    const done = sets.filter((s) => s.workout_id === w.id && s.exercise_id === pe.exercise_id).map(setText).join(', ')
+                    const done = setsText(types, sets.filter((s) => s.workout_id === w.id && s.exercise_id === pe.exercise_id))
                     return `  ${nameOf(pe.exercises)}: ${done || 'no sets logged'}`
                 })
                 return `${date} (${weekdayOf(date)}):\n${lines.join('\n')}`
@@ -167,9 +195,9 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             const range = todayRange()
             const workout = await data.getLatestWorkoutBetween(range.start, range.end)
             if (workout) {
-                const sets = await data.getSets([workout.id])
+                const [sets, types] = await Promise.all([data.getSets([workout.id]), logTypes()])
                 const lines = await Promise.all((workout.workout_planned_exercises ?? []).map((pe) =>
-                    listLine(pe.exercise_id, nameOf(pe.exercises), sets.filter((s) => s.exercise_id === pe.exercise_id).map(setText).join(', ') || 'no sets yet')))
+                    listLine(pe.exercise_id, nameOf(pe.exercises), setsText(types, sets.filter((s) => s.exercise_id === pe.exercise_id)) || 'no sets yet')))
                 return lines.join('\n') || 'Nothing planned today'
             }
             const routineId = await data.getTodayRoutineId()
@@ -303,18 +331,34 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         if (!trained.length) return 'No workouts in this period'
 
         const byId = new Map((await exercises()).map((e) => [e.id, e]))
+        const typeOf = (id: string): LogType => byId.get(id)?.log_type ?? 'weight_reps'
         const weeks = new Map<string, typeof trained>()
         for (const w of trained) {
             const monday = mondayOf(localDateStr(new Date(w.performed_at), timeZone))
             weeks.set(monday, [...(weeks.get(monday) ?? []), w])
         }
 
+        // The better of two sets of one exercise: an assisted set with less assist, a timed set held
+        // longer, otherwise more weight, then more reps
+        const better = (type: LogType, a: WorkoutSet, b: WorkoutSet) => {
+            if (fitsLogType(type, a) && fitsLogType(type, b)) {
+                if (type === 'assisted') return (a.assistKg ?? 0) < (b.assistKg ?? 0) || ((a.assistKg ?? 0) === (b.assistKg ?? 0) && a.reps > b.reps)
+                if (type === 'duration') return (a.durationS ?? 0) > (b.durationS ?? 0)
+            }
+            return a.weightKg > b.weightKg || (a.weightKg === b.weightKg && a.reps > b.reps)
+        }
+
         const describe = (label: string, group: typeof trained) => {
             const groupSets = sets.filter((s) => group.some((w) => w.id === s.workout_id))
-            const volume = groupSets.reduce((sum, s) => sum + s.reps * s.weight_kg, 0)
+            // Cardio is time and distance, not sets of a muscle group; a cardio set logged before
+            // log types (reps x weight only) stays with the rest
+            const isCardioSet = (s: WorkoutSet) => isCardio(typeOf(s.exercise_id)) && fitsLogType(typeOf(s.exercise_id), s)
+            const cardio = groupSets.filter(isCardioSet)
+            const strength = groupSets.filter((s) => !isCardioSet(s))
+            const volume = strength.reduce((sum, s) => sum + s.reps * s.weightKg, 0)
             const muscles = new Map<string, { sets: number; sessions: Set<string> }>()
-            const perExercise = new Map<string, { sets: number; sessions: Set<string>; best: { reps: number; weight_kg: number } }>()
-            for (const st of groupSets) {
+            const perExercise = new Map<string, { sets: number; sessions: Set<string>; best: WorkoutSet }>()
+            for (const st of strength) {
                 const muscle = byId.get(st.exercise_id)?.muscle_group ?? 'other'
                 const m = muscles.get(muscle) ?? { sets: 0, sessions: new Set<string>() }
                 m.sets++
@@ -323,14 +367,27 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
                 const e = perExercise.get(st.exercise_id) ?? { sets: 0, sessions: new Set<string>(), best: st }
                 e.sets++
                 e.sessions.add(st.workout_id)
-                if (st.weight_kg > e.best.weight_kg || (st.weight_kg === e.best.weight_kg && st.reps > e.best.reps)) e.best = st
+                if (better(typeOf(st.exercise_id), st, e.best)) e.best = st
                 perExercise.set(st.exercise_id, e)
             }
-            return [
-                `${label}: ${group.length} sessions, ${groupSets.length} sets, volume ${Math.round(toDisplayWeight(volume, weightUnit)).toLocaleString('en-US')} ${weightUnit}`,
-                `  By muscle group: ${[...muscles].map(([m, v]) => `${m} ${v.sets} sets (${v.sessions.size} sessions)`).join(', ')}`,
-                `  By exercise: ${[...perExercise].map(([id, v]) => `${nameOf(byId.get(id))} ${v.sets} sets (${v.sessions.size} sessions), best ${setText(v.best)}`).join('; ')}`,
-            ].join('\n')
+            const lines = [
+                `${label}: ${group.length} sessions, ${strength.length} sets, volume ${Math.round(toDisplayWeight(volume, weightUnit)).toLocaleString('en-US')} ${weightUnit}`,
+                ...(muscles.size ? [`  By muscle group: ${[...muscles].map(([m, v]) => `${m} ${v.sets} sets (${v.sessions.size} sessions)`).join(', ')}`] : []),
+                ...(perExercise.size ? [`  By exercise: ${[...perExercise].map(([id, v]) => `${nameOf(byId.get(id))} ${v.sets} sets (${v.sessions.size} sessions), best ${setText(typeOf(id), v.best)}`).join('; ')}`] : []),
+            ]
+            if (cardio.length) {
+                const minutesOf = (list: WorkoutSet[]) => Math.round(list.reduce((sum, s) => sum + (s.durationS ?? 0), 0) / 60)
+                const perCardio = [...new Set(cardio.map((s) => s.exercise_id))].map((id) => {
+                    const own = cardio.filter((s) => s.exercise_id === id)
+                    const type = typeOf(id)
+                    const distance = type === 'treadmill'
+                        ? `, ${toDisplayDistance(own.reduce((sum, s) => sum + ((s.speedKmh ?? 0) * (s.durationS ?? 0)) / 3600, 0), distanceUnit)} ${distanceUnit}`
+                        : type === 'rower' ? `, ${own.reduce((sum, s) => sum + (s.distanceM ?? 0), 0)} m` : ''
+                    return `${nameOf(byId.get(id))} ${minutesOf(own)} min${distance} (${new Set(own.map((s) => s.workout_id)).size} sessions)`
+                })
+                lines.push(`  Cardio: ${minutesOf(cardio)} min: ${perCardio.join('; ')}`)
+            }
+            return lines.join('\n')
         }
 
         const today = localDateStr(now(), timeZone)
@@ -348,7 +405,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             return describe(`${name}${clipped ? ', partial' : ''} (${dates})`, weeks.get(monday)!)
         })
         if (weeks.size > 1) sections.push(describe(`Total ${dateFrom} to ${dateTo}`, trained))
-        if (sets.some((s) => s.weight_kg === 0)) sections.push('(Bodyweight sets add nothing to volume)')
+        if (sets.some((s) => s.weightKg === 0 && !isCardio(typeOf(s.exercise_id)))) sections.push('(Bodyweight sets add nothing to volume)')
         return sections.join('\n\n')
     }
 

@@ -4,6 +4,7 @@ import { dot, EMBEDDING_MODELS, type EmbeddingModel } from '../../lib/embeddings
 import { cachedEmbedder } from '../shared/embedding-cache'
 import { exerciseDocument, fuseRanks, gatedSearch, matchesFilter, searchLibrary } from '../../lib/ronnie/search'
 import type { LibraryExercise } from '../../lib/ronnie/data'
+import { logTypeOf } from '../../lib/set-log'
 import attributes from '../../supabase/data/exercise-attributes.json'
 
 // Exercise-search eval. Each case is a query that a user, or Ronnie, would send to
@@ -79,6 +80,7 @@ function loadLibrary(): Exercise[] {
             primary_muscles: a.primary,
             secondary_muscles: a.secondary,
             joint_load: a.jointLoad as Record<string, string>,
+            log_type: logTypeOf(a.logType),
         }
     })
 }

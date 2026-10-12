@@ -10,6 +10,8 @@ export interface RonnieContext {
     timeZone: string
     todayRoutineName: string | null
     userContext: RonnieUserContext
+    /** km or mi, for the treadmill sets in tool results */
+    distanceUnit: 'km' | 'mi'
     /** The user's local date (YYYY-MM-DD): one conversation per day. */
     today: string
 }
@@ -25,7 +27,7 @@ export async function loadUserToday(supabase: SupabaseClient<Database>, userId: 
 export async function loadRonnieContext(supabase: SupabaseClient<Database>, userId: string): Promise<RonnieContext> {
     const [profileResult, cycleResult] = await Promise.all([
         supabase.from('user_profiles')
-            .select('display_name, training_goal, weight_unit, timezone')
+            .select('display_name, training_goal, weight_unit, distance_unit, timezone')
             .eq('user_id', userId)
             .maybeSingle(),
         supabase.from('training_cycles')
@@ -46,6 +48,7 @@ export async function loadRonnieContext(supabase: SupabaseClient<Database>, user
         data,
         timeZone,
         todayRoutineName,
+        distanceUnit: profile?.distance_unit === 'mi' ? 'mi' : 'km',
         today: dates.today,
         userContext: {
             displayName: profile?.display_name ?? null,
