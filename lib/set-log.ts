@@ -150,46 +150,64 @@ export function isValidField(key: FieldKey, text: string): boolean {
     return MUST_BE_POSITIVE.has(key) ? n > 0 : true
 }
 
+/** Stores one typed value (in the units shown) in its column */
+function storeField(s: SetValues, key: FieldKey, v: number, units: Units) {
+    switch (key) {
+        case 'weight':
+        case 'added':
+            s.weightKg = toStorageKg(v, units.weight)
+            break
+        case 'assist':
+            s.assistKg = toStorageKg(v, units.weight)
+            break
+        case 'reps':
+            s.reps = v
+            break
+        case 'seconds':
+            s.durationS = v
+            break
+        case 'minutes':
+            s.durationS = Math.round(v * 60)
+            break
+        case 'speed':
+            s.speedKmh = toStorageKmh(v, units.distance)
+            break
+        case 'incline':
+            s.inclinePct = v
+            break
+        case 'level':
+            s.level = v
+            break
+        case 'metres':
+            s.distanceM = Math.round(v)
+            break
+    }
+}
+
 /** The set to store, from the value typed in each of the log type's fields (in the units shown) */
 export function toStoredSet(logType: LogType, typed: number[], units: Units): SetValues {
     const s: SetValues = {
         reps: 0, weightKg: 0, durationS: null, speedKmh: null, inclinePct: null, level: null, distanceM: null, assistKg: null,
         inputUnit: hasWeight(logType) ? units.weight : null,
     }
-    LOG_FIELDS[logType].forEach((key, i) => {
-        const v = typed[i]
-        switch (key) {
-            case 'weight':
-            case 'added':
-                s.weightKg = toStorageKg(v, units.weight)
-                break
-            case 'assist':
-                s.assistKg = toStorageKg(v, units.weight)
-                break
-            case 'reps':
-                s.reps = v
-                break
-            case 'seconds':
-                s.durationS = v
-                break
-            case 'minutes':
-                s.durationS = Math.round(v * 60)
-                break
-            case 'speed':
-                s.speedKmh = toStorageKmh(v, units.distance)
-                break
-            case 'incline':
-                s.inclinePct = v
-                break
-            case 'level':
-                s.level = v
-                break
-            case 'metres':
-                s.distanceM = Math.round(v)
-                break
-        }
-    })
+    LOG_FIELDS[logType].forEach((key, i) => storeField(s, key, typed[i], units))
     return s
+}
+
+/** The units a set's values read in: the kg/lb it was typed in when it kept one, else the ones shown */
+export function unitsOfSet(s: SetValues, units: Units): Units {
+    return s.inputUnit && s.inputUnit !== units.weight ? { ...units, weight: s.inputUnit } : units
+}
+
+/**
+ * A logged set with one field typed over (in the units shown), the others as stored, so
+ * changing the reps doesn't round the weight through another unit
+ */
+export function withField(s: SetValues, key: FieldKey, typed: number, units: Units): SetValues {
+    const next = { ...s }
+    storeField(next, key, typed, units)
+    if (isWeightField(key)) next.inputUnit = units.weight
+    return next
 }
 
 export type SummaryPart =

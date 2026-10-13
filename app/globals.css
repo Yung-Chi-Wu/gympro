@@ -228,8 +228,8 @@ html.dark .text-ink {
   color: #EAE7E0 !important;
 }
 
-/* ── Inputs ── */
-html.dark input:not([type="checkbox"]),
+/* ── Inputs ── (a logged set's value keeps its own look until tapped, TodayWorkoutCard) */
+html.dark input:not([type="checkbox"]):not([data-logged]),
 html.dark textarea,
 html.dark select {
   background-color: #3A3733 !important;
