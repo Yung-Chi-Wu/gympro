@@ -5,6 +5,7 @@ import { AppTopBar } from '@/components/AppTopBar'
 import { BottomNav, type NavLink } from '@/components/BottomNav'
 import { AskRonnieButton, SidebarLink } from '@/components/SidebarLink'
 import { RonnieProvider, RonnieWidget } from '@/components/RonnieWidget'
+import { TimeZoneSync } from '@/components/TimeZoneSync'
 import { createClient } from '@/lib/supabase/server'
 import { getEffectiveLanguage } from '@/lib/get-language'
 
@@ -24,7 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
     const profileResult = user ? await supabase
         .from('user_profiles')
-        .select('language')
+        .select('language, timezone')
         .eq('user_id', user.id)
         .maybeSingle() : null
 
@@ -73,6 +74,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </div>
 
                 {user && <RonnieWidget language={language} userId={user.id} />}
+                {user && <TimeZoneSync timeZone={profileResult?.data?.timezone ?? null} />}
 
                 <BottomNav links={NAV_LINKS} />
             </div>

@@ -4,6 +4,7 @@ import { getEffectiveLanguage } from '@/lib/get-language'
 import { daysBetween } from '@/lib/periods'
 import { isDate, MAX_RANGE_DAYS } from '@/lib/history'
 import { loadHistoryDays, loadReportStatuses } from '@/lib/history-data'
+import { timeZoneOf } from '@/lib/time-zone'
 
 // The 紀錄 page's days for one range: a month for the calendar, or the next periods of the
 // phone's list. GET ?start=YYYY-MM-DD&end=YYYY-MM-DD (the user's own dates) returns
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
     const days = await loadHistoryDays(supabase, {
         userId: user.id,
         range,
-        timeZone: profile?.timezone ?? 'UTC',
+        timeZone: timeZoneOf(profile?.timezone),
         language,
     })
 

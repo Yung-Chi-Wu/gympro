@@ -6,6 +6,7 @@ import { awsCredentialsProvider } from '@vercel/oidc-aws-credentials-provider'
 import { currentPeriod, localDate, periodEndFor } from '@/lib/periods'
 import { toFriendlyError } from '@/lib/friendly-error'
 import { isStalePending } from '@/lib/report/queue'
+import { timeZoneOf } from '@/lib/time-zone'
 
 // Reports are queued automatically when a period ends (the report-scheduler
 // Lambda). These actions cover what the user still does by hand: today's weight
@@ -44,7 +45,7 @@ export async function saveDayWeight(weightKg: number | null): Promise<ActionResu
     // Today is the user's own date, from the server's clock. A day is at most 26 hours, so
     // the last two days hold all of today's weigh-ins.
     const { data: profile } = await supabase.from('user_profiles').select('timezone').eq('user_id', user.id).maybeSingle()
-    const timeZone = profile?.timezone || 'UTC'
+    const timeZone = timeZoneOf(profile?.timezone)
     const today = localDate(timeZone, new Date())
     const { data: recent, error: readError } = await supabase
         .from('body_metrics')
@@ -96,7 +97,7 @@ export async function saveDayNote(note: string): Promise<ActionResult> {
 
     // Today is the user's own date, from the server's clock, never from the client
     const { data: profile } = await supabase.from('user_profiles').select('timezone').eq('user_id', user.id).maybeSingle()
-    const today = localDate(profile?.timezone || 'UTC', new Date())
+    const today = localDate(timeZoneOf(profile?.timezone), new Date())
 
     const { error } = trimmed
         ? await supabase
@@ -128,7 +129,7 @@ export async function savePeriodNote(note: string): Promise<ActionResult> {
         supabase.from('training_cycles').select('cycle_length, start_date').eq('user_id', user.id).maybeSingle(),
     ])
     const period = currentPeriod(
-        profile?.timezone || 'UTC',
+        timeZoneOf(profile?.timezone),
         cycle ? { cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null
     )
     if (!period) return { success: false, message: 'Your training cycle has not started yet.' }
