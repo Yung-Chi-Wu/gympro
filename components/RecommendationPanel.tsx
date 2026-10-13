@@ -132,7 +132,8 @@ export function RecommendationPanel({ userId, language, weightUnit, distanceUnit
             )}
 
             {status === 'completed' && recommendation && isReportV3(recommendation) && (
-                <ReportView report={recommendation} language={language} weightUnit={weightUnit} distanceUnit={distanceUnit} />
+                <ReportView report={recommendation} language={language} weightUnit={weightUnit} distanceUnit={distanceUnit}
+                    variant="summary" fullHref={periodStart ? `/history?tab=reports&report=${periodStart}` : undefined} />
             )}
 
             {status === 'completed' && recommendation && !isReportV3(recommendation) && (

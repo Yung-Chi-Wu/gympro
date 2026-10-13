@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { unitLabel } from '@/lib/report/volume'
@@ -11,10 +12,14 @@ import type { BestSet, CardioFacts, DayFacts, Finding, FollowUp, LiftFacts, Repo
 import { BodyMap } from './BodyMap'
 import { Sparkline } from './Sparkline'
 
-// The weekly report (version 3). The summary answers "how did it go, and what do I
-// change"; the full analysis opens one section at a time. Every number and reason
-// comes from code (report.facts, findings); only the headline and each action are
-// the model's (report.narrative).
+// The weekly report (version 3). Every number and reason comes from code (report.facts,
+// findings); only the headline and each action are the model's (report.narrative).
+//   summary  on Today: how it went and what to change, each piece of advice in one line,
+//            then a link to the full report in History. A dashboard is read at a glance:
+//            expanded on Today the report ran several screens down a narrow column (the
+//            owner, 2026-10-13), and none of the apps compared puts a whole report on Home.
+//   full     in History: the advice with its reasons and research, then the analysis
+//            sections, one open at a time (one level, not a button and then the sections).
 //
 // On a phone (below md) the report sits in one card, so nothing inside it is a box of its
 // own: groups are set apart by lines and space, and text is at least 12-13px. The max-md:
@@ -31,12 +36,20 @@ const STATUS_COLOR: Record<ReportV3['facts']['status'], string> = {
 
 const shortDate = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`
 
-export function ReportView({ report, language, weightUnit, distanceUnit = 'km' }: { report: ReportV3; language: string; weightUnit: WeightUnit; distanceUnit?: DistanceUnit }) {
+export function ReportView({ report, language, weightUnit, distanceUnit = 'km', variant = 'full', fullHref }: {
+    report: ReportV3
+    language: string
+    weightUnit: WeightUnit
+    distanceUnit?: DistanceUnit
+    variant?: 'summary' | 'full'
+    /** summary: where the full report is (History, with this report open) */
+    fullHref?: string
+}) {
     const t = useTranslations('reportV3')
     const zh = language === 'zh-TW'
     const { facts, findings, watching, followUps, narrative } = report
     const unit = facts.period.days === 7 ? 'week' : 'cycle'
-    const [open, setOpen] = useState(false)
+    const summary = variant === 'summary'
     // One section of the full analysis open at a time
     const [section, setSection] = useState<string | null>(null)
     const row = (id: string) => ({ open: section === id, onToggle: () => setSection(section === id ? null : id) })
@@ -163,31 +176,41 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km' }
                 {items.length === 0 ? (
                     <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 max-md:bg-transparent max-md:p-0 max-md:text-[15px] dark:bg-emerald-400/10 dark:text-emerald-300 max-md:dark:bg-transparent">{t('noAdvice', { unit })}</p>
                 ) : (
-                    <ol className="space-y-2.5 max-md:space-y-0 max-md:divide-y max-md:divide-ink/10 max-md:dark:divide-white/10">
+                    <ol className={summary
+                        ? 'divide-y divide-ink/10 dark:divide-white/10'
+                        : 'space-y-2.5 max-md:space-y-0 max-md:divide-y max-md:divide-ink/10 max-md:dark:divide-white/10'}>
                         {items.map((item, i) => (
-                            <li key={item.rule ?? item.findingId} className="space-y-2 rounded-xl border border-ink/10 p-3.5 max-md:rounded-none max-md:border-0 max-md:px-0 max-md:py-3 dark:border-white/10">
+                            <li key={item.rule ?? item.findingId} className={summary
+                                ? 'py-2.5 first:pt-0 last:pb-0'
+                                : 'space-y-2 rounded-xl border border-ink/10 p-3.5 max-md:rounded-none max-md:border-0 max-md:px-0 max-md:py-3 dark:border-white/10'}>
                                 <div className="grid grid-cols-[24px_1fr] items-start gap-2.5">
                                     <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-plate text-xs font-bold text-chalk dark:bg-chalk dark:text-plate">{i + 1}</span>
                                     <p className="font-semibold leading-relaxed">{item.action}</p>
                                 </div>
-                                <dl className="space-y-1 pl-[34px] text-[13px] text-ink/70 dark:text-white/70">
-                                    {item.findings.map((f) => <Reason key={f.id} tag={t('why')} tone="data">{why(f)}</Reason>)}
-                                    <Reason tag={t('research')} tone="study">
-                                        {t(`researchText.${item.findings[0].rule}`)}<Sources sources={EVIDENCE[item.findings[0].rule].sources} />
-                                    </Reason>
-                                </dl>
+                                {/* The reasons and research are in the full report */}
+                                {!summary && (
+                                    <dl className="space-y-1 pl-[34px] text-[13px] text-ink/70 dark:text-white/70">
+                                        {item.findings.map((f) => <Reason key={f.id} tag={t('why')} tone="data">{why(f)}</Reason>)}
+                                        <Reason tag={t('research')} tone="study">
+                                            {t(`researchText.${item.findings[0].rule}`)}<Sources sources={EVIDENCE[item.findings[0].rule].sources} />
+                                        </Reason>
+                                    </dl>
+                                )}
                             </li>
                         ))}
                     </ol>
                 )}
             </section>
 
-            <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
-                className="w-full rounded-xl border border-plate py-3 text-sm font-bold hover:bg-ink/5 max-md:text-[15px] dark:border-chalk dark:hover:bg-white/5">
-                {open ? `${t('showLess')} ▴` : `${t('readMore')} ▾`}
-            </button>
+            {/* A right arrow: it goes somewhere else, it doesn't open here */}
+            {summary && fullHref && (
+                <Link href={fullHref}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-plate py-3 text-sm font-bold hover:bg-ink/5 max-md:text-[15px] dark:border-chalk dark:hover:bg-white/5">
+                    {t('openFull')} <span aria-hidden="true">→</span>
+                </Link>
+            )}
 
-            {open && (
+            {!summary && (
                 <div className="space-y-2">
                     <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('accordionHint')}</p>
                     <div className="divide-y divide-ink/10 rounded-xl border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
