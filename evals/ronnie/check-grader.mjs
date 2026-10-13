@@ -229,7 +229,7 @@ for (const c of memoryCases) {
 // The claims the first version missed, word for word from the memory baseline (2026-10-13)
 {
     const c = memoryCases.find((x) => x.id === 'memory-dislike-flip-zh')
-    for (const message of ['好，記住了，之後我不會再推薦深蹲給你。', '已記下：之後我會把深蹲納入推薦的選項。', '好，記下了，之後我不會再推薦深蹲給你。', 'Noted. Today\'s Overhead Press is the one that loads that shoulder hardest.']) {
+    for (const message of ['好，記住了，之後我不會再推薦深蹲給你。', '已記下：之後我會把深蹲納入推薦的選項。', '好，記下了，之後我不會再推薦深蹲給你。', 'Noted. Today\'s Overhead Press is the one that loads that shoulder hardest.', 'Got it, noted!', 'Duly noted.']) {
         const out = memoryOracle(c)
         out.turns = out.turns.map((t) => ({ ...t, memoryChanged: false, message }))
         check(programmaticGrade(c, out, EXERCISES).grade.no_false_memory_claim === 0, `"${message}" without saving is a false claim`)
@@ -239,7 +239,8 @@ for (const c of memoryCases) {
 {
     const c = memoryCases.find((x) => x.id === 'memory-tired-not-saved-zh')
     const out = memoryOracle(c)
-    for (const message of ['我記得你說過膝蓋有舊傷。', '記住要保持核心收緊。', 'Remember to brace your core.', 'I remember you mentioned your knee.']) {
+    // The third word for word from memory v1 (2026-10-13), recalling a note on a later day
+    for (const message of ['我記得你說過膝蓋有舊傷。', '記住要保持核心收緊。', "⚠️ Overhead Press is still in today's plan, and you've noted that pressing overhead bothers your shoulder. Want me to swap it out?", 'As you noted, your knee is fine with leg curls.', 'Remember to brace your core.', 'I remember you mentioned your knee.']) {
         out.turns[0].message = message
         check(programmaticGrade(c, out, EXERCISES).grade.no_false_memory_claim === 1, `"${message}" is not a claim to have saved something`)
     }
