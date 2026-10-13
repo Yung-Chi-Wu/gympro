@@ -289,6 +289,8 @@ export const SCENARIOS = [
             status: 'progressing',
             findings: ['lift_stalled:ex-bench', 'missed_sessions:-'],
             followUps: { 'low_volume:back': 'done', 'lift_stalled:ex-bench': 'not_done', 'missed_sessions:-': 'partial' },
+            // By name: the model can't name a lift from its id
+            brief: ['- low_volume (背): done', '- lift_stalled (槓鈴臥推): not_done', '- missed_sessions: partial'],
         },
     },
     {
@@ -305,7 +307,8 @@ export const SCENARIOS = [
             squat: ['110x5', '112.5x5', '115x5', '115x5', '115x5', '115x5'],
             bench: ['70x8', '72.5x8', '75x8', '77.5x8', '80x8', '82.5x8'],
         },
-        expect: { status: 'progressing', findings: ['lift_stalled:ex-squat'], records: ['ex-bench'] },
+        // "Squat" names Barbell Back Squat, the only squat the user trains
+        expect: { status: 'progressing', findings: ['lift_stalled:ex-squat'], records: ['ex-bench'], lifts: { 'ex-squat': { goalLift: true } } },
     },
     {
         id: 'high-volume-en',
@@ -487,15 +490,52 @@ export const SCENARIOS = [
     },
     {
         id: 'assisted-stalled-en',
-        why: "Assisted pull-ups have been at 30 kg of assist for 8 reps three weeks running: a stall. The advice keeps the assist and adds reps, then lowers the assist one step; it must not talk about adding weight.",
+        why: "Assisted pull-ups have been at 30 kg of assist for 8 reps three weeks running: a stall. The advice keeps the assist and adds reps, then lowers the assist one step; it must not talk about adding weight. The goal's \"pull-up\" names it: it is the only pull-up the user trains.",
         language: 'en', goal: 'Get my first pull-up', note: null,
         periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_EN,
         routines: { ...PPL, pull: [['assisted', 4], ...PPL.pull] },
         progress: { assisted: ['a35x6', 'a32.5x6', 'a30x8', 'a30x8', 'a30x8', 'a30x8'] },
         expect: {
             status: 'progressing', findings: ['lift_stalled:ex-assisted'],
-            lifts: { 'ex-assisted': { trend: 'flat', assisted: true } },
-            brief: ['- Assisted Pull-up: 8 reps with 30 kg assist (last week 8 reps with 30 kg assist), flat (3 weeks without a new best), 8 sets this week'],
+            lifts: { 'ex-assisted': { trend: 'flat', assisted: true, goalLift: true } },
+            brief: ['- Assisted Pull-up: 8 reps with 30 kg assist (last week 8 reps with 30 kg assist), flat (3 weeks without a new best), 8 sets this week, named in the goal'],
+        },
+    },
+    {
+        id: 'heavy-squat-small-steps-en',
+        why: 'A 180 kg squat going up 2.5 kg a week is +1.4% a week, inside the flat band, but every week outlifts the one before: the squat is up, not stalled, and nothing needs advice.',
+        language: 'en', goal: null, note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: false, routines: PPL,
+        progress: { squat: ['180x5', '182.5x5', '185x5', '187.5x5', '190x5', '192.5x5'] },
+        expect: { status: 'progressing', findings: [], lifts: { 'ex-squat': { trend: 'up', flatWindows: 0 } }, records: ['ex-squat'] },
+    },
+    {
+        id: 'weighted-dips-zh',
+        why: '雙槓撐體是自體重動作。前三週都是自重 12 下，這週開始加 10 公斤做 8 下：加重就是進步，也是新紀錄。不能算成估計 1RM 從 0 變成「上升 Infinity%」，也不能把它當成退步。',
+        language: 'zh-TW', goal: '增肌', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH,
+        routines: { ...PPL, push: [['dips', 4], ...PPL.push] },
+        progress: { dips: ['0x10', '0x11', '0x12', '0x12', '0x12', '10x8'] },
+        expect: {
+            status: 'progressing', findings: [], records: ['ex-dips'],
+            lifts: { 'ex-dips': { trend: 'up', change: null, added: true } },
+            brief: ['- 雙槓撐體: +10 kg x 8 (last week 12 reps (bodyweight)), up (more added weight, or more reps at the same weight, is up), 8 sets this week'],
+        },
+    },
+    {
+        id: 'follow-ups-no-data-en',
+        why: "Last report flagged weight going up on a cut, and two missed sessions. This week there is no weigh-in and the cycle was removed, so neither can be judged: both stay not done, and the brief says why, instead of calling the weight done or showing \"4 of NaN\".",
+        language: 'en', goal: 'Cut to 75 kg', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: false, routines: PPL,
+        weights: [80, 80.4, 80.8, 81.2, null],
+        previousFindings: [
+            { id: 'missed_sessions:-', rule: 'missed_sessions', subject: null, priority: 40, data: { done: 4, planned: 6, missed: 2 } },
+            { id: 'weight_trend:-', rule: 'weight_trend', subject: null, priority: 30, data: { direction: 'lose', periods: 4, latestKg: 81.2, changeKg: 0.4 } },
+        ],
+        expect: {
+            status: 'progressing', findings: [],
+            followUps: { 'weight_trend:-': 'not_done', 'missed_sessions:-': 'not_done' },
+            brief: ['- missed_sessions: not_done, no plan this week to count against', '- weight_trend: not_done, no weigh-in this week to tell'],
         },
     },
 ]

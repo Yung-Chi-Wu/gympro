@@ -409,7 +409,7 @@
             "up": "up",
             "rest": "{flat} flat · {down} down",
             "weight": "Weight",
-            "weightChange": "{change} vs last {unit, select, week {week} other {cycle}}",
+            "weightChange": "{change} vs {back, plural, =1 {last {unit, select, week {week} other {cycle}}} other {# {unit, select, week {weeks} other {cycles}} ago}}",
             "noWeight": "Not logged"
         },
         "followUpTitle": "Last time's advice",
@@ -442,7 +442,8 @@
             "missed_sessions": {
                 "done": "Every session done",
                 "partial": "{done} of {planned}, better than last time",
-                "not_done": "{done} of {planned}"
+                "not_done": "{done} of {planned}",
+                "noPlan": "{done} sessions, no plan to count against"
             },
             "deload": {
                 "done": "Done: {sets} sets this {unit, select, week {week} other {cycle}}",
@@ -450,7 +451,8 @@
             },
             "weight_trend": {
                 "done": "Weight is heading the right way ({kg} {unit})",
-                "not_done": "Still heading the wrong way ({kg} {unit})"
+                "not_done": "Still heading the wrong way ({kg} {unit})",
+                "noWeighIn": "No weigh-in this {unit, select, week {week} other {cycle}}"
             },
             "cardio_first": {
                 "done": "Legs came first on every leg day",

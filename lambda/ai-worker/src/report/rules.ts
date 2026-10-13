@@ -34,7 +34,7 @@ const PRIORITY: Record<RuleId, number> = {
 /** A lift the goal names comes before the others */
 const GOAL_BONUS = 20
 
-/** A set as finding data: "82.5x8" (kg x reps). For an assisted lift (assisted: 1) the number is the assist, as the bodyweight flag says to read only the reps. */
+/** A set as finding data: "82.5x8" (kg x reps). For an assisted lift (assisted: 1) the number is the assist, for an added-weight one (added: 1) the weight on top of the body, as the bodyweight flag says to read only the reps. */
 const setText = (s: BestSet | null) => (s ? `${s.assistKg ?? s.weightKg}x${s.reps}` : null)
 const liftData = (l: LiftFacts) => ({
     name: l.name,
@@ -45,9 +45,10 @@ const liftData = (l: LiftFacts) => ({
     bodyweight: l.bodyweight ? 1 : 0,
     // Only when it is one, so other lifts' data stays as it was
     ...(l.assisted ? { assisted: 1 } : {}),
+    ...(l.added ? { added: 1 } : {}),
 })
-/** Compared by reps or assist, which move in whole steps: no percentage applies */
-const byPercent = (l: LiftFacts) => !l.bodyweight && !l.assisted
+/** Compared by reps, assist or added weight, which move in whole steps: no percentage applies */
+const byPercent = (l: LiftFacts) => !l.bodyweight && !l.assisted && !l.added
 
 export function evaluateRules(facts: ReportFacts): { findings: Finding[]; watching: Watching[] } {
     const findings: Finding[] = []
@@ -174,7 +175,8 @@ export function followUp(previous: Finding[] | null, facts: ReportFacts, liftOf:
             }
             case 'missed_sessions': {
                 const { done, planned } = facts.sessions
-                if (planned == null) return result('not_done', { nowDone: done })
+                // No cycle any more: nothing planned to count against
+                if (planned == null) return result('not_done', { nowDone: done, noPlan: 1 })
                 const missedNow = planned - done
                 const missedBefore = typeof f.data.missed === 'number' ? f.data.missed : missedNow
                 return result(missedNow <= 0 ? 'done' : missedNow < missedBefore ? 'partial' : 'not_done', { nowDone: done, nowPlanned: planned })
@@ -184,6 +186,8 @@ export function followUp(previous: Finding[] | null, facts: ReportFacts, liftOf:
                 return result(before > 0 && facts.totalSets.now <= before * 0.7 ? 'done' : 'not_done', { nowSets: facts.totalSets.now })
             }
             case 'weight_trend': {
+                // No weigh-in this period: the trend can't say, and 0 would read as done
+                if (!facts.bodyWeight.weighIns) return result('not_done', { weighIns: 0 })
                 const t = facts.bodyWeight.trendWindows
                 const stillAgainst = f.data.direction === 'gain' ? t < 0 : t > 0
                 return result(stillAgainst ? 'not_done' : 'done', { nowKg: facts.bodyWeight.latestKg })

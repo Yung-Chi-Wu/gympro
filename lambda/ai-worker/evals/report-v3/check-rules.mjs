@@ -119,5 +119,59 @@ for (const sc of SCENARIOS) {
     if (problems.length) failed++
     console.log(`${problems.length ? 'FAIL' : 'ok  '} sets logged before log types${problems.map((p) => `\n       ${p}`).join('')}`)
 }
+// The goal is read as whole words: "again" isn't gain, "clean" isn't lean, "closer" isn't lose, "grow" doesn't name Barbell Row
+{
+    const sc = { ...SCENARIOS.find((x) => x.id === 'nothing-fires-flat-en'), weights: [80, 79.5, 79, 78.5, 78] }
+    const cases = [
+        ['Bulk again', 'gain'],
+        ['Back to training again after summer', null],
+        ['Keep a clean diet and get stronger', null],
+        ['Get closer to a muscle-up', null],
+        ['Cutting for summer', 'lose'],
+        ['grow my back', null],
+        // Face Pull's "pull" isn't in "pull-ups"
+        ['More pull-ups', null],
+    ]
+    const problems = []
+    for (const [goal, direction] of cases) {
+        const r = analyze(inputsFor({ ...sc, goal }))
+        if (r.facts.goal.direction !== direction) problems.push(`"${goal}": direction ${r.facts.goal.direction}, expected ${direction}`)
+        const weightTrend = r.findings.some((f) => f.rule === 'weight_trend')
+        if (weightTrend !== (direction === 'gain')) problems.push(`"${goal}": weight_trend ${weightTrend ? 'fired' : 'did not fire'} with the weight falling`)
+        const named = r.facts.lifts.filter((l) => l.goalLift).map((l) => l.exerciseId)
+        if (named.length) problems.push(`"${goal}" names ${named.join(', ')}`)
+    }
+    if (problems.length) failed++
+    console.log(`${problems.length ? 'FAIL' : 'ok  '} goal words${problems.map((p) => `\n       ${p}`).join('')}`)
+}
+// The body weight change is against the last period with weigh-ins, and says how far back that is
+{
+    const sc = { ...SCENARIOS.find((x) => x.id === 'nothing-fires-flat-en'), weights: [80, null, 80.5] }
+    const r = analyze(inputsFor(sc))
+    const brief = buildPrompt({ ...r, note: null, language: sc.language, weightUnit: 'kg' })
+    const want = 'Body weight: 80.5 kg (+0.5 kg vs 2 weeks ago), 1 weigh-in(s) this week.'
+    const problems = [
+        r.facts.bodyWeight.changeWindows !== 2 && `changeWindows ${r.facts.bodyWeight.changeWindows}, expected 2`,
+        !brief.split('\n').includes(want) && `the brief has no line ${JSON.stringify(want)}`,
+    ].filter(Boolean)
+    if (problems.length) failed++
+    console.log(`${problems.length ? 'FAIL' : 'ok  '} body weight change across a gap${problems.map((p) => `\n       ${p}`).join('')}`)
+}
+// A weighted lift's 0 kg sets have no estimated 1RM: a week of them is not trained, not "up Infinity%" after it
+{
+    const sc = SCENARIOS.find((x) => x.id === 'all-progress-en')
+    const inputs = inputsFor(sc)
+    const lastWeek = (d) => d < inputs.periodStart && d >= '2026-09-21'
+    for (const x of inputs.sets) if (x.exerciseId === 'ex-bench' && lastWeek(x.date)) x.weightKg = 0
+    const bench = analyze(inputs).facts.lifts.find((l) => l.exerciseId === 'ex-bench')
+    const problems = [
+        !bench && 'the bench is not a main lift',
+        bench && !Number.isFinite(bench.change) && `bench change ${bench.change}`,
+        bench && bench.series.at(-2) !== null && `last week's 0 kg bench sets count: series ${JSON.stringify(bench.series)}`,
+        bench && bench.trend !== 'up' && `bench trend ${bench.trend}, expected up against two weeks ago`,
+    ].filter(Boolean)
+    if (problems.length) failed++
+    console.log(`${problems.length ? 'FAIL' : 'ok  '} 0 kg sets of a weighted lift${problems.map((p) => `\n       ${p}`).join('')}`)
+}
 console.log(failed ? `\n${failed} scenario(s) failed` : `\nAll ${SCENARIOS.length} scenarios behave as expected`)
 process.exit(failed ? 1 : 0)

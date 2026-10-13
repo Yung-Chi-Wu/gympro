@@ -89,12 +89,15 @@ function schemaFor(findings: Finding[]) {
 }
 
 const nameOf = (l: { name: string; nameZh: string | null }, zh: boolean) => (zh && l.nameZh ? l.nameZh : l.name)
-function liftLine(l: LiftFacts, zh: boolean, unit: string, setOf: (s: LiftFacts['best'], bodyweight: boolean) => string): string {
+/** How a lift's sets read: by reps alone, or with added weight on the body */
+type SetKind = { bodyweight: boolean; added?: boolean }
+function liftLine(l: LiftFacts, zh: boolean, unit: string, setOf: (s: LiftFacts['best'], kind: SetKind) => string): string {
     const trend = l.trend === 'new' ? 'no earlier data'
         : l.trend === 'flat' ? `flat (${l.flatWindows} ${unit}s without a new best)`
         : l.assisted ? `${l.trend} (less assist, or more reps at the same assist, is up)`
+        : l.added ? `${l.trend} (more added weight, or more reps at the same weight, is up)`
         : l.bodyweight ? `best reps ${l.trend} ${Math.abs(l.change ?? 0)}` : `estimated 1RM ${l.trend} ${Math.abs(l.change ?? 0)}%`
-    return `- ${nameOf(l, zh)}: ${setOf(l.best, l.bodyweight)} (last ${unit} ${setOf(l.previousBest, l.bodyweight)}), ${trend}, ${l.sets} sets this ${unit}${l.goalLift ? ', named in the goal' : ''}`
+    return `- ${nameOf(l, zh)}: ${setOf(l.best, l)} (last ${unit} ${setOf(l.previousBest, l)}), ${trend}, ${l.sets} sets this ${unit}${l.goalLift ? ', named in the goal' : ''}`
 }
 
 /** Cardio as the app shows it: a fact, with distance where the machine gives one. None at all says nothing. */
@@ -116,7 +119,10 @@ export function buildPrompt(input: NarrativeInput): string {
     const unit = facts.period.days === 7 ? 'week' : 'cycle'
     const w = (kg: number) => `${toDisplayWeight(kg, weightUnit)} ${weightUnit}`
     const assisted = (assistKg: number, reps: number | string) => `${reps} reps with ${w(assistKg)} assist`
-    const setOf = (s: LiftFacts['best'], bodyweight: boolean) => (!s ? '-' : s.assistKg != null ? assisted(s.assistKg, s.reps) : bodyweight ? `${s.reps} reps (bodyweight)` : `${w(s.weightKg)} x ${s.reps}`)
+    const bodyweightReps = (reps: number | string) => `${reps} reps (bodyweight)`
+    const addedSet = (kg: number, reps: number | string) => (kg === 0 ? bodyweightReps(reps) : `+${w(kg)} x ${reps}`)
+    const setOf = (s: LiftFacts['best'], kind: SetKind) => (!s ? '-' : s.assistKg != null ? assisted(s.assistKg, s.reps)
+        : kind.added ? addedSet(s.weightKg, s.reps) : kind.bodyweight ? bodyweightReps(s.reps) : `${w(s.weightKg)} x ${s.reps}`)
     const ADVICE = advice(weightUnit, unit)
     // Finding data keeps weights in kg ("82.5x8"); the model sees the user's unit. previousValue
     // is an internal estimated 1RM for the follow-up, not something to quote. In a 7-day period
@@ -146,11 +152,11 @@ export function buildPrompt(input: NarrativeInput): string {
     const dataFor = (f: Finding) => Object.fromEntries([
         ...(f.rule === 'low_volume' && f.subject ? [['muscle', muscleName(f.subject)], ['options', optionsOf(f)]] : []),
         ...(f.rule === 'cardio_first' ? [['sessions', cardioFirstSessions(f)]] : []),
-        ...(f.rule === 'lift_regressed' && !f.data.bodyweight && typeof f.data.best === 'string'
-            ? [['holdAt', `${w(Number(f.data.best.split('x')[0]))}${f.data.assisted ? ' assist' : ''}`]] : []),
+        ...(f.rule === 'lift_regressed' && !f.data.bodyweight && typeof f.data.best === 'string' && !(f.data.added && Number(f.data.best.split('x')[0]) === 0)
+            ? [['holdAt', `${f.data.added ? '+' : ''}${w(Number(f.data.best.split('x')[0]))}${f.data.assisted ? ' assist' : f.data.added ? ' added' : ''}`]] : []),
         ...Object.entries(f.data).filter(([k]) => !hiddenFor(f).has(k)).map(([k, v]) => {
             const m = typeof v === 'string' && /^(\d+(?:\.\d+)?)x(\d+)$/.exec(v)
-            if (m) return [k, f.data.assisted ? assisted(Number(m[1]), m[2]) : f.data.bodyweight ? `${m[2]} reps (bodyweight)` : `${w(Number(m[1]))} x ${m[2]}`]
+            if (m) return [k, f.data.assisted ? assisted(Number(m[1]), m[2]) : f.data.added ? addedSet(Number(m[1]), m[2]) : f.data.bodyweight ? bodyweightReps(m[2]) : `${w(Number(m[1]))} x ${m[2]}`]
             if (k === 'lowGroups' && typeof v === 'string') return [k, v.split(', ').map(muscleName).join(', ')]
             return [k.replace(/Kg$/, ''), (k === 'latestKg' || k === 'changeKg') && typeof v === 'number' ? w(v) : v]
         }),
@@ -162,6 +168,17 @@ export function buildPrompt(input: NarrativeInput): string {
         return d.routine ? `${d.routine}, ${trained}` : `rest day${d.trained ? ', trained' : ''}`
     }
     const ranged = VOLUME_UNIT_IDS.filter((u) => VOLUME_UNITS[u].target).map(muscleName).join(', ')
+    // The body weight change is against the last period with weigh-ins, which may be further back
+    const since = (back: number) => (back === 1 ? `vs last ${unit}` : `vs ${back} ${unit}s ago`)
+    // Follow-ups and watched items by name, as the app shows them: the model can't name a lift from its id
+    const nameIn = (rule: RuleId, subject: string | null, d: FollowUp['data']) =>
+        rule === 'low_volume' && subject ? muscleName(subject) : d.name ? String((zh && d.nameZh) || d.name) : null
+    const followUpLine = (f: FollowUp) => {
+        const name = nameIn(f.rule, f.subject, f.data)
+        const why = f.data.weighIns === 0 ? `, no weigh-in this ${unit} to tell` : f.data.noPlan ? `, no plan this ${unit} to count against`
+            : f.data.legSessions === 0 ? `, no leg day this ${unit}` : f.data.trained === 0 ? `, not trained this ${unit}` : ''
+        return `- ${f.rule}${name ? ` (${name})` : ''}: ${f.status}${why}`
+    }
     const s = facts.liftsSummary
     const lines = [
         `Period: ${facts.period.start} to ${facts.period.end} (one ${unit}, ${facts.period.days} days).`,
@@ -169,13 +186,13 @@ export function buildPrompt(input: NarrativeInput): string {
         `Sessions: ${facts.sessions.done}${facts.sessions.planned != null ? ` of ${facts.sessions.planned} planned` : ''}. Sets: ${facts.totalSets.now}${facts.totalSets.previous != null ? ` (last ${unit} ${facts.totalSets.previous})` : ''}.`,
         `Main lifts, best set this ${unit}:`,
         ...facts.lifts.map((l) => liftLine(l, zh, unit, setOf)),
-        facts.records.length ? `New records (best estimated 1RM so far; not necessarily a new weight): ${facts.records.map((r) => `${nameOf(r, zh)} ${setOf(r.best, r.bodyweight)}`).join('; ')}.` : 'No new records.',
+        facts.records.length ? `New records (best estimated 1RM so far; not necessarily a new weight): ${facts.records.map((r) => `${nameOf(r, zh)} ${setOf(r.best, r)}`).join('; ')}.` : 'No new records.',
         `${facts.period.days === 7 ? 'Sets per muscle this week' : `Sets per muscle per week (this ${facts.period.days}-day cycle scaled to 7 days)`}, where a muscle an exercise trains on the side counts half a set (range 10-20 a week for ${ranged}; the others have no range): ${facts.muscles.map((m) => {
             const notes = [m.status === 'low' ? 'below the range' : m.status === 'high' ? 'above the range' : null, m.previousPerWeek != null ? `last ${unit} ${m.previousPerWeek}` : null].filter(Boolean)
             return `${muscleName(m.group)} ${m.perWeek}${notes.length ? ` (${notes.join('; ')})` : ''}`
         }).join(', ')}.`,
         cardioLine(facts.cardio, zh, unit, facts.period.days, distanceUnit),
-        facts.bodyWeight.latestKg != null ? `Body weight: ${w(facts.bodyWeight.latestKg)}${facts.bodyWeight.changeKg != null ? ` (${facts.bodyWeight.changeKg >= 0 ? '+' : '-'}${w(Math.abs(facts.bodyWeight.changeKg))})` : ''}, ${facts.bodyWeight.weighIns} weigh-in(s) this ${unit}.` : 'No body weight logged.',
+        facts.bodyWeight.latestKg != null ? `Body weight: ${w(facts.bodyWeight.latestKg)}${facts.bodyWeight.changeKg != null ? ` (${facts.bodyWeight.changeKg >= 0 ? '+' : '-'}${w(Math.abs(facts.bodyWeight.changeKg))} ${since(facts.bodyWeight.changeWindows ?? 1)})` : ''}, ${facts.bodyWeight.weighIns} weigh-in(s) this ${unit}.` : 'No body weight logged.',
         `Weights are in ${weightUnit}; write every weight in ${weightUnit}.`,
         `The user's goal: ${facts.goal.text ? `"${facts.goal.text}"` : 'not set'}.`,
         `The user's note for this ${unit} (context to fit the advice to, not a message that needs a reply): ${note ? `"${note}"` : 'none'}.`,
@@ -186,7 +203,7 @@ export function buildPrompt(input: NarrativeInput): string {
     ].filter((line): line is string => line != null)
     if (followUps.length) {
         lines.push(`Last report's advice and how it went (the app shows this; mention it in the headline only if it matters):`,
-            ...followUps.map((f) => `- ${f.id}: ${f.status}`))
+            ...followUps.map(followUpLine))
     }
     const itemName = (f: Finding) => findingName(f, language)
     lines.push(findings.length
@@ -196,7 +213,7 @@ export function buildPrompt(input: NarrativeInput): string {
             return `- ${r} (priority ${Math.max(...fs.map((f) => f.priority))}). Advice: ${advice}\n${fs.map((f) => `    - ${itemName(f) ? `${itemName(f)}: ` : ''}data ${JSON.stringify(dataFor(f))}`).join('\n')}`
         }).join('\n')}`
         : 'No rules fired this period.')
-    if (watching.length) lines.push(`Watching, below threshold (do not advise on these): ${watching.map((w) => `${w.rule}${w.subject ? ` ${w.subject}` : ''}`).join(', ')}.`)
+    if (watching.length) lines.push(`Watching, below threshold (do not advise on these): ${watching.map((x) => `${x.rule}${nameIn(x.rule, x.subject, x.data) ? ` (${nameIn(x.rule, x.subject, x.data)})` : ''}`).join(', ')}.`)
 
     const languageRule = zh
         ? 'Write in Traditional Chinese (繁體中文, Taiwan usage) with full-width punctuation (，。！？「」), and use the Chinese exercise and muscle names given above.'
