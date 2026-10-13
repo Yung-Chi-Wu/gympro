@@ -1,0 +1,37 @@
+[
+  {
+    "role": "user",
+    "content": "我很討厭做波比跳，以後不要再推薦給我"
+  },
+  {
+    "role": "tool_call",
+    "name": "remember",
+    "content": "{\"input\":{\"kind\":\"exercise\",\"exercise_name\":\"波比跳\",\"state\":\"dislike\",\"text\":\"很討厭波比跳，不要再推薦\"},\"result\":\"Saved: \\\"波比跳\\\", dislike. The app shows the user \\\"📝 我記住了：很討厭波比跳，不要再推薦\\\" with your reply, so don't say it yourself.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "📝 我記住了：很討厭波比跳，不要再推薦\n\n✅ 了解，以後我不會再推薦波比跳給你。\n\n想練全身燃脂或心肺的話，我會用其他動作來取代。你的臥推 100 公斤目標，重點還是放在推日的訓練品質上。"
+  },
+  {
+    "role": "memory",
+    "content": "[{\"kind\":\"exercise\",\"subject\":\"c6e49af8-190d-6847-3c46-11751dfe4d50\",\"state\":\"dislike\",\"text\":\"很討厭波比跳，不要再推薦\",\"updatedAt\":\"2026-10-07T02:00:00.000Z\"}]"
+  },
+  {
+    "role": "user",
+    "content": "推薦一個練核心的動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle\":\"core\"},\"result\":\"ID: f04af209 | 棒式: core; trains abs; low joint load\\nID: 3f4394d3 | 懸吊舉腿: core; trains abs; joint load: shoulder medium\\nLeft out, as the user doesn't want it recommended (your notes): 波比跳\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"f04af209\"},\"result\":\"Showing a card for \\\"棒式\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "推薦棒式，主要練腹肌，對關節負擔低。它也能幫你在臥推時穩住軀幹。\n\n💡 做 3 組，每組撐 30 到 60 秒，全程保持身體一直線，不要塌腰。"
+  }
+]
