@@ -9,7 +9,8 @@ import { OnboardingGuard } from '@/components/OnboardingGuard'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
-import { currentPeriod, localDate } from '@/lib/periods'
+import { currentPeriod, daysBetween, localDate } from '@/lib/periods'
+import { localDayToUtcRange, timeZoneOf } from '@/lib/time-zone'
 import { loadTodayWorkout } from '@/lib/today-workout'
 
 export default async function DashboardPage() {
@@ -48,7 +49,7 @@ export default async function DashboardPage() {
 
   const language = await getEffectiveLanguage(profile?.language)
   const greetingName = profile?.display_name || user.email || ''
-  const timezone = profile?.timezone || 'UTC'
+  const timezone = timeZoneOf(profile?.timezone)
   const onboardingCompleted = profile?.onboarding_completed ?? false
   const weightUnit = (profile?.weight_unit as WeightUnit) ?? 'kg'
   const distanceUnit: DistanceUnit = profile?.distance_unit === 'mi' ? 'mi' : 'km'
@@ -58,9 +59,8 @@ export default async function DashboardPage() {
     timezone,
     cycle ? { cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null
   )
-  const todayParts = getLocalDateParts(timezone)
   const todayIso = localDate(timezone, new Date())
-  const { startOfDay, endOfDay } = getTodayRangeUtc(todayParts, timezone)
+  const { start: startOfDay, end: endOfDay } = localDayToUtcRange(todayIso, timezone)
 
   let dayIndex = 0
   let routineIdForToday: string | null = null
@@ -69,7 +69,7 @@ export default async function DashboardPage() {
   const [cycleDayResult, periodNoteResult, dayNoteResult, todayWeightResult, lastWeightResult] = await Promise.all([
     cycle
       ? (() => {
-        const daysSinceStart = daysBetween(cycle.start_date, todayParts)
+        const daysSinceStart = daysBetween(cycle.start_date, todayIso)
         const idx =
           (((daysSinceStart % cycle.cycle_length) + cycle.cycle_length) % cycle.cycle_length) + 1
         dayIndex = idx
@@ -191,61 +191,4 @@ function formatPeriodDate(dateIso: string, language: string): string {
     weekday: 'short',
     timeZone: 'UTC',
   })
-}
-
-interface DateParts {
-  year: number
-  month: number
-  day: number
-}
-
-function getLocalDateParts(timeZone: string): DateParts {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
-  const parts: Record<string, string> = {}
-  for (const part of formatter.formatToParts(new Date())) {
-    parts[part.type] = part.value
-  }
-  return { year: Number(parts.year), month: Number(parts.month), day: Number(parts.day) }
-}
-
-function daysBetween(startDateIso: string, today: DateParts): number {
-  const start = new Date(`${startDateIso}T00:00:00Z`)
-  const todayUtc = new Date(Date.UTC(today.year, today.month - 1, today.day))
-  return Math.floor((todayUtc.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-}
-
-function getTodayRangeUtc(
-  today: DateParts,
-  timeZone: string
-): { startOfDay: string; endOfDay: string } {
-  const reference = new Date(Date.UTC(today.year, today.month - 1, today.day, 12, 0, 0))
-  const tzFormatter = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hour: '2-digit',
-    hour12: false,
-    timeZoneName: 'shortOffset',
-  })
-  const offsetPart = tzFormatter.formatToParts(reference).find((p) => p.type === 'timeZoneName')
-  const offsetMinutes = parseUtcOffsetMinutes(offsetPart?.value ?? 'GMT+0')
-  const startOfDayUtc = new Date(
-    Date.UTC(today.year, today.month - 1, today.day, 0, 0, 0) - offsetMinutes * 60_000
-  )
-  const endOfDayUtc = new Date(
-    Date.UTC(today.year, today.month - 1, today.day, 23, 59, 59, 999) - offsetMinutes * 60_000
-  )
-  return { startOfDay: startOfDayUtc.toISOString(), endOfDay: endOfDayUtc.toISOString() }
-}
-
-function parseUtcOffsetMinutes(offsetLabel: string): number {
-  const match = offsetLabel.match(/GMT([+-])(\d+)(?::(\d+))?/)
-  if (!match) return 0
-  const sign = match[1] === '-' ? -1 : 1
-  const hours = Number(match[2])
-  const minutes = Number(match[3] ?? 0)
-  return sign * (hours * 60 + minutes)
 }

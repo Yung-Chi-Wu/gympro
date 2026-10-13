@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { getEffectiveLanguage } from '@/lib/get-language'
 import { ProfileSettingsForm } from '@/components/ProfileSettingsForm'
+import { CHOSEN_UTC, timeZoneOf, UNSET_TIME_ZONE } from '@/lib/time-zone'
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -32,7 +33,8 @@ export default async function SettingsPage() {
                     heightCm: profile?.height_cm?.toString() ?? '',
                     dateOfBirth: profile?.date_of_birth ?? '',
                     sex: profile?.sex ?? '',
-                    timezone: profile?.timezone ?? 'UTC',
+                    // An unset zone shows as UTC, the same option a choice of UTC saves as
+                    timezone: timeZoneOf(profile?.timezone) === UNSET_TIME_ZONE ? CHOSEN_UTC : timeZoneOf(profile?.timezone),
                     trainingGoal: profile?.training_goal ?? '',
                     weightUnit: profile?.weight_unit === 'lb' ? 'lb' : 'kg',
                     distanceUnit: profile?.distance_unit === 'mi' ? 'mi' : 'km',

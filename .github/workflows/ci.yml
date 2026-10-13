@@ -45,6 +45,8 @@ jobs:
         run: npm run lint
       - name: Research citations resolve
         run: npm run check:evidence
+      - name: Day boundaries in every time zone
+        run: npm run check:time-zone
       - name: Ronnie's tools, turn loop and grader (offline)
         run: |
           npm run eval:ronnie:build

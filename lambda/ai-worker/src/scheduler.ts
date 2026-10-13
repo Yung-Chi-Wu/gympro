@@ -2,6 +2,7 @@ import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseClient } from './supabase'
 import { lastCompletedPeriod, type CycleSettings } from '../../../lib/periods'
+import { timeZoneOf } from '../../../lib/time-zone'
 import type { AnalysisRequestMessage } from './types'
 
 // Runs every hour from EventBridge Scheduler. Each user's report is due once
@@ -103,7 +104,7 @@ export async function handler(): Promise<void> {
     const due: { userId: string; periodStart: string; periodEnd: string; language: string }[] = []
     for (const profile of (profilesResult.data ?? []) as ProfileRow[]) {
         try {
-            const period = lastCompletedPeriod(profile.timezone || 'UTC', cycles.get(profile.user_id) ?? null)
+            const period = lastCompletedPeriod(timeZoneOf(profile.timezone), cycles.get(profile.user_id) ?? null)
             if (period) due.push({ userId: profile.user_id, ...period, language: profile.language || 'en' })
         } catch (err) {
             // A bad time zone on one profile must not stop everyone else's reports

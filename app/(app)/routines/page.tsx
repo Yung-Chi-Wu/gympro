@@ -4,6 +4,7 @@ import { getEffectiveLanguage } from '@/lib/get-language'
 import { localDate } from '@/lib/periods'
 import { RoutineBuilder } from '@/components/RoutineBuilder'
 import type { ExerciseOption } from '@/components/log-types'
+import { timeZoneOf } from '@/lib/time-zone'
 
 export interface RoutineExerciseRow {
     id: string
@@ -115,7 +116,7 @@ export default async function RoutinesPage() {
             language={language}
             initialCycle={cycle ? { id: cycle.id, cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null}
             initialCycleDays={cycleDays}
-            today={localDate(profile?.timezone ?? 'UTC', new Date())}
+            today={localDate(timeZoneOf(profile?.timezone), new Date())}
             trainingGoal={profile?.training_goal ?? null}
         />
     )

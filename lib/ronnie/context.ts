@@ -1,3 +1,4 @@
+import { timeZoneOf } from '@/lib/time-zone'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '../types/database.types'
 import { createSupabaseRonnieData, type RonnieData } from './data'
@@ -19,7 +20,7 @@ export interface RonnieContext {
 /** The user's local date, for routes that only need to know which day's conversation to use. */
 export async function loadUserToday(supabase: SupabaseClient<Database>, userId: string): Promise<{ today: string; timeZone: string }> {
     const { data } = await supabase.from('user_profiles').select('timezone').eq('user_id', userId).maybeSingle()
-    const timeZone = data?.timezone ?? 'America/New_York'
+    const timeZone = timeZoneOf(data?.timezone)
     return { today: dateGuide(new Date(), timeZone).today, timeZone }
 }
 
@@ -37,7 +38,7 @@ export async function loadRonnieContext(supabase: SupabaseClient<Database>, user
     ])
     const profile = profileResult.data
     const cycle = cycleResult.data
-    const timeZone = profile?.timezone ?? 'America/New_York'
+    const timeZone = timeZoneOf(profile?.timezone)
     const data = createSupabaseRonnieData(supabase, userId, timeZone, cycle, { embedQuery: vercelQueryEmbedder() })
 
     const routineId = cycle ? await data.getTodayRoutineId() : null

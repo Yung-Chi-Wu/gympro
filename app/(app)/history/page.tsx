@@ -8,6 +8,7 @@ import { loadFirstTrainedDate, loadHistoryDays, loadReports, loadReportStatuses 
 import { HistoryReports, HistoryTabs, HistoryTraining, HistoryWeight, type HistoryTab } from '@/components/HistoryList'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
+import { timeZoneOf } from '@/lib/time-zone'
 
 // 紀錄: tabs for training, body weight and reports (?tab=). Each tab reads only what it
 // shows, by date range: records are kept forever and the page must not slow down as
@@ -38,7 +39,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
             .maybeSingle(),
     ])
 
-    const timeZone = profileResult.data?.timezone ?? 'UTC'
+    const timeZone = timeZoneOf(profileResult.data?.timezone)
     const language = await getEffectiveLanguage(profileResult.data?.language)
     const weightUnit: WeightUnit = profileResult.data?.weight_unit === 'lb' ? 'lb' : 'kg'
     const distanceUnit: DistanceUnit = profileResult.data?.distance_unit === 'mi' ? 'mi' : 'km'

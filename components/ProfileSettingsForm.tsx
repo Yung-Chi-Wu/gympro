@@ -14,6 +14,7 @@ import { DeleteAccountButton } from '@/components/DeleteAccountButton'
 import { LogoutButton } from '@/components/LogoutButton'
 import { ThemeSelector } from '@/components/ThemeSelector'
 import { Icon } from '@/components/Icon'
+import { CHOSEN_UTC } from '@/lib/time-zone'
 
 // Settings. Side by side (@split): the sections on the left (個人資料, 訓練目標, 單位與語言,
 // 外觀, 帳號), the chosen section's form on the right. On a phone: one grouped list with
@@ -57,8 +58,9 @@ const PHONE_GROUPS: { key: string; fields: Field[] }[] = [
 const FIELDS = SECTIONS.flatMap((s) => s.fields)
 const isItem = (s: string | null): s is Item => s === 'install' || FIELDS.includes(s as Field)
 
+// UTC as Etc/UTC: a choice, which TimeZoneSync leaves alone, unlike the column's default 'UTC'
 const COMMON_TIMEZONES = [
-    'UTC',
+    CHOSEN_UTC,
     'America/New_York',
     'America/Chicago',
     'America/Denver',
@@ -376,7 +378,7 @@ function FieldEditor({ field, value, onChange, hideLabel, isZhTW }: {
             const options = COMMON_TIMEZONES.includes(value) ? COMMON_TIMEZONES : [value, ...COMMON_TIMEZONES]
             control = (
                 <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={INPUT}>
-                    {options.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
+                    {options.map((tz) => <option key={tz} value={tz}>{tz === CHOSEN_UTC ? 'UTC' : tz}</option>)}
                 </select>
             )
             break

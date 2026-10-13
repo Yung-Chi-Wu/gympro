@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { addDays, daysBetween } from '../../../../lib/periods'
 import { SUGGESTED_NAMES } from '../../../../lib/report/volume'
 import { isCardio, logTypeOf } from '../../../../lib/set-log'
+import { timeZoneOf } from '../../../../lib/time-zone'
 import { WINDOWS } from './facts'
 import type { ExerciseInfo, Finding, LoggedSet, ReportInputs, ScheduledDay } from './types'
 
@@ -51,7 +52,7 @@ export async function fetchReportInputs(
         .eq('user_id', userId)
         .maybeSingle()
     if (profileError) throw new Error(`Failed to fetch profile: ${profileError.message}`)
-    const timeZone = profile?.timezone || 'UTC'
+    const timeZone = timeZoneOf(profile?.timezone)
     const dateFormat = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
     const localDate = (iso: string) => dateFormat.format(new Date(iso))
     // UTC bounds a day wider on each side; rows are then filtered by local date
