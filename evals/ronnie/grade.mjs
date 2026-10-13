@@ -13,6 +13,17 @@ const CATCHPHRASE = /ain['’]?t\s+nothin['’]?\s+but\s+a\s+peanut!?/gi
 // made Chinese replies use them in 36 of 95 replies, and the share check alone missed it
 const HALF_WIDTH_PUNCT = /[一-鿿][,;:?!]|[,;:?!][一-鿿]/
 
+// Saying it has saved something, or will remember it. In a turn that changed no memory note
+// that is a false claim, the kind the add-without-adding bug was (2026-10-06). The Chinese
+// forms need no 我: the memory baseline had 好，記住了 and 已記下 (2026-10-13). An imperative to
+// the user (記住要保持核心收緊) has no 了 and isn't one. A bare "noted" counts only as an
+// acknowledgement ("Noted.", "Got it, noted!"): "you've noted that overhead pressing bothers it"
+// recalls what the user said (memory v1, 2026-10-13).
+const MEMORY_CLAIM = /(記住|記下|記起來|記好)了|已(經)?(幫你)?記(住|下|起來|好)|我(會|已經|已|先|都|有)?(記住|記下|記起來|記好)|我(會|一定會)記得|幫你記(住|下|起來)|I(['’]ll| will| have|['’]ve)\s+(remember|noted?|saved|make a note|keep (that|this) in mind)|(?<!\b(you|you['’]ve|you have|as)\s)\bnoted\s*([.!,:;—–-]|$)/im
+const MEMORY_KIND_ZH = { injury: '舊傷', exercise: '動作喜好', equipment: '器材', schedule: '訓練時間', other: '其他' }
+const JOINT_ZH = { shoulder: '肩膀', elbow: '手肘', lower_back: '下背', knee: '膝蓋', wrist: '手腕', hip: '髖', ankle: '腳踝', neck: '脖子' }
+const LOAD_RANK = { none: 0, low: 1, medium: 2, high: 3 }
+
 export function languageCorrect(text, language) {
     text = String(text).replace(CATCHPHRASE, '')
     const cjk = (text.match(/[一-鿿]/g) ?? []).length
@@ -147,6 +158,55 @@ export function programmaticGrade(c, out, exercises) {
         grade.date_range = ok ? 1 : 0
         explanation.date_range = `應涵蓋 ${from}～${to}（範圍在 ${earliest}～${latest} 內）；實際查詢：${ranges.map(([a, b]) => `${a}～${b}`).join('、') || '（沒有查）'}`
     } else grade.date_range = null
+
+    // Memory, for the cases about it: the notes after the last conversation, what the last
+    // day's recommendations avoided, and no claim of remembering in a turn that saved nothing
+    const memoryCase = !!(exp.memory_after || exp.memory_absent || exp.memory_unchanged || exp.memory_count || c.sessions || c.memory)
+    if (exp.memory_after || exp.memory_absent || exp.memory_unchanged || exp.memory_count) {
+        const notes = out.memories ?? []
+        const subjectOf = (m) => (m.kind === 'exercise' && m.subject ? idFor(m.subject) ?? m.subject : m.subject ?? null)
+        // No subject key: any note of that kind (an other note's ID is made when it's saved).
+        // text_includes ignores spaces: "3 月" and "3月" are the same
+        const squash = (s) => String(s ?? '').replace(/\s+/g, '')
+        const has = (m) => notes.some((n) => n.kind === m.kind && (!('subject' in m) || (n.subject ?? null) === subjectOf(m))
+            && (!m.state || n.state === m.state) && (!m.text_includes || squash(n.text).includes(squash(m.text_includes))))
+        const noteLabel = (m) => `${MEMORY_KIND_ZH[m.kind] ?? m.kind}${m.subject && m.kind !== 'other' ? `「${m.kind === 'injury' ? JOINT_ZH[m.subject] ?? m.subject : label(subjectOf(m))}」` : ''}${m.state ? `（${m.state}）` : ''}${m.text_includes ? `，內容有「${m.text_includes}」` : ''}`
+        const problems = [
+            ...(exp.memory_after ?? []).filter((m) => !has(m)).map((m) => `沒有記住：${noteLabel(m)}`),
+            ...(exp.memory_absent ?? []).filter((m) => has(m)).map((m) => `不該記著卻記著：${noteLabel(m)}`),
+            ...(exp.memory_unchanged && JSON.stringify(notes) !== JSON.stringify(out.memoriesBefore ?? []) ? ['不該改記憶卻改了'] : []),
+            // How many notes of a kind there must be: a change replaced the old note instead of adding one
+            ...Object.entries(exp.memory_count ?? {}).filter(([kind, n]) => notes.filter((x) => x.kind === kind).length !== n)
+                .map(([kind, n]) => `${MEMORY_KIND_ZH[kind] ?? kind}應該有 ${n} 則，實際 ${notes.filter((x) => x.kind === kind).length} 則`),
+        ]
+        grade.memory_right = problems.length ? 0 : 1
+        explanation.memory_right = problems.join('；') || '記憶符合預期'
+    } else grade.memory_right = null
+
+    if (exp.avoid) {
+        // What the last day recommended: a recommendation card, or an exercise it added
+        const last = Math.max(...out.turns.map((t) => t.session ?? 1))
+        const lastTurns = out.turns.filter((t) => (t.session ?? 1) === last)
+        const carded = lastTurns.flatMap((t) => t.toolCalls).filter((x) => x.name === 'recommend_exercise')
+            .flatMap((x) => exercises.filter((e) => x.input?.exercise_id && e.id.startsWith(String(x.input.exercise_id).toLowerCase().slice(0, 8))).map((e) => e.id))
+        const added = lastTurns.flatMap((t) => t.writes).filter((w) => w.op === 'add_today' && w.effective !== false).map((w) => w.exerciseId)
+        const picked = [...new Set([...carded, ...added])]
+        const banned = new Set((exp.avoid.exercises ?? []).map(idFor))
+        const tooHard = (id) => exp.avoid.joint && LOAD_RANK[byId.get(id)?.joint_load?.[exp.avoid.joint] ?? 'none'] > LOAD_RANK[exp.avoid.max ?? 'low']
+        const bad = picked.filter((id) => banned.has(id) || tooHard(id))
+        grade.avoids_noted = picked.length && !bad.length ? 1 : 0
+        explanation.avoids_noted = !picked.length ? '最後一天沒有推薦或加入任何動作'
+            : bad.length ? `推薦了應該避開的動作：${bad.map(label).join('、')}`
+            : `推薦的 ${picked.map(label).join('、')} 都避開了${exp.avoid.joint ? `${JOINT_ZH[exp.avoid.joint]}負擔高的動作` : '不喜歡的動作'}`
+    } else grade.avoids_noted = null
+
+    if (memoryCase) {
+        const claims = out.turns.map((t, i) => [t, i + 1]).filter(([t]) => MEMORY_CLAIM.test(t.message) && !t.memoryChanged)
+        grade.no_false_memory_claim = claims.length ? 0 : 1
+        explanation.no_false_memory_claim = claims.length
+            ? `第 ${claims.map(([, n]) => n).join('、')} 句說了記住，但記憶沒有任何改變`
+            : '沒有說記住卻沒記'
+    } else grade.no_false_memory_claim = null
 
     const fellBack = out.turns.filter((t) => !t.message.trim() || FALLBACKS.includes(t.message.trim()))
     grade.no_fallback = fellBack.length ? 0 : 1

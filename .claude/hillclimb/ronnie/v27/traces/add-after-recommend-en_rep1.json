@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle\":\"upper_chest\"},\"result\":\"ID: 41290ea9 | Incline Dumbbell Press: chest; trains upper chest; joint load: shoulder medium\\nID: 6fc5ead6 | Incline Barbell Press: chest; trains upper chest; joint load: shoulder medium, elbow medium\\nID: a726ab1a | Low-to-High Cable Fly: chest; trains upper chest; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Incline Dumbbell Press is the best pick. It hits the upper chest hard, and the dumbbells give you a good range of motion. It's already in today's push workout, so you're set.\n\n💡 Set the bench to about 30°. A steeper angle shifts the work to your shoulders."
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "assistant",
+    "content": "✅ Incline Dumbbell Press is already in today's workout, right after Barbell Bench Press, so there's nothing to add. It's ready for you whenever you get to it."
+  }
+]

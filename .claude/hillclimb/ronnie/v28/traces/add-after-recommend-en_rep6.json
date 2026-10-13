@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle\":\"upper_chest\"},\"result\":\"ID: 41290ea9 | Incline Dumbbell Press: chest; trains upper chest; joint load: shoulder medium\\nID: 6fc5ead6 | Incline Barbell Press: chest; trains upper chest; joint load: shoulder medium, elbow medium\\nID: a726ab1a | Low-to-High Cable Fly: chest; trains upper chest; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"41290ea9\"},\"result\":\"\\\"Incline Dumbbell Press\\\" is already in today's workout; no card shown. Recommend another, or tell the user.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Incline Dumbbell Press is the best pick for your upper chest, and it's already in today's push day. It also gives you a longer range of motion than a barbell, and that helps your bench goal.\n\n💡 Run it at a 30° incline. Higher angles shift the work to your shoulders. Aim for 8-12 reps and add weight gradually."
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "assistant",
+    "content": "Incline Dumbbell Press is already in today's push day, so you don't need to add it. I haven't changed anything.\n\n💪 Go hit it. Ain't nothin' but a peanut!"
+  }
+]

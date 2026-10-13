@@ -3,6 +3,7 @@ import type { Database } from '../types/database.types'
 import type { LogType } from '../exercise-attributes'
 import { logTypeOf, setValuesOf, type SetValues } from '../set-log'
 import { SET_COLUMNS } from '../today-workout'
+import { isMemoryKind, type MemoryNote } from './memory'
 import { localDateStr, localDateToUtcRange } from './time'
 
 // Everything Ronnie's tools read or write, behind one interface. Production uses
@@ -89,6 +90,14 @@ export interface RonnieData {
     /** removed = rows actually deleted, so an unknown id is reported instead of a false success */
     removePlannedExercise(workoutId: string, exerciseId: string): Promise<{ error: string | null; removed: number }>
     createProposal(proposal: RoutineProposal): Promise<{ id: string } | { error: string }>
+
+    // ---------- memory: the user's notes (lib/ronnie/memory.ts) ----------
+    /** Every note, oldest first; a failed read throws */
+    listMemories(): Promise<MemoryNote[]>
+    /** Sets a slot's note (its kind and subject), replacing what the slot held; an error message, or null */
+    saveMemory(note: MemoryNote): Promise<string | null>
+    /** Deletes a slot's note; an error message, or null */
+    deleteMemory(slot: Pick<MemoryNote, 'kind' | 'subject'>): Promise<string | null>
 }
 
 /** Workouts per sets request (their IDs go in the URL) and rows per page (the API's cap) */
@@ -107,12 +116,20 @@ export function createSupabaseRonnieData(
     userId: string,
     timeZone: string,
     cycle: CycleRow | null,
-    { now = () => new Date(), embedQuery = null }: {
+    { now = () => new Date(), embedQuery = null, memory = null }: {
         now?: () => Date
         /** Turns a search query into a vector (lib/embeddings.ts); null disables vector search */
         embedQuery?: ((text: string) => Promise<number[]>) | null
+        /**
+         * The service-role client (lib/supabase/admin.ts) for ronnie_memories, which users can't
+         * read or write themselves; every query names userId. Null: no memory (no notes, saving fails).
+         */
+        memory?: SupabaseClient<Database> | null
     } = {}
 ): RonnieData {
+    // Read once per request: the prompt and the tools both need the notes. A write clears it.
+    let notes: Promise<MemoryNote[]> | null = null
+
     async function getTodayRoutineId(): Promise<string | null> {
         if (!cycle) return null
         const todayStr = localDateStr(now(), timeZone)
@@ -324,6 +341,41 @@ export function createSupabaseRonnieData(
                 .select('id')
                 .single()
             return error || !data ? { error: error?.message ?? 'Failed to save the proposal' } : { id: data.id }
+        },
+
+        listMemories() {
+            if (!memory) return Promise.resolve([])
+            return (notes ??= (async () => {
+                const { data, error } = await memory
+                    .from('ronnie_memories')
+                    .select('kind, subject, state, note, updated_at')
+                    .eq('user_id', userId)
+                    .order('updated_at')
+                if (error) {
+                    notes = null
+                    throw new Error(`Could not read the memory notes: ${error.message}`)
+                }
+                return (data ?? []).flatMap((r) => isMemoryKind(r.kind)
+                    ? [{ kind: r.kind, subject: r.subject, state: r.state, text: r.note, updatedAt: r.updated_at }]
+                    : [])
+            })())
+        },
+
+        async saveMemory(note) {
+            if (!memory) return 'Memory is not available'
+            notes = null
+            const { error } = await memory.from('ronnie_memories').upsert({
+                user_id: userId, kind: note.kind, subject: note.subject, state: note.state, note: note.text, updated_at: note.updatedAt,
+            }, { onConflict: 'user_id,kind,subject' })
+            return error?.message ?? null
+        },
+
+        async deleteMemory({ kind, subject }) {
+            if (!memory) return 'Memory is not available'
+            notes = null
+            const query = memory.from('ronnie_memories').delete().eq('user_id', userId).eq('kind', kind)
+            const { error } = await (subject === null ? query.is('subject', null) : query.eq('subject', subject))
+            return error?.message ?? null
         },
     }
 }

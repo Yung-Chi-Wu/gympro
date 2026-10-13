@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "My chest is really sore from yesterday."
+  },
+  {
+    "role": "tool_call",
+    "name": "get_workout_history",
+    "content": "{\"input\":{\"date_from\":\"2026-10-06\",\"date_to\":\"2026-10-06\"},\"result\":\"2026-10-06 (Tue):\\n  Back Squat: 6×102.5kg, 6×102.5kg, 6×102.5kg, 6×102.5kg\\n  Romanian Deadlift: 8×92.5kg, 8×92.5kg, 8×92.5kg\\n  Leg Press: 10×162.5kg, 10×162.5kg, 10×162.5kg\\n  Burpee: 10 reps (bodyweight), 10 reps (bodyweight), 10 reps (bodyweight)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "📊 Yesterday's log shows legs only: squat, RDL, leg press and burpees, with no chest work. Today you've already logged 3×8 bench at 82.5kg, so the soreness may be left over from an earlier session or from the burpees.\n\n💡 Ordinary muscle soreness is fine to train through lightly. If you want to keep going, drop the load or volume on the remaining presses and stop short of failure. Sharp or lasting pain means stop.\n\nDo you want to keep the rest of the push day as planned, or skip the chest work for today?"
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個練腿的動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle\":\"legs\"},\"result\":\"ID: 0f6a6808 | 硬舉: back; trains glutes, hamstrings, lower back; joint load: lower back high, knee medium\\nID: 5866803c | 深蹲: legs; trains quads, glutes; joint load: lower back medium, knee medium\\nID: 07bccaa6 | 羅馬尼亞硬舉: legs; trains hamstrings, glutes; joint load: lower back medium\\nID: 68be0377 | 腿推: legs; trains quads, glutes; joint load: knee medium\\nID: efd2d668 | 行走弓箭步: legs; trains quads, glutes; joint load: knee medium\\nID: 995b5a70 | 腿彎舉: legs; trains hamstrings; low joint load\\nID: afc9ed91 | 小腿提踵: legs; trains calves; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"5866803c\"},\"result\":\"Showing a card for \\\"深蹲\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "我推薦深蹲，它能同時練到股四頭肌和臀肌，是增肌和提升整體力量的首選。腿部力量強，也有助於臥推時的全身穩定。\n\n💡 點卡片上的按鈕就能加進今天的訓練。"
+  }
+]

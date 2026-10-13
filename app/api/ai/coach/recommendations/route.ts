@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => null)
     const zh = body?.language === 'zh-TW'
-    const ctx = await loadRonnieContext(supabase, user.id)
+    const ctx = await loadRonnieContext(supabase, user.id, null)
     // Only an exercise the user can see (RLS limits custom exercises to their creator)
     const library = await ctx.data.listExercises()
     const exercise = library.find((e) => e.id === body?.exerciseId)

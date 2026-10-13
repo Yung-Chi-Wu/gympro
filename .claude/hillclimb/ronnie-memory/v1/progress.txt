@@ -1,0 +1,1 @@
+[v1] 42/42 done (42 ok, 0 failed), 67s elapsed, ~0s left

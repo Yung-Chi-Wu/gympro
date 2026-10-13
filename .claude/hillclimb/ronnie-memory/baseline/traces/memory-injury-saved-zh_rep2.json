@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "我左膝以前受過傷，深蹲蹲太深會痛"
+  },
+  {
+    "role": "assistant",
+    "content": "先謝謝你告訴我。深蹲時蹲到會痛的深度，就先停在不痛的範圍內，例如蹲到大腿接近平行或用箱子深蹲控制深度。重量也先降一些，把動作做穩。\n\n💡 痛感只要是尖銳的，或是持續好幾天不退，就先停止並找物理治療師或醫師評估。\n\n你是想調整今天的訓練，還是想把課表裡的腿部動作永久換掉？"
+  },
+  {
+    "role": "user",
+    "content": "推薦一個練腿的動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle\":\"legs\"},\"result\":\"ID: 0f6a6808 | 硬舉: back; trains glutes, hamstrings, lower back; joint load: lower back high, knee medium\\nID: 5866803c | 深蹲: legs; trains quads, glutes; joint load: lower back medium, knee medium\\nID: 07bccaa6 | 羅馬尼亞硬舉: legs; trains hamstrings, glutes; joint load: lower back medium\\nID: 68be0377 | 腿推: legs; trains quads, glutes; joint load: knee medium\\nID: efd2d668 | 行走弓箭步: legs; trains quads, glutes; joint load: knee medium\\nID: 995b5a70 | 腿彎舉: legs; trains hamstrings; low joint load\\nID: afc9ed91 | 小腿提踵: legs; trains calves; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | 槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | 上斜啞鈴臥推: no sets yet\\nID: 13841865 | 肩推: no sets yet\\nID: 697409e4 | 三頭下壓: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"5866803c\"},\"result\":\"Showing a card for \\\"深蹲\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "推薦深蹲。它主要練股四頭肌和臀肌，也能幫你的整體力量打底，對增肌和臥推目標都有幫助。\n\n💡 今天是推日，如果想加進今天的訓練，點卡片上的按鈕就可以。"
+  }
+]

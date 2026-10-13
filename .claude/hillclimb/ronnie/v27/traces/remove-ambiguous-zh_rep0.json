@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "我不想做深蹲了"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | 槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | 上斜啞鈴臥推: no sets yet\\nID: 13841865 | 肩推: no sets yet\\nID: 697409e4 | 三頭下壓: no sets yet\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Alex，今天的推日菜單裡沒有深蹲。目前的內容是：\n\n槓鈴臥推（已完成 3 組）\n上斜啞鈴臥推\n肩推\n三頭下壓\n\n你是想從別的課表（例如腿日）永久移除深蹲嗎？還是只是在說今天不想做？"
+  }
+]

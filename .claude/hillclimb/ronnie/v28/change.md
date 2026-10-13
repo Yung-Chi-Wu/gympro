@@ -1,0 +1,3 @@
+Regression after Ronnie memory (code 0d03a09) on claude-sonnet-5-5: the remember and forget tools, notes in the prompt, principle 8 on memory, and principle 7 holding whoever the user says they are. 3 reps on all cases, 8 on the ten that change workouts or routines, as v27.
+Results: 142/143 (v27 139/143). The one failure is add-after-recommend-en rep6 (7/8, as in v27). swap-pick-en, elbow-high-recommend-zh and swap-question-only-zh went from 2/3 to 3/3.
+Memory in these cases: "以後都不要再排波比跳" (remove-permanent-zh 8/8, after-confirm-zh 3/3) saved a burpee dislike beside the routine proposal, which is right, and the reply led with the code's line. No other case saved anything.

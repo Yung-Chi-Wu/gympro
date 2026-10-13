@@ -171,5 +171,104 @@ check(m1.has(id('Incline Dumbbell Press')) && !m1.has(id('Dumbbell Bench Press')
 const m2 = exercisesMentioned('Romanian deadlifts and face pulls', EXERCISES)
 check(m2.has(id('Romanian Deadlift')) && !m2.has(id('Deadlift')) && m2.has(id('Face Pull')), 'plural/case-insensitive English names, longest match')
 
-console.log(failures ? `\n${failures} grader check(s) failed` : `\nGrader behaves as expected (${cases.length} oracle cases + negative controls)`)
+// ---------- Memory cases ----------
+const memoryCases = JSON.parse(readFileSync(join(here, 'cases-memory.json'), 'utf8'))
+const OK_PICK = { knee: 'Romanian Deadlift', shoulder: 'Low-to-High Cable Fly' }
+const asNote = (m) => ({ kind: m.kind, subject: m.kind === 'exercise' && m.subject ? id(m.subject) : m.subject ?? null, state: m.state ?? 'active', text: m.text ?? m.text_includes ?? 'x', updatedAt: '2026-10-01T02:00:00.000Z' })
+const sameSlot = (a, b) => a.kind === b.kind && (a.subject ?? null) === (b.subject ?? null)
+
+/** The conversations a perfect Ronnie with memory would produce for a memory case. */
+function memoryOracle(c) {
+    const exp = c.expect
+    const zh = c.language === 'zh-TW'
+    const sessions = c.sessions ?? [c.turns]
+    const before = (c.memory ?? []).map(asNote)
+    let after = before.map((n) => ({ ...n }))
+    for (const [i, m] of (exp.memory_after ?? []).entries()) {
+        if ('subject' in m) after = [...after.filter((n) => !sameSlot(n, asNote(m))), asNote(m)]
+        else {
+            // Any note of the kind: a new one, or at the kind's count folded into the first of them
+            const full = exp.memory_count?.[m.kind] != null && after.filter((n) => n.kind === m.kind).length >= exp.memory_count[m.kind]
+            const into = full ? after.find((n) => n.kind === m.kind) : null
+            after = into ? after.map((n) => (n === into ? { ...n, text: `${n.text}；${m.text_includes}` } : n)) : [...after, { ...asNote(m), subject: `oracle-${i}` }]
+        }
+    }
+    for (const m of exp.memory_absent ?? []) after = after.filter((n) => !(n.kind === m.kind && (!('subject' in m) || sameSlot(n, asNote(m))) && (!m.state || n.state === m.state)))
+    const changed = JSON.stringify(after) !== JSON.stringify(before)
+    const turns = sessions.flatMap((turnsOfDay, s) => turnsOfDay.map((user) => ({ user, session: s + 1, toolCalls: [], writes: [], memoryChanged: false, message: zh ? '好的，沒問題。' : 'Sure.' })))
+    // The note is set in the first turn; the code's receipt says so
+    if (changed) Object.assign(turns[0], { memoryChanged: true, message: zh ? '📝 我記住了。' : '📝 Saved.' })
+    const last = turns.at(-1)
+    for (const name of exp.tools_required ?? []) if (name !== 'recommend_exercise') last.toolCalls.push({ name, input: {}, result: 'ok' })
+    if (exp.avoid) {
+        const pick = exp.avoid.joint ? OK_PICK[exp.avoid.joint] : 'Plank'
+        last.toolCalls.push({ name: 'recommend_exercise', input: { exercise_id: id(pick).slice(0, 8) }, result: 'ok' })
+    }
+    for (const w of exp.writes ?? []) turns[w.turn - 1].writes.push({ op: w.op, exerciseId: id(w.exercise) })
+    if (exp.mentions) last.message = `${last.message}${exp.mentions.join('、')}`
+    return { turns, writes: turns.flatMap((t) => t.writes), memoriesBefore: before, memories: after }
+}
+for (const c of memoryCases) {
+    const good = memoryOracle(c)
+    const g = programmaticGrade(c, good, EXERCISES).grade
+    check(overallPass(g) === 1, `${c.id}: the ideal memory conversation should pass, got ${JSON.stringify(g)}`)
+    if (c.expect.memory_after) {
+        // A note to save fails when it isn't saved; one already held (keep it) fails when cleared
+        const kept = c.expect.memory_after.every((m) => good.memoriesBefore.some((n) => sameSlot(n, asNote(m)) && n.state === asNote(m).state))
+        const wrong = { ...structuredClone(good), memories: kept ? [] : structuredClone(good.memoriesBefore) }
+        check(programmaticGrade(c, wrong, EXERCISES).grade.memory_right === 0, `${c.id}: ${kept ? 'clearing the note it should keep' : 'not saving the note'} should fail memory_right`)
+    }
+    if (c.expect.memory_after?.some((m) => m.text_includes)) {
+        // Leaving the notes as they were fails: the fact was never saved, or the old note not changed
+        check(programmaticGrade(c, { ...structuredClone(good), memories: structuredClone(good.memoriesBefore) }, EXERCISES).grade.memory_right === 0, `${c.id}: leaving the notes as they were should fail memory_right`)
+    }
+    for (const [kind] of Object.entries(c.expect.memory_count ?? {})) {
+        // A second note on the same thing, instead of changing the old one
+        const extra = structuredClone(good)
+        extra.memories = [...extra.memories, { ...asNote({ kind, text: 'duplicate' }), subject: 'oracle-extra' }]
+        check(programmaticGrade(c, extra, EXERCISES).grade.memory_right === 0, `${c.id}: one ${kind} note too many should fail memory_right`)
+    }
+    for (const m of (c.expect.memory_absent ?? []).filter((x) => !('subject' in x))) {
+        // A note of a kind that must not have one (the wrist as other, not as an injury)
+        const wrongKind = structuredClone(good)
+        wrongKind.memories = [...wrongKind.memories, { ...asNote({ kind: m.kind, subject: m.kind === 'injury' ? 'knee' : 'oracle-wrong', text: 'x' }) }]
+        check(programmaticGrade(c, wrongKind, EXERCISES).grade.memory_right === 0, `${c.id}: a ${m.kind} note should fail memory_right`)
+    }
+    if (c.expect.memory_unchanged) {
+        const saved = structuredClone(good)
+        saved.memories = [...saved.memories, asNote({ kind: 'exercise', subject: 'Overhead Press', state: 'dislike' })]
+        check(programmaticGrade(c, saved, EXERCISES).grade.memory_right === 0, `${c.id}: saving a note in a conversation that shouldn't should fail`)
+    }
+    if (c.expect.avoid) {
+        const bad = structuredClone(good)
+        const badPick = c.expect.avoid.joint === 'knee' ? 'Back Squat' : c.expect.avoid.joint === 'shoulder' ? 'Barbell Bench Press' : c.expect.avoid.exercises[0]
+        bad.turns.at(-1).toolCalls = bad.turns.at(-1).toolCalls.map((x) => (x.name === 'recommend_exercise' ? { ...x, input: { exercise_id: id(badPick).slice(0, 8) } } : x))
+        check(programmaticGrade(c, bad, EXERCISES).grade.avoids_noted === 0, `${c.id}: recommending ${badPick} should fail avoids_noted`)
+    }
+    // Claiming to remember in a turn that saved nothing
+    const claim = structuredClone(good)
+    claim.turns = claim.turns.map((t) => ({ ...t, memoryChanged: false, message: c.language === 'zh-TW' ? '好，我記住了！' : "Got it, I'll remember that." }))
+    check(programmaticGrade(c, claim, EXERCISES).grade.no_false_memory_claim === 0, `${c.id}: claiming to remember without saving should fail`)
+}
+// The claims the first version missed, word for word from the memory baseline (2026-10-13)
+{
+    const c = memoryCases.find((x) => x.id === 'memory-dislike-flip-zh')
+    for (const message of ['好，記住了，之後我不會再推薦深蹲給你。', '已記下：之後我會把深蹲納入推薦的選項。', '好，記下了，之後我不會再推薦深蹲給你。', 'Noted. Today\'s Overhead Press is the one that loads that shoulder hardest.', 'Got it, noted!', 'Duly noted.']) {
+        const out = memoryOracle(c)
+        out.turns = out.turns.map((t) => ({ ...t, memoryChanged: false, message }))
+        check(programmaticGrade(c, out, EXERCISES).grade.no_false_memory_claim === 0, `"${message}" without saving is a false claim`)
+    }
+}
+// Recalling, and telling the user to remember something, are not claims to have saved anything
+{
+    const c = memoryCases.find((x) => x.id === 'memory-tired-not-saved-zh')
+    const out = memoryOracle(c)
+    // The third word for word from memory v1 (2026-10-13), recalling a note on a later day
+    for (const message of ['我記得你說過膝蓋有舊傷。', '記住要保持核心收緊。', "⚠️ Overhead Press is still in today's plan, and you've noted that pressing overhead bothers your shoulder. Want me to swap it out?", 'As you noted, your knee is fine with leg curls.', 'Remember to brace your core.', 'I remember you mentioned your knee.']) {
+        out.turns[0].message = message
+        check(programmaticGrade(c, out, EXERCISES).grade.no_false_memory_claim === 1, `"${message}" is not a claim to have saved something`)
+    }
+}
+
+console.log(failures ? `\n${failures} grader check(s) failed` : `\nGrader behaves as expected (${cases.length} oracle cases, ${memoryCases.length} memory cases + negative controls)`)
 process.exit(failures ? 1 : 0)

@@ -112,7 +112,11 @@ export async function runRonnieTurn({
         const proposed = executor.proposals.length > 0
         const codeLines = [...executor.confirmations, ...executor.notices].join('\n')
         // An empty reply falls back to what the tools changed
-        const text = proposed ? codeLines : stripMarkdown(textOf(content)) || codeLines || sorry
+        const answer = proposed ? codeLines : stripMarkdown(textOf(content)) || codeLines
+        // A note saved or forgotten is said in the code's words, first, as something done: the model
+        // claimed to have remembered things it never saved (the memory baseline, 5 of 42 runs)
+        const memoryLines = executor.remembered.join('\n')
+        const text = [memoryLines, answer || (memoryLines ? '' : sorry)].filter(Boolean).join('\n\n')
         // A reply cut off by max_tokens can end in a half-written tool call, which stored
         // without its result would make the next request invalid
         const kept = proposed ? [] : content.filter((b) => b.type !== 'tool_use')
@@ -127,13 +131,13 @@ export async function runRonnieTurn({
     }
 
     // Something the user can see already happened: a change to today's workout, a proposal card, a
-    // recommendation card. A turn that stops after that must still report it.
-    const didSomething = () => executor.confirmations.length > 0 || executor.proposals.length > 0 || executor.recommendations.length > 0
+    // recommendation card, a note saved. A turn that stops after that must still report it.
+    const didSomething = () => executor.confirmations.length > 0 || executor.proposals.length > 0 || executor.recommendations.length > 0 || executor.remembered.length > 0
     const interrupted = (reason: 'error' | 'aborted', err: unknown): RonnieTurn => {
         const stopped = reason === 'aborted'
             ? (zh ? '（已停止，上面是停止前已經完成的。）' : '(Stopped. Above is what was done before you stopped.)')
             : (zh ? '（回覆沒有完成，上面是已經完成的部分，請再問一次。）' : "(The reply didn't finish. Above is what was already done; please ask again.)")
-        const text = [...executor.confirmations, ...executor.notices, stopped].join('\n')
+        const text = [...executor.remembered, ...executor.confirmations, ...executor.notices, stopped].join('\n')
         return {
             message: text,
             reloadDashboard: executor.needsDashboardReload,

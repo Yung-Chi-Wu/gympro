@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "今天幫我加一個 Jefferson curl"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"Jefferson curl\"},\"result\":\"Nothing in the library matches \\\"Jefferson curl\\\" exactly. Closest:\\nID: 0cb907f9 | 二頭彎舉: biceps; trains biceps; joint load: elbow medium\\nID: d9911659 | 錘式彎舉: biceps; trains biceps, forearms; low joint load\\nID: 995b5a70 | 腿彎舉: legs; trains hamstrings; low joint load\\nID: 03bae642 | 雙槓撐體: triceps; trains triceps; joint load: shoulder high, elbow medium\\nID: 03810fd4 | 啞鈴後三角飛鳥: shoulders; trains rear delts; low joint load\\nID: 3f4394d3 | 懸吊舉腿: core; trains abs; joint load: shoulder medium\\nID: f04af209 | 棒式: core; trains abs; low joint load\\nID: cd6e3284 | 臉拉: shoulders; trains rear delts, upper back; low joint load\\nID: a726ab1a | 低位繩索飛鳥: chest; trains upper chest; low joint load\\nID: 7fb35f03 | 反向飛鳥機: shoulders; trains rear delts; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"傑佛遜捲曲 脊椎屈曲 柔軟度\"},\"result\":\"Nothing in the library matches \\\"傑佛遜捲曲 脊椎屈曲 柔軟度\\\" exactly. Closest:\\nID: 0cb907f9 | 二頭彎舉: biceps; trains biceps; joint load: elbow medium\\nID: d9911659 | 錘式彎舉: biceps; trains biceps, forearms; low joint load\\nID: 995b5a70 | 腿彎舉: legs; trains hamstrings; low joint load\\nID: 0f6a6808 | 硬舉: back; trains glutes, hamstrings, lower back; joint load: lower back high, knee medium\\nID: 03bae642 | 雙槓撐體: triceps; trains triceps; joint load: shoulder high, elbow medium\\nID: f04af209 | 棒式: core; trains abs; low joint load\\nID: 03810fd4 | 啞鈴後三角飛鳥: shoulders; trains rear delts; low joint load\\nID: 7fb35f03 | 反向飛鳥機: shoulders; trains rear delts; low joint load\\nID: 263ada72 | 滑輪下拉: back; trains lats; low joint load\\nID: ad5d9bcc | 過頭三頭伸展: triceps; trains triceps; joint load: shoulder medium, elbow high\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "動作庫裡找不到 Jefferson curl，所以沒辦法幫你加進今天的訓練。\n\n如果你想練後側鏈，腿彎舉（練腿後肌、對關節負擔低）是比較接近的選擇。要我幫你加進今天的菜單嗎？"
+  }
+]

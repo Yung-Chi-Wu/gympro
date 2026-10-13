@@ -3,6 +3,7 @@ import attributes from '../../supabase/data/exercise-attributes.json'
 import type { PlannedExercise, RonnieData, RoutineProposal } from '../../lib/ronnie/data'
 import { logTypeOf, setValuesOf } from '../../lib/set-log'
 import type { ResolvedRow } from '../../lib/ronnie/events'
+import { memoryLines, sameSlot, type MemoryNote } from '../../lib/ronnie/memory'
 import { dateGuide, localDateStr } from '../../lib/ronnie/time'
 
 // One fictional user for the Ronnie eval. "Today" is Wednesday 2026-10-07 in
@@ -151,13 +152,20 @@ interface SetRow {
  * out, as in the offline checks, the search is keyword-only - as in production when
  * Bedrock is unavailable.
  */
-export function createFixtureData({ nearest }: { nearest?: RonnieData['nearestExercises'] } = {}): {
+export function createFixtureData({ nearest, memories: seed = [] }: {
+    nearest?: RonnieData['nearestExercises']
+    /** What Ronnie remembers before the conversation starts (a case's earlier days) */
+    memories?: MemoryNote[]
+} = {}): {
     data: RonnieData
     writes: FixtureWrite[]
     proposals: RoutineProposal[]
     applyProposal: (p: RoutineProposal) => ResolvedRow[]
+    /** The user's memory notes, as they stand; the grader reads them after the conversation */
+    memories: MemoryNote[]
 } {
     const writes: FixtureWrite[] = []
+    const memories: MemoryNote[] = seed.map((n) => ({ ...n }))
     // Proposals change nothing; they are recorded so the grader can see what was offered
     const proposals: RoutineProposal[] = []
     const routineExercises = new Map(
@@ -258,6 +266,21 @@ export function createFixtureData({ nearest }: { nearest?: RonnieData['nearestEx
             proposals.push(proposal)
             return { id: `proposal-${proposals.length}` }
         },
+        // The notes are changed in place, as the table's rows: one per slot, a save replaces it
+        async listMemories() {
+            return memories.map((n) => ({ ...n }))
+        },
+        async saveMemory(note) {
+            const at = memories.findIndex((n) => sameSlot(n, note))
+            if (at >= 0) memories.splice(at, 1, { ...note })
+            else memories.push({ ...note })
+            return null
+        },
+        async deleteMemory(slot) {
+            const at = memories.findIndex((n) => sameSlot(n, slot))
+            if (at >= 0) memories.splice(at, 1)
+            return null
+        },
     }
 
     // What resolve_ronnie_action does when the user confirms a proposal, for the eval's
@@ -279,7 +302,7 @@ export function createFixtureData({ nearest }: { nearest?: RonnieData['nearestEx
         }
         return rows
     }
-    return { data, writes, proposals, applyProposal }
+    return { data, writes, proposals, applyProposal, memories }
 }
 
 /** What the coach route puts in the system prompt for this user. */
@@ -290,4 +313,14 @@ export const FIXTURE_USER = {
     weightUnit: 'kg',
     timezone: FIXTURE_TIME_ZONE,
     dates: dateGuide(FIXTURE_NOW, FIXTURE_TIME_ZONE),
+    /** The notes as the prompt lists them: none here, entry.ts fills in each turn's (fixtureNotes) */
+    notes: [] as string[],
+}
+
+/** The notes as the coach route lists them in the prompt, exercises named in the user's language */
+export function fixtureNotes(notes: MemoryNote[], language: string): string[] {
+    return memoryLines(notes, (id) => {
+        const e = EXERCISES.find((x) => x.id === id)
+        return e ? (language === 'zh-TW' ? e.name_zh_tw : e.name) : null
+    }, FIXTURE_TIME_ZONE)
 }

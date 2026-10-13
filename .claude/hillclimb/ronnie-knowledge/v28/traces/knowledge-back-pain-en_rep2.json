@@ -1,0 +1,19 @@
+[
+  {
+    "role": "user",
+    "content": "My lower back hurts after deadlifts, should I keep going?"
+  },
+  {
+    "role": "tool_call",
+    "name": "remember",
+    "content": "{\"input\":{\"kind\":\"injury\",\"joint\":\"lower_back\",\"state\":\"active\",\"text\":\"lower back hurts after deadlifts\"},\"result\":\"Saved: lower back injury, active. The app shows the user \\\"📝 Remembered: lower back hurts after deadlifts\\\" with your reply, so don't say it yourself.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "📝 Remembered: lower back hurts after deadlifts\n\nLower back pain after deadlifts is a sign to ease off. Cut the weight a lot or skip deadlifts until it settles, and stay pain-free in whatever you do. If the pain is sharp, spreads down a leg, or lasts more than a few days, stop and see a doctor or physio.\n\n⚠️ Mild soreness that fades within a day or two is usually okay. Pain that gets worse or keeps coming back isn't.\n\nDoes it hurt during the lift, or only afterward, and how long does it last?"
+  },
+  {
+    "role": "memory",
+    "content": "[{\"kind\":\"injury\",\"subject\":\"lower_back\",\"state\":\"active\",\"text\":\"lower back hurts after deadlifts\",\"updatedAt\":\"2026-10-07T02:00:00.000Z\"}]"
+  }
+]

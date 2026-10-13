@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個練腿的動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle\":\"legs\",\"low_load_on\":\"knee\"},\"result\":\"ID: 07bccaa6 | 羅馬尼亞硬舉: legs; trains hamstrings, glutes; joint load: lower back medium\\nID: 995b5a70 | 腿彎舉: legs; trains hamstrings; low joint load\\nID: afc9ed91 | 小腿提踵: legs; trains calves; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"995b5a70\"},\"result\":\"Showing a card for \\\"腿彎舉\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "我推薦腿彎舉。它主要練腿後側，對膝蓋的負荷低，適合你的左膝舊傷。\n\n💡 點卡片上的按鈕，就能把它加到今天的訓練。動作過程中如果膝蓋有任何不適，就降低重量。"
+  }
+]

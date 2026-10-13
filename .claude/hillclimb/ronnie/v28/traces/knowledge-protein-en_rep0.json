@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "How much protein should I eat to build muscle?"
+  },
+  {
+    "role": "assistant",
+    "content": "About 1.6 to 2.2 g of protein per kg of body weight per day is the evidence-based range for building muscle. Most people do well around 1.6 to 2.0 g/kg. Going above 2.2 g/kg hasn't been shown to add more.\n\n💡 For example, at 75 kg that's roughly 120 to 165 g a day. Spread it over 3 to 5 meals, with about 25 to 40 g each. Total daily intake matters more than exact timing.\n\nIf you tell me your body weight, I can work out your daily target."
+  }
+]

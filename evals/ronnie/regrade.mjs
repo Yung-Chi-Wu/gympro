@@ -15,11 +15,11 @@ import { overallPass, programmaticGrade } from './grade.mjs'
 import { judge } from './judge.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const { EXERCISES, FIXTURE_USER, buildSystemPrompt, getClient } = createRequire(import.meta.url)(join(here, 'dist', 'ronnie.cjs'))
+const { EXERCISES, FIXTURE_USER, buildSystemPrompt, fixtureNotes, getClient, memoryNote } = createRequire(import.meta.url)(join(here, 'dist', 'ronnie.cjs'))
 const [flow = '.claude/hillclimb/ronnie', variant = 'baseline', rejudgeArg = ''] = process.argv.slice(2)
 const rejudge = new Set(rejudgeArg.replace(/^rejudge=/, '').split(',').filter(Boolean))
 const vdir = join(flow, variant)
-const cases = new Map(['cases.json', 'cases-holdout.json', 'cases-knowledge.json'].flatMap((f) => JSON.parse(readFileSync(join(here, f), 'utf8'))).map((c) => [c.id, c]))
+const cases = new Map(['cases.json', 'cases-holdout.json', 'cases-knowledge.json', 'cases-memory.json'].flatMap((f) => JSON.parse(readFileSync(join(here, f), 'utf8'))).map((c) => [c.id, c]))
 const KNOWN = new Set(EXERCISES.map((e) => e.id))
 const WRITE_OPS = { add_exercise_today: 'add_today', remove_exercise_today: 'remove_today', remove_exercise_from_routine: 'delete_from_routines' }
 
@@ -30,16 +30,26 @@ const idFromResult = (result) => {
     return EXERCISES.find((e) => e.name === name || e.name_zh_tw === name)?.id
 }
 
-function rebuild(trace) {
+function rebuild(trace, c) {
     const turns = []
     let events = []
+    // Which day each user message was on, from the case: a session's turns in order (app events are not messages)
+    const sessionOf = (c.sessions ?? [c.turns ?? []]).flatMap((s, i) => s.filter((t) => typeof t === 'string').map(() => i + 1))
+    // The notes as the case seeds them, then as each turn that changed them left them
+    const memoriesBefore = (c.memory ?? []).map((m) => memoryNote(m))
+    let memories = memoriesBefore
     for (const m of trace) {
         if (m.role === 'app_event') events.push(m.content)
         else if (m.role === 'user') {
-            turns.push({ user: m.content, events, toolCalls: [], writes: [], message: '' })
+            // notesBefore: what that request's prompt listed
+            turns.push({ user: m.content, events, toolCalls: [], writes: [], message: '', session: sessionOf[turns.length] ?? 1, memoryChanged: false, notesBefore: memories })
             events = []
         }
         else if (m.role === 'assistant') turns.at(-1).message = m.content
+        else if (m.role === 'memory') {
+            memories = JSON.parse(m.content)
+            turns.at(-1).memoryChanged = true
+        }
         else {
             const { input, result } = JSON.parse(m.content)
             turns.at(-1).toolCalls.push({ name: m.name, input, result })
@@ -50,7 +60,7 @@ function rebuild(trace) {
             if (WRITE_OPS[m.name]) turns.at(-1).writes.push({ op: WRITE_OPS[m.name], exerciseId, effective: String(result).startsWith('✓') && KNOWN.has(exerciseId) })
         }
     }
-    return { turns, writes: turns.flatMap((t) => t.writes) }
+    return { turns, writes: turns.flatMap((t) => t.writes), memoriesBefore, memories }
 }
 
 // Regrades the current file, so judge verdicts from an earlier rejudge= are kept;
@@ -64,13 +74,15 @@ let changed = 0
 const out = []
 for (const r of rows) {
     const c = cases.get(r.prompt_id)
-    const conv = rebuild(JSON.parse(readFileSync(join(vdir, 'traces', `${r.prompt_id}_rep${r.rep}.json`), 'utf8')))
+    const conv = rebuild(JSON.parse(readFileSync(join(vdir, 'traces', `${r.prompt_id}_rep${r.rep}.json`), 'utf8')), c)
     const { grade, explanation } = programmaticGrade(c, conv, EXERCISES)
     grade.judge_ok = r.grade.judge_ok
     if (r.explanation?.judge_ok) explanation.judge_ok = r.explanation.judge_ok
     if (rejudge.has(r.prompt_id)) {
-        // The system prompt is today's, not the one the run had: the judge reads it for the user's profile
-        const j = await judge(await getClient(), c, { ...conv, system: buildSystemPrompt(c.language, FIXTURE_USER) })
+        // The system prompt is today's, not the one the run had: the judge reads it for the user's
+        // profile, and for the notes the last request listed
+        const notes = fixtureNotes(conv.turns.at(-1)?.notesBefore ?? conv.memoriesBefore, c.language)
+        const j = await judge(await getClient(), c, { ...conv, system: buildSystemPrompt(c.language, { ...FIXTURE_USER, notes }) })
         grade.judge_ok = j.verdict.verdict === 'pass' ? 1 : 0
         explanation.judge_ok = j.verdict.reason
     }

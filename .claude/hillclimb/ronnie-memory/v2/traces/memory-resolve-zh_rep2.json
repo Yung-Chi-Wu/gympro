@@ -1,0 +1,19 @@
+[
+  {
+    "role": "user",
+    "content": "我的右肩已經完全好了"
+  },
+  {
+    "role": "tool_call",
+    "name": "remember",
+    "content": "{\"input\":{\"kind\":\"injury\",\"joint\":\"shoulder\",\"state\":\"resolved\",\"text\":\"右肩舊傷已完全好了\"},\"result\":\"Updated (it was active: \\\"右肩舊傷\\\"): shoulder injury, resolved. The app shows the user \\\"📝 已更新：右肩舊傷已完全好了\\\" with your reply, so don't say it yourself.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "📝 已更新：右肩舊傷已完全好了\n\n太好了，Alex！之後推類動作可以正常安排了。\n\n💡 剛恢復的頭幾週，重量建議從平常的八到九成開始，慢慢加回去。如果再出現刺痛或不適，就先降重量並告訴我。\n\n今天的推日要不要照原計畫練？"
+  },
+  {
+    "role": "memory",
+    "content": "[{\"kind\":\"injury\",\"subject\":\"shoulder\",\"state\":\"resolved\",\"text\":\"右肩舊傷已完全好了\",\"updatedAt\":\"2026-10-07T02:00:00.000Z\"}]"
+  }
+]

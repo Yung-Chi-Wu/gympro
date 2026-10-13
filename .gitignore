@@ -65,3 +65,6 @@ supabase/.temp/
 .claude/settings.local.json
 evals/search/.cache/
 evals/ronnie/.cache/
+
+# Git worktrees made by Claude Code agents, each a checkout of another branch
+.claude/worktrees/

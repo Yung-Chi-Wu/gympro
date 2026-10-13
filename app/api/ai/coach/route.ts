@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     // Ronnie trusts a message with the app-event prefix as a button tap; typed, it loses the prefix
     message = message.replace(/^\[App event\]/i, '(App event)')
 
-    const ctx = await loadRonnieContext(supabase, user.id)
+    const ctx = await loadRonnieContext(supabase, user.id, language)
     let conv = await loadConversation(supabase, user.id, ctx.today)
     if (Number.isInteger(body?.editFrom)) {
         conv = truncateAtUserMessage(conv, body.editFrom)
