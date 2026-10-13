@@ -202,7 +202,7 @@ export type SummaryPart =
     | { kind: 'metres'; value: number }
 
 /** Estimated one-rep max (Epley), the same measure the report uses for a lift's best set */
-const e1rm = (s: SetValues) => s.weightKg * (1 + s.reps / 30)
+export const e1rm = (s: { weightKg: number; reps: number }) => s.weightKg * (1 + s.reps / 30)
 
 /**
  * The line under an exercise's name: its sets, then what matters for its type. Strength shows

@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslations } from 'next-intl'
-import type { DisplayItem, ProposalCard, ProposalStatus, RecommendationCard } from '@/lib/ronnie/conversation'
+import { MAX_MESSAGE_CHARS, type DisplayItem, type ProposalCard, type ProposalStatus, type RecommendationCard } from '@/lib/ronnie/conversation'
 import { describeProposal } from '@/lib/ronnie/events'
 import { isSubmitEnter, useKeyboardOpen, useVisibleViewport, type VisibleViewport } from '@/lib/keyboard'
 import { Icon } from './Icon'
@@ -54,6 +54,10 @@ interface RonnieWidgetProps {
 type Item = DisplayItem | { kind: 'error'; text: string }
 
 const ACCENT = '#C8955A'
+/** The character count shows from here, so the limit doesn't come as a surprise */
+const SHOW_COUNT_FROM = 1500
+/** After Stop: the server stops between steps and saves what was done; then the window reloads it */
+const RELOAD_AFTER_STOP_MS = 2000
 
 export function RonnieWidget({ language }: RonnieWidgetProps) {
     const zh = language === 'zh-TW'
@@ -81,6 +85,8 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     }, [items, isOpen, isLoading])
 
     const errorText = zh ? '發生錯誤，請再試一次。' : 'Something went wrong.'
+    // Trying again won't help a message that's too long, so it gets its own line
+    const tooLongText = zh ? `訊息太長了，最多 ${MAX_MESSAGE_CHARS} 字。` : `That message is too long; the limit is ${MAX_MESSAGE_CHARS} characters.`
     const focusInput = () => setTimeout(() => inputRef.current?.focus(), 50)
     const notifyDashboard = () => {
         window.dispatchEvent(new CustomEvent('ronnie-workout-changed'))
@@ -117,6 +123,10 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                 signal: abortRef.current.signal,
             })
             const data = await res.json().catch(() => null)
+            if (res.status === 413) {
+                setItems((prev) => [...prev, { kind: 'error', text: tooLongText }])
+                return
+            }
             // An error response has no message: show the error line instead of an empty reply
             if (!res.ok || typeof data?.message !== 'string' || !data.message.trim()) {
                 throw new Error(`Ronnie request failed: ${res.status} ${data?.error ?? ''}`)
@@ -151,6 +161,17 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         abortRef.current?.abort()
         setIsLoading(false)
         focusInput()
+        // A change Ronnie made before the stop is kept on the server: show it, and refresh today's workout
+        setTimeout(async () => {
+            try {
+                const res = await fetch('/api/ai/coach')
+                const data = await res.json().catch(() => null)
+                if (res.ok && Array.isArray(data?.items)) setItems(data.items)
+                notifyDashboard()
+            } catch (err) {
+                console.error(err)
+            }
+        }, RELOAD_AFTER_STOP_MS)
     }
 
     function handleEditSubmit(index: number) {
@@ -391,6 +412,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                             <div className="space-y-1">
                                                 <textarea
                                                     autoFocus
+                                                    maxLength={MAX_MESSAGE_CHARS}
                                                     value={editingText}
                                                     onChange={(e) => setEditingText(e.target.value)}
                                                     onKeyDown={(e) => {
@@ -464,6 +486,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                             <input
                                 ref={inputRef}
                                 type="text"
+                                maxLength={MAX_MESSAGE_CHARS}
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={(e) => {
@@ -479,6 +502,11 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                 {zh ? '發送' : 'Send'}
                             </button>
                         </div>
+                        {input.length >= SHOW_COUNT_FROM && (
+                            <p className={`mt-1 text-right text-xs tabular-nums ${input.length >= MAX_MESSAGE_CHARS ? 'text-red-500' : 'text-ink/40 dark:text-white/40'}`}>
+                                {input.length} / {MAX_MESSAGE_CHARS}
+                            </p>
+                        )}
                     </div>
 
                     {/* Second confirmation for a removal */}

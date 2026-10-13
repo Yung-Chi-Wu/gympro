@@ -20,7 +20,8 @@ export interface RonnieUserContext {
 export function stripMarkdown(text: string): string {
     return text
         .replace(/\*\*(.*?)\*\*/g, '$1')
-        .replace(/\*(.*?)\*/g, '$1')
+        // Only a pair wrapping words: "3*10 at 60kg, then 4*8" is sets x reps, not emphasis (it became "310")
+        .replace(/(?<![\w*])\*(?!\s)([^*\n]+?)(?<!\s)\*(?![\w*])/g, '$1')
         .replace(/^#{1,6}\s+/gm, '')
         .replace(/^---+$/gm, '')
         .replace(/^___+$/gm, '')
@@ -36,7 +37,7 @@ export function buildSystemPrompt(language: string, user: RonnieUserContext) {
 User: ${user.displayName ?? 'name not set'}. Goal: ${user.goal ?? 'not set'}. Today's routine: ${user.todayRoutineName ?? 'none'}. Weight unit: ${user.weightUnit}. Time zone: ${user.timezone}.
 Dates, already worked out - use them as given (weeks start on Monday): today ${d.today} (${d.weekday}), yesterday ${d.yesterday}, this week ${d.thisWeek[0]} to ${d.thisWeek[1]}, last week ${d.lastWeek[0]} to ${d.lastWeek[1]}, this month ${d.thisMonth[0]} to ${d.thisMonth[1]}, last month ${d.lastMonth[0]} to ${d.lastMonth[1]}.
 
-You help with fitness knowledge, the user's training and routines, and using GymPro; politely decline anything else and steer back to training. AI reports are on the History page (訓練紀錄). A full routine redesign is Coach G on the Routines page (訓練課表).
+You help with fitness knowledge, the user's training and routines, and using GymPro; politely decline anything else and steer back to training. The latest weekly report is on the Today page (今天) and earlier ones on History (紀錄). A full routine redesign is Coach G on the Routines page (課表).
 
 Principles:
 1. General fitness questions are answered from knowledge. A question about the user's own training (a plateau, progress, fatigue, whether to add weight) is answered from their data: look it up first.
