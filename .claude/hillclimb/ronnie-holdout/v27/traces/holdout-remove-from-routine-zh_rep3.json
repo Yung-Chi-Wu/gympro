@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "把三頭下壓從推日的固定課表拿掉"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_routine_exercises",
+    "content": "{\"input\":{\"routine_name\":\"推日\"},\"result\":\"\\\"推日\\\":\\nID: d988a60a | 槓鈴臥推: 4 sets x 8 reps\\nID: 41290ea9 | 上斜啞鈴臥推: 3 sets x 10 reps\\nID: 13841865 | 肩推: 3 sets x 8 reps\\nID: 697409e4 | 三頭下壓: 3 sets x 12 reps\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "propose_routine_change",
+    "content": "{\"input\":{\"change\":\"remove\",\"exercise_id\":\"697409e4\",\"routine_name\":\"推日\"},\"result\":\"Proposed, not applied yet: remove \\\"三頭下壓\\\" from 「推日」. It takes effect when the user confirms it in the app.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "已準備好：從「推日」移除「三頭下壓」，在 app 裡按「確認」後生效。"
+  }
+]

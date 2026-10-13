@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "Do I need to lift heavy to build muscle?"
+  },
+  {
+    "role": "assistant",
+    "content": "No, you don't have to lift heavy to build muscle. Research shows that sets taken close to failure (about 0-3 reps in reserve) build similar muscle across a wide range of loads, roughly 5-30 reps. Lighter weights just need more reps and more effort to get there.\n\n💡 Heavy sets still matter for your goal. A 100 kg bench is a strength skill, so keep most of your pressing in the 3-8 rep range and use lighter, higher-rep accessory work to add volume without beating up your joints.\n\nWant me to check your recent bench numbers to see where you are against 100 kg?"
+  }
+]

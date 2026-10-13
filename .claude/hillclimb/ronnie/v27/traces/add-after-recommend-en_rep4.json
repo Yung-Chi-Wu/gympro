@@ -1,0 +1,33 @@
+[
+  {
+    "role": "user",
+    "content": "What's a good exercise for my upper chest?"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle\":\"upper_chest\"},\"result\":\"ID: 41290ea9 | Incline Dumbbell Press: chest; trains upper chest; joint load: shoulder medium\\nID: 6fc5ead6 | Incline Barbell Press: chest; trains upper chest; joint load: shoulder medium, elbow medium\\nID: a726ab1a | Low-to-High Cable Fly: chest; trains upper chest; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"41290ea9\"},\"result\":\"\\\"Incline Dumbbell Press\\\" is already in today's workout; no card shown. Recommend another, or tell the user.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Incline Dumbbell Press is already in today's push workout, so you've got the best upper chest option covered. Set the bench to about 30 degrees and control the lowering phase. That angle hits the upper chest well without taking over too much from the shoulders.\n\n💡 If you want a second upper chest move, Low-to-High Cable Fly is a good finisher. Want me to add it?"
+  },
+  {
+    "role": "user",
+    "content": "Sounds good, add it to today's workout."
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"a726ab1a\"},\"result\":\"✓ Added \\\"Low-to-High Cable Fly\\\" to today's workout\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ Added Low-to-High Cable Fly to today's workout.\n\n💡 Use a lighter weight and squeeze at the top of each rep. Do it after your pressing work."
+  }
+]
