@@ -409,7 +409,7 @@
             "up": "進步",
             "rest": "{flat} 持平 · {down} 退步",
             "weight": "體重",
-            "weightChange": "比上{unit, select, week {週} other {輪}} {change}",
+            "weightChange": "{back, plural, =1 {比上{unit, select, week {週} other {輪}}} other {比 # {unit, select, week {週} other {輪}}前}} {change}",
             "noWeight": "沒有記錄"
         },
         "followUpTitle": "上次的建議",
@@ -442,7 +442,8 @@
             "missed_sessions": {
                 "done": "這{unit, select, week {週} other {輪}}全部練完",
                 "partial": "練了 {done} / {planned} 次，比上次好",
-                "not_done": "練了 {done} / {planned} 次"
+                "not_done": "練了 {done} / {planned} 次",
+                "noPlan": "練了 {done} 次，沒有排課可以比"
             },
             "deload": {
                 "done": "有減量，這{unit, select, week {週} other {輪}} {sets} 組",
@@ -450,7 +451,8 @@
             },
             "weight_trend": {
                 "done": "體重方向回來了（{kg} {unit}）",
-                "not_done": "體重還在往反方向（{kg} {unit}）"
+                "not_done": "體重還在往反方向（{kg} {unit}）",
+                "noWeighIn": "這{unit, select, week {週} other {輪}}沒有量體重"
             },
             "cardio_first": {
                 "done": "這{unit, select, week {週} other {輪}}腿日都先練腿",

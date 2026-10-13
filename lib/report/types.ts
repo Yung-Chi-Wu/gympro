@@ -88,12 +88,14 @@ export interface LiftFacts {
     bodyweight: boolean
     /** Assisted lifts are compared by assist, less first, then by reps; absent in reports saved before assisted lifts were read */
     assisted?: boolean
-    /** One value per window, oldest first (estimated 1RM, or reps; for an assisted lift a number that orders by assist, then reps); null when not trained */
+    /** A bodyweight exercise with added weight on some sets, compared by the added weight, then by reps; present only when true */
+    added?: boolean
+    /** One value per window, oldest first (estimated 1RM, or reps; for an assisted or added-weight lift a number that orders by the weight, then reps); null when not trained */
     series: (number | null)[]
     trend: Trend
-    /** Percent change of the estimated 1RM (weighted) or change in reps (bodyweight) against the last trained window; null for an assisted lift, whose sets say it */
+    /** Percent change of the estimated 1RM (weighted) or change in reps (bodyweight) against the last trained window; null for an assisted or added-weight lift, whose sets say it */
     change: number | null
-    /** Trained windows in a row, ending with this one, that didn't beat the best before them */
+    /** Trained windows in a row, ending with this one, that didn't beat the best the run started from */
     flatWindows: number
     /** Trained windows in a row, ending with this one, each lower than the one before */
     downWindows: number
@@ -131,6 +133,7 @@ export interface RecordFacts {
     best: BestSet
     bodyweight: boolean
     assisted?: boolean
+    added?: boolean
     date: string
 }
 
@@ -193,6 +196,8 @@ export interface ReportFacts {
         latestKg: number | null
         /** This window's average against the last window with weigh-ins */
         changeKg: number | null
+        /** How many windows back that one is (1 for the last period); absent in reports saved before it was kept */
+        changeWindows?: number | null
         weighIns: number
         /** One average per window, oldest first */
         series: (number | null)[]

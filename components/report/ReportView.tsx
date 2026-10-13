@@ -47,14 +47,18 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km' }
     const liftName = (x: { name: string; nameZh: string | null } | Data) => String((zh && x.nameZh) || x.name)
     // Weights are stored in kg and shown in the user's unit
     const weight = (kg: number) => `${toDisplayWeight(kg, weightUnit)}${weightUnit}`
-    /** A set in finding data ("82.5x8"); its flags say to read only the reps, or the number as the assist */
-    const setText = (raw: unknown, d: { bodyweight?: unknown; assisted?: unknown }) => {
+    /** Weight on top of the body, or the reps alone when there was none */
+    const addedText = (kg: number, reps: number | string) => (kg === 0 ? t('reps', { n: reps }) : `+${weight(kg)} × ${reps}`)
+    /** A set in finding data ("82.5x8"); its flags say to read only the reps, the number as the assist, or as weight added to the body */
+    const setText = (raw: unknown, d: { bodyweight?: unknown; assisted?: unknown; added?: unknown }) => {
         if (raw == null) return '—'
         const [w, r] = String(raw).split('x')
-        return Number(d.assisted) ? t('assisted', { n: r, assist: weight(Number(w)) }) : Number(d.bodyweight) ? t('reps', { n: r }) : `${weight(Number(w))} × ${r}`
+        return Number(d.assisted) ? t('assisted', { n: r, assist: weight(Number(w)) }) : Number(d.added) ? addedText(Number(w), r)
+            : Number(d.bodyweight) ? t('reps', { n: r }) : `${weight(Number(w))} × ${r}`
     }
-    const bestText = (s: BestSet | null, bodyweight: boolean) =>
-        !s ? '—' : s.assistKg != null ? t('assisted', { n: s.reps, assist: weight(s.assistKg) }) : bodyweight ? t('reps', { n: s.reps }) : `${weight(s.weightKg)} × ${s.reps}`
+    const bestText = (s: BestSet | null, kind: { bodyweight: boolean; added?: boolean }) =>
+        !s ? '—' : s.assistKg != null ? t('assisted', { n: s.reps, assist: weight(s.assistKg) }) : kind.added ? addedText(s.weightKg, s.reps)
+            : kind.bodyweight ? t('reps', { n: s.reps }) : `${weight(s.weightKg)} × ${s.reps}`
     const bodyWeight = (kg: number) => toDisplayWeight(kg, weightUnit)
     const routineList = (s: unknown) => String(s ?? '').split(', ').join(zh ? '、' : ', ')
 
@@ -87,9 +91,12 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km' }
             case 'lift_regressed':
                 return d.trained === 0 ? t('result.notTrained', { unit }) : t(`result.${f.rule}.${f.status}`, { now: setText(d.now, d) })
             case 'low_volume': return t(`result.low_volume.${f.status}`, { n: Number(d.nowPerWeek) })
-            case 'missed_sessions': return t(`result.missed_sessions.${f.status}`, { done: Number(d.nowDone), planned: Number(d.nowPlanned), unit })
+            case 'missed_sessions':
+                // No cycle any more, so nothing planned to count against
+                return d.noPlan ? t('result.missed_sessions.noPlan', { done: Number(d.nowDone), unit }) : t(`result.missed_sessions.${f.status}`, { done: Number(d.nowDone), planned: Number(d.nowPlanned), unit })
             case 'deload': return t(`result.deload.${f.status}`, { sets: Number(d.nowSets), unit })
-            case 'weight_trend': return t(`result.weight_trend.${f.status}`, { kg: bodyWeight(Number(d.nowKg)), unit: weightUnit })
+            case 'weight_trend':
+                return d.weighIns === 0 ? t('result.weight_trend.noWeighIn', { unit }) : t(`result.weight_trend.${f.status}`, { kg: bodyWeight(Number(d.nowKg)), unit: weightUnit })
             case 'cardio_first':
                 return d.legSessions === 0 ? t('result.cardio_first.noLegs', { unit }) : t(`result.cardio_first.${f.status}`, { n: Number(d.legSessions), still: Number(d.stillFirst), unit })
         }
@@ -129,7 +136,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km' }
                 <Kpi label={t('kpi.mainLifts')} value={<>{facts.liftsSummary.up}<small className="text-base font-medium text-ink/40 dark:text-white/40"> {t('kpi.up')}</small></>}
                     note={t('kpi.rest', { flat: facts.liftsSummary.flat, down: facts.liftsSummary.down })} />
                 <Kpi label={t('kpi.weight')} value={facts.bodyWeight.latestKg != null ? <>{bodyWeight(facts.bodyWeight.latestKg)}<small className="text-base font-medium text-ink/40 dark:text-white/40"> {weightUnit}</small></> : '—'}
-                    note={facts.bodyWeight.changeKg != null ? t('kpi.weightChange', { unit, change: `${facts.bodyWeight.changeKg > 0 ? '+' : ''}${bodyWeight(facts.bodyWeight.changeKg)}` }) : facts.bodyWeight.latestKg == null ? t('kpi.noWeight') : null} />
+                    note={facts.bodyWeight.changeKg != null ? t('kpi.weightChange', { unit, back: facts.bodyWeight.changeWindows ?? 1, change: `${facts.bodyWeight.changeKg > 0 ? '+' : ''}${bodyWeight(facts.bodyWeight.changeKg)}` }) : facts.bodyWeight.latestKg == null ? t('kpi.noWeight') : null} />
             </dl>
 
             <WeekDots days={facts.sessions.days} zh={zh} />
@@ -197,14 +204,14 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km' }
                                     {facts.records.map((r) => (
                                         <li key={r.exerciseId} className="flex items-center gap-2.5 rounded-lg bg-[#C8955A]/15 px-3 py-2 text-sm max-md:rounded-none max-md:bg-transparent max-md:px-0 max-md:text-[15px]">
                                             <span className="text-xs font-bold tracking-wider text-[#A8742F] dark:text-[#D9AA6E]">PR</span>
-                                            <b className="flex-1 font-semibold">{liftName(r)} {bestText(r.best, r.bodyweight)}</b>
+                                            <b className="flex-1 font-semibold">{liftName(r)} {bestText(r.best, r)}</b>
                                             <span className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{shortDate(r.date)}</span>
                                         </li>
                                     ))}
                                 </ul>
                             )}
-                            <LiftTable lifts={facts.lifts} name={liftName} set={(l) => bestText(l.best, l.bodyweight)}
-                                prev={(l) => bestText(l.previousBest, l.bodyweight)}
+                            <LiftTable lifts={facts.lifts} name={liftName} set={(l) => bestText(l.best, l)}
+                                prev={(l) => bestText(l.previousBest, l)}
                                 trendLabel={(l) => t(`trend.${l.trend}`)}
                                 trendNote={(l) => l.trend === 'flat' && l.flatWindows ? t('flatFor', { n: l.flatWindows, unit }) : l.change != null && l.trend !== 'new' ? (l.bodyweight ? `${l.change > 0 ? '+' : ''}${l.change}` : `${l.change > 0 ? '+' : ''}${l.change}%`) : null} />
                             <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('liftsNote', { unit })}</p>

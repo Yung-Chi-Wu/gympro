@@ -41,16 +41,28 @@ export function isLowerBodyLift(e: ExerciseInfo): boolean {
  * The sets that count for a lift, and how they compare. An assisted lift counts only sets that
  * have their assist (one logged before the exercise had a log type has none) and is ordered by
  * less assist, then more reps at the same assist, as the app and Ronnie read it: reps/1000 can't
- * outweigh an assist step (at least 1 lb), so one number keeps that order. A bodyweight lift is
- * compared by reps, a weighted one by estimated 1RM.
+ * outweigh an assist step (at least 1 lb), so one number keeps that order. A bodyweight exercise
+ * with added weight on some sets is ordered the same way by the added weight: its bodyweight sets
+ * have no estimated 1RM, which read as 0 and made "up Infinity%". Only bodyweight sets: by reps.
+ * A weighted lift by estimated 1RM, without its 0 kg sets, which have none either.
  */
 function liftMeasure(e: ExerciseInfo, allSets: LoggedSet[]) {
     const assisted = e.logType === 'assisted'
-    const sets = allSets.filter((s) => s.exerciseId === e.id && (!assisted || s.assistKg != null))
-    const bodyweight = !assisted && sets.every((s) => s.weightKg === 0)
-    const value = (s: BestSet | LoggedSet) => (assisted ? s.reps / 1000 - (s.assistKg ?? 0) : bodyweight ? s.reps : e1rm(s))
-    return { sets, assisted, bodyweight, value }
+    const own = allSets.filter((s) => s.exerciseId === e.id && (!assisted || s.assistKg != null))
+    const bodyweight = !assisted && own.every((s) => s.weightKg === 0)
+    const added = !assisted && !bodyweight && e.logType === 'bodyweight'
+    const sets = assisted || bodyweight || added ? own : own.filter((s) => s.weightKg > 0)
+    const value = (s: BestSet | LoggedSet) =>
+        assisted ? s.reps / 1000 - (s.assistKg ?? 0) : added ? s.weightKg + s.reps / 1000 : bodyweight ? s.reps : e1rm(s)
+    return { sets, assisted, bodyweight, added, value }
 }
+
+/**
+ * Progress that can't be rounding counts however small: more weight for at least as many reps,
+ * or more reps at the same weight. 180 to 182.5 kg x5 is +1.4% of a heavy squat, inside the band.
+ */
+const outlifts = (a: BestSet | LoggedSet, b: BestSet | LoggedSet) =>
+    (a.weightKg > b.weightKg && a.reps >= b.reps) || (a.weightKg === b.weightKg && a.reps > b.reps)
 const bestOf = (s: LoggedSet, assisted: boolean): BestSet =>
     assisted ? { weightKg: s.weightKg, reps: s.reps, assistKg: s.assistKg ?? 0 } : { weightKg: s.weightKg, reps: s.reps }
 
@@ -63,12 +75,18 @@ export function windowOfFor(periodStart: string, periodEnd: string) {
     }
 }
 
+/** Every exercise the user has logged, which tells whether a goal's "squat" can only mean one of them */
+const trainedExercises = (inputs: ReportInputs) => {
+    const logged = new Set(inputs.sets.map((s) => s.exerciseId))
+    return inputs.exercises.filter((e) => logged.has(e.id))
+}
+
 /** One exercise's facts, for following up a lift that may no longer be a main lift. */
 export function liftFor(inputs: ReportInputs, exerciseId: string): LiftFacts | null {
     const e = inputs.exercises.find((x) => x.id === exerciseId)
     if (!e) return null
     const windowOf = windowOfFor(inputs.periodStart, inputs.periodEnd)
-    return liftMeasure(e, inputs.sets).sets.some((s) => windowOf(s.date) === 0) ? liftFacts(e, inputs.sets, windowOf, inputs.goal) : null
+    return liftMeasure(e, inputs.sets).sets.some((s) => windowOf(s.date) === 0) ? liftFacts(e, inputs.sets, windowOf, inputs.goal, trainedExercises(inputs)) : null
 }
 
 export function computeFacts(inputs: ReportInputs): ReportFacts {
@@ -134,7 +152,8 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
     const trainedNow = [...new Set(current.map((s) => s.exerciseId))].map((id) => byId.get(id))
         .filter((e): e is ExerciseInfo => !!e && !NOT_LIFTS.has(e.muscleGroup) && STRENGTH_LOG_TYPES.has(e.logType))
         .filter((e) => liftMeasure(e, current).sets.length > 0)
-    const allLifts = trainedNow.map((e) => liftFacts(e, inputs.sets, windowOf, inputs.goal))
+    const userExercises = trainedExercises(inputs)
+    const allLifts = trainedNow.map((e) => liftFacts(e, inputs.sets, windowOf, inputs.goal, userExercises))
     // Main lifts: the goal's lifts and each routine's first exercise, then the most sets over the
     // last 4 periods (so one missed session doesn't drop a lift), then the most weight moved
     const leads = new Set(inputs.routineLeads)
@@ -155,7 +174,10 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
         if (value(lift.best) > before) {
             const best = lift.best
             const set = sets.find((s) => s.date >= periodStart && s.reps === best.reps && s.weightKg === best.weightKg && (best.assistKg == null || s.assistKg === best.assistKg))!
-            records.push({ exerciseId: lift.exerciseId, name: lift.name, nameZh: lift.nameZh, best, bodyweight: lift.bodyweight, assisted: !!lift.assisted, date: set.date })
+            records.push({
+                exerciseId: lift.exerciseId, name: lift.name, nameZh: lift.nameZh, best, bodyweight: lift.bodyweight, assisted: !!lift.assisted,
+                ...(lift.added ? { added: true } : {}), date: set.date,
+            })
         }
     }
 
@@ -242,42 +264,46 @@ function cardioFacts(inputs: ReportInputs, windowOf: (date: string) => number, h
     }
 }
 
-function liftFacts(e: ExerciseInfo, allSets: LoggedSet[], windowOf: (date: string) => number, goal: string | null): LiftFacts {
-    const { sets, assisted, bodyweight, value } = liftMeasure(e, allSets)
+function liftFacts(e: ExerciseInfo, allSets: LoggedSet[], windowOf: (date: string) => number, goal: string | null, userExercises: ExerciseInfo[]): LiftFacts {
+    const { sets, assisted, bodyweight, added, value } = liftMeasure(e, allSets)
     const bestIn = (k: number) => {
         const inK = sets.filter((s) => windowOf(s.date) === k)
         return inK.length ? inK.reduce((a, b) => (value(b) > value(a) ? b : a)) : null
     }
     const bests = Array.from({ length: WINDOWS }, (_, k) => bestIn(k))
-    // An assisted lift's number is an order, not an amount: kept exact, never rounded
-    const series = bests.map((b) => (b ? (assisted ? value(b) : round1(value(b))) : null)).reverse()
+    // An assisted or added-weight lift's number is an order, not an amount: kept exact, never rounded
+    const series = bests.map((b) => (b ? (assisted || added ? value(b) : round1(value(b))) : null)).reverse()
     const best = bests[0] ? bestOf(bests[0], assisted) : null
     const prevIndex = bests.findIndex((b, k) => k > 0 && b)
     const prev = prevIndex > 0 ? bests[prevIndex]! : null
 
-    // Reps and assist move in whole steps: any change counts. An estimated 1RM within the band is flat.
-    const exact = bodyweight || assisted
+    // Reps, assist and added weight move in whole steps: any change counts. An estimated 1RM has to
+    // clear the band, unless the set outlifts the other one; a drop always has to clear it, since one
+    // heavy day isn't a regression.
+    const exact = bodyweight || assisted || added
+    const beats = (a: LoggedSet, b: LoggedSet) => (exact ? value(a) > value(b) : outlifts(a, b) || value(a) > value(b) * (1 + FLAT_BAND))
     let trend: LiftFacts['trend'] = 'new'
     let change: number | null = null
-    if (best && prev) {
-        const now = value(best)
+    if (bests[0] && prev) {
+        const now = value(bests[0])
         const before = value(prev)
-        change = assisted ? null : bodyweight ? now - before : round1(((now - before) / before) * 100)
-        const up = exact ? now > before : now > before * (1 + FLAT_BAND)
+        change = assisted || added ? null : bodyweight ? now - before : round1(((now - before) / before) * 100)
         const down = exact ? now < before : now < before * (1 - FLAT_BAND)
-        trend = up ? 'up' : down ? 'down' : 'flat'
+        trend = beats(bests[0], prev) ? 'up' : down ? 'down' : 'flat'
     }
 
-    // Walk the trained windows oldest first
-    const trained = series.filter((v): v is number => v != null)
-    const beats = (v: number, max: number) => (exact ? v > max : v > max * (1 + FLAT_BAND))
+    // Walk the trained windows oldest first. A run is measured from the best it started at, not the
+    // best so far: small steady gains each stay inside the band, but they add up past it.
+    const trainedSets = bests.filter((b): b is LoggedSet => b != null).reverse()
     let flatWindows = 0
-    let max = trained[0] ?? 0
-    for (const v of trained.slice(1)) {
-        if (beats(v, max)) flatWindows = 0
-        else flatWindows++
-        max = Math.max(max, v)
+    let from = trainedSets[0]
+    for (const b of trainedSets.slice(1)) {
+        if (beats(b, from)) {
+            flatWindows = 0
+            from = b
+        } else flatWindows++
     }
+    const trained = series.filter((v): v is number => v != null)
     let downWindows = 0
     for (let i = trained.length - 1; i > 0; i--) {
         const lower = exact ? trained[i] < trained[i - 1] : trained[i] < trained[i - 1] * (1 - FLAT_BAND)
@@ -295,12 +321,13 @@ function liftFacts(e: ExerciseInfo, allSets: LoggedSet[], windowOf: (date: strin
         previousBest: prev ? bestOf(prev, assisted) : null,
         bodyweight,
         assisted,
+        ...(added ? { added: true } : {}),
         series,
         trend,
         change,
         flatWindows: best ? flatWindows : 0,
         downWindows,
-        goalLift: goalMentions(goal, e),
+        goalLift: goalMentions(goal, e, userExercises),
     }
 }
 
@@ -311,7 +338,9 @@ function bodyWeightFacts(weighIns: ReportInputs['weighIns'], windowOf: (date: st
     }
     const byWindow = Array.from({ length: WINDOWS }, (_, k) => avg(k))
     const latest = [...weighIns].filter((x) => windowOf(x.date) >= 0).sort((a, b) => a.date.localeCompare(b.date)).at(-1)
-    const lastBefore = byWindow.slice(1).find((v) => v != null) ?? null
+    // The last earlier window with weigh-ins, which may be more than one back: the app says how far
+    const back = byWindow.findIndex((v, k) => k > 0 && v != null)
+    const lastBefore = back > 0 ? byWindow[back] : null
 
     // Consecutive moves the same way between trained windows, ending with this one
     const known = byWindow.slice().reverse().filter((v): v is number => v != null)
@@ -326,6 +355,7 @@ function bodyWeightFacts(weighIns: ReportInputs['weighIns'], windowOf: (date: st
     return {
         latestKg: latest?.weightKg ?? null,
         changeKg: byWindow[0] != null && lastBefore != null ? round1(byWindow[0] - lastBefore) : null,
+        changeWindows: byWindow[0] != null && lastBefore != null ? back : null,
         weighIns: weighIns.filter((x) => windowOf(x.date) === 0).length,
         series: byWindow.slice().reverse(),
         trendWindows: byWindow[0] == null ? 0 : trendWindows,
@@ -334,8 +364,9 @@ function bodyWeightFacts(weighIns: ReportInputs['weighIns'], windowOf: (date: st
 
 // ---------- The goal, read from free text ----------
 
-const GAIN = /增肌|增重|長肌肉|練大|bulk|gain|build muscle|put on/i
-const LOSE = /減脂|減重|減肥|瘦|fat loss|lose|cut|lean/i
+// English as whole words: "again" isn't gain, "clean" isn't lean, "closer" isn't lose
+const GAIN = /增肌|增重|長肌肉|練大|\b(bulk(ing)?|gain(ing)?|build(ing)? muscle|put(ting)? on)\b/i
+const LOSE = /減脂|減重|減肥|瘦|\b(fat loss|lose|losing|cut(ting)?|lean(er)?)\b/i
 
 export function goalDirectionOf(goal: string | null): 'gain' | 'lose' | null {
     if (!goal) return null
@@ -347,11 +378,27 @@ export function goalDirectionOf(goal: string | null): 'gain' | 'lose' | null {
 const EQUIPMENT_ZH = /^(槓鈴|啞鈴|繩索|器械|史密斯|壺鈴)/
 const EQUIPMENT_EN = /^(barbell|dumbbell|cable|machine|smith machine|kettlebell)\s+/i
 
-/** Whether the goal names this exercise, with or without its equipment ("臥推" names 槓鈴臥推). */
-export function goalMentions(goal: string | null, e: ExerciseInfo): boolean {
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+const lastWord = (name: string) => name.toLowerCase().split(' ').at(-1) ?? ''
+
+/**
+ * Whether the goal names this exercise, with or without its equipment ("臥推" names 槓鈴臥推). An
+ * English name as whole words, plural or not, so Machine Row's "row" isn't in "grow". A goal
+ * usually says just "squat" or "bench": the last word names the exercise when no other one the
+ * user trains (`trained`) ends in it, so "squat 140" is Barbell Back Squat, unless there's a
+ * Front Squat too.
+ */
+export function goalMentions(goal: string | null, e: ExerciseInfo, trained: ExerciseInfo[] = []): boolean {
     if (!goal) return false
     const text = goal.toLowerCase()
-    const names = [e.name.toLowerCase(), e.name.toLowerCase().replace(EQUIPMENT_EN, '')]
-    if (e.nameZh) names.push(e.nameZh, e.nameZh.replace(EQUIPMENT_ZH, ''))
-    return names.some((n) => n.length >= 2 && text.includes(n))
+    const en = e.name.toLowerCase()
+    const stripped = en.replace(EQUIPMENT_EN, '')
+    // Not \b, which fails next to a name's own brackets and splits "pull-ups" into a "pull" (Face
+    // Pull's last word); Chinese around an English name is fine
+    const inText = (n: string) => new RegExp(`(?<![a-z0-9-])${escapeRegExp(n)}s?(?![a-z0-9-])`).test(text)
+    if ([en, stripped].some((n) => n.length >= 2 && inText(n))) return true
+    if (e.nameZh && [e.nameZh, e.nameZh.replace(EQUIPMENT_ZH, '')].some((n) => n.length >= 2 && text.includes(n))) return true
+    const last = lastWord(stripped)
+    return last !== stripped && last.length >= 4 && inText(last) && !trained.some((x) => x.id !== e.id && lastWord(x.name) === last)
 }
