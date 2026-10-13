@@ -1,12 +1,12 @@
 import type { RecommendationCard } from './conversation'
-import type { LibraryExercise, RonnieData, RoutineProposal, WorkoutSet } from './data'
+import type { LibraryExercise, PlannedExercise, RonnieData, RoutineProposal, WorkoutSet } from './data'
 import { describeProposal } from './events'
 import { gatedSearch, latinTokens, searchLibrary } from './search'
 import { localDateStr, localDateToUtcRange } from './time'
 import { formatWeight, toDisplayWeight, type WeightUnit } from '../weight-unit'
 import { toDisplayDistance, type DistanceUnit } from '../distance-unit'
 import type { LogType } from '../exercise-attributes'
-import { fieldValue, fitsLogType, isCardio, type SetValues } from '../set-log'
+import { e1rm, fieldValue, fitsLogType, isCardio, type SetValues } from '../set-log'
 
 // Ronnie's tools. Results are for the model, so they are in English whatever the
 // user's language; exercise names follow the user's language (Ronnie quotes them),
@@ -35,6 +35,8 @@ export interface RonnieExecutor {
     readonly recommendations: RecommendationCard[]
     /** What this turn changed or proposed, in the user's language: the reply when the model's can't be used. */
     readonly confirmations: string[]
+    /** What was asked for but not proposed, in the user's language: said alongside the confirmations. */
+    readonly notices: string[]
 }
 
 // Results show the first 8 characters of an exercise ID (the model mis-copied full UUIDs);
@@ -43,6 +45,21 @@ const SHORT_ID_LENGTH = 8
 // More removals than this in one turn is a redesign, not a tweak
 export const MAX_REMOVALS_PER_TURN = 3
 const UNKNOWN_ID = 'Unknown exercise ID - look it up with search_exercises first'
+
+/** A filter value as the tools take it: "upper chest" and "Lower-Back" are upper_chest and lower_back. */
+const vocabulary = (value: string | undefined) => value?.trim().toLowerCase().replace(/[\s-]+/g, '_') || undefined
+
+/**
+ * The routine a name means: the exact name (any case), else the only one containing it. Two
+ * that contain it and none exactly is a question for the user: "Leg Day" must not pick "Leg Day B".
+ */
+function pickRoutine<T extends { name: string }>(found: T[], name: string): { routine: T } | { ambiguous: T[] } | { none: true } {
+    const wanted = name.trim().toLowerCase()
+    const exact = found.filter((r) => r.name.trim().toLowerCase() === wanted)
+    if (exact.length === 1) return { routine: exact[0] }
+    if (found.length === 1) return { routine: found[0] }
+    return found.length ? { ambiguous: exact.length ? exact : found } : { none: true }
+}
 
 /** A whole number from 1 to 100 (the model may send it as a string), else the default. */
 function positiveInt(value: unknown, fallback: number): number {
@@ -95,6 +112,8 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
     const proposals: (RoutineProposal & { id: string })[] = []
     const recommendations: RecommendationCard[] = []
     const confirmations: string[] = []
+    const notices: string[] = []
+    const notice = (zhLine: string, enLine: string) => notices.push(zh ? zhLine : enLine)
 
     const nameOf = (ex: { name: string; name_zh_tw: string | null } | null | undefined) =>
         (zh && ex?.name_zh_tw ? ex.name_zh_tw : ex?.name) ?? 'Unknown'
@@ -155,11 +174,25 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         return matches.length === 1 ? matches[0] : value
     }
     const listLine = async (id: string, name: string, detail?: string) => `ID: ${await shortId(id)} | ${name}${detail ? `: ${detail}` : ''}`
+    /**
+     * A workout's exercises: the planned ones, then any with sets that were taken off the plan
+     * afterwards. Removing an exercise keeps its sets, and History and the report count them, so
+     * Ronnie must see them too (it listed only the plan).
+     */
+    const workoutExercises = async (planned: PlannedExercise[], sets: WorkoutSet[]) => {
+        const plannedIds = new Set(planned.map((pe) => pe.exercise_id))
+        const unplanned = [...new Set(sets.map((s) => s.exercise_id))].filter((id) => !plannedIds.has(id))
+        const names = await Promise.all(unplanned.map(async (id) => ({ exercise_id: id, exercises: (await findExercise(id)) ?? null, unplanned: true })))
+        return [...planned.map((pe) => ({ ...pe, unplanned: false })), ...names]
+    }
+    const unplannedNote = ' (logged, then taken off today\'s plan)'
 
     const tools: Record<string, (input: Record<string, string>) => Promise<string>> = {
         async get_routine_exercises(input) {
-            const [routine] = await data.findRoutinesByName(input.routine_name)
-            if (!routine) return `No routine named "${input.routine_name}"`
+            const picked = pickRoutine(await data.findRoutinesByName(input.routine_name), input.routine_name)
+            if ('none' in picked) return `No routine named "${input.routine_name}"`
+            if ('ambiguous' in picked) return `Several routines match "${input.routine_name}": ${picked.ambiguous.map((r) => r.name).join(', ')}. Ask the user which one, or call again with the exact name.`
+            const { routine } = picked
             const rows = await data.getRoutineExercises(routine.id)
             if (!rows.length) return `"${routine.name}" has no exercises`
             const lines = await Promise.all(rows.map((r) => listLine(r.exercise_id, nameOf(r.exercises), targets(r))))
@@ -169,7 +202,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         async search_exercises(input) {
             const library = await exercises()
             const query = input.query?.trim()
-            const filter = { muscle: input.muscle || undefined, lowLoadOn: input.low_load_on || undefined }
+            const filter = { muscle: vocabulary(input.muscle), lowLoadOn: vocabulary(input.low_load_on) }
             const nearest = query ? await data.nearestExercises(query) : null
             const { exercises: found, exact } = gatedSearch(library, searchLibrary(library, query, filter, 20), nearest, 10, filter)
             if (!found.length) return `No exercises found${filter.lowLoadOn ? ` with low ${filter.lowLoadOn} load` : ''}. Try other wording (English or Chinese, a shorter keyword) or another muscle.`
@@ -181,14 +214,16 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             const workouts = await workoutsBetween(input.date_from, input.date_to)
             if (!workouts.length) return 'No workouts in this period'
             const [sets, types] = await Promise.all([data.getSets(workouts.map((w) => w.id)), logTypes()])
-            return workouts.map((w) => {
+            const days = await Promise.all(workouts.map(async (w) => {
                 const date = localDateStr(new Date(w.performed_at), timeZone)
-                const lines = (w.workout_planned_exercises ?? []).map((pe) => {
-                    const done = setsText(types, sets.filter((s) => s.workout_id === w.id && s.exercise_id === pe.exercise_id))
-                    return `  ${nameOf(pe.exercises)}: ${done || 'no sets logged'}`
+                const own = sets.filter((s) => s.workout_id === w.id)
+                const lines = (await workoutExercises(w.workout_planned_exercises ?? [], own)).map((pe) => {
+                    const done = setsText(types, own.filter((s) => s.exercise_id === pe.exercise_id))
+                    return `  ${nameOf(pe.exercises)}${pe.unplanned ? unplannedNote : ''}: ${done || 'no sets logged'}`
                 })
                 return `${date} (${weekdayOf(date)}):\n${lines.join('\n')}`
-            }).join('\n\n')
+            }))
+            return days.join('\n\n')
         },
 
         async get_today_workout() {
@@ -196,8 +231,8 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             const workout = await data.getLatestWorkoutBetween(range.start, range.end)
             if (workout) {
                 const [sets, types] = await Promise.all([data.getSets([workout.id]), logTypes()])
-                const lines = await Promise.all((workout.workout_planned_exercises ?? []).map((pe) =>
-                    listLine(pe.exercise_id, nameOf(pe.exercises), setsText(types, sets.filter((s) => s.exercise_id === pe.exercise_id)) || 'no sets yet')))
+                const lines = await Promise.all((await workoutExercises(workout.workout_planned_exercises ?? [], sets)).map((pe) =>
+                    listLine(pe.exercise_id, `${nameOf(pe.exercises)}${pe.unplanned ? unplannedNote : ''}`, setsText(types, sets.filter((s) => s.exercise_id === pe.exercise_id)) || 'no sets yet')))
                 return lines.join('\n') || 'Nothing planned today'
             }
             const routineId = await data.getTodayRoutineId()
@@ -212,6 +247,11 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             if (!exercise) return UNKNOWN_ID
             const workoutId = await ensureTodayWorkout()
             if (!workoutId) return "Could not create today's workout"
+            // Already planned (today's routine may have it): the table allows it once, and the raw
+            // constraint error read as a failure to add
+            const range = todayRange()
+            const planned = (await data.getLatestWorkoutBetween(range.start, range.end))?.workout_planned_exercises ?? []
+            if (planned.some((pe) => pe.exercise_id === exercise.id)) return `"${nameOf(exercise)}" is already in today's workout; nothing added.`
             const error = await data.addPlannedExercise(workoutId, exercise.id)
             if (error) return `Not added: ${error}`
             return changed(`✓ 已將「${nameOf(exercise)}」加入今天的課表`, `✓ Added "${nameOf(exercise)}" to today's workout`)
@@ -275,24 +315,35 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             // No default: a missing change once read as a removal of an exercise the user asked to add
             if (input.change !== 'add' && input.change !== 'remove') return 'Not proposed: say change "add" or "remove"'
             const add = input.change === 'add'
-            if (!add && removalAttempts++ >= MAX_REMOVALS_PER_TURN) {
-                return `At most ${MAX_REMOVALS_PER_TURN} removals at once; this one was not proposed. For a bigger change, suggest a redesign with Coach G.`
-            }
+            const tooMany = !add && removalAttempts++ >= MAX_REMOVALS_PER_TURN
             const exercise = await findExercise(input.exercise_id)
             if (!exercise) return UNKNOWN_ID
             const exerciseName = nameOf(exercise)
+            if (tooMany) {
+                notice(`一次最多移除 ${MAX_REMOVALS_PER_TURN} 個動作，「${exerciseName}」這次沒有提出。要大改課表，可以用課表頁的 Coach G。`,
+                    `At most ${MAX_REMOVALS_PER_TURN} removals at once, so "${exerciseName}" wasn't proposed. For a bigger change, try Coach G on the Routines page.`)
+                return `At most ${MAX_REMOVALS_PER_TURN} removals at once; this one was not proposed. For a bigger change, suggest a redesign with Coach G.`
+            }
             const containing = await data.findRoutinesWithExercise(exercise.id)
             let proposal: RoutineProposal
             if (add) {
                 if (!input.routine_name) return 'Adding needs routine_name: the routine to add it to'
-                const found = await data.findRoutinesByName(input.routine_name)
-                const routine = found.find((r) => r.name.toLowerCase() === input.routine_name.toLowerCase()) ?? (found.length === 1 ? found[0] : null)
-                if (!routine) {
-                    return found.length
-                        ? `Several routines match "${input.routine_name}": ${found.map((r) => r.name).join(', ')}; pick one`
-                        : `No routine named "${input.routine_name}"`
+                const picked = pickRoutine(await data.findRoutinesByName(input.routine_name), input.routine_name)
+                if ('ambiguous' in picked) {
+                    const names = picked.ambiguous.map((r) => r.name)
+                    notice(`有好幾個課表符合「${input.routine_name}」：${names.join('、')}，「${exerciseName}」要加到哪一個？`,
+                        `Several routines match "${input.routine_name}" (${names.join(', ')}): which one should "${exerciseName}" go into?`)
+                    return `Several routines match "${input.routine_name}": ${names.join(', ')}; pick one`
                 }
-                if (containing.some((r) => r.id === routine.id)) return `"${exerciseName}" is already in "${routine.name}"; nothing to add`
+                if ('none' in picked) {
+                    notice(`找不到叫「${input.routine_name}」的課表，「${exerciseName}」沒有加入。`, `There's no routine called "${input.routine_name}", so "${exerciseName}" wasn't added.`)
+                    return `No routine named "${input.routine_name}"`
+                }
+                const { routine } = picked
+                if (containing.some((r) => r.id === routine.id)) {
+                    notice(`「${exerciseName}」已經在「${routine.name}」裡了。`, `"${exerciseName}" is already in "${routine.name}".`)
+                    return `"${exerciseName}" is already in "${routine.name}"; nothing to add`
+                }
                 proposal = {
                     change: 'add_exercise',
                     exerciseId: exercise.id,
@@ -303,9 +354,24 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
                     targetReps: positiveInt(input.target_reps, 10),
                 }
             } else {
-                const wanted = input.routine_name?.toLowerCase()
-                const routines = wanted ? containing.filter((r) => r.name.toLowerCase().includes(wanted)) : containing
-                if (!routines.length) return `"${exerciseName}" is not in ${wanted ? `"${input.routine_name}"` : 'any routine'}; nothing to change`
+                // "Upper" removes it from "Upper", not also from "Upper Power": the routine means only one
+                let routines = containing
+                if (input.routine_name) {
+                    const matching = containing.filter((r) => r.name.toLowerCase().includes(input.routine_name.trim().toLowerCase()))
+                    const picked = pickRoutine(matching, input.routine_name)
+                    if ('ambiguous' in picked) {
+                        const names = picked.ambiguous.map((r) => r.name)
+                        notice(`有好幾個課表符合「${input.routine_name}」：${names.join('、')}，要從哪一個移除「${exerciseName}」？`,
+                            `Several routines match "${input.routine_name}" (${names.join(', ')}): which one should "${exerciseName}" come out of?`)
+                        return `Several routines with "${exerciseName}" match "${input.routine_name}": ${names.join(', ')}; ask which one, or omit routine_name for all of them`
+                    }
+                    routines = 'routine' in picked ? [picked.routine] : []
+                }
+                if (!routines.length) {
+                    notice(`「${exerciseName}」不在${input.routine_name ? `「${input.routine_name}」` : '任何課表'}裡，沒有要移除的。`,
+                        `"${exerciseName}" isn't in ${input.routine_name ? `"${input.routine_name}"` : 'any routine'}, so there's nothing to remove.`)
+                    return `"${exerciseName}" is not in ${input.routine_name ? `"${input.routine_name}"` : 'any routine'}; nothing to change`
+                }
                 proposal = { change: 'remove_exercise', exerciseId: exercise.id, exerciseName, routineIds: routines.map((r) => r.id), routineNames: routines.map((r) => r.name) }
             }
 
@@ -339,11 +405,14 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         }
 
         // The better of two sets of one exercise: an assisted set with less assist, a timed set held
-        // longer, otherwise more weight, then more reps
+        // longer, a weighted set by estimated 1RM as the app's summary and the report pick it (by
+        // weight alone, Ronnie called 100kg x 1 the best while History showed 90kg x 8), otherwise
+        // more weight, then more reps
         const better = (type: LogType, a: WorkoutSet, b: WorkoutSet) => {
             if (fitsLogType(type, a) && fitsLogType(type, b)) {
                 if (type === 'assisted') return (a.assistKg ?? 0) < (b.assistKg ?? 0) || ((a.assistKg ?? 0) === (b.assistKg ?? 0) && a.reps > b.reps)
                 if (type === 'duration') return (a.durationS ?? 0) > (b.durationS ?? 0)
+                if (type === 'weight_reps') return e1rm(a) > e1rm(b) || (e1rm(a) === e1rm(b) && a.reps > b.reps)
             }
             return a.weightKg > b.weightKg || (a.weightKg === b.weightKg && a.reps > b.reps)
         }
@@ -396,10 +465,14 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             // Clipped to the requested range, so a partial week says so
             const sunday = shiftDate(monday, 6)
             const dates = `${monday < dateFrom ? dateFrom : monday} to ${sunday > dateTo ? dateTo : sunday}`
-            const clipped = monday < dateFrom || (monday !== thisMonday && sunday > dateTo)
+            // This week up to today is "so far"; a range that stops before today is a partial week,
+            // not "so far, today's sets included" (Monday and Tuesday read as the week's total)
+            const soFar = monday === thisMonday && dateTo >= today
+            const clipped = monday < dateFrom || (!soFar && sunday > dateTo)
             const day = (Date.parse(today) - Date.parse(monday)) / 86_400_000 + 1
             // "today's sets included": told only "so far", the model guessed today's sets were missing
-            const name = monday === thisMonday ? `This week so far, day ${day} of 7, today's sets included`
+            const name = soFar ? `This week so far, day ${day} of 7, today's sets included`
+                : monday === thisMonday ? 'This week'
                 : monday === shiftDate(thisMonday, -7) ? 'Last week'
                 : 'Week'
             return describe(`${name}${clipped ? ', partial' : ''} (${dates})`, weeks.get(monday)!)
@@ -423,5 +496,6 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         proposals,
         recommendations,
         confirmations,
+        notices,
     }
 }

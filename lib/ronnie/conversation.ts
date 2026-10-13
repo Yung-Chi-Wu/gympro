@@ -30,6 +30,12 @@ export interface Conversation {
 }
 
 const KEEP_DAYS = 30
+/**
+ * The longest message the user can send. What they send stays in the day's conversation and goes
+ * back to the model on every later turn, so one pasted page would be paid for all day. The route
+ * refuses a longer one instead of cutting it, so what Ronnie keeps is what the user sent.
+ */
+export const MAX_MESSAGE_CHARS = 2000
 
 type Client = SupabaseClient<Database>
 

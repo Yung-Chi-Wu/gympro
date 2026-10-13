@@ -1,0 +1,6 @@
+Branch ronnie-stability, code a4e78b4 on claude-sonnet-5-5 (PR #24: partial turns on a tool error, a model error or Stop; refusals kept as notices; getSets paging; pickRoutine; duplicate adds refused; unplanned sets listed; best set by e1rm). The 10 cases that change something at 8 reps, the other 21 at 3. The owner approved the harness sha again (PR #17 passes the weight unit in entry.ts, PR #22 reads fixture sets through setValuesOf), and about NT$140 for this round.
+Results: 139/143 (97%), no wrong changes, median 3.8 s. pass^k 87% overall, 90% on the cases that change something (79/80). The four that missed a run, read in the traces; none goes through code this PR changed (no tool error, notice, unplanned set or interruption in any trace):
+- add-after-recommend-en 7/8: Ronnie named Incline Dumbbell Press, already in today's plan, then rightly said there was nothing to add. The case expects a write.
+- swap-pick-en 2/3: the judge wanted "stop" for sharp pain, not only "get it checked". 3/5 to 5/5 in v18 to v25.
+- swap-question-only-zh 2/3: said the incline press was done today; the tool said no sets yet. 3/5 in v23, 9/10 in v24.
+- elbow-high-recommend-zh 2/3: offered to remove the overhead extension from a routine it never looked at.

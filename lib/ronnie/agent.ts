@@ -25,6 +25,12 @@ export interface RonnieToolCall {
 export interface RonnieTurn {
     message: string
     reloadDashboard: boolean
+    /**
+     * Set when the turn stopped early, after a tool had already changed or shown something: the
+     * model call failed ('error') or the user pressed Stop ('aborted'). The message then says what
+     * was done, so the change isn't lost from the conversation.
+     */
+    interrupted?: { reason: 'error' | 'aborted'; error: string }
     /** The full history after this turn, to store and send back next time. */
     messages: Anthropic.MessageParam[]
     // For the eval: every tool call made this turn, and what each API call used
@@ -79,6 +85,7 @@ export async function runRonnieTurn({
     executor,
     language,
     model = RONNIE_MODEL,
+    signal,
 }: {
     client: Anthropic
     system: string
@@ -86,20 +93,26 @@ export async function runRonnieTurn({
     executor: RonnieExecutor
     language: string
     model?: string
+    /** Aborted when the user presses Stop: the in-flight call is cancelled and no more tools run */
+    signal?: AbortSignal
 }): Promise<RonnieTurn> {
     const toolCalls: RonnieToolCall[] = []
     const usage: Anthropic.Usage[] = []
     let servedModel: string | null = null
     const history = [...messages]
     const options = modelOptions(model)
-    const sorry = language === 'zh-TW' ? '抱歉，請再問一次。' : 'Sorry, please try again.'
+    const zh = language === 'zh-TW'
+    const sorry = zh ? '抱歉，請再問一次。' : 'Sorry, please try again.'
 
     const finish = (content: Anthropic.ContentBlock[]): RonnieTurn => {
         // A turn that proposed a routine change answers in the code's words: whether a change is
-        // applied must be stated exactly, and given the wording the model still said "Done!"
+        // applied must be stated exactly, and given the wording the model still said "Done!". What
+        // wasn't proposed is said too (a 4th removal, a routine name that matched two), or the
+        // user only saw the three that were.
         const proposed = executor.proposals.length > 0
+        const codeLines = [...executor.confirmations, ...executor.notices].join('\n')
         // An empty reply falls back to what the tools changed
-        const text = proposed ? executor.confirmations.join('\n') : stripMarkdown(textOf(content)) || executor.confirmations.join('\n') || sorry
+        const text = proposed ? codeLines : stripMarkdown(textOf(content)) || codeLines || sorry
         // A reply cut off by max_tokens can end in a half-written tool call, which stored
         // without its result would make the next request invalid
         const kept = proposed ? [] : content.filter((b) => b.type !== 'tool_use')
@@ -113,11 +126,35 @@ export async function runRonnieTurn({
         }
     }
 
+    // Something the user can see already happened: a change to today's workout, a proposal card, a
+    // recommendation card. A turn that stops after that must still report it.
+    const didSomething = () => executor.confirmations.length > 0 || executor.proposals.length > 0 || executor.recommendations.length > 0
+    const interrupted = (reason: 'error' | 'aborted', err: unknown): RonnieTurn => {
+        const stopped = reason === 'aborted'
+            ? (zh ? '（已停止，上面是停止前已經完成的。）' : '(Stopped. Above is what was done before you stopped.)')
+            : (zh ? '（回覆沒有完成，上面是已經完成的部分，請再問一次。）' : "(The reply didn't finish. Above is what was already done; please ask again.)")
+        const text = [...executor.confirmations, ...executor.notices, stopped].join('\n')
+        return {
+            message: text,
+            reloadDashboard: executor.needsDashboardReload,
+            // The history ends with the user's message or the last tool results, so a text reply keeps it valid
+            messages: [...history, { role: 'assistant', content: [{ type: 'text', text }] }],
+            toolCalls,
+            usage,
+            servedModel,
+            interrupted: { reason, error: err instanceof Error ? err.message : String(err) },
+        }
+    }
+
     // A failed call still reports what the turn used and did, for its trace
     try {
         // The model now and then ends a turn with no text; one fresh sample usually answers
         let emptyRetried = false
         for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
+            if (signal?.aborted) {
+                if (didSomething()) return interrupted('aborted', signal.reason)
+                throw signal.reason instanceof Error ? signal.reason : new Error('Aborted')
+            }
             // Out of tool rounds: one last call without tools, so the work done is summarised, not lost
             const lastRound = round === MAX_TOOL_ROUNDS
             const response = await client.messages.create({
@@ -131,7 +168,7 @@ export async function runRonnieTurn({
                 ...(lastRound ? { tool_choice: { type: 'none' as const } } : {}),
                 messages: compactHistory(history),
                 ...options.params,
-            }, options.headers ? { headers: options.headers } : undefined)
+            }, { signal, ...(options.headers ? { headers: options.headers } : {}) })
             usage.push(response.usage)
             servedModel = response.model
 
@@ -143,14 +180,23 @@ export async function runRonnieTurn({
                 return finish(response.content)
             }
 
+            // A tool that throws (a database error, a malformed date) answers as a failed result, so the
+            // turn goes on: thrown, it rejected the whole Promise.all and discarded the turn, though a
+            // tool running beside it had already changed today's workout
             const toolResults: Anthropic.ToolResultBlockParam[] = await Promise.all(
                 response.content
                     .filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use')
                     .map(async (tb) => {
                         const input = tb.input as Record<string, string>
-                        const result = await executor.executeTool(tb.name, input)
-                        toolCalls.push({ name: tb.name, input, result })
-                        return { type: 'tool_result' as const, tool_use_id: tb.id, content: result }
+                        try {
+                            const result = await executor.executeTool(tb.name, input)
+                            toolCalls.push({ name: tb.name, input, result })
+                            return { type: 'tool_result' as const, tool_use_id: tb.id, content: result }
+                        } catch (err) {
+                            const result = `${tb.name} failed: ${err instanceof Error ? err.message : String(err)}. Nothing was confirmed by this call; tell the user it didn't go through.`
+                            toolCalls.push({ name: tb.name, input, result })
+                            return { type: 'tool_result' as const, tool_use_id: tb.id, content: result, is_error: true }
+                        }
                     })
             )
             history.push({ role: 'assistant', content: response.content }, { role: 'user', content: toolResults })
@@ -159,6 +205,8 @@ export async function runRonnieTurn({
         // Unreachable: the last round runs with tool_choice none
         return finish([])
     } catch (err) {
+        // After a change, the turn ends with what was done instead of an error that hides it
+        if (didSomething()) return interrupted(signal?.aborted ? 'aborted' : 'error', err)
         throw Object.assign(err instanceof Error ? err : new Error(String(err)), { usage, toolCalls, servedModel })
     }
 }

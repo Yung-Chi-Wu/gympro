@@ -91,6 +91,10 @@ export interface RonnieData {
     createProposal(proposal: RoutineProposal): Promise<{ id: string } | { error: string }>
 }
 
+/** Workouts per sets request (their IDs go in the URL) and rows per page (the API's cap) */
+const WORKOUTS_PER_REQUEST = 100
+const ROWS_PER_PAGE = 1000
+
 interface CycleRow {
     id: string
     cycle_length: number
@@ -213,13 +217,30 @@ export function createSupabaseRonnieData(
         },
 
         async getSets(workoutIds) {
-            // Every column: cardio, timed and assisted sets keep their values outside reps and weight_kg
-            const { data } = await supabase
-                .from('workout_sets')
-                .select(`workout_id, exercise_id, ${SET_COLUMNS}`)
-                .in('workout_id', workoutIds)
+            // Every column: cardio, timed and assisted sets keep their values outside reps and weight_kg.
+            // A request returns at most 1000 rows, so a few months of sets ("the last 3 months") were cut
+            // without a word: read in pages, in a fixed order so no page skips or repeats a row, and a
+            // limited number of workouts per request so the URL stays short. A failed read throws
+            // (the tool then says so) instead of reading as "no sets".
             type Row = Parameters<typeof setValuesOf>[0] & { workout_id: string; exercise_id: string }
-            return ((data ?? []) as unknown as Row[]).map((r) => ({ workout_id: r.workout_id, exercise_id: r.exercise_id, ...setValuesOf(r) }))
+            const rows: Row[] = []
+            for (let i = 0; i < workoutIds.length; i += WORKOUTS_PER_REQUEST) {
+                const ids = workoutIds.slice(i, i + WORKOUTS_PER_REQUEST)
+                for (let from = 0; ; from += ROWS_PER_PAGE) {
+                    const { data, error } = await supabase
+                        .from('workout_sets')
+                        .select(`workout_id, exercise_id, ${SET_COLUMNS}`)
+                        .in('workout_id', ids)
+                        .order('workout_id')
+                        .order('set_number')
+                        .order('id')
+                        .range(from, from + ROWS_PER_PAGE - 1)
+                    if (error) throw new Error(`Could not read the sets: ${error.message}`)
+                    rows.push(...((data ?? []) as unknown as Row[]))
+                    if ((data?.length ?? 0) < ROWS_PER_PAGE) break
+                }
+            }
+            return rows.map((r) => ({ workout_id: r.workout_id, exercise_id: r.exercise_id, ...setValuesOf(r) }))
         },
 
         async ensureTodayWorkout() {
@@ -258,12 +279,16 @@ export function createSupabaseRonnieData(
                     .order('order_index')
 
                 if (routineExercises?.length) {
-                    const rows = routineExercises.map((re: { exercise_id: string }) => ({
-                        workout_id: newWorkout.id,
-                        exercise_id: re.exercise_id,
-                        user_id: userId,
-                    }))
-                    await supabase.from('workout_planned_exercises').insert(rows)
+                    // Once each: a routine can list an exercise twice, and the plan can't, so the whole
+                    // insert failed and today's workout was left without the routine
+                    const ids = [...new Set(routineExercises.map((re: { exercise_id: string }) => re.exercise_id))]
+                    const rows = ids.map((exercise_id) => ({ workout_id: newWorkout.id, exercise_id, user_id: userId }))
+                    const { error: planError } = await supabase.from('workout_planned_exercises').insert(rows)
+                    if (planError) {
+                        // An empty workout would be picked up as today's, hiding the routine for the day
+                        await supabase.from('workouts').delete().eq('id', newWorkout.id)
+                        return null
+                    }
                 }
             }
 

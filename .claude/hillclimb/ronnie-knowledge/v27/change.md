@@ -1,0 +1,2 @@
+Code a4e78b4 on claude-sonnet-5-5 (PR #24), 3 reps. Harness sha approved again by the owner, as in the dev flow's v27.
+Results: 22/24 (92%), pass^k 75%. Both misses are judge findings on the answer's content, not on tools: knowledge-volume-zh 2/3 (no mention that sets count when close to failure) and knowledge-back-pain-en 2/3 (left out numbness or tingling, and the bracing cues). Both scored 4/5 in several earlier variants (v15 to v20).

@@ -4,8 +4,9 @@ import { NextResponse } from 'next/server'
 import { buildSystemPrompt } from '@/lib/ronnie/prompt'
 import { createRonnieExecutor } from '@/lib/ronnie/executor'
 import { RONNIE_MODEL, runRonnieTurn } from '@/lib/ronnie/agent'
-import { loadRonnieContext } from '@/lib/ronnie/context'
+import { loadRonnieContext, loadUserToday } from '@/lib/ronnie/context'
 import {
+    MAX_MESSAGE_CHARS,
     appendConversation,
     deleteConversation,
     deleteOldConversations,
@@ -27,8 +28,6 @@ import { traceAfterResponse } from '@/lib/ai/trace-after'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
-const MAX_MESSAGE_CHARS = 2000
-
 async function authed() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -38,7 +37,7 @@ async function authed() {
 export async function GET() {
     const { supabase, user } = await authed()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const { today } = await loadRonnieContext(supabase, user.id)
+    const { today } = await loadUserToday(supabase, user.id)
     const { display } = await loadConversation(supabase, user.id, today)
     return NextResponse.json({ items: await withProposalStatuses(supabase, display) })
 }
@@ -46,7 +45,7 @@ export async function GET() {
 export async function DELETE() {
     const { supabase, user } = await authed()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const { today } = await loadRonnieContext(supabase, user.id)
+    const { today } = await loadUserToday(supabase, user.id)
     await deleteConversation(supabase, user.id, today)
     return NextResponse.json({ ok: true })
 }
@@ -57,8 +56,9 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => null)
     const language = body?.language === 'zh-TW' ? 'zh-TW' : 'en'
-    let message = typeof body?.message === 'string' ? body.message.trim().slice(0, MAX_MESSAGE_CHARS) : ''
+    let message = typeof body?.message === 'string' ? body.message.trim() : ''
     if (!message) return NextResponse.json({ error: 'Empty message' }, { status: 400 })
+    if (message.length > MAX_MESSAGE_CHARS) return NextResponse.json({ error: 'Message too long' }, { status: 413 })
     // Ronnie trusts a message with the app-event prefix as a button tap; typed, it loses the prefix
     message = message.replace(/^\[App event\]/i, '(App event)')
 
@@ -82,7 +82,9 @@ export async function POST(request: Request) {
     const started = Date.now()
 
     try {
-        const turn = await runRonnieTurn({ client, system, messages: sent, executor, language })
+        // Stop in the chat window closes the request: the agent then stops between steps, and what it
+        // already changed is saved with the conversation instead of being lost
+        const turn = await runRonnieTurn({ client, system, messages: sent, executor, language, signal: request.signal })
         const proposals = executor.proposals.map((p) => ({ ...p, status: 'pending' as const }))
         const recommendations = executor.recommendations
         const reply = {
@@ -99,7 +101,9 @@ export async function POST(request: Request) {
         if (error) console.error('Ronnie conversation not saved:', error)
         await deleteOldConversations(supabase, user.id, ctx.today)
         traceAfterResponse({
-            userId: user.id, feature: 'ronnie', model: RONNIE_MODEL, servedModel: turn.servedModel, status: 'ok',
+            userId: user.id, feature: 'ronnie', model: RONNIE_MODEL, servedModel: turn.servedModel,
+            // A turn cut short after a change is saved and answered, and traced as the error it was
+            ...(turn.interrupted ? { status: 'error' as const, error: `${turn.interrupted.reason}: ${turn.interrupted.error}` } : { status: 'ok' as const }),
             latencyMs: Date.now() - started, usage: turn.usage, input: traceInput,
             // What the turn added after the user's message: tool calls, their results, the reply
             output: { reply: turn.message, messages: turn.messages.slice(sent.length), proposals, recommendations, reloadDashboard: turn.reloadDashboard },
