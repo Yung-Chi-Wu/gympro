@@ -487,8 +487,7 @@
             "weight_trend": "For a cut before a competition, losing 0.5–1% of body weight a week is advised to keep the most muscle; a modest surplus helps a bulk, but how much is unsettled. So GymPro suggests a small change in calories, not a crash diet.",
             "cardio_first": "Two meta-analyses found that lifting before cardio in the same session gave more lower-body strength (about 4 kg more on the 1RM), with no difference in muscle growth; a newer umbrella review saw the same trend, short of significance. So when cardio comes before the leg lifts on a leg day, GymPro suggests lifting first and doing the cardio after, or at another time."
         },
-        "readMore": "See the full analysis",
-        "showLess": "Hide the full analysis",
+        "openFull": "See the full report",
         "accordionHint": "Tap a row to open it; one opens at a time.",
         "section": {
             "muscles": "Muscles trained",

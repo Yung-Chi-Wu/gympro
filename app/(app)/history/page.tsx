@@ -14,7 +14,7 @@ import { timeZoneOf } from '@/lib/time-zone'
 // shows, by date range: records are kept forever and the page must not slow down as
 // they grow. Training starts with this month and the last four periods (one query
 // covers both); the rest loads from /api/history/workouts as the user goes back.
-export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ tab?: string; day?: string }> }) {
+export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ tab?: string; day?: string; report?: string }> }) {
     const supabase = await createClient()
     const {
         data: { user },
@@ -102,6 +102,8 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
         content = (
             <HistoryReports
                 initialReports={await loadReports(supabase, user.id)}
+                // Today's "see the full report" opens that period's report here
+                openPeriod={/^\d{4}-\d{2}-\d{2}$/.test(params.report ?? '') ? params.report! : null}
                 cycle={cycle}
                 language={language}
                 weightUnit={weightUnit}

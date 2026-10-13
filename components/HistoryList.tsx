@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -623,8 +623,10 @@ const SEVERITY_STYLES: Record<string, string> = {
 }
 
 /** Every period's report, newest first, a page at a time; each opens in place */
-export function HistoryReports({ initialReports, cycle, language, weightUnit, distanceUnit }: {
+export function HistoryReports({ initialReports, openPeriod = null, cycle, language, weightUnit, distanceUnit }: {
     initialReports: ReportRow[]
+    /** The period whose report starts open and in view (?report=, from Today) */
+    openPeriod?: string | null
     cycle: CycleSettings | null
     language: string
     weightUnit: WeightUnit
@@ -667,6 +669,7 @@ export function HistoryReports({ initialReports, cycle, language, weightUnit, di
                 <ReportItem
                     key={report.period_start}
                     report={report}
+                    startOpen={report.period_start === openPeriod}
                     periodEnd={report.period_end ?? periodEndFor(report.period_start, cycle)}
                     language={language}
                     weightUnit={weightUnit}
@@ -686,8 +689,9 @@ export function HistoryReports({ initialReports, cycle, language, weightUnit, di
 }
 
 /** One report: its period and verdict; opened, the whole report */
-function ReportItem({ report, periodEnd, language, weightUnit, distanceUnit }: {
+function ReportItem({ report, startOpen = false, periodEnd, language, weightUnit, distanceUnit }: {
     report: ReportRow
+    startOpen?: boolean
     periodEnd: string
     language: string
     weightUnit: WeightUnit
@@ -696,8 +700,13 @@ function ReportItem({ report, periodEnd, language, weightUnit, distanceUnit }: {
     const t = useTranslations('report')
     const tV3 = useTranslations('reportV3')
     const router = useRouter()
-    const [isOpen, setIsOpen] = useState(false)
+    const [isOpen, setIsOpen] = useState(startOpen)
     const [showMore, setShowMore] = useState(false)
+    // Opened from Today, the report starts at the top of the screen (below the phone's sticky top bar)
+    const itemRef = useRef<HTMLElement>(null)
+    useEffect(() => {
+        if (startOpen) itemRef.current?.scrollIntoView({ block: 'start' })
+    }, [startOpen])
     const reload = useCallback(() => router.refresh(), [router])
     // A pending report whose run died shows as failed, with its retry
     const status = shownStatus(report)
@@ -714,7 +723,7 @@ function ReportItem({ report, periodEnd, language, weightUnit, distanceUnit }: {
     const rec = isCompleted && !v3 ? (report.recommendation as unknown as AiRecommendation) : null
 
     return (
-        <section className="rounded-[14px] border border-line bg-card">
+        <section ref={itemRef} className="scroll-mt-[calc(64px+env(safe-area-inset-top))] rounded-[14px] border border-line bg-card md:scroll-mt-4">
             <button
                 type="button"
                 onClick={() => setIsOpen((v) => !v)}
