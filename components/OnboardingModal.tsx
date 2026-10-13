@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useTheme } from 'next-themes'
 import type { WeightUnit } from '@/lib/weight-unit'
+import { InstallGuide } from './InstallGuide'
 
 interface OnboardingModalProps {
     userId: string
@@ -273,17 +274,9 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
                                 {zh ? '把 GymPro 加到主畫面，像 App 一樣一鍵開啟。' : 'Add GymPro to your home screen for quick access.'}
                             </p>
                         </div>
-                        <div className="space-y-2">
-                            {[
-                                { icon: '⬆️', zh: '點 Safari 底部的分享按鈕（方框加箭頭）', en: 'Tap the Share button in Safari (box with arrow)' },
-                                { icon: '➕', zh: '選「加入主畫面」', en: 'Select "Add to Home Screen"' },
-                                { icon: '✅', zh: '點右上角「新增」完成', en: 'Tap "Add" to finish' },
-                            ].map((item, i) => (
-                                <div key={i} className="flex items-center gap-3 rounded-xl bg-black/5 dark:bg-white/8 p-3">
-                                    <span className="text-xl shrink-0">{item.icon}</span>
-                                    <p className="text-xs text-black/60 dark:text-white/60">{zh ? item.zh : item.en}</p>
-                                </div>
-                            ))}
+                        {/* Steps for the browser this is open in: Safari, another iOS browser, or a way out of LINE */}
+                        <div className="rounded-xl bg-black/5 p-3 dark:bg-white/8">
+                            <InstallGuide zh={zh} />
                         </div>
                     </div>
                 )}

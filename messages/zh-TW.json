@@ -317,11 +317,6 @@
         "saveFailed": "儲存失敗：{message}",
         "tutorial": "重新看使用教學",
         "install": "加到主畫面",
-        "installSteps": {
-            "share": "在 Safari 點下方工具列中間的分享按鈕（方框加箭頭）",
-            "add": "選「加入主畫面」",
-            "done": "點右上角的「新增」"
-        },
         "groups": {
             "personal": "個人",
             "training": "訓練",

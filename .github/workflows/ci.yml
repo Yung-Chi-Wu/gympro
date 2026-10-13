@@ -47,6 +47,8 @@ jobs:
         run: npm run check:evidence
       - name: Day boundaries in every time zone
         run: npm run check:time-zone
+      - name: The install guide reads every browser right
+        run: npm run check:browser-env
       - name: Ronnie's tools, turn loop and grader (offline)
         run: |
           npm run eval:ronnie:build

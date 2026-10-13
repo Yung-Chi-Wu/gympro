@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from 'next-intl/server'
 import { LangToggle } from '@/components/LangToggle'
 import { LogoLink } from '@/components/LogoLink'
+import { InAppBrowserNotice } from '@/components/InstallGuide'
 import { RonnieChatMock, CycleMock, LogMock, AskMock, ReportMock } from '@/components/WelcomeMockups'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -73,6 +74,10 @@ export default async function Home() {
       </header>
 
       <main>
+        {/* Most links reach Taiwan users through LINE, whose browser can't install GymPro */}
+        <div className="mx-auto max-w-6xl px-4 pt-4 empty:hidden sm:px-6">
+          <InAppBrowserNotice zh={locale === 'zh-TW'} />
+        </div>
         {/* Hero */}
         <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-10 sm:px-6 sm:pt-16 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pb-24">
           <div className="space-y-6">

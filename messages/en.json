@@ -317,11 +317,6 @@
         "saveFailed": "Couldn't save: {message}",
         "tutorial": "View the tutorial again",
         "install": "Add to Home Screen",
-        "installSteps": {
-            "share": "In Safari, tap the Share button in the toolbar (a box with an arrow)",
-            "add": "Choose \"Add to Home Screen\"",
-            "done": "Tap \"Add\" in the top right"
-        },
         "groups": {
             "personal": "Personal",
             "training": "Training",
