@@ -213,8 +213,11 @@ export type Database = {
           error_message: string | null
           id: string
           pdf_status: string
+          period_end: string | null
           period_start: string
+          queued_at: string
           recommendation: Json | null
+          retries: number
           status: string
           user_id: string
           user_note: string | null
@@ -226,8 +229,11 @@ export type Database = {
           error_message?: string | null
           id?: string
           pdf_status?: string
+          period_end?: string | null
           period_start: string
+          queued_at?: string
           recommendation?: Json | null
+          retries?: number
           status?: string
           user_id: string
           user_note?: string | null
@@ -239,8 +245,11 @@ export type Database = {
           error_message?: string | null
           id?: string
           pdf_status?: string
+          period_end?: string | null
           period_start?: string
+          queued_at?: string
           recommendation?: Json | null
+          retries?: number
           status?: string
           user_id?: string
           user_note?: string | null

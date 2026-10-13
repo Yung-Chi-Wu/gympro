@@ -13,6 +13,10 @@ import type { CardioFacts, DayNote, Finding, FollowUp, LiftFacts, ReportFacts, R
 
 export const NARRATIVE_MODEL = 'claude-sonnet-4-6'
 const MAX_ATTEMPTS = 2
+/** One call's ceiling: a report takes about 35 s. The SDK's default is 10 minutes, far past the Lambda's 2. */
+const REQUEST_TIMEOUT_MS = 60_000
+/** Too little time left for a call to finish: stop, so the report is saved as failed instead of cut off */
+const MIN_CALL_MS = 15_000
 
 /** What each rule's advice says, in the user's unit. The app shows the research behind it. */
 const advice = (unit: WeightUnit, period: string): Record<RuleId, string> => ({
@@ -228,8 +232,16 @@ ${lines.join('\n')}
 Use only the numbers above; never invent data. No myths, no diagnosis, no scolding. Plain text only: no Markdown, no lists inside a field. ${languageRule}`
 }
 
-export async function generateNarrative(input: NarrativeInput, model: string = NARRATIVE_MODEL): Promise<NarrativeResult> {
-    const client = await getClaudeClient()
+export interface NarrativeOptions {
+    /** When the caller must be done (epoch ms): each call is cut off by then, SDK retries included */
+    deadline?: number
+    /** For tests; the SSM-keyed client otherwise */
+    client?: Pick<Anthropic, 'messages'>
+}
+
+export async function generateNarrative(input: NarrativeInput, model: string = NARRATIVE_MODEL, options: NarrativeOptions = {}): Promise<NarrativeResult> {
+    const { deadline } = options
+    const client = options.client ?? await getClaudeClient()
     const schema = schemaFor(input.findings)
     const { $schema: _dialect, ...inputSchema } = z.toJSONSchema(schema)
     const prompt = buildPrompt(input)
@@ -240,12 +252,18 @@ export async function generateNarrative(input: NarrativeInput, model: string = N
     try {
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             const startedAt = Date.now()
+            const left = deadline == null ? Infinity : deadline - startedAt
+            if (left < MIN_CALL_MS) throw new Error(`Out of time before attempt ${attempt} (${Math.max(0, Math.round(left / 1000))} s left)${lastProblem ? `; last problem: ${lastProblem}` : ''}`)
             const response = await client.messages.create({
                 model,
                 max_tokens: 1024,
                 tools: [{ name: 'submit_report_text', description: 'Submit the headline and advice for the report.', input_schema: inputSchema as Anthropic.Tool.InputSchema }],
                 tool_choice: { type: 'tool', name: 'submit_report_text' },
                 messages: [{ role: 'user', content: prompt }],
+            }, {
+                timeout: Math.min(REQUEST_TIMEOUT_MS, left),
+                // The SDK retries a timeout or an overloaded API by itself; this ends them all by the deadline
+                ...(deadline == null ? {} : { signal: AbortSignal.timeout(left) }),
             })
             usage.input_tokens += response.usage.input_tokens
             usage.output_tokens += response.usage.output_tokens

@@ -1,5 +1,5 @@
 import type { SQSEvent, SQSHandler, SQSRecord } from 'aws-lambda'
-import { getSupabaseClient, saveFailedStatus, saveInsufficientDataStatus, saveReport } from './supabase'
+import { getSupabaseClient, isRunnable, saveFailedStatus, saveInsufficientDataStatus, saveReport, type ReportRequest } from './supabase'
 import { analyze } from './report/analyze'
 import { fetchReportInputs } from './report/fetch'
 import { generateNarrative, NARRATIVE_MODEL } from './report/narrative'
@@ -8,10 +8,13 @@ import type { ReportV3 } from './report/types'
 import type { AnalysisRequestMessage } from './types'
 
 const MINIMUM_SETS_FOR_ANALYSIS = 10
+/** Kept back from the Lambda's timeout to save a failure and its trace: a run cut off saves nothing and stays pending */
+const SAVE_MARGIN_MS = 15_000
 
-async function processMessage(record: SQSRecord): Promise<void> {
+async function processMessage(record: SQSRecord, deadline: number): Promise<void> {
   const message = JSON.parse(record.body) as AnalysisRequestMessage
   const { userId, periodStart, periodEnd, userNote, language: messageLanguage } = message
+  const request: ReportRequest = { userId, periodStart, queuedAt: message.queuedAt }
 
   // messageId matches the one Next.js logs when it queues the request,
   // so a single report can be traced across Vercel and CloudWatch.
@@ -20,6 +23,14 @@ async function processMessage(record: SQSRecord): Promise<void> {
   )
 
   const supabase = await getSupabaseClient()
+
+  // Each request runs once: a redelivered message whose run saved its result, or one a retry
+  // has replaced, is acknowledged and left alone, so it can't run the model again or overwrite
+  const runnable = await isRunnable(supabase, request)
+  if (!runnable.run) {
+    console.log(`Skipping report for user ${userId}, period ${periodStart}: ${runnable.why} (messageId ${record.messageId}, receive ${record.attributes.ApproximateReceiveCount})`)
+    return
+  }
 
   try {
     const { inputs, language: profileLanguage, weightUnit, distanceUnit } = await fetchReportInputs(supabase, userId, periodStart, periodEnd)
@@ -33,7 +44,7 @@ async function processMessage(record: SQSRecord): Promise<void> {
       console.log(
         `Skipping AI analysis for user ${userId}: only ${totalSets} sets logged (minimum ${MINIMUM_SETS_FOR_ANALYSIS})`
       )
-      await saveInsufficientDataStatus(supabase, userId, periodStart, totalSets, MINIMUM_SETS_FOR_ANALYSIS)
+      await saveInsufficientDataStatus(supabase, request, totalSets, MINIMUM_SETS_FOR_ANALYSIS)
       return
     }
 
@@ -42,7 +53,7 @@ async function processMessage(record: SQSRecord): Promise<void> {
     const traceInput = { periodStart, periodEnd, language, weightUnit, distanceUnit, note: userNote ?? null, dayNotes: analysis.dayNotes }
     let narrative: ReportV3['narrative']
     try {
-      const res = await generateNarrative({ ...analysis, note: userNote ?? null, language, weightUnit, distanceUnit })
+      const res = await generateNarrative({ ...analysis, note: userNote ?? null, language, weightUnit, distanceUnit }, NARRATIVE_MODEL, { deadline })
       narrative = res.narrative
       await recordTrace(supabase, {
         userId, feature: 'report', model: NARRATIVE_MODEL, servedModel: res.model, status: 'ok', latencyMs: Date.now() - started,
@@ -56,7 +67,7 @@ async function processMessage(record: SQSRecord): Promise<void> {
       throw err
     }
     const report: ReportV3 = { version: 3, ...analysis, narrative }
-    await saveReport(supabase, userId, periodStart, report, userNote ?? null)
+    await saveReport(supabase, request, report, userNote ?? null)
     console.log(`Successfully saved recommendation for user ${userId} (messageId ${record.messageId})`)
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err)
@@ -64,15 +75,16 @@ async function processMessage(record: SQSRecord): Promise<void> {
       `Failed to process recommendation for user ${userId} (messageId ${record.messageId}):`,
       errorMessage
     )
-    await saveFailedStatus(supabase, userId, periodStart, errorMessage)
+    await saveFailedStatus(supabase, request, errorMessage)
+    // Thrown for the Lambda Errors alarm; the redelivery finds the row failed and skips it
     throw err
   }
 }
 
-export const handler: SQSHandler = async (event: SQSEvent) => {
+export const handler: SQSHandler = async (event: SQSEvent, context) => {
   console.log(`Received ${event.Records.length} message(s) from SQS`)
 
   for (const record of event.Records) {
-    await processMessage(record)
+    await processMessage(record, Date.now() + context.getRemainingTimeInMillis() - SAVE_MARGIN_MS)
   }
 }

@@ -21,6 +21,7 @@ import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
 import { isReportV3, ReportView } from './report/ReportView'
 import { FailedReport } from './report/FailedReport'
+import { shownStatus } from '@/lib/report/queue'
 
 interface RecommendationPanelProps {
     userId: string
@@ -59,14 +60,15 @@ export function RecommendationPanel({ userId, language, weightUnit, distanceUnit
     // State is set when the query answers, never while an effect runs
     const checkStatus = useCallback(() => supabase
         .from('period_reports')
-        .select('status, recommendation, period_start')
+        .select('status, recommendation, period_start, queued_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
         .then(({ data }) => {
             if (!data) return
-            setStatus(data.status as Status)
+            // A pending report whose run died shows as failed, with its retry
+            setStatus(shownStatus(data) as Status)
             setPeriodStart(data.period_start)
             if (data.status === 'completed') {
                 setRecommendation(data.recommendation as unknown as AiRecommendation)

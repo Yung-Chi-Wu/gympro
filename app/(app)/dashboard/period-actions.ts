@@ -5,6 +5,7 @@ import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
 import { awsCredentialsProvider } from '@vercel/oidc-aws-credentials-provider'
 import { currentPeriod, localDate, periodEndFor } from '@/lib/periods'
 import { toFriendlyError } from '@/lib/friendly-error'
+import { isStalePending } from '@/lib/report/queue'
 
 // Reports are queued automatically when a period ends (the report-scheduler
 // Lambda). These actions cover what the user still does by hand: today's weight
@@ -15,6 +16,8 @@ export interface ActionResult {
     success: boolean
     // Set on failure only; the UI has its own translated success text
     message?: string
+    /** retryFailedReport: the app already retried this report by itself once, so it's the user's call now */
+    autoUsed?: boolean
 }
 
 const MAX_NOTE_LENGTH = 1000
@@ -141,30 +144,48 @@ export async function savePeriodNote(note: string): Promise<ActionResult> {
     return error ? { success: false, message: toFriendlyError(error) } : { success: true }
 }
 
-/** Queue a failed report again. Only a report in 'failed' state can be retried. */
-export async function retryFailedReport(periodStart: string): Promise<ActionResult> {
+/**
+ * Queue a report again: a failed one, or one still pending long after it was queued, whose
+ * run died. `auto` is the app retrying by itself, which it does once per report (each try may
+ * call the model); after that it is the user's button.
+ */
+export async function retryFailedReport(periodStart: string, { auto = false }: { auto?: boolean } = {}): Promise<ActionResult> {
     const supabase = await createClient()
     const {
         data: { user },
     } = await supabase.auth.getUser()
     if (!user) return { success: false, message: 'Not authenticated.' }
 
-    const [{ data: profile }, { data: cycle }] = await Promise.all([
-        supabase.from('user_profiles').select('language').eq('user_id', user.id).maybeSingle(),
-        supabase.from('training_cycles').select('cycle_length, start_date').eq('user_id', user.id).maybeSingle(),
-    ])
-
-    // Flip failed -> pending atomically, so a double click can't queue it twice
-    const { data: claimed, error: claimError } = await supabase
+    const { data: row, error: readError } = await supabase
         .from('period_reports')
-        .update({ status: 'pending', error_message: null })
+        .select('status, queued_at, period_end, retries, user_note')
         .eq('user_id', user.id)
         .eq('period_start', periodStart)
-        .eq('status', 'failed')
+        .maybeSingle()
+    if (readError) return { success: false, message: toFriendlyError(readError) }
+    if (!row || (row.status !== 'failed' && !isStalePending(row))) return { success: false, message: 'This report is not in a failed state.' }
+    if (auto && row.retries > 0) return { success: false, autoUsed: true }
+
+    // Claimed from the state just read, atomically, so a double click or a second tab can't queue
+    // it twice. The new queued_at goes in the message: the worker runs only the current request.
+    const queuedAt = new Date().toISOString()
+    const { data: claimed, error: claimError } = await supabase
+        .from('period_reports')
+        .update({ status: 'pending', error_message: null, queued_at: queuedAt, retries: row.retries + 1 })
+        .eq('user_id', user.id)
+        .eq('period_start', periodStart)
+        .eq('status', row.status)
+        .eq('queued_at', row.queued_at)
         .select('user_note')
         .maybeSingle()
     if (claimError) return { success: false, message: toFriendlyError(claimError) }
-    if (!claimed) return { success: false, message: 'This report is not in a failed state.' }
+    if (!claimed) return { success: false, message: 'This report is already being made again.' }
+
+    const [{ data: profile }, { data: cycle }] = await Promise.all([
+        supabase.from('user_profiles').select('language').eq('user_id', user.id).maybeSingle(),
+        // Only for a report queued before the row kept its period's end
+        row.period_end ? Promise.resolve({ data: null }) : supabase.from('training_cycles').select('cycle_length, start_date').eq('user_id', user.id).maybeSingle(),
+    ])
 
     try {
         // Short-lived credentials from Vercel OIDC — no stored AWS access key.
@@ -179,12 +200,14 @@ export async function retryFailedReport(periodStart: string): Promise<ActionResu
                 MessageBody: JSON.stringify({
                     userId: user.id,
                     periodStart,
-                    periodEnd: periodEndFor(
+                    // The period as the scheduler set it, even if the cycle has changed since
+                    periodEnd: row.period_end ?? periodEndFor(
                         periodStart,
                         cycle ? { cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null
                     ),
                     userNote: claimed.user_note ?? undefined,
                     language: profile?.language || 'en',
+                    queuedAt,
                 }),
             })
         )
@@ -197,6 +220,7 @@ export async function retryFailedReport(periodStart: string): Promise<ActionResu
             .update({ status: 'failed', error_message: 'Failed to queue report request.' })
             .eq('user_id', user.id)
             .eq('period_start', periodStart)
+            .eq('queued_at', queuedAt)
         return { success: false, message: 'Failed to queue your report. Please try again.' }
     }
 

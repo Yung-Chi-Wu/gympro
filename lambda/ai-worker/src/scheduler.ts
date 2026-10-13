@@ -120,13 +120,17 @@ export async function handler(): Promise<void> {
     if (notesError) throw new Error(`Failed to fetch period notes: ${notesError.message}`)
     const noteFor = new Map((notes ?? []).map((n) => [`${n.user_id}|${n.period_start}`, n.note as string]))
 
+    // Set here, not by the column's default, so the message carries exactly the value the row has
+    const queuedAt = new Date().toISOString()
     const { data: claimed, error: claimError } = await supabase
         .from('period_reports')
         .upsert(
             due.map((d) => ({
                 user_id: d.userId,
                 period_start: d.periodStart,
+                period_end: d.periodEnd,
                 status: 'pending',
+                queued_at: queuedAt,
                 user_note: noteFor.get(`${d.userId}|${d.periodStart}`) ?? null,
             })),
             { onConflict: 'user_id,period_start', ignoreDuplicates: true }
@@ -145,6 +149,7 @@ export async function handler(): Promise<void> {
             periodEnd: d.periodEnd,
             userNote: noteFor.get(`${d.userId}|${d.periodStart}`),
             language: d.language,
+            queuedAt,
         }
         try {
             const { MessageId } = await sqs.send(
@@ -161,6 +166,7 @@ export async function handler(): Promise<void> {
                 .update({ status: 'failed', error_message: 'Failed to queue report request.' })
                 .eq('user_id', d.userId)
                 .eq('period_start', d.periodStart)
+                .eq('queued_at', queuedAt)
         }
     }
 

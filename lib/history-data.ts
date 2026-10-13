@@ -3,6 +3,7 @@ import type { Database } from './types/database.types'
 import { addDays, localDate } from './periods'
 import { logTypeOf, setValuesOf } from './set-log'
 import { SET_COLUMNS } from './today-workout'
+import { shownStatus } from './report/queue'
 import { REPORTS_PER_PAGE, type HistoryDay, type HistoryExercise, type HistoryRange, type PeriodReportStatus, type ReportTrend } from './history'
 
 // Reads for the 紀錄 page, by date range only (see lib/history.ts): the page's first
@@ -104,13 +105,14 @@ export async function loadReportStatuses(
 ): Promise<PeriodReportStatus[]> {
     const { data } = await supabase
         .from('period_reports')
-        .select('period_start, status, trend:recommendation->facts->>status')
+        .select('period_start, status, queued_at, trend:recommendation->facts->>status')
         .eq('user_id', userId)
         .gte('period_start', range.start)
         .lte('period_start', range.end)
     return (data ?? []).map((r) => ({
         periodStart: r.period_start,
-        status: r.status,
+        // A pending report whose run died isn't "being made"
+        status: shownStatus(r),
         trend: r.status === 'completed' && TRENDS.includes(r.trend as ReportTrend) ? (r.trend as ReportTrend) : null,
     }))
 }
@@ -119,7 +121,7 @@ export async function loadReportStatuses(
 export async function loadReports(supabase: SupabaseClient<Database>, userId: string, before?: string) {
     let query = supabase
         .from('period_reports')
-        .select('period_start, status, recommendation, error_message, created_at')
+        .select('period_start, period_end, status, queued_at, recommendation, error_message, created_at')
         .eq('user_id', userId)
         .order('period_start', { ascending: false })
         .limit(REPORTS_PER_PAGE)
