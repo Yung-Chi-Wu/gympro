@@ -17,7 +17,7 @@ execFileSync(join(root, 'lambda/ai-worker/node_modules/.bin/esbuild'), ['evals/r
 const {
     runRonnieTurn, stripMarkdown, createRonnieExecutor, MAX_REMOVALS_PER_TURN, createSupabaseRonnieData,
     createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER,
-    buildSystemPrompt, fixtureNotes, memoryLines, MAX_NOTES, MAX_EXERCISE_NOTES_SHOWN,
+    buildSystemPrompt, fixtureNotes, memoryLines, MAX_NOTES, MAX_EXERCISE_NOTES_SHOWN, MAX_OTHER_NOTES,
 } = createRequire(import.meta.url)(join(here, 'dist', 'check.cjs'))
 
 let failures = 0
@@ -280,6 +280,40 @@ function note(kind, subject, state, text, updatedAt = '2026-10-01T02:00:00.000Z'
     const added = await ex.executeTool('add_exercise_today', { exercise_id: id('Burpee') })
     check(added.startsWith('✓') && /ask once/.test(added) && memories[0].state === 'dislike', `the user's own add goes ahead, the note stays, and Ronnie is told to ask: ${added.slice(0, 50)}`)
     check(ex.confirmations.at(-1) === '✓ 已將「波比跳」加入今天的課表', `the user sees only the add: ${ex.confirmations.at(-1)}`)
+}
+
+// Other notes: each has its own ID, a change names the note it replaces, the same text twice is one note
+{
+    const { data, memories } = createFixtureData()
+    const ex = executorFor(data)
+    const first = await ex.executeTool('remember', { kind: 'other', text: '有氣喘，強度一高容易喘' })
+    const asthma = memories[0]
+    check(first.startsWith('Saved') && asthma?.kind === 'other' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(asthma.subject) && ex.remembered[0] === '📝 我記住了：有氣喘，強度一高容易喘', `an other note gets an ID of its own: ${first.slice(0, 40)}`)
+    const twice = await ex.executeTool('remember', { kind: 'other', text: '有氣喘，強度一高容易喘' })
+    check(/nothing changed/.test(twice) && memories.length === 1, `the same fact again is not a second note: ${twice}`)
+    const second = await ex.executeTool('remember', { kind: 'other', text: '12 月要比賽' })
+    check(second.startsWith('Saved') && memories.length === 2 && memories[1].subject !== asthma.subject, 'a different fact is a note of its own')
+    const changed = await ex.executeTool('remember', { kind: 'other', note_id: asthma.subject.slice(0, 8), text: '有氣喘，練前要先用藥' })
+    check(changed.startsWith('Updated') && memories.length === 2 && memories[0].subject === asthma.subject && memories[0].text === '有氣喘，練前要先用藥', `a change by note_id replaces that note: ${changed.slice(0, 60)}`)
+    const unknown = await ex.executeTool('remember', { kind: 'other', note_id: 'ffffffff', text: 'x' })
+    const unnamed = await ex.executeTool('forget', { kind: 'other' })
+    check(unknown.startsWith('Not saved') && unnamed.startsWith('Nothing forgotten') && memories.length === 2, `an unknown note_id saves nothing, and forget needs one: ${unknown.slice(0, 50)} | ${unnamed.slice(0, 50)}`)
+    const gone = await ex.executeTool('forget', { kind: 'other', note_id: asthma.subject.slice(0, 8) })
+    check(gone.startsWith('Deleted') && memories.length === 1 && ex.remembered.at(-1) === '📝 已忘記：有氣喘，練前要先用藥', `forget by note_id: ${ex.remembered.at(-1)}`)
+}
+
+// At the other notes' limit a new one is refused, with the notes to fold it into; folding it in is an update
+{
+    const seeded = Array.from({ length: MAX_OTHER_NOTES }, (_, i) => note('other', `${String(i).padStart(8, '0')}-0000-4000-8000-000000000000`, 'active', `fact ${i}`))
+    const { data, memories } = createFixtureData({ memories: seeded })
+    const ex = executorFor(data)
+    const full = await ex.executeTool('remember', { kind: 'other', text: '吃全素' })
+    check(full.startsWith('Not saved') && /note ID: 00000003 \| fact 3/.test(full) && memories.length === MAX_OTHER_NOTES && !ex.remembered.length, `the ${MAX_OTHER_NOTES + 1}th is refused with the list, and nothing is shown to the user: ${full.slice(0, 50)}`)
+    const folded = await ex.executeTool('remember', { kind: 'other', note_id: '00000003', text: 'fact 3；吃全素' })
+    check(folded.startsWith('Updated') && memories.length === MAX_OTHER_NOTES && ex.remembered[0] === '📝 已更新：fact 3；吃全素', `folded into a note, it is saved as an update: ${ex.remembered[0]}`)
+    const wrist = await ex.executeTool('remember', { kind: 'injury', joint: 'wrist', text: '左手腕骨折過' })
+    check(wrist.startsWith('Saved') && memories.length === MAX_OTHER_NOTES + 1, 'the slots are not counted against the other notes')
+    check(fixtureNotes([note('other', '12345678-0000-4000-8000-000000000000', 'active', '有氣喘')], 'zh-TW')[0] === '- other (note ID: 12345678), saved 2026-10-01: 有氣喘', 'the prompt lists an other note with its ID')
 }
 
 // An injured joint is marked in search results

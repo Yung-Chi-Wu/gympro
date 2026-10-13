@@ -20,8 +20,8 @@ const HALF_WIDTH_PUNCT = /[一-鿿][,;:?!]|[,;:?!][一-鿿]/
 // acknowledgement ("Noted.", "Got it, noted!"): "you've noted that overhead pressing bothers it"
 // recalls what the user said (memory v1, 2026-10-13).
 const MEMORY_CLAIM = /(記住|記下|記起來|記好)了|已(經)?(幫你)?記(住|下|起來|好)|我(會|已經|已|先|都|有)?(記住|記下|記起來|記好)|我(會|一定會)記得|幫你記(住|下|起來)|I(['’]ll| will| have|['’]ve)\s+(remember|noted?|saved|make a note|keep (that|this) in mind)|(?<!\b(you|you['’]ve|you have|as)\s)\bnoted\s*([.!,:;—–-]|$)/im
-const MEMORY_KIND_ZH = { injury: '舊傷', exercise: '動作喜好', equipment: '器材', schedule: '訓練時間' }
-const JOINT_ZH = { shoulder: '肩膀', elbow: '手肘', lower_back: '下背', knee: '膝蓋' }
+const MEMORY_KIND_ZH = { injury: '舊傷', exercise: '動作喜好', equipment: '器材', schedule: '訓練時間', other: '其他' }
+const JOINT_ZH = { shoulder: '肩膀', elbow: '手肘', lower_back: '下背', knee: '膝蓋', wrist: '手腕', hip: '髖', ankle: '腳踝', neck: '脖子' }
 const LOAD_RANK = { none: 0, low: 1, medium: 2, high: 3 }
 
 export function languageCorrect(text, language) {
@@ -161,16 +161,23 @@ export function programmaticGrade(c, out, exercises) {
 
     // Memory, for the cases about it: the notes after the last conversation, what the last
     // day's recommendations avoided, and no claim of remembering in a turn that saved nothing
-    const memoryCase = !!(exp.memory_after || exp.memory_absent || exp.memory_unchanged || c.sessions || c.memory)
-    if (exp.memory_after || exp.memory_absent || exp.memory_unchanged) {
+    const memoryCase = !!(exp.memory_after || exp.memory_absent || exp.memory_unchanged || exp.memory_count || c.sessions || c.memory)
+    if (exp.memory_after || exp.memory_absent || exp.memory_unchanged || exp.memory_count) {
         const notes = out.memories ?? []
         const subjectOf = (m) => (m.kind === 'exercise' && m.subject ? idFor(m.subject) ?? m.subject : m.subject ?? null)
-        const has = (m) => notes.some((n) => n.kind === m.kind && (n.subject ?? null) === subjectOf(m) && (!m.state || n.state === m.state))
-        const noteLabel = (m) => `${MEMORY_KIND_ZH[m.kind] ?? m.kind}${m.subject ? `「${m.kind === 'injury' ? JOINT_ZH[m.subject] ?? m.subject : label(subjectOf(m))}」` : ''}${m.state ? `（${m.state}）` : ''}`
+        // No subject key: any note of that kind (an other note's ID is made when it's saved).
+        // text_includes ignores spaces: "3 月" and "3月" are the same
+        const squash = (s) => String(s ?? '').replace(/\s+/g, '')
+        const has = (m) => notes.some((n) => n.kind === m.kind && (!('subject' in m) || (n.subject ?? null) === subjectOf(m))
+            && (!m.state || n.state === m.state) && (!m.text_includes || squash(n.text).includes(squash(m.text_includes))))
+        const noteLabel = (m) => `${MEMORY_KIND_ZH[m.kind] ?? m.kind}${m.subject && m.kind !== 'other' ? `「${m.kind === 'injury' ? JOINT_ZH[m.subject] ?? m.subject : label(subjectOf(m))}」` : ''}${m.state ? `（${m.state}）` : ''}${m.text_includes ? `，內容有「${m.text_includes}」` : ''}`
         const problems = [
             ...(exp.memory_after ?? []).filter((m) => !has(m)).map((m) => `沒有記住：${noteLabel(m)}`),
             ...(exp.memory_absent ?? []).filter((m) => has(m)).map((m) => `不該記著卻記著：${noteLabel(m)}`),
             ...(exp.memory_unchanged && JSON.stringify(notes) !== JSON.stringify(out.memoriesBefore ?? []) ? ['不該改記憶卻改了'] : []),
+            // How many notes of a kind there must be: a change replaced the old note instead of adding one
+            ...Object.entries(exp.memory_count ?? {}).filter(([kind, n]) => notes.filter((x) => x.kind === kind).length !== n)
+                .map(([kind, n]) => `${MEMORY_KIND_ZH[kind] ?? kind}應該有 ${n} 則，實際 ${notes.filter((x) => x.kind === kind).length} 則`),
         ]
         grade.memory_right = problems.length ? 0 : 1
         explanation.memory_right = problems.join('；') || '記憶符合預期'

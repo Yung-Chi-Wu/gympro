@@ -174,7 +174,7 @@ check(m2.has(id('Romanian Deadlift')) && !m2.has(id('Deadlift')) && m2.has(id('F
 // ---------- Memory cases ----------
 const memoryCases = JSON.parse(readFileSync(join(here, 'cases-memory.json'), 'utf8'))
 const OK_PICK = { knee: 'Romanian Deadlift', shoulder: 'Low-to-High Cable Fly' }
-const asNote = (m) => ({ kind: m.kind, subject: m.kind === 'exercise' && m.subject ? id(m.subject) : m.subject ?? null, state: m.state ?? 'active', text: m.text ?? 'x', updatedAt: '2026-10-01T02:00:00.000Z' })
+const asNote = (m) => ({ kind: m.kind, subject: m.kind === 'exercise' && m.subject ? id(m.subject) : m.subject ?? null, state: m.state ?? 'active', text: m.text ?? m.text_includes ?? 'x', updatedAt: '2026-10-01T02:00:00.000Z' })
 const sameSlot = (a, b) => a.kind === b.kind && (a.subject ?? null) === (b.subject ?? null)
 
 /** The conversations a perfect Ronnie with memory would produce for a memory case. */
@@ -184,8 +184,16 @@ function memoryOracle(c) {
     const sessions = c.sessions ?? [c.turns]
     const before = (c.memory ?? []).map(asNote)
     let after = before.map((n) => ({ ...n }))
-    for (const m of exp.memory_after ?? []) after = [...after.filter((n) => !sameSlot(n, asNote(m))), asNote(m)]
-    for (const m of exp.memory_absent ?? []) after = after.filter((n) => !(sameSlot(n, asNote(m)) && (!m.state || n.state === m.state)))
+    for (const [i, m] of (exp.memory_after ?? []).entries()) {
+        if ('subject' in m) after = [...after.filter((n) => !sameSlot(n, asNote(m))), asNote(m)]
+        else {
+            // Any note of the kind: a new one, or at the kind's count folded into the first of them
+            const full = exp.memory_count?.[m.kind] != null && after.filter((n) => n.kind === m.kind).length >= exp.memory_count[m.kind]
+            const into = full ? after.find((n) => n.kind === m.kind) : null
+            after = into ? after.map((n) => (n === into ? { ...n, text: `${n.text}；${m.text_includes}` } : n)) : [...after, { ...asNote(m), subject: `oracle-${i}` }]
+        }
+    }
+    for (const m of exp.memory_absent ?? []) after = after.filter((n) => !(n.kind === m.kind && (!('subject' in m) || sameSlot(n, asNote(m))) && (!m.state || n.state === m.state)))
     const changed = JSON.stringify(after) !== JSON.stringify(before)
     const turns = sessions.flatMap((turnsOfDay, s) => turnsOfDay.map((user) => ({ user, session: s + 1, toolCalls: [], writes: [], memoryChanged: false, message: zh ? '好的，沒問題。' : 'Sure.' })))
     // The note is set in the first turn; the code's receipt says so
@@ -209,6 +217,22 @@ for (const c of memoryCases) {
         const kept = c.expect.memory_after.every((m) => good.memoriesBefore.some((n) => sameSlot(n, asNote(m)) && n.state === asNote(m).state))
         const wrong = { ...structuredClone(good), memories: kept ? [] : structuredClone(good.memoriesBefore) }
         check(programmaticGrade(c, wrong, EXERCISES).grade.memory_right === 0, `${c.id}: ${kept ? 'clearing the note it should keep' : 'not saving the note'} should fail memory_right`)
+    }
+    if (c.expect.memory_after?.some((m) => m.text_includes)) {
+        // Leaving the notes as they were fails: the fact was never saved, or the old note not changed
+        check(programmaticGrade(c, { ...structuredClone(good), memories: structuredClone(good.memoriesBefore) }, EXERCISES).grade.memory_right === 0, `${c.id}: leaving the notes as they were should fail memory_right`)
+    }
+    for (const [kind] of Object.entries(c.expect.memory_count ?? {})) {
+        // A second note on the same thing, instead of changing the old one
+        const extra = structuredClone(good)
+        extra.memories = [...extra.memories, { ...asNote({ kind, text: 'duplicate' }), subject: 'oracle-extra' }]
+        check(programmaticGrade(c, extra, EXERCISES).grade.memory_right === 0, `${c.id}: one ${kind} note too many should fail memory_right`)
+    }
+    for (const m of (c.expect.memory_absent ?? []).filter((x) => !('subject' in x))) {
+        // A note of a kind that must not have one (the wrist as other, not as an injury)
+        const wrongKind = structuredClone(good)
+        wrongKind.memories = [...wrongKind.memories, { ...asNote({ kind: m.kind, subject: m.kind === 'injury' ? 'knee' : 'oracle-wrong', text: 'x' }) }]
+        check(programmaticGrade(c, wrongKind, EXERCISES).grade.memory_right === 0, `${c.id}: a ${m.kind} note should fail memory_right`)
     }
     if (c.expect.memory_unchanged) {
         const saved = structuredClone(good)

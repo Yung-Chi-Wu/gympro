@@ -3,7 +3,7 @@ import type { LibraryExercise, PlannedExercise, RonnieData, RoutineProposal, Wor
 import { describeProposal } from './events'
 import { gatedSearch, latinTokens, searchLibrary } from './search'
 import {
-    INJURY_SITES, MAX_NOTE_CHARS, MAX_NOTES, MEMORY_STATES, isActiveInjury, isDislike, isInjurySite, isMemoryKind,
+    INJURY_SITES, MAX_NOTE_CHARS, MAX_NOTES, MAX_OTHER_NOTES, MEMORY_STATES, isActiveInjury, isDislike, isInjurySite, isMemoryKind,
     memoryReceipt, sameSlot, type MemoryKind, type MemoryNote,
 } from './memory'
 import { localDateStr, localDateToUtcRange } from './time'
@@ -208,8 +208,17 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         const found = name ? (await exercises()).filter((e) => e.name.toLowerCase() === name || e.name_zh_tw?.toLowerCase() === name) : []
         return found.length === 1 ? found[0] : undefined
     }
-    /** The slot a remember or forget call means, or why it can't be one */
-    async function slotOf(kind: MemoryKind, input: Record<string, string>): Promise<{ subject: string | null; label: string } | { error: string }> {
+    /**
+     * The slot a remember or forget call means, or why it can't be one. An other note is the one
+     * its note_id names; without one, remember starts a new note with an ID of its own.
+     */
+    async function slotOf(kind: MemoryKind, input: Record<string, string>, adding: boolean): Promise<{ subject: string | null; label: string } | { error: string }> {
+        if (kind === 'other') {
+            const noteId = String(input.note_id ?? '').trim().toLowerCase()
+            if (!noteId) return adding ? { subject: crypto.randomUUID(), label: 'a new other note' } : { error: 'An other note is named by its note_id, from your notes' }
+            const found = (await notes()).filter((n) => n.kind === 'other' && n.subject?.startsWith(noteId))
+            return found.length === 1 ? { subject: found[0].subject, label: `other note ${noteId.slice(0, 8)}` } : { error: `No other note has the ID ${noteId}; the IDs are in your notes` }
+        }
         if (kind === 'injury') {
             const joint = vocabulary(input.joint)
             return isInjurySite(joint) ? { subject: joint, label: `${joint.replace('_', ' ')} injury` } : { error: `An injury note needs joint, one of: ${INJURY_SITES.join(', ')}` }
@@ -449,17 +458,27 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         async remember(input) {
             if (!isMemoryKind(input.kind)) return 'Not saved: kind is injury, exercise, equipment or schedule'
             const kind = input.kind
-            const slot = await slotOf(kind, input)
+            const slot = await slotOf(kind, input, true)
             if ('error' in slot) return `Not saved: ${slot.error}`
             const states = MEMORY_STATES[kind]
             if (kind === 'exercise' && !input.state) return 'Not saved: an exercise note needs state, like or dislike'
-            const state = kind === 'equipment' || kind === 'schedule' ? 'active' : vocabulary(input.state) ?? states[0]
+            const state = kind === 'injury' || kind === 'exercise' ? vocabulary(input.state) ?? states[0] : 'active'
             if (!states.includes(state)) return `Not saved: a ${kind} note is ${states.join(' or ')}`
             const text = String(input.text ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_NOTE_CHARS)
             if (!text) return 'Not saved: text is empty'
             const list = await notes()
             const old = list.find((n) => sameSlot(n, { kind, subject: slot.subject }))
             if (old && old.state === state && old.text === text) return 'Already in your notes as it is; nothing changed.'
+            if (!old && kind === 'other') {
+                const others = list.filter((n) => n.kind === 'other')
+                if (others.some((n) => n.text === text)) return 'Already in your notes as it is; nothing changed.'
+                // Full: the new fact goes into the note it belongs with, or replaces one that's out of
+                // date, so nothing is dropped and the user never has to clear notes
+                if (others.length >= MAX_OTHER_NOTES) {
+                    const lines = others.map((n) => `note ID: ${n.subject!.slice(0, 8)} | ${n.text}`).join('\n')
+                    return `Not saved: the ${MAX_OTHER_NOTES} other notes are full. Fold this fact into the note it belongs with, or replace one that is out of date: call remember again with that note_id and the whole new text. Say nothing about this to the user. The other notes:\n${lines}`
+                }
+            }
             if (!old && list.length >= MAX_NOTES) {
                 // Only against abuse (the slots bound the count): the oldest note that isn't an active injury makes room
                 const oldest = list.filter((n) => !isActiveInjury(n)).sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))[0]
@@ -474,13 +493,14 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             const line = memoryReceipt(old ? 'updated' : 'added', text, zh)
             remembered.push(line)
             const was = old ? `Updated (it was ${old.state}: "${old.text}")` : 'Saved'
-            return `${was}: ${slot.label}${kind === 'injury' || kind === 'exercise' ? `, ${state}` : ''}. The app shows the user "${line}" with your reply, so don't say it yourself.`
+            const label = kind === 'other' ? `other note ${slot.subject!.slice(0, 8)}` : slot.label
+            return `${was}: ${label}${kind === 'injury' || kind === 'exercise' ? `, ${state}` : ''}. The app shows the user "${line}" with your reply, so don't say it yourself.`
         },
 
         async forget(input) {
             if (!isMemoryKind(input.kind)) return 'Nothing forgotten: kind is injury, exercise, equipment or schedule'
             const kind = input.kind
-            const slot = await slotOf(kind, input)
+            const slot = await slotOf(kind, input, false)
             if ('error' in slot) return `Nothing forgotten: ${slot.error}`
             const list = await notes()
             const old = list.find((n) => sameSlot(n, { kind, subject: slot.subject }))

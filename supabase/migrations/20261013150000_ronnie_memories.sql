@@ -5,6 +5,8 @@
 --   exercise   one per exercise (subject: its id); like or dislike
 --   equipment  one (no subject): what they train with
 --   schedule   one (no subject): when and how long they can train
+--   other      anything else lasting (subject: the note's own id), at most 30, which the app
+--              keeps to by having a new fact folded into an old note
 -- Saving a slot again replaces its row, through the unique key (nulls not distinct, so equipment
 -- and schedule are one each too): the code decides what replaces what, not the model.
 -- Backend-only, like ai_traces: row level security on and no policy, so users can neither read
@@ -24,7 +26,7 @@ begin
     create table if not exists public.ronnie_memories (
         id uuid primary key default gen_random_uuid(),
         user_id uuid not null references auth.users (id) on delete cascade,
-        kind text not null check (kind in ('injury', 'exercise', 'equipment', 'schedule')),
+        kind text not null check (kind in ('injury', 'exercise', 'equipment', 'schedule', 'other')),
         subject text,
         state text not null,
         note text not null check (char_length(note) between 1 and 200),
@@ -35,6 +37,7 @@ begin
             case kind
                 when 'injury' then subject is not null and subject in ('shoulder', 'elbow', 'lower_back', 'knee', 'wrist', 'hip', 'ankle', 'neck')
                 when 'exercise' then subject is not null and subject ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                when 'other' then subject is not null and subject ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
                 else subject is null
             end
         ),

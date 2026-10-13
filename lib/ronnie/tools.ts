@@ -10,12 +10,14 @@ const dateRange = {
     date_from: { type: 'string', description: 'Start date, YYYY-MM-DD in the user\'s time zone' },
     date_to: { type: 'string', description: 'End date, YYYY-MM-DD in the user\'s time zone' },
 }
-// Which note: a body part for an injury, an exercise for a preference; equipment and schedule are one each
+// Which note: a body part for an injury, an exercise for a preference, an other note by its ID;
+// equipment and schedule are one each
 const memorySlot = {
     kind: { type: 'string', enum: [...MEMORY_KINDS] },
     joint: { type: 'string', enum: [...INJURY_SITES], description: 'injury only: where' },
     exercise_name: { type: 'string', description: 'exercise only: its name in the library' },
     exercise_id: { ...exerciseId('search_exercises or your notes'), description: 'exercise only, instead of the name: the ID from search_exercises or your notes' },
+    note_id: { type: 'string', description: 'other only: the note to change or forget, its note ID from your notes; leave out to add a new note' },
 }
 
 export const RONNIE_TOOLS: Anthropic.Tool[] = [
@@ -101,7 +103,7 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
     },
     {
         name: 'remember',
-        description: "Save a note about the user that lasts: your notes are in every later conversation. One note per slot (an injury per body part, a preference per exercise, one for equipment, one for schedule), and saving a slot again replaces it: an injury that's better is saved as resolved, a disliked exercise they now want as like. The app shows the user each note saved.",
+        description: "Save a note about the user that lasts: your notes are in every later conversation. One note per slot (an injury per body part, a preference per exercise, one for equipment, one for schedule), and saving a slot again replaces it: an injury that's better is saved as resolved, a disliked exercise they now want as like. Anything else lasting is other, free text: to change one, pass its note_id. The app shows the user each note saved.",
         input_schema: {
             type: 'object',
             properties: {
