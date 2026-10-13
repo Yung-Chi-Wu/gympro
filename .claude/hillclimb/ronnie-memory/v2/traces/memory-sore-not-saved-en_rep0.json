@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "My chest is really sore from yesterday."
+  },
+  {
+    "role": "tool_call",
+    "name": "get_workout_history",
+    "content": "{\"input\":{\"date_from\":\"2026-10-06\",\"date_to\":\"2026-10-06\"},\"result\":\"2026-10-06 (Tue):\\n  Back Squat: 6×102.5kg, 6×102.5kg, 6×102.5kg, 6×102.5kg\\n  Romanian Deadlift: 8×92.5kg, 8×92.5kg, 8×92.5kg\\n  Leg Press: 10×162.5kg, 10×162.5kg, 10×162.5kg\\n  Burpee: 10 reps (bodyweight), 10 reps (bodyweight), 10 reps (bodyweight)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "📊 Yesterday's log shows only legs: squats, RDLs, leg press and burpees. There was no chest work, so the soreness probably comes from an earlier session. Today's bench already has 3×8 at 82.5 kg logged.\n\nOrdinary muscle soreness that eases as you warm up is fine to train through. Lower the weight or skip chest work if it's heavy or limits your range of motion.\n\n⚠️ Sharp pain, or pain in the joint, means stop and get it checked. Is this a dull muscle ache or a sharp pain?"
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "今天想試試看腿推，幫我加到今天"
+  },
+  {
+    "role": "tool_call",
+    "name": "add_exercise_today",
+    "content": "{\"input\":{\"exercise_id\":\"68be0377\"},\"result\":\"✓ 已將「腿推」加入今天的課表. Your notes say the user doesn't want it recommended: ask once whether to clear that, and change the note only if they say yes.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "✅ 已把腿推加到今天的課表了。\n\n我之前記錄你不喜歡腿推。如果你試完覺得可以，要我把「不喜歡」這筆記錄清掉嗎？"
+  }
+]

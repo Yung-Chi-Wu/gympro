@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "My chest is really sore from yesterday."
+  },
+  {
+    "role": "tool_call",
+    "name": "get_workout_history",
+    "content": "{\"input\":{\"date_from\":\"2026-10-06\",\"date_to\":\"2026-10-06\"},\"result\":\"2026-10-06 (Tue):\\n  Back Squat: 6×102.5kg, 6×102.5kg, 6×102.5kg, 6×102.5kg\\n  Romanian Deadlift: 8×92.5kg, 8×92.5kg, 8×92.5kg\\n  Leg Press: 10×162.5kg, 10×162.5kg, 10×162.5kg\\n  Burpee: 10 reps (bodyweight), 10 reps (bodyweight), 10 reps (bodyweight)\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Yesterday's log shows only legs (squat, RDL, leg press, burpees), with no chest work. Today's workout already has 3×8 bench at 82.5kg logged.\n\n💡 Muscle soreness alone isn't a reason to skip training. Sharp pain would be, so stop if you feel any.\n\nDo you want me to drop the remaining chest work (Incline Dumbbell Press) today and keep Overhead Press and Pushdowns, or keep everything and go lighter?"
+  }
+]

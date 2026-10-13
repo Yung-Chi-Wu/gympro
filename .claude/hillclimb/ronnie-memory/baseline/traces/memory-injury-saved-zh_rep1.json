@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "我左膝以前受過傷，深蹲蹲太深會痛"
+  },
+  {
+    "role": "assistant",
+    "content": "先把深度控制在完全不痛的範圍，例如蹲到大腿接近平行或用箱子深蹲。這樣也能有效訓練腿部，不用硬蹲到最深。\n\n如果痛感是尖銳的，或是持續不退，請先停下來，找物理治療師或醫師評估。\n\n⚠️ 我不能幫你診斷膝蓋的狀況。\n\n你是想調整今天的訓練，還是想把課表裡的動作永久換掉？"
+  },
+  {
+    "role": "user",
+    "content": "推薦一個練腿的動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle\":\"legs\"},\"result\":\"ID: 0f6a6808 | 硬舉: back; trains glutes, hamstrings, lower back; joint load: lower back high, knee medium\\nID: 5866803c | 深蹲: legs; trains quads, glutes; joint load: lower back medium, knee medium\\nID: 07bccaa6 | 羅馬尼亞硬舉: legs; trains hamstrings, glutes; joint load: lower back medium\\nID: 68be0377 | 腿推: legs; trains quads, glutes; joint load: knee medium\\nID: efd2d668 | 行走弓箭步: legs; trains quads, glutes; joint load: knee medium\\nID: 995b5a70 | 腿彎舉: legs; trains hamstrings; low joint load\\nID: afc9ed91 | 小腿提踵: legs; trains calves; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"5866803c\"},\"result\":\"Showing a card for \\\"深蹲\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "我推薦深蹲，它主要練股四頭肌和臀肌，也能幫你提升整體力量和增肌。\n\n💡 想加進今天的訓練，點卡片上的按鈕就可以。"
+  }
+]

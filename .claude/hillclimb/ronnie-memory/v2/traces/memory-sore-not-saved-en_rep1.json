@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "My chest is really sore from yesterday."
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "You've already logged 3×8 at 82.5 kg on Barbell Bench Press today, so your chest has done its work. Muscle soreness (DOMS) is normal and isn't an injury. Training sore muscles is fine if the soreness is mild and you can move through a full range of motion.\n\n💡 Today's plan still has Incline Dumbbell Press, which is more chest work. I'd skip it and keep Overhead Press and Triceps Pushdown. Do you want me to remove Incline Dumbbell Press from today?"
+  }
+]

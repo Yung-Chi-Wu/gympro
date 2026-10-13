@@ -1,0 +1,28 @@
+[
+  {
+    "role": "user",
+    "content": "我平日只有 45 分鐘可以練"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | 槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | 上斜啞鈴臥推: no sets yet\\nID: 13841865 | 肩推: no sets yet\\nID: 697409e4 | 三頭下壓: no sets yet\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "💪 今天的推日有 4 個動作，臥推已經做完 3 組，剩下 3 個動作約 20 到 25 分鐘，45 分鐘內可以練完。\n\n💡 時間有限時，先做臥推這類主項，輔助動作每個 2 到 3 組就夠了。組間休息主項抓 2 到 3 分鐘，輔助動作抓 60 到 90 秒。\n\n你是想要我幫你把課表調整成 45 分鐘能完成的版本，還是只調整今天的內容？"
+  },
+  {
+    "role": "user",
+    "content": "今天的課表大概要練多久？"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | 槓鈴臥推: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | 上斜啞鈴臥推: no sets yet\\nID: 13841865 | 肩推: no sets yet\\nID: 697409e4 | 三頭下壓: no sets yet\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "今天推日有 4 個動作：槓鈴臥推、上斜啞鈴臥推、肩推、三頭下壓。槓鈴臥推你已經完成 3 組 82.5 公斤。\n\n整堂課大約 50 到 60 分鐘，每組之間休息 2 到 3 分鐘。剩下的 3 個動作大概還要 30 到 35 分鐘。\n\n💡 臥推這類大重量複合動作休息夠久，品質才會好，對 100 公斤的目標也有幫助。"
+  }
+]

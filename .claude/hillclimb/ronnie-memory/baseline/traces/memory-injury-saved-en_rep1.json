@@ -1,0 +1,38 @@
+[
+  {
+    "role": "user",
+    "content": "Heads up: my right shoulder has an old injury, and pressing overhead bothers it."
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Noted. Today's Overhead Press is the one that loads that shoulder hardest.\n\nDo you want me to swap it out for today only, or take it out of your Push Day routine for good?\n\n⚠️ Keep everything pain-free. If the pain is sharp or doesn't go away, stop and get it checked by a professional."
+  },
+  {
+    "role": "user",
+    "content": "What's a good chest exercise to add today?"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle\":\"chest\"},\"result\":\"ID: d988a60a | Barbell Bench Press: chest; trains chest; joint load: shoulder medium, elbow medium\\nID: 41290ea9 | Incline Dumbbell Press: chest; trains upper chest; joint load: shoulder medium\\nID: 6fc5ead6 | Incline Barbell Press: chest; trains upper chest; joint load: shoulder medium, elbow medium\\nID: d486b05a | Dumbbell Bench Press: chest; trains chest; joint load: shoulder medium\\nID: a726ab1a | Low-to-High Cable Fly: chest; trains upper chest; low joint load\\nID: 23bc61ff | Push-Up: chest; trains chest; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"a726ab1a\"},\"result\":\"Showing a card for \\\"Low-to-High Cable Fly\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "I'd add the Low-to-High Cable Fly. Your bench and incline dumbbell press already cover the heavy pressing. A fly finishes the chest with isolation work and puts little stress on your joints.\n\n💡 Try 2-3 sets of 12-15 reps, and control the stretch at the bottom of each rep.\n\nTap the card to add it to today's workout."
+  }
+]

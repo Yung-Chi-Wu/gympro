@@ -1,0 +1,23 @@
+[
+  {
+    "role": "user",
+    "content": "我不喜歡深蹲，以後別推薦給我"
+  },
+  {
+    "role": "tool_call",
+    "name": "get_routine_exercises",
+    "content": "{\"input\":{\"routine_name\":\"推日\"},\"result\":\"\\\"推日\\\":\\nID: d988a60a | 槓鈴臥推: 4 sets x 8 reps\\nID: 41290ea9 | 上斜啞鈴臥推: 3 sets x 10 reps\\nID: 13841865 | 肩推: 3 sets x 8 reps\\nID: 697409e4 | 三頭下壓: 3 sets x 12 reps\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "好的，Alex，之後我不會再推薦深蹲給你。你的推日課表裡本來就沒有深蹲，所以不用更動。\n\n如果之後想練腿，我會推薦腿推舉或腿屈伸這類動作。"
+  },
+  {
+    "role": "user",
+    "content": "我改變主意了，深蹲其實還不錯，以後可以推薦"
+  },
+  {
+    "role": "assistant",
+    "content": "已記下：之後我會把深蹲納入推薦的選項。不過我沒有儲存偏好的功能，所以這只在這次對話中有效。\n\n要不要我現在就幫你把深蹲加進今天的推日，或是提議加進課表？推日主要練胸、肩、三頭，深蹲是練腿的動作，加進去可能不太搭。"
+  }
+]

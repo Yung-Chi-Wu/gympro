@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個練腿的動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"muscle\":\"legs\",\"low_load_on\":\"knee\"},\"result\":\"ID: 07bccaa6 | 羅馬尼亞硬舉: legs; trains hamstrings, glutes; joint load: lower back medium\\nID: 995b5a70 | 腿彎舉: legs; trains hamstrings; low joint load\\nID: afc9ed91 | 小腿提踵: legs; trains calves; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"07bccaa6\"},\"result\":\"Showing a card for \\\"羅馬尼亞硬舉\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "推薦羅馬尼亞硬舉，主要練腿後側和臀部，膝蓋負擔低，適合你的左膝舊傷。\n\n💡 動作重點是髖部往後推、背部保持平直，下背會有中等負荷，重量請循序漸進。"
+  }
+]

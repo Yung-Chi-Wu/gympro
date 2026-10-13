@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "My chest is really sore from yesterday."
+  },
+  {
+    "role": "tool_call",
+    "name": "get_today_workout",
+    "content": "{\"input\":{},\"result\":\"ID: d988a60a | Barbell Bench Press: 8×82.5kg, 8×82.5kg, 8×82.5kg\\nID: 41290ea9 | Incline Dumbbell Press: no sets yet\\nID: 13841865 | Overhead Press: no sets yet\\nID: 697409e4 | Triceps Pushdown: no sets yet\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Soreness (DOMS) is normal and not an injury. It's fine to train through mild soreness, but you shouldn't push chest hard on top of it.\n\n📊 Today's bench press already has 3×8 at 82.5 kg logged. Incline Dumbbell Press is the only chest exercise left, and Overhead Press and Triceps Pushdown are still open.\n\n💡 I'd skip the incline press or do it light, and put your effort into shoulders and triceps. Want me to remove Incline Dumbbell Press from today?"
+  }
+]
