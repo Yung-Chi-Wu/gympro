@@ -8,8 +8,12 @@ import type { RuleId } from './types'
 // to follow). Every DOI was resolved through LibKey on 2026-10-09 (the cardio papers on
 // 2026-10-12); `npm run check:evidence` checks they still resolve and that every rule has a claim.
 //
-// ownThreshold: the rule's number (3 periods, -5%, -3%, 10 sets, 4 periods, 15 minutes) is
-// GymPro's own setting, which no paper gives, and the report says so.
+// ownThreshold: the rule's number (3 periods, -5%, -3%, 4 periods, 15 minutes) is GymPro's own
+// setting, which no paper gives, and the report says so. The 10 weekly sets of low_volume are
+// where Pelland's most efficient tier ends (below).
+
+/** Weekly sets for a muscle below which growth isn't detectable yet: Pelland's minimum effective dose */
+export const MIN_EFFECTIVE_WEEKLY_SETS = 4
 
 export type Source = {
     /** First author's surname */
@@ -20,7 +24,13 @@ export type Source = {
     doi: string
 }
 
-/** Cited by two rules and the glossary: volume and frequency against growth and strength, sets counted fractionally */
+/**
+ * Cited by two rules and the glossary: volume and frequency against growth and strength, sets
+ * counted fractionally. Its Table 2A (checked in the published version by the owner, 2026-10-13)
+ * gives the growth tiers the low_volume rule and text use: 4 weekly sets is the minimum
+ * effective dose; from 5 to 10, about 6 more sets give one more detectable step (2.05%); 11-18
+ * take about 8.5, 19-29 about 10.75, 30-42 about 12.5; few studies go past about 25.
+ */
 const PELLAND: Source = { author: 'Pelland', year: 2026, title: 'The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gains', journal: 'Sports Medicine', doi: '10.1007/s40279-025-02344-w' }
 
 /** Cited by the cardio rule and the cardio facts: concurrent training against lifting alone, and the order within a session */
@@ -52,14 +62,15 @@ export const EVIDENCE: Record<RuleId, { sources: Source[]; ownThreshold: boolean
     },
     low_volume: {
         sources: [
-            // More weekly sets, more growth (graded dose-response)
+            // More weekly sets, more growth (graded dose-response): +0.37% per set; the <5 / 5-9 / 10+
+            // split was only a trend (P = 0.074), so it is not where GymPro's 10 comes from
             { author: 'Schoenfeld', year: 2017, title: 'Dose-response relationship between weekly resistance training volume and increases in muscle mass: A systematic review and meta-analysis', journal: 'Journal of Sports Sciences', doi: '10.1080/02640414.2016.1210197' },
-            // Growth keeps rising with volume, with diminishing returns and no sharp threshold
+            // Growth keeps rising with volume, with diminishing returns: the tiers above
             PELLAND,
-            // Young trained men: 12-20 weekly sets per muscle as a standard recommendation
+            // Young trained men: 12-20 weekly sets did as well as more than 20 for quads and biceps
             { author: 'Baz-Valle', year: 2022, title: 'A Systematic Review of The Effects of Different Resistance Training Volumes on Muscle Hypertrophy', journal: 'Journal of Human Kinetics', doi: '10.2478/hukin-2022-0017' },
         ],
-        ownThreshold: true,
+        ownThreshold: false,
     },
     missed_sessions: {
         sources: [
