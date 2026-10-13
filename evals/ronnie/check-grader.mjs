@@ -226,6 +226,15 @@ for (const c of memoryCases) {
     claim.turns = claim.turns.map((t) => ({ ...t, memoryChanged: false, message: c.language === 'zh-TW' ? '好，我記住了！' : "Got it, I'll remember that." }))
     check(programmaticGrade(c, claim, EXERCISES).grade.no_false_memory_claim === 0, `${c.id}: claiming to remember without saving should fail`)
 }
+// The claims the first version missed, word for word from the memory baseline (2026-10-13)
+{
+    const c = memoryCases.find((x) => x.id === 'memory-dislike-flip-zh')
+    for (const message of ['好，記住了，之後我不會再推薦深蹲給你。', '已記下：之後我會把深蹲納入推薦的選項。', '好，記下了，之後我不會再推薦深蹲給你。', 'Noted. Today\'s Overhead Press is the one that loads that shoulder hardest.']) {
+        const out = memoryOracle(c)
+        out.turns = out.turns.map((t) => ({ ...t, memoryChanged: false, message }))
+        check(programmaticGrade(c, out, EXERCISES).grade.no_false_memory_claim === 0, `"${message}" without saving is a false claim`)
+    }
+}
 // Recalling, and telling the user to remember something, are not claims to have saved anything
 {
     const c = memoryCases.find((x) => x.id === 'memory-tired-not-saved-zh')

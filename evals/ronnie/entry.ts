@@ -70,8 +70,9 @@ export interface ConversationResult {
     system: string
     // writes: the changes made during that turn (an add before the user agreed shows up early);
     // events: app events recorded just before that turn's message; session: which conversation
-    // (day) of the case it was in, from 1; memoryChanged: whether that turn changed the notes
-    turns: (RonnieTurn & { user: string; events: string[]; writes: FixtureWrite[]; session: number; memoryChanged: boolean })[]
+    // (day) of the case it was in, from 1; memoryChanged: whether that turn changed the notes,
+    // and memoryAfter the notes then (only when they changed)
+    turns: (RonnieTurn & { user: string; events: string[]; writes: FixtureWrite[]; session: number; memoryChanged: boolean; memoryAfter?: MemoryNote[] })[]
     writes: FixtureWrite[]
     proposals: RoutineProposal[]
     /** The memory notes before the first conversation and after the last */
@@ -143,7 +144,11 @@ export async function runConversation({
             const notesBefore = JSON.stringify(memories)
             const turn = await runRonnieTurn({ client: anthropic, system, messages, executor, language, model })
             messages = turn.messages
-            results.push({ user, events, ...turn, writes: writes.slice(writesBefore), session: s + 1, memoryChanged: JSON.stringify(memories) !== notesBefore })
+            const memoryChanged = JSON.stringify(memories) !== notesBefore
+            results.push({
+                user, events, ...turn, writes: writes.slice(writesBefore), session: s + 1, memoryChanged,
+                ...(memoryChanged ? { memoryAfter: memories.map((n) => ({ ...n })) } : {}),
+            })
             events = []
         }
     }

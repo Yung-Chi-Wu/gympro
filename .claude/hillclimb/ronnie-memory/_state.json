@@ -120,5 +120,6 @@
     "evals/ronnie/cases-holdout.json",
     "evals/ronnie/cases-knowledge.json",
     "evals/ronnie/cases-memory.json"
-  ]
+  ],
+  "harness_sha": "eb145c576116b69a4b6da02464e4e6c667be45221ca5a331f83505b9c2c7365c"
 }

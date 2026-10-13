@@ -14,8 +14,10 @@ const CATCHPHRASE = /ain['’]?t\s+nothin['’]?\s+but\s+a\s+peanut!?/gi
 const HALF_WIDTH_PUNCT = /[一-鿿][,;:?!]|[,;:?!][一-鿿]/
 
 // Saying it has saved something, or will remember it. In a turn that changed no memory note
-// that is a false claim, the kind the add-without-adding bug was (2026-10-06).
-const MEMORY_CLAIM = /我(會|已經|已|先|都|有)?(記住|記下|記起來|記好)|我(會|一定會)記得|幫你記(住|下|起來)|I(['’]ll| will| have|['’]ve)\s+(remember|noted?|saved|make a note|keep (that|this) in mind)|\bnoted\b/i
+// that is a false claim, the kind the add-without-adding bug was (2026-10-06). The Chinese
+// forms need no 我: the memory baseline had 好，記住了 and 已記下 (2026-10-13). An imperative to
+// the user (記住要保持核心收緊) has no 了 and isn't one.
+const MEMORY_CLAIM = /(記住|記下|記起來|記好)了|已(經)?(幫你)?記(住|下|起來|好)|我(會|已經|已|先|都|有)?(記住|記下|記起來|記好)|我(會|一定會)記得|幫你記(住|下|起來)|I(['’]ll| will| have|['’]ve)\s+(remember|noted?|saved|make a note|keep (that|this) in mind)|\bnoted\b/i
 const MEMORY_KIND_ZH = { injury: '舊傷', exercise: '動作喜好', equipment: '器材', schedule: '訓練時間' }
 const JOINT_ZH = { shoulder: '肩膀', elbow: '手肘', lower_back: '下背', knee: '膝蓋' }
 const LOAD_RANK = { none: 0, low: 1, medium: 2, high: 3 }

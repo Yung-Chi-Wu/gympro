@@ -186,6 +186,8 @@ async function runCase(c, ctx) {
       { role: 'user', content: t.user },
       ...t.toolCalls.map((x) => ({ role: 'tool_call', name: x.name, content: JSON.stringify({ input: x.input, result: x.result }) })),
       { role: 'assistant', content: t.message },
+      // The notes after a turn that changed them, so regrade.mjs can grade memory from the trace
+      ...(t.memoryChanged ? [{ role: 'memory', content: JSON.stringify(t.memoryAfter) }] : []),
     ]),
     model: out.turns.at(-1)?.servedModel ?? null,
     // Cache tokens too: with prompt caching on, input_tokens is only the uncached part
