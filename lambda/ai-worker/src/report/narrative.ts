@@ -4,6 +4,7 @@ import { getClaudeClient } from '../claude'
 import { toDisplayWeight, type WeightUnit } from '../../../../lib/weight-unit'
 import { toDisplayDistance, type DistanceUnit } from '../../../../lib/distance-unit'
 import { unitLabel, VOLUME_UNITS, VOLUME_UNIT_IDS } from '../../../../lib/report/volume'
+import { fallbackNarrative, zhTermsLine } from '../../../../lib/report/report-text'
 import type { CardioFacts, DayNote, Finding, FollowUp, LiftFacts, ReportFacts, ReportNarrative, RuleId, Watching } from './types'
 
 // The model's whole job in the report: one headline, and one plain-language action for each
@@ -58,6 +59,8 @@ export interface NarrativeResult {
     model: string
     usage: Anthropic.Usage
     attempts: number
+    /** Set when the model's text failed its checks on every attempt and the app's own labels were used: the last problems */
+    fallback?: string
 }
 
 /** A finding's name, the way its action must name it: a muscle, a lift, or nothing (one per rule). */
@@ -220,7 +223,7 @@ export function buildPrompt(input: NarrativeInput): string {
     if (watching.length) lines.push(`Watching, below threshold (do not advise on these): ${watching.map((x) => `${x.rule}${nameIn(x.rule, x.subject, x.data) ? ` (${nameIn(x.rule, x.subject, x.data)})` : ''}`).join(', ')}.`)
 
     const languageRule = zh
-        ? 'Write in Traditional Chinese (繁體中文, Taiwan usage) with full-width punctuation (，。！？「」), and use the Chinese exercise and muscle names given above.'
+        ? `Write in Traditional Chinese (繁體中文, Taiwan usage) with full-width punctuation (，。！？「」), and use the Chinese exercise and muscle names given above. ${zhTermsLine()}`
         : 'Write in English.'
     return `You write the short text of a strength-training app's weekly report. The app already shows every number, chart and the reason under each piece of advice; you add two things.
 
@@ -230,6 +233,43 @@ ${lines.join('\n')}
 2. actions: ${findings.length ? `one for each rule above. Each says exactly what to do next ${unit} about every item under its rule, naming each one as written above (every muscle, every lift), with the exercise, sets, weights or reps from the data; as short as covering every item allows. Don't repeat the reason; the app shows it. Fit every action to the user's notes: if one mentions pain or discomfort in a movement or joint, don't simply add sets or load there; suggest a pain-free alternative or a lighter range, and getting it checked if it persists.` : 'leave it empty: nothing fired, so give no advice.'}
 
 Use only the numbers above; never invent data. No myths, no diagnosis, no scolding. Plain text only: no Markdown, no lists inside a field. ${languageRule}`
+}
+
+// What a report's text must not do, checked before it is saved. The same lines as the eval's
+// programmatic grade (evals/report-v3/grade.mjs), so a text that passes here passes there.
+const SIMPLIFIED_ONLY = /[这们训练进动议还时对说体发让点从过关应经]/g
+const HALF_WIDTH_AFTER_CJK = /[一-鿿][,?!:;]/
+const MARKDOWN = /\*\*|__|`|^\s*#|^\s*[-*]\s|^\s*\d+\.\s/m
+const WRONG_UNIT: Record<WeightUnit, RegExp> = { kg: /\d\s*(lbs?|磅)/i, lb: /\d\s*(kg|公斤)/i }
+const HEADLINE_MAX = { zh: 45, en: 30 }
+
+/** Each problem with a report's text, in words the retry can act on; empty when it is fine */
+export function textProblems(n: ReportNarrative, input: NarrativeInput): string[] {
+    const zh = input.language === 'zh-TW'
+    const text = [n.headline, ...n.items.map((i) => i.action)].join('\n')
+    const problems: string[] = []
+    const cjk = (text.match(/[一-鿿]/g) ?? []).length
+    const latin = (text.match(/[A-Za-z]/g) ?? []).length
+    const cjkShare = cjk / Math.max(1, cjk + latin)
+    if (zh && cjkShare <= 0.5) problems.push('it is not written in Traditional Chinese')
+    if (zh && (text.match(SIMPLIFIED_ONLY) ?? []).length > 2) problems.push('it uses Simplified Chinese characters; use Traditional ones')
+    const half = zh && HALF_WIDTH_AFTER_CJK.exec(text)
+    if (half) problems.push(`it has half-width punctuation after Chinese ("${half[0]}"); use full-width ，？！：；`)
+    if (!zh && cjkShare >= 0.05) problems.push('it is not written in English')
+    if (MARKDOWN.test(text)) problems.push('it has Markdown; write plain text')
+    if (WRONG_UNIT[input.weightUnit].test(text)) problems.push(`it has a weight in ${input.weightUnit === 'kg' ? 'lb' : 'kg'}; write every weight in ${input.weightUnit}`)
+    const length = zh ? [...n.headline.replace(/\s/g, '')].length : n.headline.split(/\s+/).filter(Boolean).length
+    const max = zh ? HEADLINE_MAX.zh : HEADLINE_MAX.en
+    if (length > max) problems.push(`the headline is ${length} ${zh ? 'characters' : 'words'}; keep it to ${max}`)
+    // Every item named in its rule's action; the options only without a note, which can rule one out
+    const hasNote = !!input.note || input.dayNotes.length > 0
+    for (const f of input.findings) {
+        const action = (n.items.find((i) => i.rule === f.rule)?.action ?? '').toLowerCase()
+        for (const name of [findingName(f, input.language), ...(hasNote ? [] : optionNames(f, input.language))]) {
+            if (name && !action.includes(name.toLowerCase())) problems.push(`the ${f.rule} action doesn't name ${name}`)
+        }
+    }
+    return problems
 }
 
 export interface NarrativeOptions {
@@ -247,19 +287,26 @@ export async function generateNarrative(input: NarrativeInput, model: string = N
     const prompt = buildPrompt(input)
     const usage = { input_tokens: 0, output_tokens: 0 } as Anthropic.Usage
     let lastProblem = ''
+    // The model that answered last; a text the checks turned down is still an answer
+    let answeredBy: string | null = null
+    // The checks' problems with the last text, which the next attempt is asked to fix
+    let feedback = ''
 
     // A failed report still reports its brief and what the attempts used, for its trace
     try {
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             const startedAt = Date.now()
             const left = deadline == null ? Infinity : deadline - startedAt
-            if (left < MIN_CALL_MS) throw new Error(`Out of time before attempt ${attempt} (${Math.max(0, Math.round(left / 1000))} s left)${lastProblem ? `; last problem: ${lastProblem}` : ''}`)
+            if (left < MIN_CALL_MS) {
+                if (answeredBy) break
+                throw new Error(`Out of time before attempt ${attempt} (${Math.max(0, Math.round(left / 1000))} s left)`)
+            }
             const response = await client.messages.create({
                 model,
                 max_tokens: 1024,
                 tools: [{ name: 'submit_report_text', description: 'Submit the headline and advice for the report.', input_schema: inputSchema as Anthropic.Tool.InputSchema }],
                 tool_choice: { type: 'tool', name: 'submit_report_text' },
-                messages: [{ role: 'user', content: prompt }],
+                messages: [{ role: 'user', content: feedback ? `${prompt}\n\nAn earlier answer had these problems; write it again without them, keeping what was right: ${feedback}` : prompt }],
             }, {
                 timeout: Math.min(REQUEST_TIMEOUT_MS, left),
                 // The SDK retries a timeout or an overloaded API by itself; this ends them all by the deadline
@@ -271,21 +318,31 @@ export async function generateNarrative(input: NarrativeInput, model: string = N
                 event: 'claude_call', model: response.model, attempt, stopReason: response.stop_reason,
                 inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens, durationMs: Date.now() - startedAt,
             }))
-            if (response.stop_reason === 'max_tokens') throw new Error(`Claude response hit max_tokens (${response.usage.output_tokens} output tokens)`)
+            answeredBy = response.model
+            feedback = ''
 
             const block = response.content.find((b) => b.type === 'tool_use')
             const parsed = block?.type === 'tool_use' ? schema.safeParse(block.input) : null
-            if (!parsed) lastProblem = 'no tool_use block in the response'
+            if (response.stop_reason === 'max_tokens') lastProblem = `the response hit max_tokens (${response.usage.output_tokens} output tokens)`
+            else if (!parsed) lastProblem = 'no tool_use block in the response'
             else if (!parsed.success) lastProblem = parsed.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ')
             else {
                 const { headline, actions } = parsed.data as { headline: string; actions: Record<string, string> }
                 const narrative: ReportNarrative = { headline, items: rulesOf(input.findings).map((rule) => ({ rule, action: actions[rule] })) }
-                if (headline.trim() && narrative.items.every((i) => i.action?.trim())) return { narrative, prompt, model: response.model, usage, attempts: attempt }
-                lastProblem = 'empty text'
+                const problems = headline.trim() && narrative.items.every((i) => i.action?.trim()) ? textProblems(narrative, input) : ['empty text']
+                if (!problems.length) return { narrative, prompt, model: response.model, usage, attempts: attempt }
+                lastProblem = problems.join('; ')
+                feedback = lastProblem
             }
             console.warn(JSON.stringify({ event: 'claude_invalid_output', model: response.model, attempt, problem: lastProblem }))
         }
-        throw new Error(`Claude returned an invalid report ${MAX_ATTEMPTS} times: ${lastProblem}`)
+        // The model answered, but no answer passed: the app's own labels, so the report still
+        // arrives. Its trace keeps why.
+        if (answeredBy) {
+            console.warn(JSON.stringify({ event: 'report_text_fallback', model: answeredBy, problem: lastProblem }))
+            return { narrative: fallbackNarrative(input.facts, input.findings, input.language), prompt, model: answeredBy, usage, attempts: MAX_ATTEMPTS, fallback: lastProblem }
+        }
+        throw new Error(`Claude returned no report: ${lastProblem}`)
     } catch (err) {
         throw Object.assign(err instanceof Error ? err : new Error(String(err)), { usage, prompt })
     }

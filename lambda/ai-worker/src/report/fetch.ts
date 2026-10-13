@@ -132,14 +132,18 @@ async function fetchExercises(supabase: SupabaseClient, ids: string[]): Promise<
 }
 
 /** The cycle's routine for each day of the period, or null without a cycle. */
-async function fetchSchedule(supabase: SupabaseClient, userId: string, periodStart: string, days: number): Promise<ScheduledDay[] | null> {
+/**
+ * Each day's planned routine, from the cycle as it is now. A cycle that started after the period
+ * planned nothing in it: no schedule, not a week of rest days that read "3 of 0 planned".
+ */
+export async function fetchSchedule(supabase: SupabaseClient, userId: string, periodStart: string, days: number): Promise<ScheduledDay[] | null> {
     const { data: cycle, error } = await supabase
         .from('training_cycles')
         .select('id, cycle_length, start_date')
         .eq('user_id', userId)
         .maybeSingle()
     if (error) throw new Error(`Failed to fetch training cycle: ${error.message}`)
-    if (!cycle) return null
+    if (!cycle || daysBetween(cycle.start_date, addDays(periodStart, days - 1)) < 0) return null
     const { data: cycleDays, error: daysError } = await supabase
         .from('cycle_days')
         .select('day_index, routines ( name, routine_exercises ( exercise_id, target_sets ) )')

@@ -57,7 +57,7 @@ async function processMessage(record: SQSRecord, deadline: number): Promise<void
       narrative = res.narrative
       await recordTrace(supabase, {
         userId, feature: 'report', model: NARRATIVE_MODEL, servedModel: res.model, status: 'ok', latencyMs: Date.now() - started,
-        usage: [res.usage], input: { ...traceInput, prompt: res.prompt }, output: { narrative, attempts: res.attempts },
+        usage: [res.usage], input: { ...traceInput, prompt: res.prompt }, output: { narrative, attempts: res.attempts, ...(res.fallback ? { fallback: res.fallback } : {}) },
       })
     } catch (err) {
       await recordTrace(supabase, {
