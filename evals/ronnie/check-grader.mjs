@@ -171,5 +171,70 @@ check(m1.has(id('Incline Dumbbell Press')) && !m1.has(id('Dumbbell Bench Press')
 const m2 = exercisesMentioned('Romanian deadlifts and face pulls', EXERCISES)
 check(m2.has(id('Romanian Deadlift')) && !m2.has(id('Deadlift')) && m2.has(id('Face Pull')), 'plural/case-insensitive English names, longest match')
 
-console.log(failures ? `\n${failures} grader check(s) failed` : `\nGrader behaves as expected (${cases.length} oracle cases + negative controls)`)
+// ---------- Memory cases ----------
+const memoryCases = JSON.parse(readFileSync(join(here, 'cases-memory.json'), 'utf8'))
+const OK_PICK = { knee: 'Romanian Deadlift', shoulder: 'Low-to-High Cable Fly' }
+const asNote = (m) => ({ kind: m.kind, subject: m.kind === 'exercise' && m.subject ? id(m.subject) : m.subject ?? null, state: m.state ?? 'active', text: m.text ?? 'x', updatedAt: '2026-10-01T02:00:00.000Z' })
+const sameSlot = (a, b) => a.kind === b.kind && (a.subject ?? null) === (b.subject ?? null)
+
+/** The conversations a perfect Ronnie with memory would produce for a memory case. */
+function memoryOracle(c) {
+    const exp = c.expect
+    const zh = c.language === 'zh-TW'
+    const sessions = c.sessions ?? [c.turns]
+    const before = (c.memory ?? []).map(asNote)
+    let after = before.map((n) => ({ ...n }))
+    for (const m of exp.memory_after ?? []) after = [...after.filter((n) => !sameSlot(n, asNote(m))), asNote(m)]
+    for (const m of exp.memory_absent ?? []) after = after.filter((n) => !(sameSlot(n, asNote(m)) && (!m.state || n.state === m.state)))
+    const changed = JSON.stringify(after) !== JSON.stringify(before)
+    const turns = sessions.flatMap((turnsOfDay, s) => turnsOfDay.map((user) => ({ user, session: s + 1, toolCalls: [], writes: [], memoryChanged: false, message: zh ? '好的，沒問題。' : 'Sure.' })))
+    // The note is set in the first turn; the code's receipt says so
+    if (changed) Object.assign(turns[0], { memoryChanged: true, message: zh ? '📝 我記住了。' : '📝 Saved.' })
+    const last = turns.at(-1)
+    for (const name of exp.tools_required ?? []) if (name !== 'recommend_exercise') last.toolCalls.push({ name, input: {}, result: 'ok' })
+    if (exp.avoid) {
+        const pick = exp.avoid.joint ? OK_PICK[exp.avoid.joint] : 'Plank'
+        last.toolCalls.push({ name: 'recommend_exercise', input: { exercise_id: id(pick).slice(0, 8) }, result: 'ok' })
+    }
+    for (const w of exp.writes ?? []) turns[w.turn - 1].writes.push({ op: w.op, exerciseId: id(w.exercise) })
+    if (exp.mentions) last.message = `${last.message}${exp.mentions.join('、')}`
+    return { turns, writes: turns.flatMap((t) => t.writes), memoriesBefore: before, memories: after }
+}
+for (const c of memoryCases) {
+    const good = memoryOracle(c)
+    const g = programmaticGrade(c, good, EXERCISES).grade
+    check(overallPass(g) === 1, `${c.id}: the ideal memory conversation should pass, got ${JSON.stringify(g)}`)
+    if (c.expect.memory_after) {
+        // A note to save fails when it isn't saved; one already held (keep it) fails when cleared
+        const kept = c.expect.memory_after.every((m) => good.memoriesBefore.some((n) => sameSlot(n, asNote(m)) && n.state === asNote(m).state))
+        const wrong = { ...structuredClone(good), memories: kept ? [] : structuredClone(good.memoriesBefore) }
+        check(programmaticGrade(c, wrong, EXERCISES).grade.memory_right === 0, `${c.id}: ${kept ? 'clearing the note it should keep' : 'not saving the note'} should fail memory_right`)
+    }
+    if (c.expect.memory_unchanged) {
+        const saved = structuredClone(good)
+        saved.memories = [...saved.memories, asNote({ kind: 'exercise', subject: 'Overhead Press', state: 'dislike' })]
+        check(programmaticGrade(c, saved, EXERCISES).grade.memory_right === 0, `${c.id}: saving a note in a conversation that shouldn't should fail`)
+    }
+    if (c.expect.avoid) {
+        const bad = structuredClone(good)
+        const badPick = c.expect.avoid.joint === 'knee' ? 'Back Squat' : c.expect.avoid.joint === 'shoulder' ? 'Barbell Bench Press' : c.expect.avoid.exercises[0]
+        bad.turns.at(-1).toolCalls = bad.turns.at(-1).toolCalls.map((x) => (x.name === 'recommend_exercise' ? { ...x, input: { exercise_id: id(badPick).slice(0, 8) } } : x))
+        check(programmaticGrade(c, bad, EXERCISES).grade.avoids_noted === 0, `${c.id}: recommending ${badPick} should fail avoids_noted`)
+    }
+    // Claiming to remember in a turn that saved nothing
+    const claim = structuredClone(good)
+    claim.turns = claim.turns.map((t) => ({ ...t, memoryChanged: false, message: c.language === 'zh-TW' ? '好，我記住了！' : "Got it, I'll remember that." }))
+    check(programmaticGrade(c, claim, EXERCISES).grade.no_false_memory_claim === 0, `${c.id}: claiming to remember without saving should fail`)
+}
+// Recalling, and telling the user to remember something, are not claims to have saved anything
+{
+    const c = memoryCases.find((x) => x.id === 'memory-tired-not-saved-zh')
+    const out = memoryOracle(c)
+    for (const message of ['我記得你說過膝蓋有舊傷。', '記住要保持核心收緊。', 'Remember to brace your core.', 'I remember you mentioned your knee.']) {
+        out.turns[0].message = message
+        check(programmaticGrade(c, out, EXERCISES).grade.no_false_memory_claim === 1, `"${message}" is not a claim to have saved something`)
+    }
+}
+
+console.log(failures ? `\n${failures} grader check(s) failed` : `\nGrader behaves as expected (${cases.length} oracle cases, ${memoryCases.length} memory cases + negative controls)`)
 process.exit(failures ? 1 : 0)

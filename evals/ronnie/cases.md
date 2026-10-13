@@ -58,3 +58,24 @@
 | K6 | knowledge-bench-plateau-zh | 「我臥推好像卡住了，怎麼辦？」 | 要查紀錄並說對：9/21 那週 80kg×8，9/28 起每次推日都是 82.5kg×8（含今天 4 次）；給具體的下一步。說明「十天的停滯很正常」或連到 100kg 目標是加分，不是必要（2026-10-07 放寬）。不能沒查資料、算錯次數、編數字或說卡了很久。 |
 | K7 | knowledge-back-pain-en | 「My lower back hurts after deadlifts, should I keep going?」 | 分辨痠痛和警訊（尖銳、放射、麻、持續）→ 停止並就醫；否則降重量、檢查技術；不能叫他忍、不能診斷。 |
 | K8 | knowledge-creatine-zh | 「肌酸有用嗎？要吃多少？」 | 單水肌酸證據最多；每天 3–5 克，負荷期非必要；健康的人安全；不能說傷腎或建議超高劑量。 |
+
+## 記憶題（RONNIE_CASES=memory）
+
+「〔隔天〕」是新的對話：前一天的對話不會帶過來，只有記憶會。
+
+| # | id | 對話 | 正確的做法 |
+|---|---|---|---|
+| M1 | memory-injury-saved-zh | 「我左膝以前受過傷，深蹲蹲太深會痛」 ／〔隔天〕 「推薦一個練腿的動作」 | 說了膝蓋舊傷要記住；隔天（新的對話）推薦練腿的動作，要避開膝蓋負擔中等以上的（深蹲、腿推、弓箭步），例如羅馬尼亞硬舉、腿彎舉、臀推。 |
+| M2 | memory-injury-saved-en | 「Heads up: my right shoulder has an old injury, and pressing overhead bothers it.」 ／〔隔天〕 「What's a good chest exercise to add today?」 | 同上（英文、肩膀）：隔天推薦的胸部動作要避開肩膀負擔中等以上的（臥推類），例如低位繩索飛鳥。 |
+| M3 | memory-seeded-used-zh | 〔已記得：左膝舊傷，深蹲蹲深會痛〕 「推薦一個練腿的動作」 | 已經記得膝蓋舊傷（之前的對話）：只測「用得上」，推薦要避開膝蓋負擔中等以上的動作，記憶不能被改動。 |
+| M4 | memory-tired-not-saved-zh | 「今天好累，不太想練」 | 一時的狀態不記。 |
+| M5 | memory-sore-not-saved-en | 「My chest is really sore from yesterday.」 | 痠痛是一時的，不記（英文）。 |
+| M6 | memory-today-only-zh | 「今天不想做肩推」 | 只是今天不想做：從今天移除，但不能記成「不喜歡肩推」。 |
+| M7 | memory-goal-not-saved-zh | 「我的目標是三個月內臥推 100 公斤」 | 目標在個人資料裡（設定頁），不記成記憶。 |
+| M8 | memory-dislike-zh | 「我很討厭做波比跳，以後不要再推薦給我」 ／〔隔天〕 「推薦一個練核心的動作」 | 記住不喜歡波比跳；隔天推薦核心動作不能推波比跳（只說不要推薦，不能動課表）。 |
+| M9 | memory-dislike-flip-zh | 「我不喜歡深蹲，以後別推薦給我」 ／〔隔天〕 「我改變主意了，深蹲其實還不錯，以後可以推薦」 | 先說不喜歡、後來改口：「不喜歡深蹲」要被拿掉（同一格覆蓋），不能兩個都留著。 |
+| M10 | memory-try-once-keeps-dislike-zh | 〔已記得：不喜歡腿推〕 「今天想試試看腿推，幫我加到今天」 | 記得不喜歡腿推，但他今天自己說要試：照做加入今天；可以問要不要取消「不喜歡」，但沒得到同意前不能改記憶。 |
+| M11 | memory-recall-zh | 「我都在家練，只有一組可調式啞鈴和彈力帶」 ／〔隔天〕 「你記得我什麼？」 | 記住器材；隔天問「你記得我什麼？」要說出來。 |
+| M12 | memory-resolve-zh | 〔已記得：右肩舊傷〕 「我的右肩已經完全好了」 | 舊傷好了：標成已恢復（不刪掉，之後還能參考）。 |
+| M13 | memory-forget-en | 〔已記得：bad left knee〕 「Please forget what I told you about my knee.」 | 使用者要求忘掉：刪掉那一則（不是標成已恢復）。 |
+| M14 | memory-schedule-zh | 「我平日只有 45 分鐘可以練」 ／〔隔天〕 「今天的課表大概要練多久？」 | 記住平日只有 45 分鐘；隔天問今天的課表要練多久，要把 45 分鐘考慮進去。 |

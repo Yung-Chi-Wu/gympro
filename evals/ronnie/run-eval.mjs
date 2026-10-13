@@ -165,8 +165,9 @@ function loadRonnie() {
 
 /** Return the list of input cases. Each must have a stable `id`. */
 // RONNIE_CASES=holdout runs the held-out set, for final acceptance only;
-// RONNIE_CASES=knowledge the fitness-knowledge set, for choosing the model
-const CASE_FILES = { holdout: 'cases-holdout.json', knowledge: 'cases-knowledge.json' };
+// RONNIE_CASES=knowledge the fitness-knowledge set, for choosing the model;
+// RONNIE_CASES=memory the memory set, whose cases may span several conversations
+const CASE_FILES = { holdout: 'cases-holdout.json', knowledge: 'cases-knowledge.json', memory: 'cases-memory.json' };
 async function loadCases() {
   const set = process.env.RONNIE_CASES;
   if (set && !CASE_FILES[set]) throw new Error(`RONNIE_CASES must be one of: ${Object.keys(CASE_FILES).join(', ')}`);
@@ -176,7 +177,7 @@ async function loadCases() {
 /** Play the case's user turns through Ronnie, the way the chat widget does. */
 async function runCase(c, ctx) {
   const { runConversation, RONNIE_MODEL } = loadRonnie();
-  const out = await runConversation({ model: ctx.model ?? RONNIE_MODEL, language: c.language, turns: c.turns });
+  const out = await runConversation({ model: ctx.model ?? RONNIE_MODEL, language: c.language, turns: c.turns, sessions: c.sessions, memory: c.memory });
   const calls = out.turns.flatMap((t) => t.usage);
   return {
     output: out,

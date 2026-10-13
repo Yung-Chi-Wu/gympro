@@ -20,7 +20,7 @@ if (!files.length) {
 // The cases that change something: they expect a write, a confirmation, or a write tool. These are
 // the ones a flaky run hurts most (a change made twice, or claimed and not made).
 const WRITE_TOOLS = new Set(['add_exercise_today', 'remove_exercise_today', 'propose_routine_change'])
-const cases = ['cases.json', 'cases-holdout.json', 'cases-knowledge.json'].flatMap((f) => JSON.parse(readFileSync(join(here, f), 'utf8')))
+const cases = ['cases.json', 'cases-holdout.json', 'cases-knowledge.json', 'cases-memory.json'].flatMap((f) => JSON.parse(readFileSync(join(here, f), 'utf8')))
 const writes = new Set(cases.filter((c) => c.expect.writes?.length || c.expect.confirm || (c.expect.tools_required ?? []).some((t) => WRITE_TOOLS.has(t))).map((c) => c.id))
 
 const byCase = new Map()

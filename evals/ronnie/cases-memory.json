@@ -1,0 +1,347 @@
+[
+  {
+    "id": "memory-injury-saved-zh",
+    "language": "zh-TW",
+    "sessions": [
+      [
+        "我左膝以前受過傷，深蹲蹲太深會痛"
+      ],
+      [
+        "推薦一個練腿的動作"
+      ]
+    ],
+    "expect": {
+      "tools_required": [
+        "recommend_exercise"
+      ],
+      "memory_after": [
+        {
+          "kind": "injury",
+          "subject": "knee",
+          "state": "active"
+        }
+      ],
+      "avoid": {
+        "joint": "knee",
+        "max": "low"
+      }
+    },
+    "meta": {
+      "why": "說了膝蓋舊傷要記住；隔天（新的對話）推薦練腿的動作，要避開膝蓋負擔中等以上的（深蹲、腿推、弓箭步），例如羅馬尼亞硬舉、腿彎舉、臀推。"
+    }
+  },
+  {
+    "id": "memory-injury-saved-en",
+    "language": "en",
+    "sessions": [
+      [
+        "Heads up: my right shoulder has an old injury, and pressing overhead bothers it."
+      ],
+      [
+        "What's a good chest exercise to add today?"
+      ]
+    ],
+    "expect": {
+      "tools_required": [
+        "recommend_exercise"
+      ],
+      "memory_after": [
+        {
+          "kind": "injury",
+          "subject": "shoulder",
+          "state": "active"
+        }
+      ],
+      "avoid": {
+        "joint": "shoulder",
+        "max": "low"
+      }
+    },
+    "meta": {
+      "why": "同上（英文、肩膀）：隔天推薦的胸部動作要避開肩膀負擔中等以上的（臥推類），例如低位繩索飛鳥。"
+    }
+  },
+  {
+    "id": "memory-seeded-used-zh",
+    "language": "zh-TW",
+    "memory": [
+      {
+        "kind": "injury",
+        "subject": "knee",
+        "state": "active",
+        "text": "左膝舊傷，深蹲蹲深會痛"
+      }
+    ],
+    "turns": [
+      "推薦一個練腿的動作"
+    ],
+    "expect": {
+      "tools_required": [
+        "recommend_exercise"
+      ],
+      "memory_unchanged": true,
+      "avoid": {
+        "joint": "knee",
+        "max": "low"
+      }
+    },
+    "meta": {
+      "why": "已經記得膝蓋舊傷（之前的對話）：只測「用得上」，推薦要避開膝蓋負擔中等以上的動作，記憶不能被改動。"
+    }
+  },
+  {
+    "id": "memory-tired-not-saved-zh",
+    "language": "zh-TW",
+    "turns": [
+      "今天好累，不太想練"
+    ],
+    "expect": {
+      "memory_unchanged": true
+    },
+    "meta": {
+      "why": "一時的狀態不記。"
+    }
+  },
+  {
+    "id": "memory-sore-not-saved-en",
+    "language": "en",
+    "turns": [
+      "My chest is really sore from yesterday."
+    ],
+    "expect": {
+      "memory_unchanged": true
+    },
+    "meta": {
+      "why": "痠痛是一時的，不記（英文）。"
+    }
+  },
+  {
+    "id": "memory-today-only-zh",
+    "language": "zh-TW",
+    "turns": [
+      "今天不想做肩推"
+    ],
+    "expect": {
+      "writes": [
+        {
+          "op": "remove_today",
+          "exercise": "Overhead Press",
+          "turn": 1
+        }
+      ],
+      "memory_unchanged": true
+    },
+    "meta": {
+      "why": "只是今天不想做：從今天移除，但不能記成「不喜歡肩推」。"
+    }
+  },
+  {
+    "id": "memory-goal-not-saved-zh",
+    "language": "zh-TW",
+    "turns": [
+      "我的目標是三個月內臥推 100 公斤"
+    ],
+    "expect": {
+      "memory_unchanged": true
+    },
+    "meta": {
+      "why": "目標在個人資料裡（設定頁），不記成記憶。"
+    }
+  },
+  {
+    "id": "memory-dislike-zh",
+    "language": "zh-TW",
+    "sessions": [
+      [
+        "我很討厭做波比跳，以後不要再推薦給我"
+      ],
+      [
+        "推薦一個練核心的動作"
+      ]
+    ],
+    "expect": {
+      "tools_required": [
+        "recommend_exercise"
+      ],
+      "writes": [],
+      "memory_after": [
+        {
+          "kind": "exercise",
+          "subject": "Burpee",
+          "state": "dislike"
+        }
+      ],
+      "avoid": {
+        "exercises": [
+          "Burpee"
+        ]
+      }
+    },
+    "meta": {
+      "why": "記住不喜歡波比跳；隔天推薦核心動作不能推波比跳（只說不要推薦，不能動課表）。"
+    }
+  },
+  {
+    "id": "memory-dislike-flip-zh",
+    "language": "zh-TW",
+    "sessions": [
+      [
+        "我不喜歡深蹲，以後別推薦給我"
+      ],
+      [
+        "我改變主意了，深蹲其實還不錯，以後可以推薦"
+      ]
+    ],
+    "expect": {
+      "memory_absent": [
+        {
+          "kind": "exercise",
+          "subject": "Back Squat",
+          "state": "dislike"
+        }
+      ]
+    },
+    "meta": {
+      "why": "先說不喜歡、後來改口：「不喜歡深蹲」要被拿掉（同一格覆蓋），不能兩個都留著。"
+    }
+  },
+  {
+    "id": "memory-try-once-keeps-dislike-zh",
+    "language": "zh-TW",
+    "memory": [
+      {
+        "kind": "exercise",
+        "subject": "Leg Press",
+        "state": "dislike",
+        "text": "不喜歡腿推"
+      }
+    ],
+    "turns": [
+      "今天想試試看腿推，幫我加到今天"
+    ],
+    "expect": {
+      "writes": [
+        {
+          "op": "add_today",
+          "exercise": "Leg Press",
+          "turn": 1
+        }
+      ],
+      "memory_after": [
+        {
+          "kind": "exercise",
+          "subject": "Leg Press",
+          "state": "dislike"
+        }
+      ]
+    },
+    "meta": {
+      "why": "記得不喜歡腿推，但他今天自己說要試：照做加入今天；可以問要不要取消「不喜歡」，但沒得到同意前不能改記憶。"
+    }
+  },
+  {
+    "id": "memory-recall-zh",
+    "language": "zh-TW",
+    "sessions": [
+      [
+        "我都在家練，只有一組可調式啞鈴和彈力帶"
+      ],
+      [
+        "你記得我什麼？"
+      ]
+    ],
+    "expect": {
+      "memory_after": [
+        {
+          "kind": "equipment",
+          "subject": null,
+          "state": "active"
+        }
+      ],
+      "mentions": [
+        "啞鈴"
+      ]
+    },
+    "meta": {
+      "why": "記住器材；隔天問「你記得我什麼？」要說出來。"
+    }
+  },
+  {
+    "id": "memory-resolve-zh",
+    "language": "zh-TW",
+    "memory": [
+      {
+        "kind": "injury",
+        "subject": "shoulder",
+        "state": "active",
+        "text": "右肩舊傷"
+      }
+    ],
+    "turns": [
+      "我的右肩已經完全好了"
+    ],
+    "expect": {
+      "memory_after": [
+        {
+          "kind": "injury",
+          "subject": "shoulder",
+          "state": "resolved"
+        }
+      ]
+    },
+    "meta": {
+      "why": "舊傷好了：標成已恢復（不刪掉，之後還能參考）。"
+    }
+  },
+  {
+    "id": "memory-forget-en",
+    "language": "en",
+    "memory": [
+      {
+        "kind": "injury",
+        "subject": "knee",
+        "state": "active",
+        "text": "bad left knee"
+      }
+    ],
+    "turns": [
+      "Please forget what I told you about my knee."
+    ],
+    "expect": {
+      "memory_absent": [
+        {
+          "kind": "injury",
+          "subject": "knee"
+        }
+      ]
+    },
+    "meta": {
+      "why": "使用者要求忘掉：刪掉那一則（不是標成已恢復）。"
+    }
+  },
+  {
+    "id": "memory-schedule-zh",
+    "language": "zh-TW",
+    "sessions": [
+      [
+        "我平日只有 45 分鐘可以練"
+      ],
+      [
+        "今天的課表大概要練多久？"
+      ]
+    ],
+    "expect": {
+      "memory_after": [
+        {
+          "kind": "schedule",
+          "subject": null,
+          "state": "active"
+        }
+      ],
+      "judge": "Ronnie estimates how long today's push workout takes and relates it to the user's 45-minute weekday limit, which the user stated in an earlier conversation (Ronnie only knows it from its memory, in the system prompt), for example saying it fits or what to cut. Fail if the reply doesn't take the 45-minute limit into account."
+    },
+    "meta": {
+      "why": "記住平日只有 45 分鐘；隔天問今天的課表要練多久，要把 45 分鐘考慮進去。"
+    }
+  }
+]

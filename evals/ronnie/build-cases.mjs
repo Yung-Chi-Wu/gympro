@@ -16,6 +16,18 @@
 //   judge            what the Opus judge checks, for cases a program can't grade
 //   confirm          a permanent change: scored as "asked before changing" =
 //                    nothing changed this turn AND the judge says it asked
+//   memory_after     memory notes that must hold after the last conversation, each
+//                    { kind, subject, state }: a joint by its id, an exercise by its name
+//   memory_absent    notes that must not hold then (no state: in any state)
+//   memory_unchanged true: the conversation must not change any note
+//   avoid            what the last conversation's recommendations (a card, or an exercise
+//                    added) must avoid: { exercises: [names] } or { joint, max } (a joint
+//                    load above max, e.g. a knee load above low)
+//
+// Memory cases (cases-memory.json, RONNIE_CASES=memory) may have, instead of turns:
+//   sessions         conversations on separate days: the history starts empty each time,
+//                    while the data and the memory carry over
+//   memory           notes Ronnie has before the first conversation (same shape as memory_after, plus text)
 
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -488,6 +500,117 @@ const knowledge = [
     },
 ]
 
+// ---------- Ronnie's memory (RONNIE_CASES=memory) ----------
+// Written before the feature (2026-10-13) and run on the Ronnie without it first, so each
+// case is seen failing for the reason it tests. The design is in lib/ronnie/memory.ts.
+const memory = [
+    {
+        id: 'memory-injury-saved-zh',
+        language: 'zh-TW',
+        sessions: [['我左膝以前受過傷，深蹲蹲太深會痛'], ['推薦一個練腿的動作']],
+        expect: { tools_required: ['recommend_exercise'], memory_after: [{ kind: 'injury', subject: 'knee', state: 'active' }], avoid: { joint: 'knee', max: 'low' } },
+        why: '說了膝蓋舊傷要記住；隔天（新的對話）推薦練腿的動作，要避開膝蓋負擔中等以上的（深蹲、腿推、弓箭步），例如羅馬尼亞硬舉、腿彎舉、臀推。',
+    },
+    {
+        id: 'memory-injury-saved-en',
+        language: 'en',
+        sessions: [['Heads up: my right shoulder has an old injury, and pressing overhead bothers it.'], ["What's a good chest exercise to add today?"]],
+        expect: { tools_required: ['recommend_exercise'], memory_after: [{ kind: 'injury', subject: 'shoulder', state: 'active' }], avoid: { joint: 'shoulder', max: 'low' } },
+        why: '同上（英文、肩膀）：隔天推薦的胸部動作要避開肩膀負擔中等以上的（臥推類），例如低位繩索飛鳥。',
+    },
+    {
+        id: 'memory-seeded-used-zh',
+        language: 'zh-TW',
+        memory: [{ kind: 'injury', subject: 'knee', state: 'active', text: '左膝舊傷，深蹲蹲深會痛' }],
+        turns: ['推薦一個練腿的動作'],
+        expect: { tools_required: ['recommend_exercise'], memory_unchanged: true, avoid: { joint: 'knee', max: 'low' } },
+        why: '已經記得膝蓋舊傷（之前的對話）：只測「用得上」，推薦要避開膝蓋負擔中等以上的動作，記憶不能被改動。',
+    },
+    {
+        id: 'memory-tired-not-saved-zh',
+        language: 'zh-TW',
+        turns: ['今天好累，不太想練'],
+        expect: { memory_unchanged: true },
+        why: '一時的狀態不記。',
+    },
+    {
+        id: 'memory-sore-not-saved-en',
+        language: 'en',
+        turns: ['My chest is really sore from yesterday.'],
+        expect: { memory_unchanged: true },
+        why: '痠痛是一時的，不記（英文）。',
+    },
+    {
+        id: 'memory-today-only-zh',
+        language: 'zh-TW',
+        turns: ['今天不想做肩推'],
+        expect: { writes: [{ op: 'remove_today', exercise: 'Overhead Press', turn: 1 }], memory_unchanged: true },
+        why: '只是今天不想做：從今天移除，但不能記成「不喜歡肩推」。',
+    },
+    {
+        id: 'memory-goal-not-saved-zh',
+        language: 'zh-TW',
+        turns: ['我的目標是三個月內臥推 100 公斤'],
+        expect: { memory_unchanged: true },
+        why: '目標在個人資料裡（設定頁），不記成記憶。',
+    },
+    {
+        id: 'memory-dislike-zh',
+        language: 'zh-TW',
+        sessions: [['我很討厭做波比跳，以後不要再推薦給我'], ['推薦一個練核心的動作']],
+        expect: { tools_required: ['recommend_exercise'], writes: [], memory_after: [{ kind: 'exercise', subject: 'Burpee', state: 'dislike' }], avoid: { exercises: ['Burpee'] } },
+        why: '記住不喜歡波比跳；隔天推薦核心動作不能推波比跳（只說不要推薦，不能動課表）。',
+    },
+    {
+        id: 'memory-dislike-flip-zh',
+        language: 'zh-TW',
+        sessions: [['我不喜歡深蹲，以後別推薦給我'], ['我改變主意了，深蹲其實還不錯，以後可以推薦']],
+        expect: { memory_absent: [{ kind: 'exercise', subject: 'Back Squat', state: 'dislike' }] },
+        why: '先說不喜歡、後來改口：「不喜歡深蹲」要被拿掉（同一格覆蓋），不能兩個都留著。',
+    },
+    {
+        id: 'memory-try-once-keeps-dislike-zh',
+        language: 'zh-TW',
+        memory: [{ kind: 'exercise', subject: 'Leg Press', state: 'dislike', text: '不喜歡腿推' }],
+        turns: ['今天想試試看腿推，幫我加到今天'],
+        expect: { writes: [{ op: 'add_today', exercise: 'Leg Press', turn: 1 }], memory_after: [{ kind: 'exercise', subject: 'Leg Press', state: 'dislike' }] },
+        why: '記得不喜歡腿推，但他今天自己說要試：照做加入今天；可以問要不要取消「不喜歡」，但沒得到同意前不能改記憶。',
+    },
+    {
+        id: 'memory-recall-zh',
+        language: 'zh-TW',
+        sessions: [['我都在家練，只有一組可調式啞鈴和彈力帶'], ['你記得我什麼？']],
+        expect: { memory_after: [{ kind: 'equipment', subject: null, state: 'active' }], mentions: ['啞鈴'] },
+        why: '記住器材；隔天問「你記得我什麼？」要說出來。',
+    },
+    {
+        id: 'memory-resolve-zh',
+        language: 'zh-TW',
+        memory: [{ kind: 'injury', subject: 'shoulder', state: 'active', text: '右肩舊傷' }],
+        turns: ['我的右肩已經完全好了'],
+        expect: { memory_after: [{ kind: 'injury', subject: 'shoulder', state: 'resolved' }] },
+        why: '舊傷好了：標成已恢復（不刪掉，之後還能參考）。',
+    },
+    {
+        id: 'memory-forget-en',
+        language: 'en',
+        memory: [{ kind: 'injury', subject: 'knee', state: 'active', text: 'bad left knee' }],
+        turns: ['Please forget what I told you about my knee.'],
+        expect: { memory_absent: [{ kind: 'injury', subject: 'knee' }] },
+        why: '使用者要求忘掉：刪掉那一則（不是標成已恢復）。',
+    },
+    {
+        id: 'memory-schedule-zh',
+        language: 'zh-TW',
+        sessions: [['我平日只有 45 分鐘可以練'], ['今天的課表大概要練多久？']],
+        expect: {
+            memory_after: [{ kind: 'schedule', subject: null, state: 'active' }],
+            judge: "Ronnie estimates how long today's push workout takes and relates it to the user's 45-minute weekday limit, which the user stated in an earlier conversation (Ronnie only knows it from its memory, in the system prompt), for example saying it fits or what to cut. Fail if the reply doesn't take the 45-minute limit into account.",
+        },
+        why: '記住平日只有 45 分鐘；隔天問今天的課表要練多久，要把 45 分鐘考慮進去。',
+    },
+]
+
 writeFileSync(join(here, 'cases.json'), JSON.stringify(cases.map(({ why, ...c }) => ({ ...c, meta: { why } })), null, 2) + '\n')
 writeFileSync(join(here, 'cases-knowledge.json'), JSON.stringify(knowledge.map(({ why, ...c }) => ({ ...c, meta: { why } })), null, 2) + '\n')
 
@@ -506,5 +629,10 @@ md.push('## 保留題（只在最後驗收時跑）', '', '| # | id | 對話 | �
     ...holdout.map((c, i) => `| H${i + 1} | ${c.id} | ${c.turns.map(turnText).join(' → ')} | ${c.why} |`), '')
 md.push('## 健身知識題（RONNIE_CASES=knowledge，用來選模型）', '', '| # | id | 對話 | 好的回答 |', '|---|---|---|---|',
     ...knowledge.map((c, i) => `| K${i + 1} | ${c.id} | ${c.turns.map(turnText).join(' → ')} | ${c.why} |`), '')
+writeFileSync(join(here, 'cases-memory.json'), JSON.stringify(memory.map(({ why, ...c }) => ({ ...c, meta: { why } })), null, 2) + '\n')
+const sessionText = (c) => (c.sessions ?? [c.turns]).map((s) => s.map(turnText).join(' → ')).join(' ／〔隔天〕 ')
+const memoryText = (c) => (c.memory?.length ? `〔已記得：${c.memory.map((m) => m.text).join('、')}〕 ` : '')
+md.push('## 記憶題（RONNIE_CASES=memory）', '', '「〔隔天〕」是新的對話：前一天的對話不會帶過來，只有記憶會。', '', '| # | id | 對話 | 正確的做法 |', '|---|---|---|---|',
+    ...memory.map((c, i) => `| M${i + 1} | ${c.id} | ${memoryText(c)}${sessionText(c)} | ${c.why} |`), '')
 writeFileSync(join(here, 'cases.md'), md.join('\n'))
-console.log(`wrote ${cases.length} cases to cases.json, ${holdout.length} held-out cases to cases-holdout.json, ${knowledge.length} knowledge cases to cases-knowledge.json, and cases.md`)
+console.log(`wrote ${cases.length} cases to cases.json, ${holdout.length} held-out cases to cases-holdout.json, ${knowledge.length} knowledge cases to cases-knowledge.json, ${memory.length} memory cases to cases-memory.json, and cases.md`)

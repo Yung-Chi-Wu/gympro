@@ -3,6 +3,7 @@ import attributes from '../../supabase/data/exercise-attributes.json'
 import type { PlannedExercise, RonnieData, RoutineProposal } from '../../lib/ronnie/data'
 import { logTypeOf, setValuesOf } from '../../lib/set-log'
 import type { ResolvedRow } from '../../lib/ronnie/events'
+import type { MemoryNote } from '../../lib/ronnie/memory'
 import { dateGuide, localDateStr } from '../../lib/ronnie/time'
 
 // One fictional user for the Ronnie eval. "Today" is Wednesday 2026-10-07 in
@@ -151,13 +152,20 @@ interface SetRow {
  * out, as in the offline checks, the search is keyword-only - as in production when
  * Bedrock is unavailable.
  */
-export function createFixtureData({ nearest }: { nearest?: RonnieData['nearestExercises'] } = {}): {
+export function createFixtureData({ nearest, memories: seed = [] }: {
+    nearest?: RonnieData['nearestExercises']
+    /** What Ronnie remembers before the conversation starts (a case's earlier days) */
+    memories?: MemoryNote[]
+} = {}): {
     data: RonnieData
     writes: FixtureWrite[]
     proposals: RoutineProposal[]
     applyProposal: (p: RoutineProposal) => ResolvedRow[]
+    /** The user's memory notes, as they stand; the grader reads them after the conversation */
+    memories: MemoryNote[]
 } {
     const writes: FixtureWrite[] = []
+    const memories: MemoryNote[] = seed.map((n) => ({ ...n }))
     // Proposals change nothing; they are recorded so the grader can see what was offered
     const proposals: RoutineProposal[] = []
     const routineExercises = new Map(
@@ -279,7 +287,7 @@ export function createFixtureData({ nearest }: { nearest?: RonnieData['nearestEx
         }
         return rows
     }
-    return { data, writes, proposals, applyProposal }
+    return { data, writes, proposals, applyProposal, memories }
 }
 
 /** What the coach route puts in the system prompt for this user. */
