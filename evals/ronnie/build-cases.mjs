@@ -636,7 +636,13 @@ memory.push(
         id: 'memory-other-saved-zh',
         language: 'zh-TW',
         sessions: [['我有氣喘，強度一高就容易喘不過來'], ['今天想加一點有氧，有什麼建議？']],
-        expect: { memory_after: [{ kind: 'other', text_includes: '氣喘' }], memory_absent: [{ kind: 'injury' }], mentions: ['氣喘'] },
+        // A judge, not a word: "你容易喘，今天不建議波比跳" takes the asthma into account without
+        // the word 氣喘 (memory v3, 1 of 3)
+        expect: {
+            memory_after: [{ kind: 'other', text_includes: '氣喘' }],
+            memory_absent: [{ kind: 'injury' }],
+            judge: "On the second day Ronnie's cardio advice takes into account the user's asthma, which it only knows from its notes (the system prompt), for example lower or steady intensity, a warm-up, slowing down or stopping when breathless, keeping the inhaler at hand, or ruling out a high-intensity exercise for that reason. Fail if the advice ignores the asthma.",
+        },
         why: '氣喘不屬於任何一格：存成「其他」。隔天問有氧，建議要顧到氣喘（例如強度、熱身）。',
     },
     {
