@@ -1,0 +1,20 @@
+[
+  {
+    "role": "user",
+    "content": "推薦一個練肩膀中束的動作"
+  },
+  {
+    "role": "tool_call",
+    "name": "search_exercises",
+    "content": "{\"input\":{\"query\":\"側平舉 肩膀中束\",\"muscle\":\"side_delts\"},\"result\":\"ID: 65d4104b | 側平舉: shoulders; trains side delts; low joint load\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "recommend_exercise",
+    "content": "{\"input\":{\"exercise_id\":\"65d4104b\"},\"result\":\"Showing a card for \\\"側平舉\\\" with an Add to today button.\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "側平舉是練肩膀中束最直接的動作，關節負擔也低。\n\n💡 用輕一點的重量，控制好速度，手肘微彎，舉到與肩同高就好。點卡片就能加進今天的推日。"
+  }
+]

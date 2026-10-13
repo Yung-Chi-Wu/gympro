@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "My lower back hurts after deadlifts, should I keep going?"
+  },
+  {
+    "role": "assistant",
+    "content": "Lower back pain after deadlifts is a signal to back off. Drop the load, or skip deadlifts for now, until movement feels pain-free. Normal muscle tiredness is fine. Sharp, lasting, or radiating pain (down the leg, or with numbness or tingling) means you should stop and see a doctor or physio.\n\n💡 When you do go back to them, use a lighter weight, keep your back neutral, and keep the bar close to your body. Don't push through pain.\n\nDo you want me to look at your recent training, or swap something in today's workout that loads your lower back?"
+  }
+]
