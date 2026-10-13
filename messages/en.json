@@ -471,7 +471,7 @@
             "lift_stalled": "{lift}: best set {best} for {n} {unit, select, week {weeks} other {cycles}} running",
             "lift_regressed": "{lift}: down from {previous} to {best}",
             "deload": "{lifts} all went down",
-            "low_volume": "{muscle}: {perWeek} sets a week; GymPro suggests 10–20",
+            "low_volume": "{muscle}: {perWeek} sets a week{level, select, below {, below the roughly 4 that give measurable growth} other {; under 10 is where added sets pay off most}}",
             "missed_sessions": "{done} of {planned} planned sessions (missed: {routines})",
             "missedLow": "{groups} fell below 10 sets because of it",
             "weight_trend": "Your goal is to {direction, select, gain {gain} other {lose}} weight, and it has gone {direction, select, gain {down} other {up}} {n} {unit, select, week {weeks} other {cycles}} running",
@@ -479,12 +479,12 @@
             "cardioFirstMore": "Cardio came first on {n} leg days this {unit, select, week {week} other {cycle}} ({dates})"
         },
         "researchText": {
-            "lift_stalled": "In a study, adding reps at the same weight built muscle and strength about as well as adding weight. So GymPro suggests adding reps first, then weight once every set reaches the top of the range (double progression).",
-            "lift_regressed": "A short dip is often fatigue that recovery reverses; a drop that lasts is the warning sign of overtraining. So GymPro suggests holding the weight and looking after recovery, rather than adding load or stopping.",
-            "deload": "Deload weeks rest mostly on coaches' experience, with few trials; in one study, a scheduled week off midway led to smaller strength gains. So GymPro doesn't schedule deloads: it suggests a lighter week, not a week off, only when several main lifts drop together.",
-            "low_volume": "Research gives no minimum: the more weekly sets, the more muscle, with smaller gains the higher you go. GymPro's floor of 10 is a starting point most routines can fit; going higher from there keeps adding growth.",
+            "lift_stalled": "In an 8-week study of leg training in people with a year or more of lifting, adding reps at the same weight built muscle and strength about as well as adding weight. So GymPro suggests adding reps first, then weight once every set reaches the top of the range (double progression).",
+            "lift_regressed": "A short dip can be fatigue that recovery reverses; a drop that lasts is the warning sign of overtraining. So GymPro suggests holding the weight and looking after recovery, rather than adding load or stopping.",
+            "deload": "Deload weeks rest mostly on coaches' experience, with few trials; in one study, a scheduled week off midway made no difference to muscle growth but led to smaller strength gains. So GymPro doesn't schedule deloads: it suggests a lighter week, not a week off, only when several main lifts drop together.",
+            "low_volume": "The largest meta-analysis (67 studies) found that about 4 sets a week already give measurable growth, and more sets keep adding muscle, each a little less. Up to 10, about 6 more sets give one more measurable step (about 2%, the smallest difference studies detect); past 10 it takes 8 or more, and more the higher you go. So GymPro suggests more sets below 10, where each set buys the most growth.",
             "missed_sessions": "With total sets equal, how often you train barely changes growth but helps strength; what a missed session really costs is that week's sets. So GymPro suggests fitting the missed routines in, not swapping in other exercises.",
-            "weight_trend": "Losing 0.5–1% of body weight a week keeps more muscle on a cut; a modest surplus helps a bulk, but how much is unsettled. So GymPro suggests a small change in calories, not a crash diet.",
+            "weight_trend": "For a cut before a competition, losing 0.5–1% of body weight a week is advised to keep the most muscle; a modest surplus helps a bulk, but how much is unsettled. So GymPro suggests a small change in calories, not a crash diet.",
             "cardio_first": "Two meta-analyses found that lifting before cardio in the same session gave more lower-body strength (about 4 kg more on the 1RM), with no difference in muscle growth; a newer umbrella review saw the same trend, short of significance. So when cardio comes before the leg lifts on a leg day, GymPro suggests lifting first and doing the cardio after, or at another time."
         },
         "readMore": "See the full analysis",

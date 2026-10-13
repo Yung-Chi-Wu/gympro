@@ -6,7 +6,7 @@ import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { unitLabel } from '@/lib/report/volume'
 import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
 import { toDisplayDistance, type DistanceUnit } from '@/lib/distance-unit'
-import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, type Source } from '@/lib/report/evidence'
+import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, MIN_EFFECTIVE_WEEKLY_SETS, type Source } from '@/lib/report/evidence'
 import type { BestSet, CardioFacts, DayFacts, Finding, FollowUp, LiftFacts, ReportV3 } from '@/lib/report/types'
 import { BodyMap } from './BodyMap'
 import { Sparkline } from './Sparkline'
@@ -69,7 +69,8 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km' }
             case 'lift_stalled': return t('whyText.lift_stalled', { lift: liftName(d), n: Number(d.flatWindows), unit, best: setText(d.best, d) })
             case 'lift_regressed': return t('whyText.lift_regressed', { lift: liftName(d), previous: setText(d.previousBest, d), best: setText(d.best, d) })
             case 'deload': return t('whyText.deload', { lifts: String(zh ? d.liftsZh : d.lifts) })
-            case 'low_volume': return t('whyText.low_volume', { muscle: muscle(String(f.subject)), perWeek: Number(d.perWeek) })
+            // Below the minimum effective dose it says so, which is a stronger reason than "under 10"
+            case 'low_volume': return t('whyText.low_volume', { muscle: muscle(String(f.subject)), perWeek: Number(d.perWeek), level: Number(d.perWeek) < MIN_EFFECTIVE_WEEKLY_SETS ? 'below' : 'other' })
             case 'missed_sessions': {
                 const base = t('whyText.missed_sessions', { planned: Number(d.planned), done: Number(d.done), routines: routineList(d.routines) })
                 return d.lowGroups ? `${base}${zh ? '，' : '; '}${t('whyText.missedLow', { groups: muscles(String(d.lowGroups)) })}` : base
