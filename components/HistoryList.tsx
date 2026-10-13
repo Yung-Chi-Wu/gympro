@@ -24,6 +24,7 @@ import { compactSet, SummaryLine } from './set-format'
 import { Icon } from './Icon'
 import { isReportV3, ReportView } from './report/ReportView'
 import { FailedReport } from './report/FailedReport'
+import { shownStatus } from '@/lib/report/queue'
 
 // The 紀錄 page's tabs. Training, side by side (@split): a month calendar and that
 // month's periods on the left, the chosen day on the right. On a phone: the days grouped
@@ -605,7 +606,10 @@ export function HistoryWeight({ entries, weightUnit, language, timeZone }: {
 
 interface ReportRow {
     period_start: string
+    /** The period's end as the report was made for it; null for reports from before it was kept */
+    period_end: string | null
     status: string
+    queued_at: string
     recommendation: unknown
     error_message: string | null
     created_at: string
@@ -663,7 +667,7 @@ export function HistoryReports({ initialReports, cycle, language, weightUnit, di
                 <ReportItem
                     key={report.period_start}
                     report={report}
-                    periodEnd={periodEndFor(report.period_start, cycle)}
+                    periodEnd={report.period_end ?? periodEndFor(report.period_start, cycle)}
                     language={language}
                     weightUnit={weightUnit}
                     distanceUnit={distanceUnit}
@@ -695,15 +699,17 @@ function ReportItem({ report, periodEnd, language, weightUnit, distanceUnit }: {
     const [isOpen, setIsOpen] = useState(false)
     const [showMore, setShowMore] = useState(false)
     const reload = useCallback(() => router.refresh(), [router])
+    // A pending report whose run died shows as failed, with its retry
+    const status = shownStatus(report)
 
     // Nothing pushes the worker's result back: while an open report is being made, reload it
     useEffect(() => {
-        if (!isOpen || report.status !== 'pending') return
+        if (!isOpen || status !== 'pending') return
         const timer = setInterval(reload, 5000)
         return () => clearInterval(timer)
-    }, [isOpen, report.status, reload])
+    }, [isOpen, status, reload])
 
-    const isCompleted = report.status === 'completed'
+    const isCompleted = status === 'completed'
     const v3 = isCompleted && isReportV3(report.recommendation) ? report.recommendation : null
     const rec = isCompleted && !v3 ? (report.recommendation as unknown as AiRecommendation) : null
 
@@ -717,27 +723,27 @@ function ReportItem({ report, periodEnd, language, weightUnit, distanceUnit }: {
             >
                 <span className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-[15px] font-bold md:text-sm">{formatRange({ start: report.period_start, end: periodEnd })}</span>
-                    <TrendChip report={{ periodStart: report.period_start, status: report.status, trend: v3?.facts.status ?? null }} />
+                    <TrendChip report={{ periodStart: report.period_start, status, trend: v3?.facts.status ?? null }} />
                 </span>
                 <Icon name="forward" className={`size-4 text-faint transition-transform ${isOpen ? 'rotate-90' : ''}`} />
             </button>
 
             {isOpen && (
                 <div className="space-y-4 border-t border-line px-4 py-4">
-                    {report.status === 'pending' && (
+                    {status === 'pending' && (
                         <div className="flex items-center gap-2 text-[15px] text-muted md:text-sm">
                             <div className="h-3 w-3 animate-spin rounded-full border-2 border-line border-t-ink" />
                             {t('pending')}
                         </div>
                     )}
 
-                    {report.status === 'insufficient_data' && (
+                    {status === 'insufficient_data' && (
                         <p className="text-[15px] text-muted md:text-sm">{tV3('insufficient')}</p>
                     )}
 
                     {v3 && <ReportView report={v3} language={language} weightUnit={weightUnit} distanceUnit={distanceUnit} />}
 
-                    {report.status === 'failed' && <FailedReport periodStart={report.period_start} onRetried={reload} />}
+                    {status === 'failed' && <FailedReport periodStart={report.period_start} onRetried={reload} />}
 
                     {rec && (
                         <div className="space-y-4">

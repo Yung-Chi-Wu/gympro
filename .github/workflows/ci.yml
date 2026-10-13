@@ -81,6 +81,8 @@ jobs:
         run: node lambda/ai-worker/evals/report-v3/check-rules.mjs
       - name: Report grader (offline)
         run: node lambda/ai-worker/evals/report-v3/check-grader.mjs
+      - name: Report requests run once and stop in time (offline)
+        run: node lambda/ai-worker/evals/worker/check-worker.mjs
       - name: Bundle
         run: npm run build
         working-directory: lambda/ai-worker

@@ -5,4 +5,6 @@ export interface AnalysisRequestMessage {
   periodEnd: string
   userNote?: string
   language?: string
+  /** The row's queued_at when this request was queued; the worker runs only while the row still has it (lib/report/queue.ts) */
+  queuedAt?: string
 }

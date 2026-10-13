@@ -4,13 +4,14 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { retryFailedReport, type ActionResult } from '@/app/(app)/dashboard/period-actions'
 
-// Reports already retried automatically during this visit. A report that fails again
-// shows a button instead, so a lasting bug can't loop (each try may call the model).
+// Reports already retried automatically during this visit. The server allows one automatic
+// retry per report in all (period_reports.retries), so a lasting bug can't loop across visits
+// either; after that a failed report shows a button (each try may call the model).
 const autoRetried = new Set<string>()
 
-/** A failed report. Showing it queues it again, once, as if it were still being made;
- *  only a second failure shows the error and a button. The row's error_message holds the
- *  technical cause for debugging; users get a plain message. */
+/** A failed report, or one still pending long after it was queued. Showing it queues it again,
+ *  once ever, as if it were still being made; after that it shows the error and a button. The
+ *  row's error_message holds the technical cause for debugging; users get a plain message. */
 export function FailedReport({ periodStart, onRetried }: { periodStart: string; onRetried: () => void }) {
     const t = useTranslations('report')
     const [retrying, setRetrying] = useState(() => !autoRetried.has(periodStart))
@@ -20,6 +21,8 @@ export function FailedReport({ periodStart, onRetried }: { periodStart: string; 
         if (!result.success) {
             setRetryError(result.message ?? null)
             setRetrying(false)
+            // Already retried by itself once: the button, with nothing to reload
+            if (result.autoUsed) return
         }
         // On success the row is 'pending' again; the parent reloads it
         onRetried()
@@ -28,7 +31,7 @@ export function FailedReport({ periodStart, onRetried }: { periodStart: string; 
     useEffect(() => {
         if (autoRetried.has(periodStart)) return
         autoRetried.add(periodStart)
-        retryFailedReport(periodStart).then(finish, () => finish({ success: false }))
+        retryFailedReport(periodStart, { auto: true }).then(finish, () => finish({ success: false }))
     }, [periodStart, finish])
 
     if (retrying) {
