@@ -26,14 +26,28 @@ begin
     create table if not exists public.ronnie_memories (
         id uuid primary key default gen_random_uuid(),
         user_id uuid not null references auth.users (id) on delete cascade,
-        kind text not null check (kind in ('injury', 'exercise', 'equipment', 'schedule', 'other')),
+        kind text not null,
         subject text,
         state text not null,
-        note text not null check (char_length(note) between 1 and 200),
+        note text not null,
         created_at timestamptz not null default now(),
         updated_at timestamptz not null default now(),
-        constraint ronnie_memories_slot unique nulls not distinct (user_id, kind, subject),
-        constraint ronnie_memories_subject check (
+        constraint ronnie_memories_slot unique nulls not distinct (user_id, kind, subject)
+    );
+
+    -- The rules on each column are set again on every run, so running this again brings a table
+    -- made by an earlier draft of it up to date (the first had no other kind, and its kind and
+    -- note checks had Postgres's own names). A row that breaks a rule stops it, changing nothing.
+    alter table public.ronnie_memories drop constraint if exists ronnie_memories_kind_check;
+    alter table public.ronnie_memories drop constraint if exists ronnie_memories_note_check;
+    alter table public.ronnie_memories drop constraint if exists ronnie_memories_kind;
+    alter table public.ronnie_memories drop constraint if exists ronnie_memories_note;
+    alter table public.ronnie_memories drop constraint if exists ronnie_memories_subject;
+    alter table public.ronnie_memories drop constraint if exists ronnie_memories_state;
+    alter table public.ronnie_memories
+        add constraint ronnie_memories_kind check (kind in ('injury', 'exercise', 'equipment', 'schedule', 'other')),
+        add constraint ronnie_memories_note check (char_length(note) between 1 and 200),
+        add constraint ronnie_memories_subject check (
             case kind
                 when 'injury' then subject is not null and subject in ('shoulder', 'elbow', 'lower_back', 'knee', 'wrist', 'hip', 'ankle', 'neck')
                 when 'exercise' then subject is not null and subject ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
@@ -41,14 +55,13 @@ begin
                 else subject is null
             end
         ),
-        constraint ronnie_memories_state check (
+        add constraint ronnie_memories_state check (
             case kind
                 when 'injury' then state in ('active', 'resolved')
                 when 'exercise' then state in ('like', 'dislike')
                 else state = 'active'
             end
-        )
-    );
+        );
 
     alter table public.ronnie_memories enable row level security;
     revoke all on public.ronnie_memories from anon, authenticated;
@@ -67,9 +80,13 @@ begin
     if (
         select count(*) from pg_constraint
         where conrelid = 'public.ronnie_memories'::regclass
-          and conname in ('ronnie_memories_slot', 'ronnie_memories_subject', 'ronnie_memories_state')
-    ) <> 3 then
-        raise exception 'ronnie_memories is missing its slot, subject or state constraint (an older table by that name?)';
+          and contype = 'c'
+    ) <> 4 or not exists (
+        select 1 from pg_constraint
+        where conrelid = 'public.ronnie_memories'::regclass and conname = 'ronnie_memories_kind'
+          and pg_get_constraintdef(oid) like '%other%'
+    ) then
+        raise exception 'ronnie_memories should have exactly its kind (with other), note, subject and state checks';
     end if;
     if not exists (
         select 1 from pg_constraint c join pg_index i on i.indexrelid = c.conindid
