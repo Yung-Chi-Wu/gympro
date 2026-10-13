@@ -32,6 +32,7 @@
 //                    while the data and the memory carry over
 //   memory           notes Ronnie has before the first conversation (same shape as memory_after, plus text)
 
+import { createHash } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -615,8 +616,12 @@ const memory = [
 ]
 
 // v2: other notes, anything lasting that fits no slot (lib/ronnie/memory.ts). Each has its own
-// ID; these are the seeded ones'
-const OTHER_ID = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
+// ID; the seeded ones look like the random ones the app makes. They once all began 00000000,
+// which no real notes do, and every note then showed the same short ID (v2)
+const OTHER_ID = (n) => {
+    const h = createHash('md5').update(`other-note:${n}`).digest('hex')
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`
+}
 // Thirty, the limit, one of them about food, which a new food fact belongs with
 const FULL_OTHER_NOTES = [
     '乳糖不耐，不喝牛奶', '有氣喘，強度太高會喘', '在科技公司上班，整天久坐', '喜歡回答簡短一點', '12 月要參加半馬',

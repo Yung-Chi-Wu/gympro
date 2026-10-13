@@ -78,6 +78,16 @@ export function memoryReceipt(change: 'added' | 'updated' | 'forgotten', text: s
     return zh ? `📝 我記住了：${text}` : `📝 Remembered: ${text}`
 }
 
+/**
+ * An other note's ID as Ronnie sees it: its first 8 characters, or all of it when another of the
+ * user's other notes starts the same way. Shown as 8 for all 30 when they shared them (the memory
+ * eval v2's seeded IDs), every note read "00000000" and no note_id could name one.
+ */
+export function noteIdOf(subject: string, notes: MemoryNote[]): string {
+    const prefix = subject.slice(0, 8)
+    return notes.some((n) => n.kind === 'other' && n.subject !== subject && n.subject?.startsWith(prefix)) ? subject : prefix
+}
+
 const KIND_ORDER: MemoryKind[] = ['injury', 'equipment', 'schedule', 'other', 'exercise']
 
 /**
@@ -98,7 +108,7 @@ export function memoryLines(
     const lines = shown.map((n) => {
         const subject = n.kind === 'injury' ? ` (${String(n.subject).replace('_', ' ')})`
             : n.kind === 'exercise' ? ` "${exerciseName(n.subject!)}" (ID: ${n.subject!.slice(0, 8)})`
-            : n.kind === 'other' ? ` (note ID: ${n.subject!.slice(0, 8)})`
+            : n.kind === 'other' ? ` (note ID: ${noteIdOf(n.subject!, notes)})`
             : ''
         const state = n.kind === 'injury' || n.kind === 'exercise' ? `, ${n.state}` : ''
         return `- ${n.kind}${subject}${state}, saved ${localDateStr(new Date(n.updatedAt), timeZone)}: ${n.text}`

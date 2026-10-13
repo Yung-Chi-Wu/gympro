@@ -4,7 +4,7 @@ import { describeProposal } from './events'
 import { gatedSearch, latinTokens, searchLibrary } from './search'
 import {
     INJURY_SITES, MAX_NOTE_CHARS, MAX_NOTES, MAX_OTHER_NOTES, MEMORY_STATES, isActiveInjury, isDislike, isInjurySite, isMemoryKind,
-    memoryReceipt, sameSlot, type MemoryKind, type MemoryNote,
+    memoryReceipt, noteIdOf, sameSlot, type MemoryKind, type MemoryNote,
 } from './memory'
 import { localDateStr, localDateToUtcRange } from './time'
 import { formatWeight, toDisplayWeight, type WeightUnit } from '../weight-unit'
@@ -216,8 +216,10 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         if (kind === 'other') {
             const noteId = String(input.note_id ?? '').trim().toLowerCase()
             if (!noteId) return adding ? { subject: crypto.randomUUID(), label: 'a new other note' } : { error: 'An other note is named by its note_id, from your notes' }
-            const found = (await notes()).filter((n) => n.kind === 'other' && n.subject?.startsWith(noteId))
-            return found.length === 1 ? { subject: found[0].subject, label: `other note ${noteId.slice(0, 8)}` } : { error: `No other note has the ID ${noteId}; the IDs are in your notes` }
+            const list = await notes()
+            const found = list.filter((n) => n.kind === 'other' && n.subject?.startsWith(noteId))
+            if (found.length === 1) return { subject: found[0].subject, label: `other note ${noteIdOf(found[0].subject!, list)}` }
+            return { error: found.length ? `Several other notes start with ${noteId}: use the whole note ID` : `No other note has the ID ${noteId}; the IDs are in your notes` }
         }
         if (kind === 'injury') {
             const joint = vocabulary(input.joint)
@@ -475,7 +477,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
                 // Full: the new fact goes into the note it belongs with, or replaces one that's out of
                 // date, so nothing is dropped and the user never has to clear notes
                 if (others.length >= MAX_OTHER_NOTES) {
-                    const lines = others.map((n) => `note ID: ${n.subject!.slice(0, 8)} | ${n.text}`).join('\n')
+                    const lines = others.map((n) => `note ID: ${noteIdOf(n.subject!, list)} | ${n.text}`).join('\n')
                     return `Not saved: the ${MAX_OTHER_NOTES} other notes are full. Fold this fact into the note it belongs with, or replace one that is out of date: call remember again with that note_id and the whole new text. Say nothing about this to the user. The other notes:\n${lines}`
                 }
             }
@@ -493,7 +495,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             const line = memoryReceipt(old ? 'updated' : 'added', text, zh)
             remembered.push(line)
             const was = old ? `Updated (it was ${old.state}: "${old.text}")` : 'Saved'
-            const label = kind === 'other' ? `other note ${slot.subject!.slice(0, 8)}` : slot.label
+            const label = kind === 'other' ? `other note ${noteIdOf(slot.subject!, list)}` : slot.label
             return `${was}: ${label}${kind === 'injury' || kind === 'exercise' ? `, ${state}` : ''}. The app shows the user "${line}" with your reply, so don't say it yourself.`
         },
 

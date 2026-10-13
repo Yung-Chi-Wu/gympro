@@ -316,6 +316,24 @@ function note(kind, subject, state, text, updatedAt = '2026-10-01T02:00:00.000Z'
     check(fixtureNotes([note('other', '12345678-0000-4000-8000-000000000000', 'active', '有氣喘')], 'zh-TW')[0] === '- other (note ID: 12345678), saved 2026-10-01: 有氣喘', 'the prompt lists an other note with its ID')
 }
 
+// Notes whose IDs begin alike are shown and named in full (memory eval v2: all 30 read "00000000")
+{
+    const shared = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
+    const seeded = [note('other', shared(1), 'active', '乳糖不耐'), note('other', shared(2), 'active', '有氣喘'), note('other', 'abcdef12-0000-4000-8000-000000000000', 'active', '慣用左手')]
+    const lines = fixtureNotes(seeded, 'zh-TW')
+    check(lines.some((l) => l.includes(`(note ID: ${shared(1)})`)) && lines.some((l) => l.includes('(note ID: abcdef12)')), `shared beginnings are shown in full, others as 8: ${lines.map((l) => l.match(/note ID: ([^)]+)/)?.[1]).join(', ')}`)
+    const { data, memories } = createFixtureData({ memories: seeded })
+    const ex = executorFor(data)
+    const ambiguous = await ex.executeTool('remember', { kind: 'other', note_id: '00000000', text: '乳糖不耐；吃全素' })
+    check(/Several other notes start with 00000000/.test(ambiguous) && memories[0].text === '乳糖不耐', `a short ID two notes share is refused as ambiguous: ${ambiguous}`)
+    const whole = await ex.executeTool('remember', { kind: 'other', note_id: shared(1), text: '乳糖不耐；吃全素' })
+    check(whole.startsWith('Updated') && memories[0].text === '乳糖不耐；吃全素' && memories.length === 3, `the whole ID names the note: ${whole.slice(0, 60)}`)
+    const full = Array.from({ length: MAX_OTHER_NOTES }, (_, i) => note('other', shared(i), 'active', `fact ${i}`))
+    const { data: fullData } = createFixtureData({ memories: full })
+    const refused = await executorFor(fullData).executeTool('remember', { kind: 'other', text: '吃全素' })
+    check(refused.includes(`note ID: ${shared(3)} | fact 3`), 'the full list gives whole IDs when they share a beginning')
+}
+
 // An injured joint is marked in search results
 {
     const { data } = createFixtureData({ memories: [note('injury', 'knee', 'active', '左膝舊傷')] })
