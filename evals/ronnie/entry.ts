@@ -3,7 +3,7 @@ import { buildSystemPrompt } from '../../lib/ronnie/prompt'
 import { createRonnieExecutor } from '../../lib/ronnie/executor'
 import { runRonnieTurn, RONNIE_MODEL, type RonnieTurn } from '../../lib/ronnie/agent'
 import { getSecret } from '../../lambda/ai-worker/src/secrets'
-import { createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER, ROUTINES, type FixtureWrite } from './fixture'
+import { createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER, fixtureNotes, ROUTINES, type FixtureWrite } from './fixture'
 import type { RoutineProposal } from '../../lib/ronnie/data'
 import type { MemoryNote } from '../../lib/ronnie/memory'
 import { eventForModel } from '../../lib/ronnie/events'
@@ -15,7 +15,7 @@ import { join } from 'node:path'
 // Bundled by `npm run eval:ronnie:build` into dist/ronnie.cjs for run-eval.mjs.
 // Runs the production Ronnie code (lib/ronnie) against the fixture user.
 
-export { RONNIE_MODEL, EXERCISES, ROUTINES, FIXTURE_USER, FIXTURE_NOW, FIXTURE_TIME_ZONE, buildSystemPrompt, createFixtureData, createRonnieExecutor }
+export { RONNIE_MODEL, EXERCISES, ROUTINES, FIXTURE_USER, FIXTURE_NOW, FIXTURE_TIME_ZONE, buildSystemPrompt, createFixtureData, createRonnieExecutor, fixtureNotes }
 
 let client: Anthropic | null = null
 
@@ -67,6 +67,7 @@ export function memoryNote(m: CaseMemory, updatedAt = '2026-10-01T02:00:00.000Z'
 }
 
 export interface ConversationResult {
+    /** The last request's system prompt, with the notes as they stood then (each request builds its own) */
     system: string
     // writes: the changes made during that turn (an add before the user agreed shows up early);
     // events: app events recorded just before that turn's message; session: which conversation
@@ -113,7 +114,9 @@ export async function runConversation({
         memories: memory.map((m) => memoryNote(m)),
     })
     const memoriesBefore = memories.map((n) => ({ ...n }))
-    const system = buildSystemPrompt(language, FIXTURE_USER)
+    // As the coach route does it: each request's prompt lists the notes as they are then
+    const systemNow = () => buildSystemPrompt(language, { ...FIXTURE_USER, notes: fixtureNotes(memories, language) })
+    let system = systemNow()
     const results: ConversationResult['turns'] = []
 
     for (const [s, sessionTurns] of sessions.entries()) {
@@ -142,6 +145,7 @@ export async function runConversation({
             })
             const writesBefore = writes.length
             const notesBefore = JSON.stringify(memories)
+            system = systemNow()
             const turn = await runRonnieTurn({ client: anthropic, system, messages, executor, language, model })
             messages = turn.messages
             const memoryChanged = JSON.stringify(memories) !== notesBefore

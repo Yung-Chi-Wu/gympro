@@ -1,4 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk'
+import { INJURY_SITES, MEMORY_KINDS } from './memory'
 
 // Ronnie's tools. Today's workout is changed directly; routines only through a
 // proposal the user confirms in the app. When to use which is in the prompt's
@@ -8,6 +9,13 @@ const exerciseId = (from: string) => ({ type: 'string', description: `Exercise I
 const dateRange = {
     date_from: { type: 'string', description: 'Start date, YYYY-MM-DD in the user\'s time zone' },
     date_to: { type: 'string', description: 'End date, YYYY-MM-DD in the user\'s time zone' },
+}
+// Which note: a body part for an injury, an exercise for a preference; equipment and schedule are one each
+const memorySlot = {
+    kind: { type: 'string', enum: [...MEMORY_KINDS] },
+    joint: { type: 'string', enum: [...INJURY_SITES], description: 'injury only: where' },
+    exercise_name: { type: 'string', description: 'exercise only: its name in the library' },
+    exercise_id: { ...exerciseId('search_exercises or your notes'), description: 'exercise only, instead of the name: the ID from search_exercises or your notes' },
 }
 
 export const RONNIE_TOOLS: Anthropic.Tool[] = [
@@ -90,5 +98,23 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
             },
             required: ['change', 'exercise_id'],
         },
+    },
+    {
+        name: 'remember',
+        description: "Save a note about the user that lasts: your notes are in every later conversation. One note per slot (an injury per body part, a preference per exercise, one for equipment, one for schedule), and saving a slot again replaces it: an injury that's better is saved as resolved, a disliked exercise they now want as like. The app shows the user each note saved.",
+        input_schema: {
+            type: 'object',
+            properties: {
+                ...memorySlot,
+                state: { type: 'string', enum: ['active', 'resolved', 'like', 'dislike'], description: 'injury: active, or resolved once it is better; exercise: like or dislike; equipment and schedule: leave out' },
+                text: { type: 'string', description: "The fact in a few words, in the user's language and as they put it, e.g. \"old left knee injury, deep squats hurt\"" },
+            },
+            required: ['kind', 'text'],
+        },
+    },
+    {
+        name: 'forget',
+        description: "Delete a note when the user asks you to forget it. An injury that got better isn't forgotten: save it as resolved with remember.",
+        input_schema: { type: 'object', properties: memorySlot, required: ['kind'] },
     },
 ]

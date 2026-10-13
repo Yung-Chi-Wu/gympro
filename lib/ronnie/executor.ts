@@ -2,6 +2,10 @@ import type { RecommendationCard } from './conversation'
 import type { LibraryExercise, PlannedExercise, RonnieData, RoutineProposal, WorkoutSet } from './data'
 import { describeProposal } from './events'
 import { gatedSearch, latinTokens, searchLibrary } from './search'
+import {
+    INJURY_SITES, MAX_NOTE_CHARS, MAX_NOTES, MEMORY_STATES, isActiveInjury, isDislike, isInjurySite, isMemoryKind,
+    memoryReceipt, sameSlot, type MemoryKind, type MemoryNote,
+} from './memory'
 import { localDateStr, localDateToUtcRange } from './time'
 import { formatWeight, toDisplayWeight, type WeightUnit } from '../weight-unit'
 import { toDisplayDistance, type DistanceUnit } from '../distance-unit'
@@ -37,6 +41,12 @@ export interface RonnieExecutor {
     readonly confirmations: string[]
     /** What was asked for but not proposed, in the user's language: said alongside the confirmations. */
     readonly notices: string[]
+    /**
+     * The notes this turn saved, updated or forgot, as the lines shown with the reply (memoryReceipt).
+     * Written here, never by the model, so the user sees exactly what was kept and nothing is
+     * claimed that wasn't.
+     */
+    readonly remembered: string[]
 }
 
 // Results show the first 8 characters of an exercise ID (the model mis-copied full UUIDs);
@@ -87,9 +97,13 @@ function matchByName<T extends Named>(planned: T[], query: string | undefined): 
     return found.filter((pe, i) => found.findIndex((x) => x.exercise_id === pe.exercise_id) === i)
 }
 
-/** A search result's detail: its group, the muscles it mainly trains, and any joint it loads more than lightly. */
-function describe(e: LibraryExercise): string {
-    const loads = Object.entries(e.joint_load ?? {}).filter(([, level]) => level !== 'low').map(([joint, level]) => `${joint.replace('_', ' ')} ${level}`)
+/**
+ * A search result's detail: its group, the muscles it mainly trains, and any joint it loads more
+ * than lightly, marked when the user's notes have that joint injured.
+ */
+function describe(e: LibraryExercise, injured: Set<string | null> = new Set()): string {
+    const loads = Object.entries(e.joint_load ?? {}).filter(([, level]) => level !== 'low')
+        .map(([joint, level]) => `${joint.replace('_', ' ')} ${level}${injured.has(joint) ? ' (injured, in your notes)' : ''}`)
     return [
         e.muscle_group,
         e.primary_muscles.length ? `trains ${e.primary_muscles.join(', ').replace(/_/g, ' ')}` : '',
@@ -113,6 +127,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
     const recommendations: RecommendationCard[] = []
     const confirmations: string[] = []
     const notices: string[] = []
+    const remembered: string[] = []
     const notice = (zhLine: string, enLine: string) => notices.push(zh ? zhLine : enLine)
 
     const nameOf = (ex: { name: string; name_zh_tw: string | null } | null | undefined) =>
@@ -174,6 +189,38 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         return matches.length === 1 ? matches[0] : value
     }
     const listLine = async (id: string, name: string, detail?: string) => `ID: ${await shortId(id)} | ${name}${detail ? `: ${detail}` : ''}`
+
+    // The user's notes, read once per turn and kept up to date by this turn's own writes. The
+    // filters go on without them if they can't be read; remember and forget fail instead.
+    let memory: Promise<MemoryNote[]> | null = null
+    const notes = () => (memory ??= data.listMemories().then((list) => [...list]))
+    const notesOrNone = () => notes().catch((): MemoryNote[] => [])
+    const dislikes = async () => new Set((await notesOrNone()).filter(isDislike).map((n) => n.subject))
+    /** An exercise the user named: the query holds its name (a search for it, not for something like it) */
+    const named = (e: LibraryExercise, query: string | undefined) => {
+        const q = String(query ?? '').trim().toLowerCase()
+        return !!q && (q.includes(e.name.toLowerCase()) || (!!e.name_zh_tw && q.includes(e.name_zh_tw)))
+    }
+    /** An exercise by ID, else by its exact name in either language */
+    async function exerciseFor(input: Record<string, string>): Promise<LibraryExercise | undefined> {
+        if (input.exercise_id) return findExercise(input.exercise_id)
+        const name = String(input.exercise_name ?? '').trim().toLowerCase()
+        const found = name ? (await exercises()).filter((e) => e.name.toLowerCase() === name || e.name_zh_tw?.toLowerCase() === name) : []
+        return found.length === 1 ? found[0] : undefined
+    }
+    /** The slot a remember or forget call means, or why it can't be one */
+    async function slotOf(kind: MemoryKind, input: Record<string, string>): Promise<{ subject: string | null; label: string } | { error: string }> {
+        if (kind === 'injury') {
+            const joint = vocabulary(input.joint)
+            return isInjurySite(joint) ? { subject: joint, label: `${joint.replace('_', ' ')} injury` } : { error: `An injury note needs joint, one of: ${INJURY_SITES.join(', ')}` }
+        }
+        if (kind === 'exercise') {
+            const exercise = await exerciseFor(input)
+            if (exercise) return { subject: exercise.id, label: `"${nameOf(exercise)}"` }
+            return { error: input.exercise_id ? UNKNOWN_ID : `No exercise is named exactly "${input.exercise_name ?? ''}": find it with search_exercises and pass its exercise_id` }
+        }
+        return { subject: null, label: kind }
+    }
     /**
      * A workout's exercises: the planned ones, then any with sets that were taken off the plan
      * afterwards. Removing an exercise keeps its sets, and History and the report count them, so
@@ -200,14 +247,21 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         },
 
         async search_exercises(input) {
-            const library = await exercises()
+            const [library, list] = await Promise.all([exercises(), notesOrNone()])
             const query = input.query?.trim()
             const filter = { muscle: vocabulary(input.muscle), lowLoadOn: vocabulary(input.low_load_on) }
             const nearest = query ? await data.nearestExercises(query) : null
-            const { exercises: found, exact } = gatedSearch(library, searchLibrary(library, query, filter, 20), nearest, 10, filter)
-            if (!found.length) return `No exercises found${filter.lowLoadOn ? ` with low ${filter.lowLoadOn} load` : ''}. Try other wording (English or Chinese, a shorter keyword) or another muscle.`
-            const lines = (await Promise.all(found.map((e) => listLine(e.id, nameOf(e), describe(e))))).join('\n')
-            return exact ? lines : `Nothing in the library matches "${input.query}" exactly. Closest:\n${lines}`
+            // An exercise the user doesn't want recommended is left out, unless they named it: room
+            // for those is kept, so ten others still come back
+            const disliked = new Set(list.filter(isDislike).map((n) => n.subject))
+            const ranked = gatedSearch(library, searchLibrary(library, query, filter, 20 + disliked.size), nearest, 10 + disliked.size, filter)
+            const leftOut = ranked.exercises.filter((e) => disliked.has(e.id) && !named(e, query))
+            const found = ranked.exercises.filter((e) => !leftOut.includes(e)).slice(0, 10)
+            const without = leftOut.length ? `\nLeft out, as the user doesn't want ${leftOut.length > 1 ? 'them' : 'it'} recommended (your notes): ${leftOut.map(nameOf).join(', ')}` : ''
+            if (!found.length) return `No exercises found${filter.lowLoadOn ? ` with low ${filter.lowLoadOn} load` : ''}. Try other wording (English or Chinese, a shorter keyword) or another muscle.${without}`
+            const injured = new Set(list.filter(isActiveInjury).map((n) => n.subject))
+            const lines = (await Promise.all(found.map((e) => listLine(e.id, nameOf(e), describe(e, injured))))).join('\n')
+            return `${ranked.exact ? lines : `Nothing in the library matches "${input.query}" exactly. Closest:\n${lines}`}${without}`
         },
 
         async get_workout_history(input) {
@@ -254,7 +308,11 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             if (planned.some((pe) => pe.exercise_id === exercise.id)) return `"${nameOf(exercise)}" is already in today's workout; nothing added.`
             const error = await data.addPlannedExercise(workoutId, exercise.id)
             if (error) return `Not added: ${error}`
-            return changed(`✓ 已將「${nameOf(exercise)}」加入今天的課表`, `✓ Added "${nameOf(exercise)}" to today's workout`)
+            const line = changed(`✓ 已將「${nameOf(exercise)}」加入今天的課表`, `✓ Added "${nameOf(exercise)}" to today's workout`)
+            // The user's own choice goes ahead; trying it once doesn't change the note by itself
+            return (await dislikes()).has(exercise.id)
+                ? `${line}. Your notes say the user doesn't want it recommended: ask once whether to clear that, and change the note only if they say yes.`
+                : line
         },
 
         async remove_exercise_today(input) {
@@ -290,6 +348,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         async recommend_exercise(input) {
             const exercise = await findExercise(input.exercise_id)
             if (!exercise) return UNKNOWN_ID
+            if ((await dislikes()).has(exercise.id)) return `No card shown: your notes say the user doesn't want "${nameOf(exercise)}" recommended. Recommend another; if they asked for it by name, add it with add_exercise_today.`
             // Today's exercises, or the routine's plan if today's workout hasn't started
             const range = todayRange()
             const workout = await data.getLatestWorkoutBetween(range.start, range.end)
@@ -383,6 +442,55 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             // Said outright: the model guessed which routines had it, and a guess counts as invented
             const scope = !add && !input.routine_name ? ' (the only routines with this exercise)' : ''
             return `Proposed, not applied yet: ${describeProposal(proposal, false)}${scope}. It takes effect when the user confirms it in the app.`
+        },
+
+        // A slot's note is replaced here, by its kind and subject, never added beside the old one,
+        // and the line the user sees is written here from what was stored
+        async remember(input) {
+            if (!isMemoryKind(input.kind)) return 'Not saved: kind is injury, exercise, equipment or schedule'
+            const kind = input.kind
+            const slot = await slotOf(kind, input)
+            if ('error' in slot) return `Not saved: ${slot.error}`
+            const states = MEMORY_STATES[kind]
+            if (kind === 'exercise' && !input.state) return 'Not saved: an exercise note needs state, like or dislike'
+            const state = kind === 'equipment' || kind === 'schedule' ? 'active' : vocabulary(input.state) ?? states[0]
+            if (!states.includes(state)) return `Not saved: a ${kind} note is ${states.join(' or ')}`
+            const text = String(input.text ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_NOTE_CHARS)
+            if (!text) return 'Not saved: text is empty'
+            const list = await notes()
+            const old = list.find((n) => sameSlot(n, { kind, subject: slot.subject }))
+            if (old && old.state === state && old.text === text) return 'Already in your notes as it is; nothing changed.'
+            if (!old && list.length >= MAX_NOTES) {
+                // Only against abuse (the slots bound the count): the oldest note that isn't an active injury makes room
+                const oldest = list.filter((n) => !isActiveInjury(n)).sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))[0]
+                if (oldest && !(await data.deleteMemory(oldest))) list.splice(list.indexOf(oldest), 1)
+            }
+            const note: MemoryNote = { kind, subject: slot.subject, state, text, updatedAt: now().toISOString() }
+            const error = await data.saveMemory(note)
+            if (error) return `Not saved: ${error}`
+            const at = list.findIndex((n) => sameSlot(n, note))
+            if (at >= 0) list.splice(at, 1, note)
+            else list.push(note)
+            const line = memoryReceipt(old ? 'updated' : 'added', text, zh)
+            remembered.push(line)
+            const was = old ? `Updated (it was ${old.state}: "${old.text}")` : 'Saved'
+            return `${was}: ${slot.label}${kind === 'injury' || kind === 'exercise' ? `, ${state}` : ''}. The app shows the user "${line}" with your reply, so don't say it yourself.`
+        },
+
+        async forget(input) {
+            if (!isMemoryKind(input.kind)) return 'Nothing forgotten: kind is injury, exercise, equipment or schedule'
+            const kind = input.kind
+            const slot = await slotOf(kind, input)
+            if ('error' in slot) return `Nothing forgotten: ${slot.error}`
+            const list = await notes()
+            const old = list.find((n) => sameSlot(n, { kind, subject: slot.subject }))
+            if (!old) return `There is no note for ${slot.label}; nothing was forgotten. Your notes are listed in the system prompt.`
+            const error = await data.deleteMemory(old)
+            if (error) return `Not forgotten: ${error}`
+            list.splice(list.indexOf(old), 1)
+            const line = memoryReceipt('forgotten', old.text, zh)
+            remembered.push(line)
+            return `Deleted the note on ${slot.label} ("${old.text}"). The app shows the user "${line}" with your reply, so don't say it yourself.`
         },
     }
 
@@ -497,5 +605,6 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         recommendations,
         confirmations,
         notices,
+        remembered,
     }
 }

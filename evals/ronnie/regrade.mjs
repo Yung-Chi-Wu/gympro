@@ -15,7 +15,7 @@ import { overallPass, programmaticGrade } from './grade.mjs'
 import { judge } from './judge.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const { EXERCISES, FIXTURE_USER, buildSystemPrompt, getClient, memoryNote } = createRequire(import.meta.url)(join(here, 'dist', 'ronnie.cjs'))
+const { EXERCISES, FIXTURE_USER, buildSystemPrompt, fixtureNotes, getClient, memoryNote } = createRequire(import.meta.url)(join(here, 'dist', 'ronnie.cjs'))
 const [flow = '.claude/hillclimb/ronnie', variant = 'baseline', rejudgeArg = ''] = process.argv.slice(2)
 const rejudge = new Set(rejudgeArg.replace(/^rejudge=/, '').split(',').filter(Boolean))
 const vdir = join(flow, variant)
@@ -41,7 +41,8 @@ function rebuild(trace, c) {
     for (const m of trace) {
         if (m.role === 'app_event') events.push(m.content)
         else if (m.role === 'user') {
-            turns.push({ user: m.content, events, toolCalls: [], writes: [], message: '', session: sessionOf[turns.length] ?? 1, memoryChanged: false })
+            // notesBefore: what that request's prompt listed
+            turns.push({ user: m.content, events, toolCalls: [], writes: [], message: '', session: sessionOf[turns.length] ?? 1, memoryChanged: false, notesBefore: memories })
             events = []
         }
         else if (m.role === 'assistant') turns.at(-1).message = m.content
@@ -78,8 +79,10 @@ for (const r of rows) {
     grade.judge_ok = r.grade.judge_ok
     if (r.explanation?.judge_ok) explanation.judge_ok = r.explanation.judge_ok
     if (rejudge.has(r.prompt_id)) {
-        // The system prompt is today's, not the one the run had: the judge reads it for the user's profile
-        const j = await judge(await getClient(), c, { ...conv, system: buildSystemPrompt(c.language, FIXTURE_USER) })
+        // The system prompt is today's, not the one the run had: the judge reads it for the user's
+        // profile, and for the notes the last request listed
+        const notes = fixtureNotes(conv.turns.at(-1)?.notesBefore ?? conv.memoriesBefore, c.language)
+        const j = await judge(await getClient(), c, { ...conv, system: buildSystemPrompt(c.language, { ...FIXTURE_USER, notes }) })
         grade.judge_ok = j.verdict.verdict === 'pass' ? 1 : 0
         explanation.judge_ok = j.verdict.reason
     }
