@@ -8,7 +8,7 @@ import { toFriendlyError } from '@/lib/friendly-error'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
-import { fieldValue, fitsLogType, isValidField, isWeightField, LOG_FIELDS, logTypeOf, toSetRow, toStoredSet, type FieldKey, type SetValues, type Units } from '@/lib/set-log'
+import { fieldValue, fitsLogType, isValidField, isWeightField, LOG_FIELDS, logTypeOf, toSetRow, toStoredSet, unitsOfSet, withField, type FieldKey, type SetValues, type Units } from '@/lib/set-log'
 import type { ExerciseOption } from './log-types'
 import { exerciseLogUnits, findTodayWorkoutId, lastSessionSets, loadTodayWorkout, type TodayExercise } from '@/lib/today-workout'
 import { cellText, compactSet, fieldLabel, SummaryLine } from './set-format'
@@ -38,9 +38,10 @@ interface TodayWorkoutCardProps {
 }
 
 // Today's log: every exercise, strength or cardio, is a table of sets whose columns come from
-// its log type (lib/set-log.ts). Last time's sets show as grey hints in the empty cells. An
-// exercise folds to its name and summary; logging a set in another one folds the one before,
-// so usually only the exercise in progress is open.
+// its log type (lib/set-log.ts). Last time's sets show as grey hints in the empty cells. A
+// logged set's numbers can be typed over where they are. An exercise folds to its name and
+// summary; logging a set in another one folds the one before, so usually only the exercise in
+// progress is open.
 //
 // kg/lb is chosen per exercise (some machines are in lb), remembered in exercise_log_units, and
 // starts as the reading unit from Settings, which this card never changes. km/mi is one choice.
@@ -222,7 +223,9 @@ export function TodayWorkoutCard({
                 throw new Error(toFriendlyError(insertError, language))
             }
 
-            setExercises(current.map((ex) =>
+            // On the list as it is now, so a set changed or deleted during the save stays that way;
+            // an exercise planned just now is only on the list that planned it
+            setExercises((prev) => (prev.some((ex) => ex.exerciseId === exerciseId) ? prev : current).map((ex) =>
                 ex.exerciseId !== exerciseId
                     ? ex
                     : { ...ex, loggedSets: [...ex.loggedSets, { ...values, id: data.id, setNumber, createdAt: data.created_at }] }
@@ -237,6 +240,25 @@ export function TodayWorkoutCard({
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong.')
             return false
+        }
+    }
+
+    /** A logged set typed over: shown at once, and put back if it can't be saved */
+    async function handleUpdateSet(exerciseId: string, setId: string, values: SetValues) {
+        setError(null)
+        const before = exercises.find((ex) => ex.exerciseId === exerciseId)?.loggedSets.find((s) => s.id === setId)
+        const show = (v: SetValues) => setExercises((prev) =>
+            prev.map((ex) =>
+                ex.exerciseId !== exerciseId
+                    ? ex
+                    : { ...ex, loggedSets: ex.loggedSets.map((s) => (s.id === setId ? { ...s, ...v } : s)) }
+            )
+        )
+        show(values)
+        const { error: updateError } = await supabase.from('workout_sets').update(toSetRow(values)).eq('id', setId)
+        if (updateError) {
+            if (before) show(before)
+            setError(toFriendlyError(updateError, language))
         }
     }
 
@@ -345,6 +367,7 @@ export function TodayWorkoutCard({
                                 onUnitChange={(unit) => handleExerciseUnit(exercise.exerciseId, unit)}
                                 onDistanceUnitChange={handleDistanceUnit}
                                 onAddSet={handleAddSet}
+                                onUpdateSet={handleUpdateSet}
                                 onDeleteSet={handleDeleteSet}
                                 onRemove={handleRemoveExercise}
                             />
@@ -454,12 +477,13 @@ interface ExerciseBlockProps {
     onUnitChange: (unit: WeightUnit) => void
     onDistanceUnitChange: (unit: DistanceUnit) => void
     onAddSet: (exerciseId: string, values: SetValues) => Promise<boolean>
+    onUpdateSet: (exerciseId: string, setId: string, values: SetValues) => void
     onDeleteSet: (exerciseId: string, setId: string) => void
     onRemove: (exerciseId: string) => void
 }
 
 /** One exercise: its name and one line (the target, then the sets), which fold the table away */
-function ExerciseBlock({ exercise, isOpen, onToggle, language, units, onUnitChange, onDistanceUnitChange, onAddSet, onDeleteSet, onRemove }: ExerciseBlockProps) {
+function ExerciseBlock({ exercise, isOpen, onToggle, language, units, onUnitChange, onDistanceUnitChange, onAddSet, onUpdateSet, onDeleteSet, onRemove }: ExerciseBlockProps) {
     const t = useTranslations('today')
     const ts = useTranslations('sets')
 
@@ -489,6 +513,7 @@ function ExerciseBlock({ exercise, isOpen, onToggle, language, units, onUnitChan
                         onUnitChange={onUnitChange}
                         onDistanceUnitChange={onDistanceUnitChange}
                         onAddSet={onAddSet}
+                        onUpdateSet={onUpdateSet}
                         onDeleteSet={onDeleteSet}
                     />
                     <button
@@ -507,17 +532,21 @@ function ExerciseBlock({ exercise, isOpen, onToggle, language, units, onUnitChan
 // A finger-sized row (44px) on the phone, a mouse-sized one (36px) from md up
 const NUMBER = 'text-center font-mono text-sm font-bold text-muted'
 const CELL = 'h-11 truncate rounded-lg bg-done px-1 text-center font-mono text-base font-bold leading-[44px] md:h-9 md:leading-9'
+// A logged value looks like a cell until it is tapped, then like the input it was typed in. No
+// border class: the dark theme restyles .border with !important (globals.css), so a ring marks a typo.
+const LOGGED = 'h-11 min-h-0! w-full min-w-0 truncate rounded-lg bg-done px-1 text-center font-mono text-base font-bold focus:bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-invalid:ring-2 aria-invalid:ring-inset aria-invalid:ring-miss md:h-9'
 const INPUT = 'h-11 min-h-0! w-full min-w-0 rounded-lg border border-line bg-card px-1 text-center font-mono text-base font-bold placeholder:font-medium placeholder:text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:h-9'
 const PLUS = 'h-11 w-11 rounded-lg bg-accent text-xl leading-none text-accent-ink transition-colors disabled:bg-accent-soft disabled:text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:h-9 md:w-9'
 const WHOLE_NUMBERS = new Set<FieldKey>(['reps', 'seconds'])
 
 /** The sets as a table: set number, the log type's columns, and delete or add */
-function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSet, onDeleteSet }: {
+function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSet, onUpdateSet, onDeleteSet }: {
     exercise: TodayExercise
     units: Units
     onUnitChange: (unit: WeightUnit) => void
     onDistanceUnitChange: (unit: DistanceUnit) => void
     onAddSet: (exerciseId: string, values: SetValues) => Promise<boolean>
+    onUpdateSet: (exerciseId: string, setId: string, values: SetValues) => void
     onDeleteSet: (exerciseId: string, setId: string) => void
 }) {
     const t = useTranslations('today')
@@ -582,7 +611,17 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
                 <div key={s.id} className="grid items-center gap-x-2" style={grid}>
                     <span className={NUMBER}>{i + 1}</span>
                     {fitsLogType(exercise.logType, s)
-                        ? fields.map((key) => <span key={key} className={CELL}>{cellText(ts, key, s, units)}</span>)
+                        ? fields.map((key) => (
+                            <LoggedCell
+                                key={key}
+                                field={key}
+                                set={s}
+                                units={units}
+                                label={ts('fieldOfSet', { n: i + 1, field: fieldLabel(ts, key, units) })}
+                                // In the kg/lb the set was typed in, so 80 lb stays 80 lb
+                                onSave={(typed) => onUpdateSet(exercise.exerciseId, s.id, withField(s, key, typed, unitsOfSet(s, units)))}
+                            />
+                        ))
                         // Logged before this exercise had its columns: shown the way it was logged
                         : <span className={`${CELL} text-ink/60`} style={{ gridColumn: `span ${fields.length}` }}>{compactSet(ts, 'weight_reps', s, units)}</span>}
                     <button
@@ -616,5 +655,57 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
                 </button>
             </form>
         </div>
+    )
+}
+
+/**
+ * One value of a logged set. It reads like the other cells (BW, +10, 80 lb); tapped, it is the
+ * plain number, selected so typing replaces it. Leaving it or Enter saves a valid change;
+ * Escape or an invalid value puts the number back.
+ */
+function LoggedCell({ field, set, units, label, onSave }: {
+    field: FieldKey
+    set: SetValues
+    units: Units
+    label: string
+    onSave: (typed: number) => void
+}) {
+    const ts = useTranslations('sets')
+    const typedAs = String(fieldValue(field, set, unitsOfSet(set, units)) ?? '')
+    // What is being typed; null while the cell isn't being edited
+    const [draft, setDraft] = useState<string | null>(null)
+    const cancelled = useRef(false)
+
+    function finish() {
+        if (!cancelled.current && draft != null && draft.trim() !== typedAs && isValidField(field, draft)) onSave(Number(draft))
+        cancelled.current = false
+        setDraft(null)
+    }
+
+    return (
+        <input
+            type="text"
+            inputMode={WHOLE_NUMBERS.has(field) ? 'numeric' : 'decimal'}
+            value={draft ?? cellText(ts, field, set, units)}
+            onFocus={(e) => {
+                setDraft(typedAs)
+                const input = e.currentTarget
+                // After React puts the plain number in
+                requestAnimationFrame(() => input.select())
+            }}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={finish}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter') e.currentTarget.blur()
+                if (e.key === 'Escape') {
+                    cancelled.current = true
+                    e.currentTarget.blur()
+                }
+            }}
+            aria-label={label}
+            aria-invalid={draft != null && !isValidField(field, draft)}
+            data-logged=""
+            className={LOGGED}
+        />
     )
 }
