@@ -51,7 +51,7 @@ export function LoginForm({ locale, initialError = null }: LoginFormProps) {
         if (!error) setResendSent(true)
     }
 
-    async function handleOAuth(provider: 'google' | 'facebook') {
+    async function handleOAuth(provider: 'google') {
         setError(null)
         setOauthLoading(provider)
 
@@ -150,13 +150,12 @@ export function LoginForm({ locale, initialError = null }: LoginFormProps) {
                 </div>
             </div>
 
-            <div className="flex justify-center gap-4">
+            <div className="flex">
                 <button
                     type="button"
                     onClick={() => handleOAuth('google')}
                     disabled={!!oauthLoading}
-                    aria-label="Continue with Google"
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 bg-white transition hover:bg-ink/5 disabled:opacity-50"
+                    className="flex h-11 w-full items-center justify-center gap-2 rounded-md border border-ink/20 bg-white text-sm font-medium transition hover:bg-ink/5 disabled:opacity-50"
                 >
                     {oauthLoading === 'google' ? (
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-ink/20 border-t-ink" />
@@ -168,22 +167,7 @@ export function LoginForm({ locale, initialError = null }: LoginFormProps) {
                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                         </svg>
                     )}
-                </button>
-
-                <button
-                    type="button"
-                    onClick={() => handleOAuth('facebook')}
-                    disabled={!!oauthLoading}
-                    aria-label="Continue with Facebook"
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 bg-white transition hover:bg-ink/5 disabled:opacity-50"
-                >
-                    {oauthLoading === 'facebook' ? (
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-ink/20 border-t-[#1877F2]" />
-                    ) : (
-                        <svg className="h-5 w-5" viewBox="0 0 24 24">
-                            <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                        </svg>
-                    )}
+                    {zh ? '使用 Google 登入' : 'Continue with Google'}
                 </button>
             </div>
 

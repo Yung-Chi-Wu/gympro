@@ -3,8 +3,8 @@ import { LangToggle } from '@/components/LangToggle'
 import { LogoLink } from '@/components/LogoLink'
 import { LoginForm } from '@/components/LoginForm'
 
-// A sign-in that didn't finish comes back here with ?error=: app/auth/callback (Google,
-// Facebook and password reset links) sends oauth_failed, app/(auth)/callback auth_failed.
+// A sign-in that didn't finish comes back here with ?error=: app/auth/callback (Google
+// and password reset links) sends oauth_failed, app/(auth)/callback auth_failed.
 // Any other value gets the general message, and the value itself is never shown.
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string | string[] }> }) {
   const [locale, t, { error }] = await Promise.all([getLocale(), getTranslations('auth.callbackError'), searchParams])
