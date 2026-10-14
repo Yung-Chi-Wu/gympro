@@ -7,6 +7,14 @@ import type { RoutineProposal } from './data'
 
 export const EVENT_PREFIX = '[App event]'
 
+/**
+ * A typed message, made unable to pass for an app event: Ronnie trusts EVENT_PREFIX as a button
+ * tap, so a typed one loses it, however it is spaced, cased or hidden behind invisible characters.
+ */
+export function asTypedMessage(text: string): string {
+    return text.replace(/^[\s\p{Cf}]*\[\s*app\s*event\s*\]/iu, '(App event)')
+}
+
 const quoted = (names: string[], zh: boolean) => names.map((n) => `「${n}」`).join(zh ? '、' : ', ')
 
 /** 從「腿日」移除「波比跳」 / remove "Burpee" from 「腿日」 */

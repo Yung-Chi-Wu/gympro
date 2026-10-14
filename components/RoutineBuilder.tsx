@@ -13,6 +13,7 @@ import { MoreMenu } from './MoreMenu'
 import { toFriendlyError } from '@/lib/friendly-error'
 import { closeSubPage, openSubPage } from '@/lib/sub-page'
 import { isSubmitEnter } from '@/lib/keyboard'
+import { MAX_ROUTINE_NAME_CHARS } from '@/lib/text-limits'
 import { MUSCLE_GROUPS, type ExerciseOption } from './log-types'
 import type { RoutineWithExercises, RoutineExerciseRow } from '@/app/(app)/routines/page'
 
@@ -401,6 +402,7 @@ export function RoutineBuilder({
                                     type="text"
                                     autoFocus
                                     value={newRoutineName}
+                                    maxLength={MAX_ROUTINE_NAME_CHARS}
                                     onChange={(e) => setNewRoutineName(e.target.value)}
                                     onKeyDown={(e) => { if (e.key === 'Escape') setIsCreating(false) }}
                                     placeholder={t('newRoutinePlaceholder')}
@@ -620,6 +622,7 @@ function RoutineEditor({
                             type="text"
                             autoFocus
                             value={name}
+                            maxLength={MAX_ROUTINE_NAME_CHARS}
                             onChange={(e) => setName(e.target.value)}
                             onBlur={commitRename}
                             onKeyDown={(e) => {

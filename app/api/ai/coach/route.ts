@@ -15,6 +15,8 @@ import {
     truncateAtUserMessage,
     withProposalStatuses,
 } from '@/lib/ronnie/conversation'
+import { asTypedMessage } from '@/lib/ronnie/events'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { errorText, usageOfError } from '@/lib/ai/trace'
 import { traceAfterResponse } from '@/lib/ai/trace-after'
 
@@ -59,14 +61,15 @@ export async function POST(request: Request) {
     let message = typeof body?.message === 'string' ? body.message.trim() : ''
     if (!message) return NextResponse.json({ error: 'Empty message' }, { status: 400 })
     if (message.length > MAX_MESSAGE_CHARS) return NextResponse.json({ error: 'Message too long' }, { status: 413 })
-    // Ronnie trusts a message with the app-event prefix as a button tap; typed, it loses the prefix
-    message = message.replace(/^\[App event\]/i, '(App event)')
+    message = asTypedMessage(message)
 
+    // The conversation is written with the service role only (lib/ronnie/conversation.ts)
+    const admin = createAdminClient()
     const ctx = await loadRonnieContext(supabase, user.id, language)
     let conv = await loadConversation(supabase, user.id, ctx.today)
     if (Number.isInteger(body?.editFrom)) {
         conv = truncateAtUserMessage(conv, body.editFrom)
-        const error = await replaceConversation(supabase, user.id, ctx.today, conv)
+        const error = await replaceConversation(admin, user.id, ctx.today, conv)
         if (error) return NextResponse.json({ error: 'Could not edit the conversation' }, { status: 500 })
     }
 
@@ -94,7 +97,7 @@ export async function POST(request: Request) {
             ...(recommendations.length ? { recommendations } : {}),
         }
         // Only what this turn added: the user's message and everything after it
-        const error = await appendConversation(supabase, ctx.today, {
+        const error = await appendConversation(admin, user.id, ctx.today, {
             messages: turn.messages.slice(conv.messages.length),
             display: [{ kind: 'user', text: message }, reply],
         })

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { MAX_ROUTINE_NAME_CHARS } from '@/lib/text-limits'
 
 interface Exercise {
     exercise_id: string
@@ -89,9 +90,10 @@ export async function POST(request: Request) {
     const savedRoutines = []
 
     for (const routine of routines) {
-        const routineName = language === 'zh-TW' && routine.name_zh_tw
+        // Cut to the table's limit, so a long name from the model can't fail the save halfway
+        const routineName = (language === 'zh-TW' && routine.name_zh_tw
             ? routine.name_zh_tw
-            : routine.name
+            : routine.name).slice(0, MAX_ROUTINE_NAME_CHARS)
 
         const { data: routineData, error: routineError } = await supabase
             .from('routines')

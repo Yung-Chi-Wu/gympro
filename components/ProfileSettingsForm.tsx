@@ -16,6 +16,7 @@ import { ThemeSelector } from '@/components/ThemeSelector'
 import { Icon } from '@/components/Icon'
 import { InstallGuide } from '@/components/InstallGuide'
 import { CHOSEN_UTC } from '@/lib/time-zone'
+import { MAX_DISPLAY_NAME_CHARS, MAX_TRAINING_GOAL_CHARS } from '@/lib/text-limits'
 
 // Settings. Side by side (@split): the sections on the left (個人資料, 訓練目標, 單位與語言,
 // 外觀, 帳號), the chosen section's form on the right. On a phone: one grouped list with
@@ -357,7 +358,7 @@ function FieldEditor({ field, value, onChange, hideLabel, isZhTW }: {
     let control: React.ReactNode
     switch (field) {
         case 'displayName':
-            control = <input id={id} type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={t('displayNamePlaceholder')} className={INPUT} />
+            control = <input id={id} type="text" value={value} maxLength={MAX_DISPLAY_NAME_CHARS} onChange={(e) => onChange(e.target.value)} placeholder={t('displayNamePlaceholder')} className={INPUT} />
             break
         case 'heightCm':
             control = <input id={id} type="text" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} className={`${INPUT} font-mono`} />
@@ -385,7 +386,7 @@ function FieldEditor({ field, value, onChange, hideLabel, isZhTW }: {
             break
         }
         case 'trainingGoal':
-            control = <textarea id={id} value={value} onChange={(e) => onChange(e.target.value)} rows={4} placeholder={t('trainingGoalPlaceholder')} className={TEXTAREA} />
+            control = <textarea id={id} value={value} maxLength={MAX_TRAINING_GOAL_CHARS} onChange={(e) => onChange(e.target.value)} rows={4} placeholder={t('trainingGoalPlaceholder')} className={TEXTAREA} />
             break
         case 'weightUnit':
             control = <Segmented id={id} options={['kg', 'lb']} value={value} onChange={onChange} />

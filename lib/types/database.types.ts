@@ -649,11 +649,12 @@ export type Database = {
           similarity: number
         }[]
       }
-      append_ronnie_conversation: {
+      append_ronnie_conversation_for: {
         Args: {
           p_date: string
           p_display: Json
           p_messages: Json
+          p_user_id: string
         }
         Returns: undefined
       }
@@ -661,14 +662,6 @@ export type Database = {
         Args: {
           p_action_id: string
           p_decision: string
-        }
-        Returns: Json
-      }
-      get_period_training_summary: {
-        Args: {
-          p_period_end: string
-          p_period_start: string
-          p_user_id: string
         }
         Returns: Json
       }

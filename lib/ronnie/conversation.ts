@@ -8,6 +8,9 @@ import { EVENT_PREFIX } from './events'
 // (ronnie_conversations). messages is the full history the model gets back next
 // time - tool calls and results included, so an ID looked up earlier is still
 // there - and display is what the chat window shows. Kept 30 days.
+// Only the server writes it, with the service-role client (lib/supabase/admin.ts) and always
+// for the signed-in user: what is stored goes back to the model on every turn, so it must be
+// what the user sent and what the tools returned. Users read and clear their own.
 
 export type ProposalStatus = 'pending' | 'confirmed' | 'cancelled' | 'expired'
 export type ProposalCard = RoutineProposal & { id: string; status?: ProposalStatus }
@@ -52,9 +55,13 @@ export async function loadConversation(supabase: Client, userId: string, date: s
     }
 }
 
-/** Appends in one statement, so an app event written meanwhile is not overwritten. */
-export async function appendConversation(supabase: Client, date: string, add: Conversation): Promise<string | null> {
-    const { error } = await supabase.rpc('append_ronnie_conversation', {
+const NO_ADMIN = 'Conversation storage is not available'
+
+/** Appends in one statement, so an app event written meanwhile is not overwritten. admin is the service-role client. */
+export async function appendConversation(admin: Client | null, userId: string, date: string, add: Conversation): Promise<string | null> {
+    if (!admin) return NO_ADMIN
+    const { error } = await admin.rpc('append_ronnie_conversation_for', {
+        p_user_id: userId,
         p_date: date,
         p_messages: add.messages as unknown as Json,
         p_display: add.display as unknown as Json,
@@ -62,8 +69,10 @@ export async function appendConversation(supabase: Client, date: string, add: Co
     return error?.message ?? null
 }
 
-export async function replaceConversation(supabase: Client, userId: string, date: string, conv: Conversation): Promise<string | null> {
-    const { error } = await supabase.from('ronnie_conversations').upsert({
+/** admin is the service-role client */
+export async function replaceConversation(admin: Client | null, userId: string, date: string, conv: Conversation): Promise<string | null> {
+    if (!admin) return NO_ADMIN
+    const { error } = await admin.from('ronnie_conversations').upsert({
         user_id: userId,
         conversation_date: date,
         messages: conv.messages as unknown as Json,
