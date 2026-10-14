@@ -3,9 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
 import { awsCredentialsProvider } from '@vercel/oidc-aws-credentials-provider'
-import { currentPeriod, localDate, periodEndFor } from '@/lib/periods'
+import { currentPeriod, localDate } from '@/lib/periods'
 import { toFriendlyError } from '@/lib/friendly-error'
-import { isStalePending } from '@/lib/report/queue'
 import { timeZoneOf } from '@/lib/time-zone'
 
 // Reports are queued automatically when a period ends (the report-scheduler
@@ -19,7 +18,14 @@ export interface ActionResult {
     message?: string
     /** retryFailedReport: the app already retried this report by itself once, so it's the user's call now */
     autoUsed?: boolean
+    /** retryFailedReport: this report was queued again as many times as it can be */
+    retryLimit?: boolean
 }
+
+/** What claim_report_retry answers (migration 20261014120000) */
+type RetryClaim =
+    | { claimed: true; queued_at: string }
+    | { claimed: false; reason: 'not_failed' | 'auto_used' | 'limit' }
 
 const MAX_NOTE_LENGTH = 1000
 // Short, so a week of day notes can't drown the rest of the report's brief (the table checks it too)
@@ -148,7 +154,7 @@ export async function savePeriodNote(note: string): Promise<ActionResult> {
 /**
  * Queue a report again: a failed one, or one still pending long after it was queued, whose
  * run died. `auto` is the app retrying by itself, which it does once per report (each try may
- * call the model); after that it is the user's button.
+ * call the model); after that it is the user's button, up to the database's limit.
  */
 export async function retryFailedReport(periodStart: string, { auto = false }: { auto?: boolean } = {}): Promise<ActionResult> {
     const supabase = await createClient()
@@ -157,36 +163,18 @@ export async function retryFailedReport(periodStart: string, { auto = false }: {
     } = await supabase.auth.getUser()
     if (!user) return { success: false, message: 'Not authenticated.' }
 
-    const { data: row, error: readError } = await supabase
-        .from('period_reports')
-        .select('status, queued_at, period_end, retries, user_note')
-        .eq('user_id', user.id)
-        .eq('period_start', periodStart)
-        .maybeSingle()
-    if (readError) return { success: false, message: toFriendlyError(readError) }
-    if (!row || (row.status !== 'failed' && !isStalePending(row))) return { success: false, message: 'This report is not in a failed state.' }
-    if (auto && row.retries > 0) return { success: false, autoUsed: true }
-
-    // Claimed from the state just read, atomically, so a double click or a second tab can't queue
-    // it twice. The new queued_at goes in the message: the worker runs only the current request.
-    const queuedAt = new Date().toISOString()
-    const { data: claimed, error: claimError } = await supabase
-        .from('period_reports')
-        .update({ status: 'pending', error_message: null, queued_at: queuedAt, retries: row.retries + 1 })
-        .eq('user_id', user.id)
-        .eq('period_start', periodStart)
-        .eq('status', row.status)
-        .eq('queued_at', row.queued_at)
-        .select('user_note')
-        .maybeSingle()
+    // The database claims the row under a lock, so a double click or a second tab can't queue
+    // it twice, and counts the retries. Users can't write report rows themselves: the worker
+    // reads the period and the note from the row, so only the request goes in the message.
+    const { data, error: claimError } = await supabase.rpc('claim_report_retry', { p_period_start: periodStart, p_auto: auto })
     if (claimError) return { success: false, message: toFriendlyError(claimError) }
-    if (!claimed) return { success: false, message: 'This report is already being made again.' }
-
-    const [{ data: profile }, { data: cycle }] = await Promise.all([
-        supabase.from('user_profiles').select('language').eq('user_id', user.id).maybeSingle(),
-        // Only for a report queued before the row kept its period's end
-        row.period_end ? Promise.resolve({ data: null }) : supabase.from('training_cycles').select('cycle_length, start_date').eq('user_id', user.id).maybeSingle(),
-    ])
+    const claim = data as RetryClaim
+    if (!claim.claimed) {
+        if (claim.reason === 'auto_used') return { success: false, autoUsed: true }
+        if (claim.reason === 'limit') return { success: false, retryLimit: true }
+        return { success: false, message: 'This report is not in a failed state.' }
+    }
+    const queuedAt = claim.queued_at
 
     try {
         // Short-lived credentials from Vercel OIDC — no stored AWS access key.
@@ -198,30 +186,16 @@ export async function retryFailedReport(periodStart: string, { auto = false }: {
         const { MessageId } = await sqsClient.send(
             new SendMessageCommand({
                 QueueUrl: process.env.SQS_QUEUE_URL,
-                MessageBody: JSON.stringify({
-                    userId: user.id,
-                    periodStart,
-                    // The period as the scheduler set it, even if the cycle has changed since
-                    periodEnd: row.period_end ?? periodEndFor(
-                        periodStart,
-                        cycle ? { cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null
-                    ),
-                    userNote: claimed.user_note ?? undefined,
-                    language: profile?.language || 'en',
-                    queuedAt,
-                }),
+                MessageBody: JSON.stringify({ userId: user.id, periodStart, queuedAt }),
             })
         )
         // The worker Lambda logs the same messageId, so this report can be traced in CloudWatch.
         console.log(`Re-queued report for user ${user.id}, period ${periodStart} (messageId ${MessageId})`)
     } catch (err) {
         console.error(`Failed to re-queue report for user ${user.id}, period ${periodStart}:`, err)
-        await supabase
-            .from('period_reports')
-            .update({ status: 'failed', error_message: 'Failed to queue report request.' })
-            .eq('user_id', user.id)
-            .eq('period_start', periodStart)
-            .eq('queued_at', queuedAt)
+        // Otherwise it would show as being made until it looked stale
+        const { error: markError } = await supabase.rpc('mark_report_queue_failed', { p_period_start: periodStart, p_queued_at: queuedAt })
+        if (markError) console.error(`Report for user ${user.id}, period ${periodStart} not marked failed:`, markError.message)
         return { success: false, message: 'Failed to queue your report. Please try again.' }
     }
 

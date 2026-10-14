@@ -189,7 +189,8 @@
         "bmi": "BMI",
         "ageSex": "Age / Sex",
         "deloadRecommended": "Deload recommended:",
-        "retry": "Try again"
+        "retry": "Try again",
+        "retryLimit": "This report has been retried as many times as it can be. Your next report will still come when the next period ends."
     },
     "routines": {
         "title": "Routines",

@@ -189,7 +189,8 @@
         "bmi": "BMI",
         "ageSex": "年齡 / 性別",
         "deloadRecommended": "建議減量訓練：",
-        "retry": "重新產生"
+        "retry": "重新產生",
+        "retryLimit": "這份報告已經重試很多次了，不會再重試。下一期結束後，新的報告還是會照常產生。"
     },
     "routines": {
         "title": "課表",

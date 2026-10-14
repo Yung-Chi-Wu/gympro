@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// Free check of how the report worker treats a request (no model, no database): a message runs
-// only while its row is pending with the message's queued_at, every save is limited to that
-// row, a model call can't outlast the Lambda, a text that fails its checks is retried with the
-// problems and then replaced by the app's own labels, and the brief gives the app's Chinese words.
+// Free check of how the report worker treats a request (no model, no database): a message only
+// names its request, and the period and the note come from the row; a message runs only while
+// its row is pending with the message's queued_at, every save is limited to that row, a period
+// is 1 to 28 days, a model call can't outlast the Lambda, a text that fails its checks is retried
+// with the problems and then replaced by the app's own labels, and the brief gives the app's
+// Chinese words.
 //   node lambda/ai-worker/evals/worker/check-worker.mjs
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
@@ -51,11 +53,46 @@ for (const [name, row, req, run] of [
     ['a completed row is not run again (redelivered message)', { status: 'completed', queued_at: QUEUED }, request, false],
     ['a failed row is not run again (redelivery after a caught failure)', { status: 'failed', queued_at: QUEUED }, request, false],
     ['a row a retry re-queued is not run by the old message', { status: 'pending', queued_at: '2026-10-13T00:20:00.000Z' }, request, false],
-    ['a message from before queued_at runs on the status alone', { status: 'pending', queued_at: '2026-10-13T00:20:00.000Z' }, { ...request, queuedAt: undefined }, true],
     ['a missing row is not run', null, request, false],
 ]) {
     const r = await w.isRunnable(fakeSupabase(row), req)
     check(name, r.run === run, `run ${r.run} (${r.why})`)
+}
+{
+    const r = await w.isRunnable(fakeSupabase({ status: 'pending', queued_at: QUEUED, period_end: '2026-10-11', user_note: 'Slept badly' }), request)
+    check('a runnable row gives its own period end and note', r.run && r.periodEnd === '2026-10-11' && r.userNote === 'Slept badly', JSON.stringify(r))
+}
+
+// A message names its request, and nothing else in it is read
+const USER = '7d3c1e2a-5b6f-4a8e-9c0d-1e2f3a4b5c6d'
+const message = { userId: USER, periodStart: '2026-10-05', queuedAt: QUEUED }
+for (const [name, body, ok] of [
+    ['a scheduler message is a request', JSON.stringify(message), true],
+    ['a queued_at as the database writes it (+00:00) is a request', JSON.stringify({ ...message, queuedAt: '2026-10-13T00:00:05.123+00:00' }), true],
+    ['a message without queued_at is dropped', JSON.stringify({ ...message, queuedAt: undefined }), false],
+    ['a user id that is not a UUID is dropped', JSON.stringify({ ...message, userId: 'u1' }), false],
+    ['an impossible date is dropped', JSON.stringify({ ...message, periodStart: '2026-13-01' }), false],
+    ['a body that is not JSON is dropped', 'not json', false],
+]) {
+    const r = w.parseRequest(body)
+    check(name, (r !== null) === ok, JSON.stringify(r))
+}
+{
+    const r = w.parseRequest(JSON.stringify({ ...message, periodEnd: '2099-12-31', userNote: 'x'.repeat(100_000), language: 'xx' }))
+    check('a period end, note or language in a message is ignored', Object.keys(r ?? {}).sort().join() === 'periodStart,queuedAt,userId', JSON.stringify(Object.keys(r ?? {})))
+}
+
+// The period a report covers: 1 day to the longest cycle
+for (const [name, start, end, days] of [
+    ['a week', '2026-10-05', '2026-10-11', 7],
+    ['one day', '2026-10-05', '2026-10-05', 1],
+    [`${w.MAX_CYCLE_DAYS} days, the longest cycle`, '2026-10-01', '2026-10-28', 28],
+    ['29 days is too long', '2026-10-01', '2026-10-29', null],
+    ['an end before the start', '2026-10-05', '2026-10-04', null],
+    ['no end', '2026-10-05', null, null],
+    ['decades', '2026-10-05', '2099-12-31', null],
+]) {
+    check(`period: ${name}`, w.periodDays(start, end) === days, String(w.periodDays(start, end)))
 }
 
 // Every save is an update limited to this request's row: never an upsert, never another request's
@@ -242,5 +279,5 @@ const client = (answers, delayMs = 0) => {
     check('a cycle that started during the period plans from its first day', midway?.length === 7 && midway.slice(0, 3).every((d) => d.routine === null) && midway[3].routine === 'Push', JSON.stringify(midway?.map((d) => d.routine)))
 }
 
-console.log(failed ? `\n${failed} check(s) failed` : '\nThe worker runs each request once, saves only to its own row, stops in time, and checks its text')
+console.log(failed ? `\n${failed} check(s) failed` : '\nThe worker trusts only the request in a message, runs it once, saves only to its own row, stops in time, and checks its text')
 process.exit(failed ? 1 : 0)

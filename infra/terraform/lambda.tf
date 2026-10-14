@@ -36,4 +36,11 @@ resource "aws_lambda_event_source_mapping" "sqs_trigger" {
   event_source_arn = aws_sqs_queue.ai_analysis_queue.arn
   function_name    = aws_lambda_function.ai_worker.arn
   batch_size       = 1
+
+  # At most this many reports run at once; the rest wait in the queue. A burst of requests
+  # can't take the account's whole Lambda concurrency (the scheduler needs some too).
+  # SQS triggers allow 2 at the least.
+  scaling_config {
+    maximum_concurrency = 5
+  }
 }

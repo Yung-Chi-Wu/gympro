@@ -672,6 +672,20 @@ export type Database = {
         }
         Returns: Json
       }
+      claim_report_retry: {
+        Args: {
+          p_auto?: boolean
+          p_period_start: string
+        }
+        Returns: Json
+      }
+      mark_report_queue_failed: {
+        Args: {
+          p_period_start: string
+          p_queued_at: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
