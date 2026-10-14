@@ -3,9 +3,16 @@
 // card's save checked whole.
 //   npm run check:coach-g
 import {
-    cleanRoutines, COACH_CYCLE_DAYS, MAX_ANSWER_CHARS, MAX_EXERCISES_PER_ROUTINE, MAX_ROUTINES, parseChatRequest,
-    parseGenerateRequest, parseSaveRequest, REPS, SETS, trainingDaysFrom, type LibraryExercise,
+    COACH_CYCLE_DAYS, MAX_ANSWER_CHARS, MAX_EXERCISES_PER_ROUTINE, MAX_ROUTINES, parseChatRequest,
+    parseGenerateRequest, parseSaveRequest, REPS, SETS, trainingDaysFrom,
 } from '../lib/coach-g'
+import {
+    buildPlan, MAX_SETS_PER_EXERCISE, mergeReading, PLANNER_EXERCISE_NAMES, readAnswers, readingRequest, repsFor, WEEKLY_SETS_FLOOR,
+    weeklySets, type Answers, type CoachPreferences, type PlannerExercise,
+} from '../lib/coach-g-planner'
+import { hasTarget } from '../lib/report/volume'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { MAX_CYCLE_DAYS } from '../lib/periods'
 import { MAX_ROUTINE_NAME_CHARS } from '../lib/text-limits'
 
@@ -43,51 +50,15 @@ for (const [answer, days] of [['3 days', 3], ['3天', 3], ['7天', 7], ['10', 7]
 {
     const g = parseGenerateRequest({ collected: { days: '5天', duration: '60分鐘', equipment: ['槓鈴', '啞鈴'], goals: '增肌', level: '中階（1-3年）', injuries: null }, language: 'zh-TW' })
     check('the plan\'s answers: days from the first, lists as lists, a skipped one as none',
-        g?.trainingDays === 5 && g.equipment.length === 2 && g.goals[0] === '增肌' && g.injuries === null && g.notes === null && g.zh, JSON.stringify(g))
+        g?.days === '5天' && g.equipment.length === 2 && g.goals[0] === '增肌' && g.injuries === null && g.notes === null && g.zh, JSON.stringify(g))
     check('answers that aren\'t answers are refused', parseGenerateRequest({ collected: { days: 'x'.repeat(MAX_ANSWER_CHARS + 1) } }) === null && parseGenerateRequest({ collected: 'x' }) === null)
 }
 
-// ---------- The model's routines ----------
-const SQUAT = '00000000-0000-4000-8000-000000000001'
-const BENCH = '00000000-0000-4000-8000-000000000002'
-const ROW = '00000000-0000-4000-8000-000000000003'
-const library = new Map<string, LibraryExercise>([
-    [SQUAT, { name: 'Barbell Back Squat', name_zh_tw: '槓鈴背蹲舉', muscle_group: 'legs' }],
-    [BENCH, { name: 'Barbell Bench Press', name_zh_tw: '槓鈴臥推', muscle_group: 'chest' }],
-    [ROW, { name: 'Barbell Row', name_zh_tw: null, muscle_group: 'back' }],
-])
-function ex(id: string, sets: unknown = 3, reps: unknown = 8, name = 'whatever the model says') {
-    return { exercise_id: id, exercise_name: name, muscle_group: 'x', target_sets: sets, target_reps: reps }
-}
-{
-    const [legs, push] = cleanRoutines([
-        { name: 'Legs', name_zh_tw: '腿日', day_indices: [1, 5, 1], exercises: [ex(SQUAT, 0, 500), ex(SQUAT), ex('00000000-0000-4000-8000-00000000dead'), ex(ROW, '4', 'eight')] },
-        { name: 'Push', day_indices: [5, 3, 0, 8], exercises: [ex(BENCH, 50, 2.6)] },
-        { name: 'Rest only', day_indices: [], exercises: [ex(BENCH)] },
-        { name: 'No exercises', day_indices: [6], exercises: [ex('not-in-the-list')] },
-    ], library)
-    check('an exercise not in the list is dropped, and one listed twice is kept once',
-        legs?.exercises.map((e) => e.exercise_id).join() === `${SQUAT},${ROW}`, JSON.stringify(legs?.exercises))
-    check('exercises are named as the library names them, not as the model wrote them',
-        legs?.exercises[0].exercise_name === 'Barbell Back Squat' && legs.exercises[0].exercise_name_zh_tw === '槓鈴背蹲舉' && legs.exercises[1].exercise_name_zh_tw === undefined)
-    check(`sets are brought into ${SETS.min}-${SETS.max} and reps into ${REPS.min}-${REPS.max}`,
-        legs?.exercises[0].target_sets === SETS.min && legs.exercises[0].target_reps === REPS.max && push?.exercises[0].target_sets === SETS.max && push.exercises[0].target_reps === 3,
-        JSON.stringify([legs?.exercises[0], push?.exercises[0]]))
-    check('a number given as text is read, and text that is no number gets the default', legs?.exercises[1].target_sets === 4 && legs.exercises[1].target_reps === 10)
-    check('a day listed twice is kept once', legs?.day_indices.join() === '1,5')
-    check(`days outside 1-${COACH_CYCLE_DAYS}, and a day another routine has, are dropped`, push?.day_indices.join() === '3', JSON.stringify(push?.day_indices))
-    check('a routine with no day, or no exercise left, is dropped', cleanRoutines([{ name: 'a', day_indices: [], exercises: [ex(BENCH)] }, { name: 'b', day_indices: [6], exercises: [ex('x')] }], library).length === 0)
-    const many = cleanRoutines(Array.from({ length: 12 }, (_, i) => ({ name: `R${i}`, day_indices: [(i % 7) + 1], exercises: [ex(BENCH)] })), library)
-    check(`at most ${MAX_ROUTINES} routines, one per day of the week`, many.length === 7, String(many.length))
-    const long = cleanRoutines([{ name: 'x'.repeat(200), day_indices: [1], exercises: Array.from({ length: 40 }, () => ex(BENCH)) }], library)
-    check(`a routine's name is cut to ${MAX_ROUTINE_NAME_CHARS} characters`, long[0]?.name.length === MAX_ROUTINE_NAME_CHARS)
-    check('an answer that is not a list of routines gives none', cleanRoutines('nope', library).length === 0 && cleanRoutines(undefined, library).length === 0)
-    const [bare] = cleanRoutines([{ name: 'Pull', day_indices: [2], exercises: [{ exercise_id: ROW, target_sets: 4, target_reps: 10 }] }], library)
-    check('an exercise written as only its id, sets and reps is named from the library',
-        bare?.exercises[0].exercise_name === 'Barbell Row' && bare.exercises[0].muscle_group === 'back' && bare.exercises[0].target_sets === 4, JSON.stringify(bare))
-}
-
 // ---------- The save ----------
+const SQUAT = '00000000-0000-4000-8000-000000000001'
+function ex(id: string, sets: unknown = 3, reps: unknown = 8) {
+    return { exercise_id: id, exercise_name: 'x', muscle_group: 'x', target_sets: sets, target_reps: reps }
+}
 const routine = (days: number[], exercises: unknown[] = [ex(SQUAT, 3, 8)], name: unknown = 'Legs') => ({ name, name_zh_tw: '腿日', day_indices: days, exercises })
 const save = (over: Record<string, unknown> = {}) => parseSaveRequest({ routines: [routine([1, 4]), routine([2])], cycleLength: 7, startDayIndex: 3, language: 'en', ...over }, MAX_CYCLE_DAYS)
 {
@@ -126,5 +97,131 @@ for (const [name, over, error] of [
     check(`a long routine name is cut to ${MAX_ROUTINE_NAME_CHARS} characters`, !('error' in s) && s.routines[0].name.length === MAX_ROUTINE_NAME_CHARS)
 }
 
-console.log(failed ? `\n${failed} check(s) failed` : '\nCoach G accepts only what it can use and save')
+// ---------- The plan ----------
+// The library as the repo has it (supabase/data/exercise-attributes.json), with each planner
+// exercise's equipment, which lives only in the database (scripts/coach-g-equipment.json)
+const root = join(__dirname, '..', '..')
+const attributes: { id: string; name: string; nameZh: string | null; muscleGroup: string; primary: string[]; secondary: string[]; stability: string; jointLoad: PlannerExercise['joint_load'] }[] =
+    JSON.parse(readFileSync(join(root, 'supabase/data/exercise-attributes.json'), 'utf8'))
+const equipmentOf: Record<string, string> = JSON.parse(readFileSync(join(root, 'scripts/coach-g-equipment.json'), 'utf8'))
+const LIBRARY: PlannerExercise[] = attributes.map((a) => ({
+    id: a.id, name: a.name, name_zh_tw: a.nameZh, muscle_group: a.muscleGroup, equipment: equipmentOf[a.name] ?? 'other',
+    primary_muscles: a.primary, secondary_muscles: a.secondary, joint_load: a.jointLoad, stability_demand: a.stability,
+}))
+const byId = new Map(LIBRARY.map((e) => [e.id, e]))
+const byName = new Map(LIBRARY.map((e) => [e.name, e]))
+{
+    const missing = PLANNER_EXERCISE_NAMES.filter((n) => !byName.has(n))
+    check(`every exercise a plan can use is in the library (${PLANNER_EXERCISE_NAMES.length})`, !missing.length, missing.join(', '))
+    const noEquipment = PLANNER_EXERCISE_NAMES.filter((n) => !equipmentOf[n])
+    check('and has its equipment in coach-g-equipment.json', !noEquipment.length, noEquipment.join(', '))
+}
+
+const answers = (over: Partial<Answers> = {}): Answers => ({ days: '4天', duration: '60分鐘', equipment: ['槓鈴', '啞鈴', '健身房器械'], goals: ['增肌'], level: '中階（1-3年）', injuries: null, notes: null, ...over })
+{
+    const zh = readAnswers(answers())
+    check('tapped Chinese options read without the model', !zh.needsModel && zh.preferences.days === 4 && zh.preferences.minutes === 60 && zh.preferences.equipment.join() === 'barbell,dumbbell,machine'
+        && zh.preferences.goals.join() === 'muscle' && zh.preferences.level === 'intermediate', JSON.stringify(zh))
+    const en = readAnswers(answers({ days: '3 days', duration: '90+ min', equipment: ['Cable Machine', 'Bodyweight'], goals: ['Increase Strength', 'Lose Fat'], level: 'Beginner (<1yr)', injuries: 'Lower Back', notes: 'Skip' }))
+    check('tapped English options read too; "Cable Machine" is cables, not machines', !en.needsModel && en.preferences.minutes === 90 && en.preferences.equipment.join() === 'cable,bodyweight'
+        && en.preferences.goals.join() === 'strength,fat_loss' && en.preferences.level === 'beginner' && en.preferences.injuries.join() === 'lower_back', JSON.stringify(en))
+    check('"Gym Machines" is machines', readAnswers(answers({ equipment: ['Gym Machines'] })).preferences.equipment.join() === 'machine')
+    for (const [name, over] of [
+        ['notes', { notes: '不想做深蹲' }],
+        ['days typed in words', { days: 'three' }],
+        ['equipment typed', { equipment: ['只有彈力帶'] }],
+        ['an injury typed', { injuries: 'my left hip' }],
+    ] as [string, Partial<Answers>][]) check(`${name} need the model`, readAnswers(answers(over)).needsModel)
+    check('a skipped note needs no model', !readAnswers(answers({ notes: '跳過' })).needsModel && !readAnswers(answers({ notes: 'Skip' })).needsModel)
+}
+
+const prefs = (over: Partial<CoachPreferences> = {}): CoachPreferences => ({ ...readAnswers(answers()).preferences, ...over })
+const plan = (p: CoachPreferences) => buildPlan(p, LIBRARY)
+const session = { 30: { exercises: 4, sets: 12 }, 45: { exercises: 5, sets: 16 }, 60: { exercises: 6, sets: 20 }, 90: { exercises: 8, sets: 28 } } as const
+for (let days = 1; days <= COACH_CYCLE_DAYS; days++) {
+    const r = plan(prefs({ days }))
+    const trainingDays = r.flatMap((x) => x.day_indices)
+    check(`${days} day(s) a week: ${days} training days, each with one routine, in a 7-day week`,
+        trainingDays.length === days && new Set(trainingDays).size === days && trainingDays.every((d) => d >= 1 && d <= COACH_CYCLE_DAYS), JSON.stringify(r.map((x) => x.day_indices)))
+}
+check('3 days a week rest between training days', plan(prefs({ days: 3 })).flatMap((x) => x.day_indices).sort().join() === '1,3,5')
+{
+    const problems: string[] = []
+    for (const minutes of [30, 45, 60, 90] as const) {
+        for (const goals of [['muscle'], ['strength'], ['fat_loss'], ['fitness'], ['strength', 'muscle']] as CoachPreferences['goals'][]) {
+            for (const level of ['beginner', 'intermediate', 'advanced'] as const) {
+                for (const equipment of [['bodyweight'], ['dumbbell'], ['machine', 'cable'], ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight']] as CoachPreferences['equipment'][]) {
+                    for (const days of [2, 3, 4, 5, 6]) {
+                        const p = prefs({ minutes, goals, level, equipment, days })
+                        const r = plan(p)
+                        const tag = `${days}d ${minutes}m ${goals} ${level} ${equipment}`
+                        if (!r.length) problems.push(`${tag}: no routine`)
+                        for (const x of r) {
+                            const sets = x.exercises.reduce((n, e) => n + e.target_sets, 0)
+                            if (x.exercises.length > session[minutes].exercises) problems.push(`${tag}: ${x.name} has ${x.exercises.length} exercises`)
+                            if (sets > session[minutes].sets) problems.push(`${tag}: ${x.name} has ${sets} sets`)
+                            for (const e of x.exercises) {
+                                const lib = byId.get(e.exercise_id)
+                                if (!lib) problems.push(`${tag}: ${e.exercise_id} not in the library`)
+                                else if (lib.equipment !== 'bodyweight' && !equipment.includes(lib.equipment as never)) problems.push(`${tag}: ${lib.name} needs ${lib.equipment}`)
+                                if (e.target_sets < 2 || e.target_sets > MAX_SETS_PER_EXERCISE) problems.push(`${tag}: ${e.exercise_name} ${e.target_sets} sets`)
+                                if (e.target_sets < SETS.min || e.target_sets > SETS.max || e.target_reps < REPS.min || e.target_reps > REPS.max) problems.push(`${tag}: ${e.exercise_name} out of the save's range`)
+                            }
+                            if (new Set(x.exercises.map((e) => e.exercise_id)).size !== x.exercises.length) problems.push(`${tag}: ${x.name} repeats an exercise`)
+                        }
+                        // What the result card sends, as it sends it, passes the save's check
+                        const saved = parseSaveRequest({ routines: r, cycleLength: COACH_CYCLE_DAYS, startDayIndex: 1, language: 'zh-TW' }, 28)
+                        if ('error' in saved) problems.push(`${tag}: the save refuses it (${saved.error})`)
+                    }
+                }
+            }
+        }
+    }
+    check('1,200 combinations: a plan, inside the session, with the user\'s equipment, no exercise twice in a day, and the save accepts it', !problems.length, problems.slice(0, 5).join('\n       '))
+}
+{
+    const p = prefs({ days: 6 })
+    check('the same answers give the same plan', JSON.stringify(plan(p)) === JSON.stringify(plan(p)))
+    const r = plan(p)
+    const week = weeklySets(r.flatMap((x) => x.day_indices.map(() => ({ exercises: x.exercises.map((e) => ({ e: byId.get(e.exercise_id)!, sets: e.target_sets })) }))))
+    const low = [...week.entries()].filter(([u, n]) => hasTarget(u) && n < WEEKLY_SETS_FLOOR)
+    check(`6 days, an hour each: every muscle the plan trains gets the report's ${WEEKLY_SETS_FLOOR} weekly sets`, !low.length, JSON.stringify(low))
+}
+{
+    const knee = plan(prefs({ injuries: ['knee'] })).flatMap((x) => x.exercises.map((e) => byId.get(e.exercise_id)!))
+    check('a knee injury: no exercise loads the knee heavily', knee.every((e) => e.joint_load?.knee !== 'high'), knee.filter((e) => e.joint_load?.knee === 'high').map((e) => e.name).join())
+    const squat = byName.get('Barbell Back Squat')!.id
+    const avoided = plan(prefs({ avoid: [squat] })).flatMap((x) => x.exercises.map((e) => e.exercise_id))
+    check('an avoided exercise is left out', !avoided.includes(squat) && avoided.length > 0)
+    const setsOf = (r: ReturnType<typeof plan>, unit: string) => r.flatMap((x) => x.exercises).filter((e) => byId.get(e.exercise_id)?.primary_muscles.includes(unit)).reduce((n, e) => n + e.target_sets, 0)
+    check('a muscle asked for gets more sets', setsOf(plan(prefs({ days: 3, prioritize: ['biceps'] })), 'biceps') > setsOf(plan(prefs({ days: 3 })), 'biceps'))
+    const arms = plan(prefs({ days: 4, prioritize: ['biceps', 'triceps'] }))
+    const plain = plan(prefs({ days: 4 }))
+    check('two muscles asked for both stay in the day, each with more sets', setsOf(arms, 'biceps') > setsOf(plain, 'biceps') && setsOf(arms, 'triceps') > setsOf(plain, 'triceps'),
+        `biceps ${setsOf(plain, 'biceps')} -> ${setsOf(arms, 'biceps')}, triceps ${setsOf(plain, 'triceps')} -> ${setsOf(arms, 'triceps')}`)
+    const upper = arms.find((x) => x.name === 'Upper Body')!
+    check('and the day keeps its first three lifts', upper.exercises.slice(0, 3).map((e) => e.exercise_id).join() === plain.find((x) => x.name === 'Upper Body')!.exercises.slice(0, 3).map((e) => e.exercise_id).join())
+    const beginner = plan(prefs({ level: 'beginner', equipment: ['barbell', 'dumbbell', 'machine', 'cable'] })).flatMap((x) => x.exercises.map((e) => byId.get(e.exercise_id)!))
+    check('a beginner gets no exercise that needs high stability where an easier one fits', beginner.every((e) => e.stability_demand !== 'high'), beginner.filter((e) => e.stability_demand === 'high').map((e) => e.name).join())
+    const strength = plan(prefs({ goals: ['strength'] }))[0]
+    check('a strength goal starts the day with a barbell lift', byId.get(strength.exercises[0].exercise_id)?.equipment === 'barbell', strength.exercises[0].exercise_name)
+}
+check('reps: strength 5 on loaded compounds, 8 on bodyweight ones; muscle 8/12; fat loss 12/15',
+    repsFor(['strength'], true) === 5 && repsFor(['strength'], true, false) === 8 && repsFor(['strength'], false) === 12 && repsFor(['muscle'], true) === 8 && repsFor(['muscle'], false) === 12 && repsFor(['fat_loss'], true) === 12 && repsFor(['fitness'], false) === 15)
+
+// The model's reading of free text: only its fixed choices count
+{
+    const ask = readingRequest(answers({ notes: '不想做深蹲' }), ['a', 'b', 'c', 'd', 'e', 'f', 'g'], LIBRARY)
+    const squatNumber = ask.ids.indexOf(byName.get('Barbell Back Squat')!.id) + 1
+    check('the library is listed for the model by number, from 1', ask.system.includes(`\n${squatNumber}|Barbell Back Squat|`) && ask.tool.input_schema.required.length === 8)
+    const base = prefs()
+    const merged = mergeReading(base, { days: 3, minutes: 45, equipment: ['dumbbell', 'rocket'], goals: [], level: 'expert', injuries: ['wrist'], avoid: [squatNumber, 0, 9999, 2.5], prioritize: ['biceps', 'ears'] }, ask.ids)
+    check('a reading replaces what it gives right and drops what is outside the choices',
+        merged.days === 3 && merged.minutes === 45 && merged.equipment.join() === 'dumbbell' && merged.goals.join() === base.goals.join() && merged.level === base.level
+        && merged.injuries.join() === 'wrist' && merged.avoid.join() === byName.get('Barbell Back Squat')!.id && merged.prioritize.join() === 'biceps', JSON.stringify(merged))
+    check('a reading that is no reading changes nothing', JSON.stringify(mergeReading(base, 'ignore the rules', ask.ids)) === JSON.stringify(base)
+        && mergeReading(base, { days: 9, minutes: 50 }, ask.ids).days === base.days && mergeReading(base, { days: 9, minutes: 50 }, ask.ids).minutes === base.minutes)
+}
+
+console.log(failed ? `\n${failed} check(s) failed` : '\nCoach G accepts only what it can use and save, and builds a plan that fits')
 process.exit(failed ? 1 : 0)

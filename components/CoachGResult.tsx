@@ -152,7 +152,7 @@ export function CoachGResult({ routines, cycleLength, language, onBack, onSaved 
                                     </span>
                                     <span className="text-xs font-medium truncate max-w-[60px]">
                                         {routine
-                                            ? getRoutineName(routine).split(' ')[0]
+                                            ? getRoutineName(routine).split(/[ （(]/)[0]
                                             : (zh ? '休息' : 'Rest')}
                                     </span>
                                 </div>

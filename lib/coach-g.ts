@@ -1,7 +1,8 @@
-// Coach G's requests and the model's routines, checked on the server. Each route accepts only
-// these shapes, so a malformed or oversized request gets a 400 instead of a crash, a loop sized
-// by the input or a long prompt, and a routine is saved only with library exercises, sets and
-// reps in range, and days inside its cycle. The offline check is scripts/check-coach-g.ts.
+// Coach G's requests, checked on the server. Each route accepts only these shapes, so a
+// malformed or oversized request gets a 400 instead of a crash, a loop sized by the input or a
+// long prompt, and a routine is saved only with library exercises, sets and reps in range, and
+// days inside its cycle. The plan itself is built by lib/coach-g-planner.ts. The offline check
+// is scripts/check-coach-g.ts.
 import { MAX_ROUTINE_NAME_CHARS } from './text-limits'
 
 /** A typed answer, and each saved one: a sentence or a short paragraph */
@@ -35,12 +36,6 @@ export interface PlannedRoutine {
     name_zh_tw?: string
     day_indices: number[]
     exercises: PlannedExercise[]
-}
-
-export interface LibraryExercise {
-    name: string
-    name_zh_tw: string | null
-    muscle_group: string
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -80,8 +75,8 @@ export function parseChatRequest(body: unknown): ChatRequest | null {
 }
 
 export interface GenerateRequest {
-    /** Days a week to train, 1 to 7, from the first answer */
-    trainingDays: number
+    /** The first answer as given ("3 days", "3天", or typed) */
+    days: string
     duration: string
     equipment: string[]
     goals: string[]
@@ -106,7 +101,7 @@ export function parseGenerateRequest(body: unknown): GenerateRequest | null {
     const c = parseCollected(body.collected)
     if (!c) return null
     return {
-        trainingDays: trainingDaysFrom(textOf(c.days)),
+        days: textOf(c.days) ?? '',
         duration: textOf(c.duration) ?? '',
         equipment: listOf(c.equipment),
         goals: listOf(c.goals),
@@ -117,48 +112,7 @@ export function parseGenerateRequest(body: unknown): GenerateRequest | null {
     }
 }
 
-const clamp = (v: unknown, { min, max }: { min: number; max: number }, fallback: number) => {
-    const n = Math.round(Number(v))
-    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback
-}
 const nameOf = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, MAX_ROUTINE_NAME_CHARS) : '')
-
-/**
- * The routines the model wrote, kept to what can be saved: exercises from the list it was given,
- * by id and named as the library names them, once each; sets and reps brought into range; each
- * day of the cycle for one routine at most; and only routines with a day and an exercise.
- */
-export function cleanRoutines(raw: unknown, library: Map<string, LibraryExercise>, cycleDays = COACH_CYCLE_DAYS): PlannedRoutine[] {
-    if (!Array.isArray(raw)) return []
-    const takenDays = new Set<number>()
-    const routines: PlannedRoutine[] = []
-    for (const r of raw) {
-        if (!isObject(r) || routines.length >= MAX_ROUTINES) continue
-        const days = (Array.isArray(r.day_indices) ? r.day_indices : [])
-            .filter((d): d is number => isIntIn(d, 1, cycleDays) && !takenDays.has(d))
-        const exercises: PlannedExercise[] = []
-        for (const e of Array.isArray(r.exercises) ? r.exercises : []) {
-            const id = isObject(e) && typeof e.exercise_id === 'string' ? e.exercise_id : ''
-            const known = library.get(id)
-            if (!known || exercises.some((x) => x.exercise_id === id) || exercises.length >= MAX_EXERCISES_PER_ROUTINE) continue
-            exercises.push({
-                exercise_id: id,
-                exercise_name: known.name,
-                ...(known.name_zh_tw ? { exercise_name_zh_tw: known.name_zh_tw } : {}),
-                muscle_group: known.muscle_group,
-                target_sets: clamp((e as Record<string, unknown>).target_sets, SETS, 3),
-                target_reps: clamp((e as Record<string, unknown>).target_reps, REPS, 10),
-            })
-        }
-        const uniqueDays = [...new Set(days)]
-        if (!uniqueDays.length || !exercises.length) continue
-        uniqueDays.forEach((d) => takenDays.add(d))
-        const name = nameOf(r.name) || `Routine ${routines.length + 1}`
-        const nameZh = nameOf(r.name_zh_tw)
-        routines.push({ name, ...(nameZh ? { name_zh_tw: nameZh } : {}), day_indices: uniqueDays, exercises })
-    }
-    return routines
-}
 
 export interface SaveRequest {
     /** Each routine as it is saved: the name in the user's language */
