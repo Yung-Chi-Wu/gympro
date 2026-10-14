@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { MuscleGroupExercisePicker } from './MuscleGroupExercisePicker'
 import { toFriendlyError } from '@/lib/friendly-error'
@@ -351,8 +352,14 @@ export function TodayWorkoutCard({
                     {hasCycle && !isRestDay && exercises.length === 0 && (
                         <p className="text-sm text-ink/60">{t('emptyRoutine')}</p>
                     )}
+                    {/* Nothing planned: Coach G can plan the routines and the cycle */}
                     {!hasCycle && exercises.length === 0 && (
-                        <p className="text-sm text-ink/60">{t('emptyFree')}</p>
+                        <div>
+                            <p className="text-sm text-ink/60">{t('emptyFree')}</p>
+                            <Link href="/routines?coachG=1" className="inline-flex min-h-11 items-center text-sm font-bold text-accent md:min-h-9">
+                                {t('coachGLink')} →
+                            </Link>
+                        </div>
                     )}
 
                     <div>

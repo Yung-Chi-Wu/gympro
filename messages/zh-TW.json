@@ -90,8 +90,9 @@
     "today": {
         "title": "今天",
         "restDay": "今天是休息日。",
-        "emptyRoutine": "今天的課表還沒有動作——去訓練課表新增，或直接在下方加入。",
+        "emptyRoutine": "今天的課表還沒有動作——去「課表」新增，或直接在下方加入。",
         "emptyFree": "今天想練什麼，用下方按鈕加入吧。",
+        "coachGLink": "讓 Coach G 幫你排課表",
         "addExercise": "+ 新增動作",
         "addToToday": "加入",
         "cancel": "取消",
@@ -149,7 +150,7 @@
         "fieldOfSet": "第 {n} 組的{field}"
     },
     "periodLog": {
-        "reportSchedule": "{end}週期結束後，AI 報告會自動產生。",
+        "reportSchedule": "這一期到 {end}，結束後會自動產生報告（要記滿 10 組）。",
         "periodNoteLabel": "這個週期的備註",
         "periodNoteHint": "這是之前寫給整個週期的備註，還是會放進這個週期的報告；之後請寫在今天的紀錄裡。",
         "saveNote": "儲存備註",
@@ -364,7 +365,7 @@
         "weighIns": "每次量的體重",
         "lastYear": "最近一年",
         "showMore": "顯示更多",
-        "noReports": "還沒有報告。每一期結束後，報告會自動產生。",
+        "noReports": "還沒有報告。每一期結束後，只要記滿 10 組，就會自動產生報告。",
         "olderReports": "看更早的報告",
         "dayExercises": "{count} 個動作",
         "weightLabel": "體重"
@@ -574,6 +575,6 @@
                 "text": "主要動作進步的比退步的多是「進步中」，反過來是「退步中」，一樣多是「持平」。"
             }
         },
-        "insufficient": "這段期間記錄的組數不夠，所以沒有產生報告。"
+        "insufficient": "這一期記錄的組數不到 10 組，所以沒有產生報告。"
     }
 }

@@ -12,15 +12,17 @@ interface CoachGEntryProps {
     /**
      * With routines: 'button' sits in the page header, 'card' below the phone's list.
      * Without routines both are the big invitation, so the page shows only one of them.
+     * 'auto' has no entry of its own: Coach G opens at once (from 今天's link), after the
+     * warning when there are routines.
      */
-    variant?: 'button' | 'card'
+    variant?: 'button' | 'card' | 'auto'
 }
 
 export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal, variant = 'button' }: CoachGEntryProps) {
     const zh = language === 'zh-TW'
     const t = useTranslations('routines')
-    const [showModal, setShowModal] = useState(false)
-    const [showWarning, setShowWarning] = useState(false)
+    const [showModal, setShowModal] = useState(variant === 'auto' && !hasRoutines)
+    const [showWarning, setShowWarning] = useState(variant === 'auto' && hasRoutines)
 
     function handleOpen() {
         if (hasRoutines) {
@@ -38,7 +40,7 @@ export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal,
     return (
         <>
             {/* 入口按鈕 */}
-            {!hasRoutines ? (
+            {variant === 'auto' ? null : !hasRoutines ? (
                 <div className="rounded-[14px] border-2 border-dashed border-line p-8 text-center space-y-4">
                     <div className="text-4xl">🤖</div>
                     <div>
