@@ -82,6 +82,9 @@ function ex(id: string, sets: unknown = 3, reps: unknown = 8, name = 'whatever t
     const long = cleanRoutines([{ name: 'x'.repeat(200), day_indices: [1], exercises: Array.from({ length: 40 }, () => ex(BENCH)) }], library)
     check(`a routine's name is cut to ${MAX_ROUTINE_NAME_CHARS} characters`, long[0]?.name.length === MAX_ROUTINE_NAME_CHARS)
     check('an answer that is not a list of routines gives none', cleanRoutines('nope', library).length === 0 && cleanRoutines(undefined, library).length === 0)
+    const [bare] = cleanRoutines([{ name: 'Pull', day_indices: [2], exercises: [{ exercise_id: ROW, target_sets: 4, target_reps: 10 }] }], library)
+    check('an exercise written as only its id, sets and reps is named from the library',
+        bare?.exercises[0].exercise_name === 'Barbell Row' && bare.exercises[0].muscle_group === 'back' && bare.exercises[0].target_sets === 4, JSON.stringify(bare))
 }
 
 // ---------- The save ----------

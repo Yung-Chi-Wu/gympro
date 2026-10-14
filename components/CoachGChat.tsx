@@ -53,6 +53,8 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
     const [isSkippable, setIsSkippable] = useState(false)
     const [currentStep, setCurrentStep] = useState(0)
     const [collected, setCollected] = useState<Record<string, string | string[] | null>>({})
+    // The answers of a plan that didn't come back, for Try again
+    const [failedAnswers, setFailedAnswers] = useState<Record<string, string | string[] | null> | null>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
 
     const STEP_KEYS = ['', 'days', 'duration', 'equipment', 'goals', 'level', 'injuries', 'notes']
@@ -100,25 +102,34 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
             setIsSkippable(data.skippable ?? false)
             if (data.nextStep) setCurrentStep(data.nextStep)
         } else if (data.action === 'ready_to_generate' && data.collected) {
-            setIsLoading(false)
-            setIsGenerating(true)
-            try {
-                const genRes = await fetch('/api/ai/generate-routine', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        collected: data.collected,
-                        language,
-                    }),
-                })
-                const genData = await genRes.json()
-                if (genData.action === 'generate_routine' && genData.routines) {
-                    onRoutinesGenerated(genData.routines, genData.cycle_length ?? genData.routines.length)
-                }
-            } finally {
-                setIsGenerating(false)
-            }
+            await generate(data.collected)
         }
+    }
+
+    /** Builds the plan from the answers; when none comes back, says so and offers to try again */
+    async function generate(answers: Record<string, string | string[] | null>) {
+        setIsLoading(false)
+        setFailedAnswers(null)
+        setIsGenerating(true)
+        try {
+            const genRes = await fetch('/api/ai/generate-routine', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ collected: answers, language }),
+            })
+            const genData = await genRes.json().catch(() => null)
+            if (genData?.action === 'generate_routine' && genData.routines?.length) {
+                onRoutinesGenerated(genData.routines, genData.cycle_length ?? genData.routines.length)
+                return
+            }
+        } catch { /* said below */ } finally {
+            setIsGenerating(false)
+        }
+        setMessages((prev) => [...prev, {
+            role: 'assistant',
+            content: zh ? '這次沒排出課表，請再試一次。' : "I couldn't put the plan together this time. Please try again.",
+        }])
+        setFailedAnswers(answers)
     }
 
     function showError() {
@@ -282,6 +293,15 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
                             </button>
                         )}
                     </div>
+                </div>
+            )}
+
+            {failedAnswers && !isGenerating && (
+                <div className="px-4 pb-2">
+                    <button type="button" onClick={() => generate(failedAnswers)}
+                        className="rounded-lg bg-plate dark:bg-white px-4 py-1.5 text-xs font-semibold text-chalk dark:text-[#1A1814] hover:opacity-90 transition-opacity">
+                        {zh ? '再試一次' : 'Try again'}
+                    </button>
                 </div>
             )}
 

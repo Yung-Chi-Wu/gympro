@@ -79,6 +79,7 @@ ${goalNote}`
 - 一週剛好排 ${trainingDays} 天訓練，其餘 ${COACH_CYCLE_DAYS - trainingDays} 天休息，休息日盡量分散
 - day_indices 在 1 到 ${COACH_CYCLE_DAYS} 之間，同一天只能排一個課表
 - 只能使用下方清單的動作，必須用正確的 exercise_id
+- 每個動作只寫 exercise_id、target_sets、target_reps，動作名稱由 app 補上，不要寫
 - 每個課表提供中文名稱（name_zh_tw）
 - 只輸出 JSON，不輸出其他文字
 
@@ -86,7 +87,7 @@ ${goalNote}`
 ${exerciseLines}
 
 輸出格式（cycle_length 必須是 ${COACH_CYCLE_DAYS}）：
-{"action":"generate_routine","message":"鼓勵說明","cycle_length":${COACH_CYCLE_DAYS},"routines":[{"name":"Push Day","name_zh_tw":"推日","day_indices":[1,4],"exercises":[{"exercise_id":"uuid","exercise_name":"Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
+{"action":"generate_routine","message":"鼓勵說明","cycle_length":${COACH_CYCLE_DAYS},"routines":[{"name":"Push Day","name_zh_tw":"推日","day_indices":[1,4],"exercises":[{"exercise_id":"清單裡的 id","target_sets":4,"target_reps":8}]}]}`
         : `You are Coach G, a professional fitness coach. Design a routine based on user info.
 
 ⚠️ CRITICAL RULES:
@@ -94,6 +95,7 @@ ${exerciseLines}
 - Train on exactly ${trainingDays} of the ${COACH_CYCLE_DAYS} days and rest on the other ${COACH_CYCLE_DAYS - trainingDays}; spread the rest days out
 - day_indices must be between 1 and ${COACH_CYCLE_DAYS}, with at most one routine on a day
 - ONLY use exercises from the list below with exact exercise_id
+- Write each exercise as only its exercise_id, target_sets and target_reps; the app adds the names
 - Provide Chinese name (name_zh_tw) for each routine
 - Output ONLY JSON, no other text
 
@@ -101,7 +103,7 @@ Exercise list (id|name|zh_name|muscle_group):
 ${exerciseLines}
 
 Output format (cycle_length MUST be ${COACH_CYCLE_DAYS}):
-{"action":"generate_routine","message":"encouraging summary","cycle_length":${COACH_CYCLE_DAYS},"routines":[{"name":"Push Day","name_zh_tw":"推日","day_indices":[1,4],"exercises":[{"exercise_id":"uuid","exercise_name":"Bench Press","exercise_name_zh_tw":"槓鈴臥推","muscle_group":"chest","target_sets":4,"target_reps":8}]}]}`
+{"action":"generate_routine","message":"encouraging summary","cycle_length":${COACH_CYCLE_DAYS},"routines":[{"name":"Push Day","name_zh_tw":"推日","day_indices":[1,4],"exercises":[{"exercise_id":"an id from the list","target_sets":4,"target_reps":8}]}]}`
 
     const model = 'claude-sonnet-4-6'
     const traceInput = { collected: info, system: systemPrompt, user: userInfo }
@@ -109,7 +111,9 @@ Output format (cycle_length MUST be ${COACH_CYCLE_DAYS}):
     try {
         const response = await client.messages.create({
             model,
-            max_tokens: 4096,
+            // The routines are ids, sets and reps (names come from the library). With every name
+            // written out, 9 exercises a routine ran past 4096 tokens by the fourth routine
+            max_tokens: 8192,
             system: systemPrompt,
             messages: [{ role: 'user', content: userInfo }],
         })
