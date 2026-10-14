@@ -9,6 +9,10 @@ interface MuscleGroupExercisePickerProps {
     value: string
     onChange: (exerciseId: string) => void
     language?: string
+    /** The group shown before an exercise is picked */
+    initialGroup?: string
+    /** Shown while no exercise is picked; changing the group then leaves the choice to the user */
+    placeholder?: string
 }
 
 export function MuscleGroupExercisePicker({
@@ -16,9 +20,11 @@ export function MuscleGroupExercisePicker({
     value,
     onChange,
     language = 'en',
+    initialGroup,
+    placeholder,
 }: MuscleGroupExercisePickerProps) {
     // The group picked by hand; it shows only while no exercise is selected (an empty group)
-    const [pickedGroup, setPickedGroup] = useState<string>(MUSCLE_GROUPS[0])
+    const [pickedGroup, setPickedGroup] = useState<string>(initialGroup ?? MUSCLE_GROUPS[0])
     // Otherwise the selected exercise's group, so a value set from outside moves the group with it
     const muscleGroup = exercises.find((ex) => ex.id === value)?.muscle_group ?? pickedGroup
 
@@ -29,6 +35,7 @@ export function MuscleGroupExercisePicker({
 
     function handleMuscleGroupChange(newGroup: string) {
         setPickedGroup(newGroup)
+        if (placeholder) return
         const firstInGroup = exercises.find((ex) => ex.muscle_group === newGroup)
         onChange(firstInGroup?.id ?? '')
     }
@@ -54,8 +61,10 @@ export function MuscleGroupExercisePicker({
                 onChange={(e) => onChange(e.target.value)}
                 className="min-w-0 flex-1 rounded-md border px-3 py-2 text-sm"
             >
-                {exercisesInGroup.length === 0 && (
+                {exercisesInGroup.length === 0 ? (
                     <option value="">{noExercisesLabel}</option>
+                ) : placeholder && !value && (
+                    <option value="">{placeholder}</option>
                 )}
                 {exercisesInGroup.map((ex) => {
                     const displayName =
