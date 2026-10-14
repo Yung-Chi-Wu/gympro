@@ -92,6 +92,7 @@
         "restDay": "Today is a rest day.",
         "emptyRoutine": "Today's routine doesn't have any exercises yet — add some in Routines, or add one below.",
         "emptyFree": "Add whatever you're training today using the button below.",
+        "coachGLink": "Let Coach G plan your routines",
         "addExercise": "+ Add an exercise",
         "addToToday": "Add",
         "cancel": "Cancel",
@@ -149,7 +150,7 @@
         "fieldOfSet": "Set {n}, {field}"
     },
     "periodLog": {
-        "reportSchedule": "Your AI report is generated automatically when this period ends on {end}.",
+        "reportSchedule": "This period ends on {end}. Its report is made automatically then, once 10 sets are logged.",
         "periodNoteLabel": "Note for this period",
         "periodNoteHint": "Your earlier note for the whole period still goes into this period's report; from now on, write in today's log.",
         "saveNote": "Save note",
@@ -363,7 +364,7 @@
         "weighIns": "Weigh-ins",
         "lastYear": "The last 12 months",
         "showMore": "Show more",
-        "noReports": "No reports yet. One is made automatically when each period ends.",
+        "noReports": "No reports yet. One is made automatically when each period ends, once it has 10 logged sets.",
         "olderReports": "Show earlier reports",
         "dayExercises": "{count, plural, one {# exercise} other {# exercises}}",
         "weightLabel": "Weight"
@@ -578,6 +579,6 @@
                 "text": "More main lifts up than down is progressing; the reverse is slipping; equal is holding steady."
             }
         },
-        "insufficient": "Not enough sets were logged this period for a report."
+        "insufficient": "Fewer than 10 sets were logged this period, so there's no report for it."
     }
 }

@@ -79,6 +79,16 @@ export function RoutineBuilder({
     const [isCreating, setIsCreating] = useState(false)
     const [newRoutineName, setNewRoutineName] = useState('')
     const [error, setError] = useState<string | null>(null)
+    // From 今天's Coach G link (?coachG=1): Coach G opens once, and the param is dropped so
+    // going back or reloading doesn't open it again
+    const [coachGOnArrival] = useState(() => searchParams.get('coachG') === '1')
+
+    useEffect(() => {
+        if (!coachGOnArrival) return
+        const url = new URL(window.location.href)
+        url.searchParams.delete('coachG')
+        window.history.replaceState(window.history.state, '', url)
+    }, [coachGOnArrival])
 
     const opened = routines.find((r) => r.id === searchParams.get('routine')) ?? null
     // Side by side, the editor shows the first routine until another is picked
@@ -313,7 +323,7 @@ export function RoutineBuilder({
         }
     }
 
-    const coachG = (variant: 'button' | 'card') => (
+    const coachG = (variant: 'button' | 'card' | 'auto') => (
         <CoachGEntry
             variant={variant}
             hasRoutines={routines.length > 0}
@@ -338,6 +348,7 @@ export function RoutineBuilder({
             </div>
 
             {error && <p role="alert" className="text-sm text-miss">{error}</p>}
+            {coachGOnArrival && coachG('auto')}
 
             {/* Phone: 循環 or 課表, one at a time */}
             {!opened && (
