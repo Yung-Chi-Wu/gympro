@@ -164,7 +164,8 @@ Output format:
     ? `使用者對「${questions[currentStep - 1].question}」的回答是：「${userAnswer}」`
     : `User answered "${userAnswer}" to the question: "${questions[currentStep - 1].question}"`
 
-  const model = 'claude-sonnet-4-6'
+  // One or two sentences back: the fast model, so the next question comes at once
+  const model = 'claude-haiku-4-5-20251001'
   const traceInput = { step: currentStep, system: systemPrompt, user: userContent }
   const started = Date.now()
   try {
