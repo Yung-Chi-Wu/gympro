@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
+import { REPS, SETS } from '@/lib/coach-g'
 
 interface GeneratedExercise {
     exercise_id: string
@@ -35,6 +36,11 @@ export function CoachGResult({ routines, cycleLength, language, onBack, onSaved 
     const [startDayIndex, setStartDayIndex] = useState(1)
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    // The save is one transaction: when it fails, the user's routines are as they were
+    const saveError = zh ? '存不進去，你原本的課表沒有變動。請再試一次。' : "Couldn't save; your routines are unchanged. Please try again."
+    const setsRepsError = zh
+        ? `組數要在 ${SETS.min} 到 ${SETS.max} 之間，次數要在 ${REPS.min} 到 ${REPS.max} 之間。`
+        : `Sets must be ${SETS.min} to ${SETS.max} and reps ${REPS.min} to ${REPS.max}.`
 
     function getRoutineName(routine: GeneratedRoutine) {
         return zh && routine.name_zh_tw ? routine.name_zh_tw : routine.name
@@ -92,12 +98,15 @@ export function CoachGResult({ routines, cycleLength, language, onBack, onSaved 
             })
 
             const data = await res.json()
-            if (!data.success) throw new Error(data.error ?? 'Save failed')
+            if (!data.success) {
+                setError(data.error === 'sets_reps' ? setsRepsError : saveError)
+                return
+            }
 
             router.refresh()
             onSaved()
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Something went wrong')
+        } catch {
+            setError(saveError)
         } finally {
             setIsSaving(false)
         }

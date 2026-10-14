@@ -1,148 +1,47 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { MAX_ROUTINE_NAME_CHARS } from '@/lib/text-limits'
+import { parseSaveRequest } from '@/lib/coach-g'
+import { addDays, localDate, MAX_CYCLE_DAYS } from '@/lib/periods'
+import { timeZoneOf } from '@/lib/time-zone'
 
-interface Exercise {
-    exercise_id: string
-    exercise_name: string
-    exercise_name_zh_tw?: string
-    muscle_group: string
-    target_sets: number
-    target_reps: number
-}
-
-interface Routine {
-    name: string
-    name_zh_tw?: string
-    day_indices: number[]
-    exercises: Exercise[]
-}
+// Saves Coach G's routines and cycle in place of the user's own: { routines, cycleLength,
+// startDayIndex, language }. The whole replacement is one transaction (save_coach_routines,
+// migration 20261014160000), so a failure leaves the user's routines as they were.
 
 export async function POST(request: Request) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const {
-        routines,
-        cycleLength,
-        startDayIndex,
-        language,
-    }: {
-        routines: Routine[]
-        cycleLength: number
-        startDayIndex: number
-        language: string
-    } = await request.json()
+    // Checked whole (lib/coach-g.ts): the card lets the user change sets and reps, nothing else
+    const save = parseSaveRequest(await request.json().catch(() => null), MAX_CYCLE_DAYS)
+    if ('error' in save) return NextResponse.json({ error: save.error }, { status: 400 })
 
-    // 防呆：cycle_length 至少要涵蓋所有 day_indices
-    const allDayIndices = routines.flatMap((r) => r.day_indices ?? [])
-    const maxDayIndex = allDayIndices.length > 0 ? Math.max(...allDayIndices) : cycleLength
-    const effectiveCycleLength = Math.max(cycleLength, maxDayIndex)
-
-    // 計算 start_date
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const startDate = new Date(today)
-    startDate.setDate(today.getDate() - (startDayIndex - 1))
-    const startDateStr = startDate.toISOString().split('T')[0]
-
-    // 刪掉現有訓練循環
-    const { data: existingCycle } = await supabase
-        .from('training_cycles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-    if (existingCycle) {
-        await supabase.from('cycle_days').delete().eq('training_cycle_id', existingCycle.id)
-        await supabase.from('training_cycles').delete().eq('id', existingCycle.id)
+    // Only exercises from the library the user can see
+    const ids = [...new Set(save.routines.flatMap((r) => r.exercises.map((e) => e.exercise_id)))]
+    const [{ data: known, error: exercisesError }, { data: profile }] = await Promise.all([
+        ids.length ? supabase.from('exercises').select('id').in('id', ids) : Promise.resolve({ data: [], error: null }),
+        supabase.from('user_profiles').select('timezone').eq('user_id', user.id).maybeSingle(),
+    ])
+    if (exercisesError) {
+        console.error('Coach G save: exercises not read:', exercisesError.message)
+        return NextResponse.json({ error: 'save_failed' }, { status: 500 })
     }
+    if ((known ?? []).length !== ids.length) return NextResponse.json({ error: 'invalid' }, { status: 400 })
 
-    // 刪掉所有現有課表（永遠從零開始）
-    const { data: existingRoutines } = await supabase
-        .from('routines')
-        .select('id')
-        .eq('user_id', user.id)
+    // Today in the user's own time zone: the cycle started startDayIndex - 1 days before it
+    const today = localDate(timeZoneOf(profile?.timezone), new Date())
+    const startDate = addDays(today, -(save.startDayIndex - 1))
 
-    if (existingRoutines && existingRoutines.length > 0) {
-        const routineIds = existingRoutines.map((r) => r.id)
-        await supabase.from('routine_exercises').delete().in('routine_id', routineIds)
+    const { data, error } = await supabase.rpc('save_coach_routines', {
+        p_cycle_length: save.cycleLength,
+        p_start_date: startDate,
+        p_routines: save.routines,
+    })
+    if (error) {
+        console.error('Coach G save failed:', error.message)
+        return NextResponse.json({ error: 'save_failed' }, { status: 500 })
     }
-    await supabase.from('routines').delete().eq('user_id', user.id)
-
-    // 建立訓練循環
-    const { data: cycle, error: cycleError } = await supabase
-        .from('training_cycles')
-        .insert({
-            user_id: user.id,
-            cycle_length: effectiveCycleLength,
-            start_date: startDateStr,
-        })
-        .select('id')
-        .single()
-
-    if (cycleError || !cycle) {
-        return NextResponse.json({ error: cycleError?.message ?? 'Failed to create cycle' }, { status: 500 })
-    }
-
-    // 建立每個課表
-    const savedRoutines = []
-
-    for (const routine of routines) {
-        // Cut to the table's limit, so a long name from the model can't fail the save halfway
-        const routineName = (language === 'zh-TW' && routine.name_zh_tw
-            ? routine.name_zh_tw
-            : routine.name).slice(0, MAX_ROUTINE_NAME_CHARS)
-
-        const { data: routineData, error: routineError } = await supabase
-            .from('routines')
-            .insert({ user_id: user.id, name: routineName })
-            .select('id')
-            .single()
-
-        if (routineError || !routineData) {
-            return NextResponse.json({ error: routineError?.message }, { status: 500 })
-        }
-
-        if (routine.exercises.length > 0) {
-            const exerciseRows = routine.exercises.map((ex, i) => ({
-                routine_id: routineData.id,
-                exercise_id: ex.exercise_id,
-                order_index: i,
-                target_sets: ex.target_sets,
-                target_reps: ex.target_reps,
-            }))
-            await supabase.from('routine_exercises').insert(exerciseRows)
-        }
-
-        if (routine.day_indices && routine.day_indices.length > 0) {
-            const cycleDayRows = routine.day_indices.map((dayIdx) => ({
-                training_cycle_id: cycle.id,
-                day_index: dayIdx,
-                routine_id: routineData.id,
-            }))
-            await supabase.from('cycle_days').insert(cycleDayRows)
-        }
-
-        savedRoutines.push({ id: routineData.id, name: routine.name })
-    }
-
-    // 補上休息日
-    const assignedDays = new Set(routines.flatMap((r) => r.day_indices ?? []))
-    const restDayRows = []
-    for (let i = 1; i <= effectiveCycleLength; i++) {
-        if (!assignedDays.has(i)) {
-            restDayRows.push({
-                training_cycle_id: cycle.id,
-                day_index: i,
-                routine_id: null,
-            })
-        }
-    }
-    if (restDayRows.length > 0) {
-        await supabase.from('cycle_days').insert(restDayRows)
-    }
-
-    return NextResponse.json({ success: true, routines: savedRoutines, cycleId: cycle.id })
+    const saved = data as { cycle_id: string; routines: { id: string; name: string }[] }
+    return NextResponse.json({ success: true, routines: saved.routines, cycleId: saved.cycle_id })
 }

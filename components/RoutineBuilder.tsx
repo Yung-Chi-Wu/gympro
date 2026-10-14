@@ -31,7 +31,6 @@ interface RoutineBuilderProps {
     initialCycleDays: CycleDayState[]
     /** Today in the user's time zone, YYYY-MM-DD */
     today: string
-    trainingGoal: string | null
 }
 
 interface RawRoutineExercise {
@@ -63,7 +62,6 @@ export function RoutineBuilder({
     initialCycle,
     initialCycleDays,
     today,
-    trainingGoal,
 }: RoutineBuilderProps) {
     const supabase = createClient()
     const t = useTranslations('routines')
@@ -330,7 +328,6 @@ export function RoutineBuilder({
             hasRoutines={routines.length > 0}
             routineCount={routines.length}
             language={language}
-            trainingGoal={trainingGoal}
         />
     )
 

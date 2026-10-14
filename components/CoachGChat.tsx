@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { isSubmitEnter } from '@/lib/keyboard'
+import { MAX_ANSWER_CHARS } from '@/lib/coach-g'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -35,12 +36,11 @@ interface GeneratedRoutine {
 
 interface CoachGChatProps {
     language: string
-    trainingGoal: string | null
     onRoutinesGenerated: (routines: GeneratedRoutine[], cycleLength: number) => void
     onClose: () => void
 }
 
-export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClose }: CoachGChatProps) {
+export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGChatProps) {
     const zh = language === 'zh-TW'
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
@@ -53,6 +53,8 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
     const [isSkippable, setIsSkippable] = useState(false)
     const [currentStep, setCurrentStep] = useState(0)
     const [collected, setCollected] = useState<Record<string, string | string[] | null>>({})
+    // The answers of a plan that didn't come back, for Try again
+    const [failedAnswers, setFailedAnswers] = useState<Record<string, string | string[] | null> | null>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
 
     const STEP_KEYS = ['', 'days', 'duration', 'equipment', 'goals', 'level', 'injuries', 'notes']
@@ -79,7 +81,6 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                 currentStep: step,
                 userAnswer,
                 language,
-                trainingGoal,
                 collected: updatedCollected,
             }),
         })
@@ -101,26 +102,34 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
             setIsSkippable(data.skippable ?? false)
             if (data.nextStep) setCurrentStep(data.nextStep)
         } else if (data.action === 'ready_to_generate' && data.collected) {
-            setIsLoading(false)
-            setIsGenerating(true)
-            try {
-                const genRes = await fetch('/api/ai/generate-routine', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        collected: data.collected,
-                        language,
-                        trainingGoal,
-                    }),
-                })
-                const genData = await genRes.json()
-                if (genData.action === 'generate_routine' && genData.routines) {
-                    onRoutinesGenerated(genData.routines, genData.cycle_length ?? genData.routines.length)
-                }
-            } finally {
-                setIsGenerating(false)
-            }
+            await generate(data.collected)
         }
+    }
+
+    /** Builds the plan from the answers; when none comes back, says so and offers to try again */
+    async function generate(answers: Record<string, string | string[] | null>) {
+        setIsLoading(false)
+        setFailedAnswers(null)
+        setIsGenerating(true)
+        try {
+            const genRes = await fetch('/api/ai/generate-routine', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ collected: answers, language }),
+            })
+            const genData = await genRes.json().catch(() => null)
+            if (genData?.action === 'generate_routine' && genData.routines?.length) {
+                onRoutinesGenerated(genData.routines, genData.cycle_length ?? genData.routines.length)
+                return
+            }
+        } catch { /* said below */ } finally {
+            setIsGenerating(false)
+        }
+        setMessages((prev) => [...prev, {
+            role: 'assistant',
+            content: zh ? '這次沒排出課表，請再試一次。' : "I couldn't put the plan together this time. Please try again.",
+        }])
+        setFailedAnswers(answers)
     }
 
     function showError() {
@@ -287,10 +296,19 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                 </div>
             )}
 
+            {failedAnswers && !isGenerating && (
+                <div className="px-4 pb-2">
+                    <button type="button" onClick={() => generate(failedAnswers)}
+                        className="rounded-lg bg-plate dark:bg-white px-4 py-1.5 text-xs font-semibold text-chalk dark:text-[#1A1814] hover:opacity-90 transition-opacity">
+                        {zh ? '再試一次' : 'Try again'}
+                    </button>
+                </div>
+            )}
+
             {/* Input */}
             <div className="p-4 border-t border-ink/10">
                 <div className="flex gap-2">
-                    <input type="text" value={input}
+                    <input type="text" value={input} maxLength={MAX_ANSWER_CHARS}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => { if (isSubmitEnter(e) && input.trim()) handleAnswer(input.trim()) }}
                         placeholder={

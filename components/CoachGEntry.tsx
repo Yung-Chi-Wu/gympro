@@ -8,7 +8,6 @@ interface CoachGEntryProps {
     hasRoutines: boolean
     routineCount: number
     language: string
-    trainingGoal: string | null
     /**
      * With routines: 'button' sits in the page header, 'card' below the phone's list.
      * Without routines both are the big invitation, so the page shows only one of them.
@@ -18,7 +17,7 @@ interface CoachGEntryProps {
     variant?: 'button' | 'card' | 'auto'
 }
 
-export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal, variant = 'button' }: CoachGEntryProps) {
+export function CoachGEntry({ hasRoutines, routineCount, language, variant = 'button' }: CoachGEntryProps) {
     const zh = language === 'zh-TW'
     const t = useTranslations('routines')
     const [showModal, setShowModal] = useState(variant === 'auto' && !hasRoutines)
@@ -128,7 +127,6 @@ export function CoachGEntry({ hasRoutines, routineCount, language, trainingGoal,
             {showModal && (
                 <CoachGModal
                     language={language}
-                    trainingGoal={trainingGoal}
                     onClose={() => setShowModal(false)}
                     onSaved={handleSaved}
                 />
