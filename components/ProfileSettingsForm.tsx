@@ -2,7 +2,7 @@
 
 import { useState, useSyncExternalStore } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
 import { createClient } from '@/lib/supabase/client'
 import { setLanguageCookie } from '@/lib/set-language-cookie'
@@ -14,6 +14,7 @@ import { DeleteAccountButton } from '@/components/DeleteAccountButton'
 import { LogoutButton } from '@/components/LogoutButton'
 import { ThemeSelector } from '@/components/ThemeSelector'
 import { Icon } from '@/components/Icon'
+import { InstallGuide } from '@/components/InstallGuide'
 import { CHOSEN_UTC } from '@/lib/time-zone'
 
 // Settings. Side by side (@split): the sections on the left (個人資料, 訓練目標, 單位與語言,
@@ -433,17 +434,14 @@ function Segmented({ id, options, value, onChange }: { id: string; options: stri
     )
 }
 
-/** How to put GymPro on an iPhone's home screen */
+/** How to put GymPro on the home screen, for the browser it is open in */
 function InstallSteps({ showTitle = true }: { showTitle?: boolean }) {
     const t = useTranslations('settings')
+    const zh = useLocale() === 'zh-TW'
     return (
         <div className="space-y-2">
             {showTitle && <p className="text-sm font-medium">{t('install')}</p>}
-            <ol className="list-decimal space-y-1 pl-5 text-[13px] text-muted">
-                <li>{t('installSteps.share')}</li>
-                <li>{t('installSteps.add')}</li>
-                <li>{t('installSteps.done')}</li>
-            </ol>
+            <InstallGuide zh={zh} />
         </div>
     )
 }

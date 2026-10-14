@@ -1,0 +1,34 @@
+// Which browser GymPro is open in, for the add-to-home-screen guide. It is written for iPhone
+// users (the owner, 2026-10-13): there Safari, and since iOS 16.4 the other browsers, can add a
+// page to the home screen, each from its own Share menu. The guide used to give the Safari steps
+// to everyone, in Chrome too, and after GymPro was already installed.
+
+export type BrowserEnv =
+    /** Opened from the home screen: nothing to do */
+    | 'installed'
+    | 'ios_safari'
+    /** Chrome, Edge, Firefox or Opera on iOS: they add from their own Share menu */
+    | 'ios_other'
+    /** Anything else (Android, a computer) */
+    | 'other'
+
+export function browserEnv(userAgent: string, { standalone = false, touchMac = false }: {
+    /** display-mode standalone, or Safari's navigator.standalone */
+    standalone?: boolean
+    /** An iPad, which asks for desktop sites and so reports itself as a Mac with touch */
+    touchMac?: boolean
+} = {}): BrowserEnv {
+    if (standalone) return 'installed'
+    if (!/iPhone|iPad|iPod/i.test(userAgent) && !touchMac) return 'other'
+    return /CriOS|FxiOS|EdgiOS|OPiOS|OPT\//i.test(userAgent) ? 'ios_other' : 'ios_safari'
+}
+
+/** The browser this page is open in, read on the client; null on the server */
+export function currentBrowserEnv(): BrowserEnv | null {
+    if (typeof window === 'undefined') return null
+    const nav = navigator as Navigator & { standalone?: boolean }
+    return browserEnv(nav.userAgent, {
+        standalone: window.matchMedia('(display-mode: standalone)').matches || nav.standalone === true,
+        touchMac: nav.platform === 'MacIntel' && nav.maxTouchPoints > 1,
+    })
+}
