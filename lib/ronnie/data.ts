@@ -116,15 +116,16 @@ export function createSupabaseRonnieData(
     userId: string,
     timeZone: string,
     cycle: CycleRow | null,
-    { now = () => new Date(), embedQuery = null, memory = null }: {
+    { now = () => new Date(), embedQuery = null, admin = null }: {
         now?: () => Date
         /** Turns a search query into a vector (lib/embeddings.ts); null disables vector search */
         embedQuery?: ((text: string) => Promise<number[]>) | null
         /**
-         * The service-role client (lib/supabase/admin.ts) for ronnie_memories, which users can't
-         * read or write themselves; every query names userId. Null: no memory (no notes, saving fails).
+         * The service-role client (lib/supabase/admin.ts) for what users can't write themselves:
+         * memory notes and proposals. Every query names userId. Null: no memory (no notes, saving
+         * fails) and no proposals.
          */
-        memory?: SupabaseClient<Database> | null
+        admin?: SupabaseClient<Database> | null
     } = {}
 ): RonnieData {
     // Read once per request: the prompt and the tools both need the notes. A write clears it.
@@ -330,8 +331,11 @@ export function createSupabaseRonnieData(
         },
 
         async createProposal(proposal) {
+            // Written by the server only: the confirm button and the event Ronnie reads both trust
+            // what the stored proposal says
+            if (!admin) return { error: 'Proposals are not available' }
             // Expires after a day: an old suggestion shouldn't be confirmable out of context
-            const { data, error } = await supabase
+            const { data, error } = await admin
                 .from('ronnie_pending_actions')
                 .insert({
                     user_id: userId,
@@ -344,9 +348,9 @@ export function createSupabaseRonnieData(
         },
 
         listMemories() {
-            if (!memory) return Promise.resolve([])
+            if (!admin) return Promise.resolve([])
             return (notes ??= (async () => {
-                const { data, error } = await memory
+                const { data, error } = await admin
                     .from('ronnie_memories')
                     .select('kind, subject, state, note, updated_at')
                     .eq('user_id', userId)
@@ -362,18 +366,18 @@ export function createSupabaseRonnieData(
         },
 
         async saveMemory(note) {
-            if (!memory) return 'Memory is not available'
+            if (!admin) return 'Memory is not available'
             notes = null
-            const { error } = await memory.from('ronnie_memories').upsert({
+            const { error } = await admin.from('ronnie_memories').upsert({
                 user_id: userId, kind: note.kind, subject: note.subject, state: note.state, note: note.text, updated_at: note.updatedAt,
             }, { onConflict: 'user_id,kind,subject' })
             return error?.message ?? null
         },
 
         async deleteMemory({ kind, subject }) {
-            if (!memory) return 'Memory is not available'
+            if (!admin) return 'Memory is not available'
             notes = null
-            const query = memory.from('ronnie_memories').delete().eq('user_id', userId).eq('kind', kind)
+            const query = admin.from('ronnie_memories').delete().eq('user_id', userId).eq('kind', kind)
             const { error } = await (subject === null ? query.is('subject', null) : query.eq('subject', subject))
             return error?.message ?? null
         },

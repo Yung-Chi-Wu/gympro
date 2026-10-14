@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { loadUserToday } from '@/lib/ronnie/context'
 import { appendConversation } from '@/lib/ronnie/conversation'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { RoutineProposal } from '@/lib/ronnie/data'
 import { eventForDisplay, eventForModel, type ResolvedRow } from '@/lib/ronnie/events'
 
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     }
     const text = eventForDisplay(event, zh)
     const { today } = await loadUserToday(supabase, user.id)
-    const saveError = await appendConversation(supabase, today, {
+    const saveError = await appendConversation(createAdminClient(), user.id, today, {
         messages: [{ role: 'user', content: eventForModel(event) }],
         display: [{ kind: 'event', text }],
     })

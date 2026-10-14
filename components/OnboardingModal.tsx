@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useTheme } from 'next-themes'
 import type { WeightUnit } from '@/lib/weight-unit'
 import { toFriendlyError } from '@/lib/friendly-error'
+import { MAX_DISPLAY_NAME_CHARS } from '@/lib/text-limits'
 import { InstallGuide } from './InstallGuide'
 
 interface OnboardingModalProps {
@@ -190,7 +191,7 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
                                 <label className="text-xs font-medium text-black/60 dark:text-white/60 block mb-1">
                                     {zh ? '暱稱' : 'Display Name'}
                                 </label>
-                                <input type="text" value={displayName}
+                                <input type="text" value={displayName} maxLength={MAX_DISPLAY_NAME_CHARS}
                                     onChange={(e) => setDisplayName(e.target.value)}
                                     placeholder={zh ? '你想怎麼被稱呼？' : 'What should we call you?'}
                                     className="w-full rounded-lg border border-black/15 dark:border-white/15 px-3 py-2 text-sm bg-white dark:bg-[#3A3733] text-[#1A1814] dark:text-[#EAE7E0]" />

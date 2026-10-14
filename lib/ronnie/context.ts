@@ -45,8 +45,8 @@ export async function loadRonnieContext(supabase: SupabaseClient<Database>, user
     const profile = profileResult.data
     const cycle = cycleResult.data
     const timeZone = timeZoneOf(profile?.timezone)
-    // Memory notes are backend-only: read and written with the service role, for this user only
-    const data = createSupabaseRonnieData(supabase, userId, timeZone, cycle, { embedQuery: vercelQueryEmbedder(), memory: createAdminClient() })
+    // Memory notes and proposals are backend-only: written with the service role, for this user only
+    const data = createSupabaseRonnieData(supabase, userId, timeZone, cycle, { embedQuery: vercelQueryEmbedder(), admin: createAdminClient() })
 
     const [todayRoutineName, notes] = await Promise.all([
         (async () => {

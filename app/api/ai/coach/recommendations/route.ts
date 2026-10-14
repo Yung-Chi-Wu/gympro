@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { loadRonnieContext } from '@/lib/ronnie/context'
 import { appendConversation } from '@/lib/ronnie/conversation'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { eventForDisplay, eventForModel, type RonnieEvent } from '@/lib/ronnie/events'
 import { localDateToUtcRange } from '@/lib/ronnie/time'
 
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
         ? { kind: 'recommendation_swapped', exerciseName, replacedName: replaced.exercises ? nameOf(replaced.exercises) : '?' }
         : { kind: 'recommendation_added', exerciseName }
     const text = eventForDisplay(event, zh)
-    const saveError = await appendConversation(supabase, ctx.today, {
+    const saveError = await appendConversation(createAdminClient(), user.id, ctx.today, {
         messages: [{ role: 'user', content: eventForModel(event) }],
         display: [{ kind: 'event', text }],
     })
