@@ -25,12 +25,11 @@ interface GeneratedPlan {
 
 interface CoachGModalProps {
     language: string
-    trainingGoal: string | null
     onClose: () => void
     onSaved: () => void
 }
 
-export function CoachGModal({ language, trainingGoal, onClose, onSaved }: CoachGModalProps) {
+export function CoachGModal({ language, onClose, onSaved }: CoachGModalProps) {
     const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null)
 
     return (
@@ -47,7 +46,6 @@ export function CoachGModal({ language, trainingGoal, onClose, onSaved }: CoachG
                 ) : (
                     <CoachGChat
                         language={language}
-                        trainingGoal={trainingGoal}
                         onRoutinesGenerated={(routines, cycleLength) =>
                             setGeneratedPlan({ routines, cycleLength })
                         }

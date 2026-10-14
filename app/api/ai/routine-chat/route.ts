@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { errorText } from '@/lib/ai/trace'
 import { traceAfterResponse } from '@/lib/ai/trace-after'
+import { parseChatRequest } from '@/lib/coach-g'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -117,21 +118,10 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const {
-    currentStep,
-    userAnswer,
-    language,
-    trainingGoal,
-    collected,
-  }: {
-    currentStep: number
-    userAnswer: string | null
-    language: string
-    trainingGoal: string | null
-    collected: Record<string, string | string[] | null>
-  } = await request.json()
-
-  const zh = language === 'zh-TW'
+  // A step from 0 to 7 and short answers (lib/coach-g.ts); anything else is refused, not crashed on
+  const parsed = parseChatRequest(await request.json().catch(() => null))
+  if (!parsed) return NextResponse.json({ error: 'Bad request' }, { status: 400 })
+  const { step: currentStep, answer: userAnswer, zh, collected } = parsed
   const questions = zh ? QUESTIONS.zh : QUESTIONS.en
 
   // Step 0: 開場問候 + 問第一題
@@ -149,17 +139,6 @@ export async function POST(request: Request) {
       multi_select: q.multi_select,
       skippable: q.skippable,
       nextStep: 1,
-    })
-  }
-
-  // Step 8+: 所有問題都問完，準備生成
-  if (currentStep > 7) {
-    return NextResponse.json({
-      action: 'ready_to_generate',
-      message: zh
-        ? '太棒了！我已經掌握所有需要的資訊，現在幫你設計課表！'
-        : "Perfect! I have everything I need. Let me design your routine now!",
-      collected,
     })
   }
 

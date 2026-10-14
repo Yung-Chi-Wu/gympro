@@ -672,6 +672,14 @@ export type Database = {
         }
         Returns: Json
       }
+      save_coach_routines: {
+        Args: {
+          p_cycle_length: number
+          p_routines: Json
+          p_start_date: string
+        }
+        Returns: Json
+      }
       mark_report_queue_failed: {
         Args: {
           p_period_start: string

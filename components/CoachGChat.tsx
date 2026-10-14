@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { isSubmitEnter } from '@/lib/keyboard'
+import { MAX_ANSWER_CHARS } from '@/lib/coach-g'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -35,12 +36,11 @@ interface GeneratedRoutine {
 
 interface CoachGChatProps {
     language: string
-    trainingGoal: string | null
     onRoutinesGenerated: (routines: GeneratedRoutine[], cycleLength: number) => void
     onClose: () => void
 }
 
-export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClose }: CoachGChatProps) {
+export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGChatProps) {
     const zh = language === 'zh-TW'
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
@@ -79,7 +79,6 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                 currentStep: step,
                 userAnswer,
                 language,
-                trainingGoal,
                 collected: updatedCollected,
             }),
         })
@@ -110,7 +109,6 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
                     body: JSON.stringify({
                         collected: data.collected,
                         language,
-                        trainingGoal,
                     }),
                 })
                 const genData = await genRes.json()
@@ -290,7 +288,7 @@ export function CoachGChat({ language, trainingGoal, onRoutinesGenerated, onClos
             {/* Input */}
             <div className="p-4 border-t border-ink/10">
                 <div className="flex gap-2">
-                    <input type="text" value={input}
+                    <input type="text" value={input} maxLength={MAX_ANSWER_CHARS}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => { if (isSubmitEnter(e) && input.trim()) handleAnswer(input.trim()) }}
                         placeholder={

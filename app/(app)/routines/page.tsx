@@ -54,7 +54,7 @@ export default async function RoutinesPage() {
 
         supabase
             .from('user_profiles')
-            .select('language,onboarding_completed,training_goal,timezone')
+            .select('language,onboarding_completed,timezone')
             .eq('user_id', user.id)
             .maybeSingle(),
         supabase
@@ -117,7 +117,6 @@ export default async function RoutinesPage() {
             initialCycle={cycle ? { id: cycle.id, cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null}
             initialCycleDays={cycleDays}
             today={localDate(timeZoneOf(profile?.timezone), new Date())}
-            trainingGoal={profile?.training_goal ?? null}
         />
     )
 }
