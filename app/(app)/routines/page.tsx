@@ -109,7 +109,10 @@ export default async function RoutinesPage() {
     }
 
     return (
+        // A plan saved from Ronnie's card makes a new cycle: the editor then starts over from it
+        // when the page refreshes, as its state starts from these props
         <RoutineBuilder
+            key={cycle?.id ?? 'no-cycle'}
             userId={user.id}
             exercises={(exercisesResult.data ?? []) as ExerciseOption[]}
             initialRoutines={routineList}

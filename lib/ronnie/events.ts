@@ -40,9 +40,12 @@ export type RonnieEvent =
     | { kind: 'proposal'; status: 'confirmed' | 'cancelled' | 'expired'; proposal: RoutineProposal; rows: ResolvedRow[] }
     | { kind: 'recommendation_added'; exerciseName: string }
     | { kind: 'recommendation_swapped'; exerciseName: string; replacedName: string }
+    /** Saved from Coach G's editor, which a plan card opened */
+    | { kind: 'plan_saved'; routineNames: string[] }
 
 /** For the model. A removal keeps what the row was, so Ronnie can put it back as it was if asked. */
 export function eventForModel(e: RonnieEvent): string {
+    if (e.kind === 'plan_saved') return `${EVENT_PREFIX} The user saved the plan from your card in Coach G's editor, with any edits they made there: their routines are now ${e.routineNames.map((n) => `"${n}"`).join(', ')} with a new training cycle, and their earlier routines are gone.`
     if (e.kind === 'recommendation_added') return `${EVENT_PREFIX} The user tapped Add to today: "${e.exerciseName}" is now in today's workout.`
     if (e.kind === 'recommendation_swapped') return `${EVENT_PREFIX} The user tapped Swap: "${e.replacedName}" was removed from today's workout and "${e.exerciseName}" added. Routines unchanged.`
     const what = describeProposal(e.proposal, false)
@@ -56,6 +59,7 @@ export function eventForModel(e: RonnieEvent): string {
 
 /** For the chat window: one short line under the card. */
 export function eventForDisplay(e: RonnieEvent, zh: boolean): string {
+    if (e.kind === 'plan_saved') return zh ? '✓ 已存入新的課表和訓練循環' : '✓ Saved the new routines and training cycle'
     if (e.kind === 'recommendation_added') return zh ? `✓ 已把「${e.exerciseName}」加入今天的訓練` : `✓ Added "${e.exerciseName}" to today's workout`
     if (e.kind === 'recommendation_swapped') return zh ? `✓ 已把今天的「${e.replacedName}」換成「${e.exerciseName}」` : `✓ Swapped "${e.replacedName}" for "${e.exerciseName}" today`
     if (e.status === 'cancelled') return zh ? `已取消：${describeProposal(e.proposal, true)}` : `Cancelled: ${describeProposal(e.proposal, false)}`

@@ -90,11 +90,13 @@ export async function POST(request: Request) {
         const turn = await runRonnieTurn({ client, system, messages: sent, executor, language, signal: request.signal })
         const proposals = executor.proposals.map((p) => ({ ...p, status: 'pending' as const }))
         const recommendations = executor.recommendations
+        const plans = executor.plans
         const reply = {
             kind: 'assistant' as const,
             text: turn.message,
             ...(proposals.length ? { proposals } : {}),
             ...(recommendations.length ? { recommendations } : {}),
+            ...(plans.length ? { plans } : {}),
         }
         // Only what this turn added: the user's message and everything after it
         const error = await appendConversation(admin, user.id, ctx.today, {
@@ -109,10 +111,10 @@ export async function POST(request: Request) {
             ...(turn.interrupted ? { status: 'error' as const, error: `${turn.interrupted.reason}: ${turn.interrupted.error}` } : { status: 'ok' as const }),
             latencyMs: Date.now() - started, usage: turn.usage, input: traceInput,
             // What the turn added after the user's message: tool calls, their results, the reply
-            output: { reply: turn.message, messages: turn.messages.slice(sent.length), proposals, recommendations, reloadDashboard: turn.reloadDashboard },
+            output: { reply: turn.message, messages: turn.messages.slice(sent.length), proposals, recommendations, plans, reloadDashboard: turn.reloadDashboard },
         })
 
-        return NextResponse.json({ message: turn.message, reloadDashboard: turn.reloadDashboard, proposals, recommendations })
+        return NextResponse.json({ message: turn.message, reloadDashboard: turn.reloadDashboard, proposals, recommendations, plans })
     } catch (err) {
         console.error('Ronnie error:', err)
         const partial = err as { servedModel?: string | null; toolCalls?: unknown }

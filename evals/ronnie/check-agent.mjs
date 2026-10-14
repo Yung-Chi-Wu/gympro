@@ -15,7 +15,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..', '..')
 execFileSync(join(root, 'lambda/ai-worker/node_modules/.bin/esbuild'), ['evals/ronnie/check-entry.ts', '--bundle', '--platform=node', '--target=node20', '--format=cjs', '--outfile=evals/ronnie/dist/check.cjs', '--log-level=warning'], { cwd: root, stdio: 'inherit' })
 const {
-    runRonnieTurn, stripMarkdown, createRonnieExecutor, MAX_REMOVALS_PER_TURN, createSupabaseRonnieData,
+    runRonnieTurn, stripMarkdown, createRonnieExecutor, MAX_INCLUDE, createSupabaseRonnieData,
     appendConversation, replaceConversation, asTypedMessage, EVENT_PREFIX,
     createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER,
     buildSystemPrompt, fixtureNotes, memoryLines, MAX_NOTES, MAX_EXERCISE_NOTES_SHOWN, MAX_OTHER_NOTES,
@@ -127,10 +127,11 @@ const valid = (messages) => messages.every((m, i) => {
     check(client.calls.length === 1 && t.interrupted?.reason === 'aborted', `no model call after Stop (${client.calls.length} calls)`)
 }
 
-// More removals than allowed: the reply names the ones proposed and the one that wasn't
+// Many removals in one turn: each is proposed, with no cap (the owner, 2026-10-14), and the reply
+// names every one in the code's words
 {
     const { data } = createFixtureData()
-    const names = ['Barbell Bench Press', 'Incline Dumbbell Press', 'Overhead Press', 'Triceps Pushdown']
+    const names = ['Barbell Bench Press', 'Incline Dumbbell Press', 'Overhead Press', 'Triceps Pushdown', 'Barbell Row']
     const client = scripted([
         toolUse(...names.map((n) => ['propose_routine_change', { change: 'remove', exercise_id: id(n) }])),
         reply('已處理！'),
@@ -138,9 +139,21 @@ const valid = (messages) => messages.every((m, i) => {
     const executor = executorFor(data)
     const t = await turn(client, data, { executor })
     const ready = t.message.split('\n').filter((l) => l.startsWith('已準備好'))
-    check(executor.proposals.length === MAX_REMOVALS_PER_TURN && ready.length === MAX_REMOVALS_PER_TURN, `${MAX_REMOVALS_PER_TURN} removals are proposed (${ready.length} lines)`)
-    check(t.message.includes(`一次最多移除 ${MAX_REMOVALS_PER_TURN} 個動作`), `the 4th is said not to be proposed: ${t.message.split('\n').at(-1)}`)
+    check(executor.proposals.length === names.length && ready.length === names.length, `all ${names.length} removals are proposed (${ready.length} lines)`)
     check(!t.message.includes('已處理'), "the model's own wording is not the reply")
+}
+
+// A plan card shown, then the next model call fails: the turn still ends with the card
+{
+    const { data } = createFixtureData()
+    const executor = executorFor(data)
+    const client = scripted([
+        toolUse(['plan_routines', { days: 3, minutes: 60, equipment: ['barbell', 'dumbbell'], goals: ['muscle'], level: 'intermediate' }]),
+        () => { throw new Error('Overloaded') },
+    ])
+    let t = null
+    try { t = await turn(client, data, { executor }) } catch (err) { check(false, `a failure after a plan card is not thrown (${err.message})`) }
+    if (t) check(t.interrupted?.reason === 'error' && executor.plans.length === 1 && valid(t.messages), 'a failure after a plan card ends the turn with the card kept')
 }
 
 // ---------- the tools ----------
@@ -216,6 +229,54 @@ const valid = (messages) => messages.every((m, i) => {
 {
     check(stripMarkdown('做 3*10，再 4*8') === '做 3*10，再 4*8', `"3*10" stays: ${stripMarkdown('做 3*10，再 4*8')}`)
     check(stripMarkdown('這是 *重點* 和 **粗體**') === '這是 重點 和 粗體', `emphasis is still removed: ${stripMarkdown('這是 *重點* 和 **粗體**')}`)
+}
+
+// ---------- plan_routines: Coach G's planner as a tool ----------
+{
+    const ask = { days: 4, minutes: 60, equipment: ['barbell', 'dumbbell', 'machine', 'cable'], goals: ['muscle'], level: 'intermediate' }
+    const { data, writes, proposals } = createFixtureData()
+    const executor = executorFor(data)
+    const shown = await executor.executeTool('plan_routines', ask)
+    const card = executor.plans[0]
+    check(executor.plans.length === 1 && card.cycleLength === 7 && card.routines.flatMap((r) => r.day_indices).length === 4, `a plan card with 4 training days in a 7-day week: ${shown.split('\n')[0]}`)
+    check(card.routines.every((r) => r.exercises.length && r.exercises.every((e) => EXERCISES.some((x) => x.id === e.exercise_id))), "every exercise on the card is in the user's library")
+    check(!writes.length && !proposals.length && !executor.confirmations.length && /Nothing is saved yet/.test(shown), 'planning changes nothing and says nothing is saved')
+    check(/上肢日/.test(shown) && /Upper Body|上肢日/.test(card.routines[0].name_zh_tw ?? ''), `routines and exercises are named in the user's language: ${shown.split('\n')[1]?.slice(0, 50)}`)
+    await executor.executeTool('plan_routines', { ...ask, days: 3 })
+    check(executor.plans.length === 1 && executor.plans[0].routines.flatMap((r) => r.day_indices).length === 3, 'a second plan in the turn replaces the card')
+}
+{
+    // The notes hold whatever the call says: an injured knee is spared, a disliked exercise left out
+    const { data } = createFixtureData({ memories: [note('injury', 'knee', 'active', '左膝舊傷'), note('exercise', id('Leg Press'), 'dislike', '不想做腿推'), note('injury', 'hip', 'active', '右髖會痛')] })
+    const executor = executorFor(data)
+    const shown = await executor.executeTool('plan_routines', { days: 3, minutes: 60, equipment: ['barbell', 'dumbbell', 'machine', 'cable'], goals: ['muscle'], level: 'intermediate' })
+    const planned = executor.plans[0].routines.flatMap((r) => r.exercises.map((e) => EXERCISES.find((x) => x.id === e.exercise_id)))
+    check(planned.every((e) => e.joint_load?.knee !== 'high') && /sparing the knee/.test(shown), `the knee in the notes is spared without being passed: ${shown.split('\n')[0]}`)
+    check(!planned.some((e) => e.name === 'Leg Press') && /without 腿推/.test(shown), 'the disliked exercise in the notes is left out')
+    check(/active hip injury/.test(shown) && /doesn't steer around it/.test(shown), 'a hip injury, which the library does not rate, is said to be not steered around')
+    const kept = await executorFor(data).executeTool('plan_routines', { days: 3, minutes: 60, equipment: ['machine'], goals: ['muscle'], level: 'intermediate', include: [id('Leg Press').slice(0, 8)] })
+    check(/Kept as asked/.test(kept) && /腿推 \d/.test(kept), `a disliked exercise asked for by its short ID is kept, and Ronnie asks about the note: ${kept.split('\n').find((l) => l.startsWith('Kept'))?.slice(0, 60)}`)
+}
+{
+    const { data } = createFixtureData()
+    const executor = executorFor(data)
+    const asked = await executor.executeTool('plan_routines', { days: 3, minutes: 45, equipment: ['dumbbell'], goals: ['muscle'], level: 'beginner', include: [id('Hammer Curl'), id('Burpee')] })
+    const ids = executor.plans[0].routines.flatMap((r) => r.exercises.map((e) => e.exercise_id))
+    check(ids.includes(id('Hammer Curl')), 'an exercise asked for is in the plan')
+    check(!ids.includes(id('Burpee')) && /Not in the plan: 波比跳/.test(asked), `one the planner can't place is said to be left out: ${asked.split('\n').find((l) => l.startsWith('Not in'))}`)
+    const tooMany = Array.from({ length: MAX_INCLUDE + 1 }, (_, i) => EXERCISES[i].id)
+    check(/past the 6 exercises/.test(await executorFor(data).executeTool('plan_routines', { days: 4, minutes: 90, equipment: ['barbell', 'dumbbell', 'machine', 'cable'], goals: ['muscle'], level: 'advanced', include: tooMany })), `more than ${MAX_INCLUDE} asked for: the rest are said to be left out`)
+    for (const [what, bad] of [['9 days', { days: 9 }], ['no goal', { goals: [] }], ['an unknown level', { level: 'pro' }], ['no session length', { minutes: 'long' }]]) {
+        const ex = executorFor(data)
+        const r = await ex.executeTool('plan_routines', { days: 3, minutes: 60, equipment: ['dumbbell'], goals: ['muscle'], level: 'beginner', ...bad })
+        check(r.startsWith('Not planned') && !ex.plans.length, `${what}: not planned, no card (${r.slice(0, 50)})`)
+    }
+    const words = await executorFor(data).executeTool('plan_routines', { days: '2', minutes: 50, equipment: ['Dumbbell', 'rocket'], goals: ['Fat Loss'], level: 'Beginner' })
+    check(/2 days a week, 45 min a session, fat loss, beginner/.test(words), `values as the model may write them are read: ${words.split('\n')[0]}`)
+}
+{
+    const prompt = buildSystemPrompt('zh-TW', FIXTURE_USER)
+    check(prompt.includes('plan_routines') && !/suggest Coach G/i.test(prompt), 'the prompt plans with plan_routines and no longer sends the user to Coach G')
 }
 
 // ---------- memory ----------

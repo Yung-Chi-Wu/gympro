@@ -131,8 +131,9 @@ export async function runRonnieTurn({
     }
 
     // Something the user can see already happened: a change to today's workout, a proposal card, a
-    // recommendation card, a note saved. A turn that stops after that must still report it.
-    const didSomething = () => executor.confirmations.length > 0 || executor.proposals.length > 0 || executor.recommendations.length > 0 || executor.remembered.length > 0
+    // recommendation card, a plan card, a note saved. A turn that stops after that must still report it.
+    const didSomething = () => executor.confirmations.length > 0 || executor.proposals.length > 0 || executor.recommendations.length > 0
+        || executor.plans.length > 0 || executor.remembered.length > 0
     const interrupted = (reason: 'error' | 'aborted', err: unknown): RonnieTurn => {
         const stopped = reason === 'aborted'
             ? (zh ? '（已停止，上面是停止前已經完成的。）' : '(Stopped. Above is what was done before you stopped.)')
