@@ -47,7 +47,7 @@ export default async function DashboardPage() {
   const profile = profileResult.data
   const cycle = cycleResult.data
 
-  const language = await getEffectiveLanguage(profile?.language)
+  const language = await getEffectiveLanguage(profile)
   const greetingName = profile?.display_name || user.email || ''
   const timezone = timeZoneOf(profile?.timezone)
   const onboardingCompleted = profile?.onboarding_completed ?? false

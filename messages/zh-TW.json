@@ -382,7 +382,12 @@
         "loggingIn": "登入中...",
         "loginError": "登入失敗，請確認你的信箱和密碼。",
         "noAccount": "還沒有帳號？",
-        "signup": "立即註冊"
+        "signup": "立即註冊",
+        "callbackError": {
+            "oauthFailed": "登入沒有完成。請再用 Google 或 Facebook 試一次，或用信箱和密碼登入。如果你是從密碼重設信過來的，請按「忘記密碼？」重新傳送重設連結，並用這個瀏覽器開啟。",
+            "authFailed": "登入沒有完成。如果你是從信件裡的連結過來的，連結可能已經過期，或是在不同的瀏覽器開啟。請在下方用信箱和密碼登入。",
+            "unknown": "登入沒有完成，請在下方重新登入。"
+        }
     },
     "reportV3": {
         "period": "{unit, select, week {週報} other {循環報告}} · {start} – {end}",

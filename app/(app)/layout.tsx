@@ -25,11 +25,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
     const profileResult = user ? await supabase
         .from('user_profiles')
-        .select('language, timezone')
+        .select('language, onboarding_completed, timezone')
         .eq('user_id', user.id)
         .maybeSingle() : null
 
-    const language = await getEffectiveLanguage(profileResult?.data?.language)
+    const language = await getEffectiveLanguage(profileResult?.data)
 
     const NAV_LINKS: NavLink[] = [
         { href: '/dashboard', label: t('dashboard'), icon: 'today' },

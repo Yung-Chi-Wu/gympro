@@ -29,7 +29,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
     const [profileResult, cycleResult] = await Promise.all([
         supabase
             .from('user_profiles')
-            .select('timezone, language, weight_unit, distance_unit')
+            .select('timezone, language, onboarding_completed, weight_unit, distance_unit')
             .eq('user_id', user.id)
             .maybeSingle(),
         supabase
@@ -40,7 +40,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
     ])
 
     const timeZone = timeZoneOf(profileResult.data?.timezone)
-    const language = await getEffectiveLanguage(profileResult.data?.language)
+    const language = await getEffectiveLanguage(profileResult.data)
     const weightUnit: WeightUnit = profileResult.data?.weight_unit === 'lb' ? 'lb' : 'kg'
     const distanceUnit: DistanceUnit = profileResult.data?.distance_unit === 'mi' ? 'mi' : 'km'
     const cycleRow = cycleResult.data

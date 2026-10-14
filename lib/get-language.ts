@@ -1,8 +1,14 @@
 import { cookies, headers } from 'next/headers'
+import type { Database } from '@/lib/types/database.types'
 
-export async function getEffectiveLanguage(dbLanguage?: string | null): Promise<string> {
-    // 如果 DB 已經有非預設的語言設定，直接用
-    if (dbLanguage && dbLanguage !== 'en') return dbLanguage
+type SavedLanguage = Pick<Database['public']['Tables']['user_profiles']['Row'], 'language' | 'onboarding_completed'>
+
+export async function getEffectiveLanguage(profile?: SavedLanguage | null): Promise<string> {
+    // The user's saved language wins on every device. The column defaults to 'en', so 'en'
+    // is only their choice once onboarding (which saves the language picked in its first
+    // step) is done; until then they get this device's language, as below.
+    if (profile?.language === 'zh-TW') return 'zh-TW'
+    if (profile?.onboarding_completed) return 'en'
 
     // 優先讀 cookie（使用者曾經在 Settings 選過語言）
     const cookieStore = await cookies()

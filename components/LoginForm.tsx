@@ -6,9 +6,11 @@ import { createClient } from '@/lib/supabase/client'
 
 interface LoginFormProps {
     locale: string
+    /** Why the last sign-in sent the user back here, in their language; shown until they try again */
+    initialError?: string | null
 }
 
-export function LoginForm({ locale }: LoginFormProps) {
+export function LoginForm({ locale, initialError = null }: LoginFormProps) {
     const router = useRouter()
     const supabase = createClient()
     const zh = locale === 'zh-TW'
@@ -17,7 +19,7 @@ export function LoginForm({ locale }: LoginFormProps) {
     const [password, setPassword] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [oauthLoading, setOauthLoading] = useState<string | null>(null)
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState<string | null>(initialError)
     const [needsVerification, setNeedsVerification] = useState(false)
     const [resendSent, setResendSent] = useState(false)
 

@@ -382,7 +382,12 @@
         "loggingIn": "Logging in...",
         "loginError": "Login failed. Please check your email and password.",
         "noAccount": "Don't have an account?",
-        "signup": "Sign up"
+        "signup": "Sign up",
+        "callbackError": {
+            "oauthFailed": "Sign-in didn't finish. Try Google or Facebook again, or log in with your email and password. If you came from a password reset email, get a new link with Forgot password? and open it in this same browser.",
+            "authFailed": "Sign-in didn't finish. If you came from a link in an email, it may have expired or been opened in a different browser. Log in with your email and password below.",
+            "unknown": "Sign-in didn't finish. Log in again below."
+        }
     },
     "reportV3": {
         "period": "{unit, select, week {Weekly report} other {Cycle report}} · {start} – {end}",

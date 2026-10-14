@@ -54,7 +54,7 @@ export default async function RoutinesPage() {
 
         supabase
             .from('user_profiles')
-            .select('language,training_goal,timezone')
+            .select('language,onboarding_completed,training_goal,timezone')
             .eq('user_id', user.id)
             .maybeSingle(),
         supabase
@@ -79,7 +79,7 @@ export default async function RoutinesPage() {
             .maybeSingle(),
     ])
     const profile = profileResult.data
-    const language = await getEffectiveLanguage(profile?.language)
+    const language = await getEffectiveLanguage(profile)
     const cycle = cycleResult.data
 
     const routineList: RoutineWithExercises[] = ((routinesResult.data as RawRoutineRow[]) ?? []).map((r) => ({
