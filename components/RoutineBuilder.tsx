@@ -11,10 +11,9 @@ import { CoachGEntry } from './CoachGEntry'
 import { Icon } from './Icon'
 import { MoreMenu } from './MoreMenu'
 import { toFriendlyError } from '@/lib/friendly-error'
-import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { closeSubPage, openSubPage } from '@/lib/sub-page'
 import { isSubmitEnter } from '@/lib/keyboard'
-import type { ExerciseOption } from './log-types'
+import { MUSCLE_GROUPS, type ExerciseOption } from './log-types'
 import type { RoutineWithExercises, RoutineExerciseRow } from '@/app/(app)/routines/page'
 
 // The 課表 page. Side by side (@split): the training cycle as one strip on top, then the
@@ -47,7 +46,11 @@ interface RawRoutineExercise {
 const CARD = 'rounded-[14px] border border-line bg-card p-4'
 const BUTTON = 'inline-flex min-h-11 items-center justify-center gap-1 whitespace-nowrap rounded-[9px] border border-line bg-card px-4 text-[15px] font-bold transition-colors hover:bg-done disabled:opacity-50 md:min-h-9 md:px-3 md:text-[13px]'
 const PRIMARY = 'inline-flex min-h-11 items-center justify-center gap-1 whitespace-nowrap rounded-[9px] bg-accent px-4 text-[15px] font-bold text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50 md:min-h-9 md:px-3 md:text-[13px]'
-const NUMBER_INPUT = 'h-11 w-14 rounded-[7px] border border-line bg-card px-1 text-center font-mono font-bold md:h-auto md:w-12'
+const NUMBER_INPUT = 'h-11 w-14 rounded-[7px] border border-line bg-card px-1 text-center font-mono font-bold md:h-9 md:w-12'
+// The group and exercise selects of MuscleGroupExercisePicker, the same height as the inputs
+const PICKER = 'min-w-0 [&_select]:h-11 [&_select]:rounded-[7px] [&_select]:border-line [&_select]:bg-card [&_select]:text-base md:[&_select]:h-9 md:[&_select]:text-sm'
+const DEFAULT_SETS = 3
+const DEFAULT_REPS = 10
 
 const isShown = (ex: RoutineExerciseRow) => ex.exercise_name !== 'Unknown exercise' && ex.exercise_name !== ''
 
@@ -197,15 +200,16 @@ export function RoutineBuilder({
         updateRoutine(routineId, (r) => ({ ...r, name: trimmedName }))
     }
 
+    /** Whether it was saved */
     async function handleAddExercise(
         routineId: string,
         exercise: ExerciseOption,
         targetSets: number,
         targetReps: number
-    ) {
+    ): Promise<boolean> {
         setError(null)
         const routine = routines.find((r) => r.id === routineId)
-        if (!routine) return
+        if (!routine) return false
 
         const nextOrderIndex = routine.exercises.length > 0
             ? Math.max(...routine.exercises.map((ex) => ex.order_index)) + 1
@@ -225,7 +229,7 @@ export function RoutineBuilder({
 
         if (insertError || !data) {
             setError(toFriendlyError(insertError, language))
-            return
+            return false
         }
 
         updateRoutine(routineId, (r) => ({
@@ -239,6 +243,23 @@ export function RoutineBuilder({
                 target_sets: data.target_sets,
                 target_reps: data.target_reps,
             }],
+        }))
+        return true
+    }
+
+    // Another exercise in the same place, keeping its sets × reps
+    async function handleChangeExercise(routineId: string, routineExerciseId: string, exercise: ExerciseOption) {
+        setError(null)
+        const { error: updateError } = await supabase
+            .from('routine_exercises')
+            .update({ exercise_id: exercise.id })
+            .eq('id', routineExerciseId)
+        if (updateError) { setError(toFriendlyError(updateError, language)); return }
+        updateRoutine(routineId, (r) => ({
+            ...r,
+            exercises: r.exercises.map((ex) =>
+                ex.id !== routineExerciseId ? ex : { ...ex, exercise_id: exercise.id, exercise_name: exercise.name, muscle_group: exercise.muscle_group }
+            ),
         }))
     }
 
@@ -430,6 +451,7 @@ export function RoutineBuilder({
                             onRename={(name) => handleRenameRoutine(shown.id, name)}
                             onDelete={() => handleDeleteRoutine(shown)}
                             onAdd={(exercise, sets, reps) => handleAddExercise(shown.id, exercise, sets, reps)}
+                            onChangeExercise={(id, exercise) => handleChangeExercise(shown.id, id, exercise)}
                             onRemove={(id) => handleRemoveExercise(shown.id, id)}
                             onUpdateTarget={(id, sets, reps) => handleUpdateTarget(shown.id, id, sets, reps)}
                             onReorder={(ids) => handleReorder(shown.id, ids)}
@@ -452,7 +474,8 @@ interface RoutineEditorProps {
     language: string
     onRename: (name: string) => void
     onDelete: () => void
-    onAdd: (exercise: ExerciseOption, targetSets: number, targetReps: number) => void
+    onAdd: (exercise: ExerciseOption, targetSets: number, targetReps: number) => Promise<boolean>
+    onChangeExercise: (routineExerciseId: string, exercise: ExerciseOption) => void
     onRemove: (routineExerciseId: string) => void
     onUpdateTarget: (routineExerciseId: string, targetSets: number, targetReps: number) => void
     onReorder: (orderedIds: string[]) => void
@@ -467,8 +490,9 @@ function moveItem<T>(list: T[], from: number, to: number): T[] {
 
 /**
  * One routine: its name, its exercises with sets × reps, and adding, renaming and deleting.
- * The order changes by dragging a row's ⋮⋮ handle (mouse or finger), or with the arrow keys
- * on the handle.
+ * Every row's exercise and sets × reps change in place and save at once. 加動作 opens a new
+ * row, saved as soon as its exercise is picked. The order changes by dragging a row's ⋮⋮
+ * handle (mouse or finger), or with the arrow keys on the handle.
  */
 function RoutineEditor({
     routine,
@@ -478,6 +502,7 @@ function RoutineEditor({
     onRename,
     onDelete,
     onAdd,
+    onChangeExercise,
     onRemove,
     onUpdateTarget,
     onReorder,
@@ -486,6 +511,7 @@ function RoutineEditor({
     const zh = language === 'zh-TW'
     const [renaming, setRenaming] = useState(false)
     const [name, setName] = useState(routine.name)
+    // The new row, until its exercise is picked
     const [adding, setAdding] = useState(false)
     // While a row is being dragged: which one, and the order on screen
     const [dragging, setDragging] = useState<{ id: string; order: string[] } | null>(null)
@@ -495,6 +521,9 @@ function RoutineEditor({
     const visible = routine.exercises.filter(isShown)
     const byId = new Map(visible.map((ex) => [ex.id, ex]))
     const rows = dragging ? dragging.order.flatMap((id) => byId.get(id) ?? []) : visible
+    // A new row starts in the group of the exercise above it
+    const lastGroup = visible.at(-1)?.muscle_group
+    const newRowGroup = lastGroup && (MUSCLE_GROUPS as readonly string[]).includes(lastGroup) ? lastGroup : MUSCLE_GROUPS[0]
 
     function startRenaming() {
         setName(routine.name)
@@ -608,10 +637,10 @@ function RoutineEditor({
             </div>
 
             {rows.length === 0 ? (
-                <p className="py-2 text-[15px] text-muted md:text-sm">{t('emptyRoutine')}</p>
+                !adding && <p className="py-2 text-[15px] text-muted md:text-sm">{t('emptyRoutine')}</p>
             ) : (
                 <>
-                    <p className="hidden text-right text-[11px] text-faint md:block" aria-hidden="true">{t('setsByReps')}</p>
+                    <p className="hidden pr-10 text-right text-[11px] text-faint md:block" aria-hidden="true">{t('setsByReps')}</p>
                     <ol ref={listRef} className="divide-y divide-line">
                         {rows.map((ex, index) => (
                             <ExerciseRow
@@ -627,6 +656,7 @@ function RoutineEditor({
                                     onPointerCancel: handleGripCancel,
                                     onKeyDown: (e) => handleGripKey(e, index),
                                 }}
+                                onPick={(picked) => onChangeExercise(ex.id, picked)}
                                 onUpdateTarget={(sets, reps) => onUpdateTarget(ex.id, sets, reps)}
                                 onRemove={() => onRemove(ex.id)}
                             />
@@ -636,12 +666,16 @@ function RoutineEditor({
             )}
 
             {adding ? (
-                <AddExerciseToRoutine
-                    exercises={exercises}
-                    language={language}
-                    onAdd={onAdd}
-                    onDone={() => setAdding(false)}
-                />
+                <div className={rows.length > 0 ? 'border-t border-line' : ''}>
+                    <ExerciseRow
+                        exercise={null}
+                        language={language}
+                        exercises={exercises}
+                        startGroup={newRowGroup}
+                        onPick={async (picked, sets, reps) => { if (await onAdd(picked, sets, reps)) setAdding(false) }}
+                        onRemove={() => setAdding(false)}
+                    />
+                </div>
             ) : (
                 <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
                     <button type="button" onClick={() => setAdding(true)} className={BUTTON}>
@@ -656,42 +690,67 @@ function RoutineEditor({
 }
 
 interface ExerciseRowProps {
-    exercise: RoutineExerciseRow
+    /** The saved row, or null for the new one whose exercise is not picked yet */
+    exercise: RoutineExerciseRow | null
     language: string
     exercises: ExerciseOption[]
-    dragging: boolean
-    gripProps: {
+    /** The new row: the group its picker starts in */
+    startGroup?: string
+    dragging?: boolean
+    /** A saved row: its ⋮⋮ handle */
+    gripProps?: {
         onPointerDown: (e: ReactPointerEvent<HTMLButtonElement>) => void
         onPointerMove: (e: ReactPointerEvent<HTMLButtonElement>) => void
         onPointerUp: (e: ReactPointerEvent<HTMLButtonElement>) => void
         onPointerCancel: () => void
         onKeyDown: (e: ReactKeyboardEvent<HTMLButtonElement>) => void
     }
-    onUpdateTarget: (targetSets: number, targetReps: number) => void
+    /** An exercise picked: it takes a saved row's old one's place, and the new row is saved with it */
+    onPick: (exercise: ExerciseOption, targetSets: number, targetReps: number) => void
+    onUpdateTarget?: (targetSets: number, targetReps: number) => void
     onRemove: () => void
 }
 
-function ExerciseRow({ exercise, language, exercises, dragging, gripProps, onUpdateTarget, onRemove }: ExerciseRowProps) {
+/** One exercise: its group and exercise, sets × reps, and 刪除; on a phone the numbers go on a second line */
+function ExerciseRow({ exercise, language, exercises, startGroup, dragging = false, gripProps, onPick, onUpdateTarget, onRemove }: ExerciseRowProps) {
     const t = useTranslations('routines')
-    const [targetSets, setTargetSets] = useState(String(exercise.target_sets ?? ''))
-    const [targetReps, setTargetReps] = useState(String(exercise.target_reps ?? ''))
-    // On a phone the row is one tap target; it opens to show the inputs and 移除
-    const [expanded, setExpanded] = useState(false)
+    const [targetSets, setTargetSets] = useState(String(exercise ? exercise.target_sets ?? '' : DEFAULT_SETS))
+    const [targetReps, setTargetReps] = useState(String(exercise ? exercise.target_reps ?? '' : DEFAULT_REPS))
+    const pickerRef = useRef<HTMLDivElement>(null)
+
+    // The new row opens with its group select focused
+    useEffect(() => {
+        if (!exercise) pickerRef.current?.querySelector('select')?.focus()
+    }, [exercise])
 
     const displayName = (() => {
+        if (!exercise) return t('chooseExercise')
         if (language !== 'zh-TW') return exercise.exercise_name
         const found = exercises.find((ex) => ex.id === exercise.exercise_id)
         return found?.name_zh_tw ? found.name_zh_tw : exercise.exercise_name
     })()
-    const muscle = getMuscleGroupLabel(exercise.muscle_group, language)
+    const removeLabel = exercise ? t('removeExercise', { name: displayName }) : t('removeShort')
 
+    // A saved row saves new numbers when an input loses focus; anything but a positive number
+    // goes back to what was saved. The new row keeps them until its exercise is picked.
     function commitIfChanged() {
+        if (!exercise) return
         const setsNum = Number(targetSets)
         const repsNum = Number(targetReps)
-        if (!setsNum || !repsNum || setsNum <= 0 || repsNum <= 0) return
-        if (setsNum !== exercise.target_sets || repsNum !== exercise.target_reps) {
-            onUpdateTarget(setsNum, repsNum)
+        if (!(setsNum > 0) || !(repsNum > 0)) {
+            setTargetSets(String(exercise.target_sets ?? ''))
+            setTargetReps(String(exercise.target_reps ?? ''))
+            return
         }
+        if (setsNum !== exercise.target_sets || repsNum !== exercise.target_reps) onUpdateTarget?.(setsNum, repsNum)
+    }
+
+    function pick(exerciseId: string) {
+        const picked = exercises.find((ex) => ex.id === exerciseId)
+        if (!picked || picked.id === exercise?.exercise_id) return
+        const setsNum = Number(targetSets)
+        const repsNum = Number(targetReps)
+        onPick(picked, setsNum > 0 ? setsNum : DEFAULT_SETS, repsNum > 0 ? repsNum : DEFAULT_REPS)
     }
 
     const input = (value: string, set: (v: string) => void, label: string) => (
@@ -706,133 +765,61 @@ function ExerciseRow({ exercise, language, exercises, dragging, gripProps, onUpd
         />
     )
 
+    const Row = exercise ? 'li' : 'div'
     return (
-        <li className={dragging ? 'rounded-[10px] bg-accent-soft' : ''}>
-            <div className="grid grid-cols-[32px_minmax(0,1fr)] items-center gap-x-2 md:grid-cols-[28px_minmax(0,1fr)_auto_32px] md:py-2">
-                <button
-                    type="button"
-                    {...gripProps}
-                    aria-label={t('moveExercise', { name: displayName })}
-                    className="flex h-11 cursor-grab touch-none items-center justify-center rounded-[7px] text-faint hover:text-ink active:cursor-grabbing md:h-10"
-                >
-                    <Icon name="grip" className="size-5" />
-                </button>
-
-                {/* Phone: name and sets × reps; a tap opens the inputs */}
-                <button
-                    type="button"
-                    onClick={() => setExpanded((v) => !v)}
-                    aria-expanded={expanded}
-                    className="flex min-h-[60px] min-w-0 items-center gap-3 py-2 text-left md:hidden"
-                >
-                    <span className="min-w-0 flex-1">
-                        <span className="block truncate font-bold">{displayName}</span>
-                        <span className="text-[13px] text-muted">{muscle}</span>
+        <Row className={`py-3 md:py-2 ${dragging ? 'rounded-[10px] bg-accent-soft' : ''}`}>
+            <div className="grid grid-cols-[32px_minmax(0,1fr)] items-center gap-x-2 gap-y-2 md:grid-cols-[28px_minmax(0,1fr)_auto_32px]">
+                {gripProps ? (
+                    <button
+                        type="button"
+                        {...gripProps}
+                        aria-label={t('moveExercise', { name: displayName })}
+                        className="flex h-11 cursor-grab touch-none items-center justify-center rounded-[7px] text-faint hover:text-ink active:cursor-grabbing md:h-9"
+                    >
+                        <Icon name="grip" className="size-5" />
+                    </button>
+                ) : (
+                    // The new row has no place in the order until it is saved
+                    <span aria-hidden="true" className="flex h-11 items-center justify-center text-faint md:h-9">
+                        <Icon name="plus" className="size-4" />
                     </span>
-                    <span className="shrink-0 font-mono text-[15px] font-bold">{targetSets || '–'} × {targetReps || '–'}</span>
-                    <Icon name="forward" className={`size-4 text-faint transition-transform ${expanded ? 'rotate-90' : ''}`} />
-                </button>
+                )}
 
-                {/* From md: everything in the row */}
-                <span className="hidden min-w-0 md:block">
-                    <span className="block truncate font-bold">{displayName}</span>
-                    <span className="inline-block rounded-full bg-done px-2 text-xs text-muted">{muscle}</span>
-                </span>
-                <span className="hidden items-center gap-1 md:flex">
+                <div ref={pickerRef} className={PICKER}>
+                    <MuscleGroupExercisePicker
+                        exercises={exercises}
+                        value={exercise?.exercise_id ?? ''}
+                        onChange={pick}
+                        language={language}
+                        initialGroup={startGroup}
+                        placeholder={exercise ? undefined : t('chooseExercise')}
+                    />
+                </div>
+
+                {/* Phone: under the exercise, with 刪除 at the end; from md, in their own columns */}
+                <div className="col-start-2 flex items-center gap-1 md:col-start-auto">
                     {input(targetSets, setTargetSets, t('sets'))}
                     <span className="text-faint">×</span>
                     {input(targetReps, setTargetReps, t('reps'))}
-                </span>
+                    <span aria-hidden="true" className="ml-1 text-[13px] text-faint md:hidden">{t('setsByReps')}</span>
+                    <button
+                        type="button"
+                        onClick={onRemove}
+                        aria-label={removeLabel}
+                        className="ml-auto min-h-11 px-2 text-[15px] font-medium text-miss md:hidden"
+                    >
+                        {t('removeShort')}
+                    </button>
+                </div>
                 <button
                     type="button"
                     onClick={onRemove}
-                    aria-label={t('removeExercise', { name: displayName })}
+                    aria-label={removeLabel}
                     className="hidden size-8 items-center justify-center rounded-[7px] text-faint hover:bg-done hover:text-miss md:flex"
                 >
                     <Icon name="close" className="size-4" />
                 </button>
             </div>
-
-            {expanded && (
-                <div className="flex flex-wrap items-end gap-3 pb-4 pl-10 md:hidden">
-                    <label className="flex flex-col gap-1">
-                        <span className="text-[13px] text-muted">{t('sets')}</span>
-                        {input(targetSets, setTargetSets, t('sets'))}
-                    </label>
-                    <span className="mb-3 text-faint">×</span>
-                    <label className="flex flex-col gap-1">
-                        <span className="text-[13px] text-muted">{t('reps')}</span>
-                        {input(targetReps, setTargetReps, t('reps'))}
-                    </label>
-                    <button type="button" onClick={onRemove} className="ml-auto min-h-11 px-2 text-[15px] font-medium text-miss">
-                        {t('removeShort')}
-                    </button>
-                </div>
-            )}
-        </li>
-    )
-}
-
-interface AddExerciseToRoutineProps {
-    exercises: ExerciseOption[]
-    language: string
-    onAdd: (exercise: ExerciseOption, targetSets: number, targetReps: number) => void
-    onDone: () => void
-}
-
-function AddExerciseToRoutine({ exercises, language, onAdd, onDone }: AddExerciseToRoutineProps) {
-    const t = useTranslations('routines')
-    const [selectedId, setSelectedId] = useState(exercises[0]?.id ?? '')
-    const [targetSets, setTargetSets] = useState('3')
-    const [targetReps, setTargetReps] = useState('10')
-
-    return (
-        <div className="space-y-3 border-t border-line pt-4 md:space-y-2 md:pt-3 [&_select]:h-11 [&_select]:text-base md:[&_select]:h-auto md:[&_select]:text-sm">
-            <MuscleGroupExercisePicker
-                exercises={exercises}
-                value={selectedId}
-                onChange={setSelectedId}
-                language={language}
-            />
-            <div className="flex flex-wrap items-end gap-x-2 gap-y-3">
-                <label className="flex flex-col gap-1">
-                    <span className="text-[13px] text-muted md:text-xs">{t('sets')}</span>
-                    <input
-                        type="text"
-                        inputMode="numeric"
-                        value={targetSets}
-                        onChange={(e) => setTargetSets(e.target.value)}
-                        className={NUMBER_INPUT}
-                    />
-                </label>
-                <span className="mb-3 text-faint md:mb-2.5 md:text-sm">×</span>
-                <label className="flex flex-col gap-1">
-                    <span className="text-[13px] text-muted md:text-xs">{t('reps')}</span>
-                    <input
-                        type="text"
-                        inputMode="numeric"
-                        value={targetReps}
-                        onChange={(e) => setTargetReps(e.target.value)}
-                        className={NUMBER_INPUT}
-                    />
-                </label>
-                <button
-                    type="button"
-                    disabled={!selectedId}
-                    onClick={() => {
-                        const exercise = exercises.find((ex) => ex.id === selectedId)
-                        const setsNum = Number(targetSets)
-                        const repsNum = Number(targetReps)
-                        if (exercise && setsNum > 0 && repsNum > 0) {
-                            onAdd(exercise, setsNum, repsNum)
-                        }
-                    }}
-                    className={`${PRIMARY} mb-0.5`}
-                >
-                    {t('add')}
-                </button>
-                <button type="button" onClick={onDone} className={`${BUTTON} mb-0.5`}>{t('doneAdding')}</button>
-            </div>
-        </div>
+        </Row>
     )
 }
