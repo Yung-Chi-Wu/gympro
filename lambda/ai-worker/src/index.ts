@@ -1,26 +1,24 @@
 import type { SQSEvent, SQSHandler, SQSRecord } from 'aws-lambda'
-import { getSupabaseClient, isRunnable, saveFailedStatus, saveInsufficientDataStatus, saveReport, type ReportRequest } from './supabase'
+import { getSupabaseClient, isRunnable, parseRequest, saveFailedStatus, saveInsufficientDataStatus, saveReport } from './supabase'
 import { analyze } from './report/analyze'
 import { fetchReportInputs } from './report/fetch'
 import { generateNarrative, NARRATIVE_MODEL } from './report/narrative'
 import { errorText, recordTrace, usageOfError } from '../../../lib/ai/trace'
+import { periodDays } from '../../../lib/periods'
 import type { ReportV3 } from './report/types'
-import type { AnalysisRequestMessage } from './types'
 
 const MINIMUM_SETS_FOR_ANALYSIS = 10
 /** Kept back from the Lambda's timeout to save a failure and its trace: a run cut off saves nothing and stays pending */
 const SAVE_MARGIN_MS = 15_000
 
 async function processMessage(record: SQSRecord, deadline: number): Promise<void> {
-  const message = JSON.parse(record.body) as AnalysisRequestMessage
-  const { userId, periodStart, periodEnd, userNote, language: messageLanguage } = message
-  const request: ReportRequest = { userId, periodStart, queuedAt: message.queuedAt }
-
-  // messageId matches the one Next.js logs when it queues the request,
-  // so a single report can be traced across Vercel and CloudWatch.
-  console.log(
-    `Processing recommendation for user ${userId}, period ${periodStart} to ${periodEnd} (messageId ${record.messageId})`
-  )
+  const request = parseRequest(record.body)
+  if (!request) {
+    // Acknowledged, not thrown: it would fail the same way on every redelivery
+    console.error(`Dropping a message that is not a report request (messageId ${record.messageId})`)
+    return
+  }
+  const { userId, periodStart } = request
 
   const supabase = await getSupabaseClient()
 
@@ -31,10 +29,24 @@ async function processMessage(record: SQSRecord, deadline: number): Promise<void
     console.log(`Skipping report for user ${userId}, period ${periodStart}: ${runnable.why} (messageId ${record.messageId}, receive ${record.attributes.ApproximateReceiveCount})`)
     return
   }
+  const { periodEnd, userNote } = runnable
+
+  // messageId matches the one Next.js logs when it queues the request,
+  // so a single report can be traced across Vercel and CloudWatch.
+  console.log(
+    `Processing recommendation for user ${userId}, period ${periodStart} to ${periodEnd} (messageId ${record.messageId})`
+  )
+
+  // The database holds periods to a cycle's length; this keeps a row from before that, or a
+  // bad one, from sizing the report
+  if (periodEnd === null || periodDays(periodStart, periodEnd) === null) {
+    console.error(`Not reporting on user ${userId}, period ${periodStart} to ${periodEnd}: not a period a report covers (messageId ${record.messageId})`)
+    await saveFailedStatus(supabase, request, 'Invalid report period.')
+    return
+  }
 
   try {
-    const { inputs, language: profileLanguage, weightUnit, distanceUnit } = await fetchReportInputs(supabase, userId, periodStart, periodEnd)
-    const language = messageLanguage ?? profileLanguage
+    const { inputs, language, weightUnit, distanceUnit } = await fetchReportInputs(supabase, userId, periodStart, periodEnd)
 
     // Code decides every number and which rules fire; the model writes the headline and advice
     const analysis = analyze(inputs)

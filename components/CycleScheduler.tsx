@@ -4,7 +4,7 @@ import { useState, type Dispatch, type SetStateAction } from 'react'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { toFriendlyError } from '@/lib/friendly-error'
-import { addDays, daysBetween } from '@/lib/periods'
+import { addDays, daysBetween, MAX_CYCLE_DAYS } from '@/lib/periods'
 import { MoreMenu } from './MoreMenu'
 
 // The training cycle: how many days one round lasts and which routine each day trains.
@@ -16,6 +16,12 @@ interface RoutineOption {
     id: string
     name: string
 }
+
+// One round is one report period, so the database holds it to MAX_CYCLE_DAYS too
+const isCycleLength = (n: number) => Number.isInteger(n) && n >= 1 && n <= MAX_CYCLE_DAYS
+const cycleLengthError = (zh: boolean) => zh
+    ? `循環天數要在 1 到 ${MAX_CYCLE_DAYS} 天之間。`
+    : `A cycle lasts 1 to ${MAX_CYCLE_DAYS} days.`
 
 export interface CycleDayState {
     dayIndex: number
@@ -76,8 +82,8 @@ export function CycleScheduler({
         e.preventDefault()
         setError(null)
         const length = Number(lengthInput)
-        if (!length || length < 1) {
-            setError(zh ? '請輸入至少 1 天的循環長度。' : 'Enter a cycle length of at least 1 day.')
+        if (!isCycleLength(length)) {
+            setError(cycleLengthError(zh))
             return
         }
 
@@ -182,8 +188,8 @@ export function CycleScheduler({
         e.preventDefault()
         setError(null)
         const newLength = Number(lengthInput)
-        if (!newLength || newLength < 1) {
-            setError(zh ? '請輸入至少 1 天的循環長度。' : 'Enter a cycle length of at least 1 day.')
+        if (!isCycleLength(newLength)) {
+            setError(cycleLengthError(zh))
             return
         }
         if (newLength === cycleLength) return
@@ -388,7 +394,7 @@ export function CycleScheduler({
                             />
                             <button
                                 type="button"
-                                onClick={() => setLengthInput(String(Number(lengthInput) + 1))}
+                                onClick={() => setLengthInput(String(Math.min(MAX_CYCLE_DAYS, Number(lengthInput) + 1)))}
                                 aria-label={t('longerCycle')}
                                 className="flex size-11 items-center justify-center rounded-full border border-line text-lg leading-none text-muted hover:text-ink md:size-8"
                             >

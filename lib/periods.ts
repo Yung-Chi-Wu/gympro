@@ -13,6 +13,19 @@ export interface CycleSettings {
     startDate: string
 }
 
+/**
+ * The longest training cycle, so also the longest period one report covers. The database
+ * holds both to it (migration 20261014120000), so a report's size has a ceiling.
+ */
+export const MAX_CYCLE_DAYS = 28
+
+/** Days in a stored period, or null when it can't be one: no end, an end before its start, or longer than a cycle can be */
+export function periodDays(periodStart: string, periodEnd: string | null | undefined): number | null {
+    if (!periodEnd) return null
+    const days = daysBetween(periodStart, periodEnd) + 1
+    return days >= 1 && days <= MAX_CYCLE_DAYS ? days : null
+}
+
 /** The period today falls in, or null when a custom cycle hasn't started yet. */
 export function currentPeriod(timeZone: string, cycle: CycleSettings | null, now = new Date()): Period | null {
     const today = localDate(timeZone, now)

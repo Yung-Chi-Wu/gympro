@@ -23,7 +23,6 @@ const TRACE_RETENTION_DAYS = 90
 interface ProfileRow {
     user_id: string
     timezone: string | null
-    language: string | null
 }
 
 interface CycleRow {
@@ -88,7 +87,7 @@ export async function handler(): Promise<void> {
     await publishAiMetrics(supabase)
 
     const [profilesResult, cyclesResult] = await Promise.all([
-        supabase.from('user_profiles').select('user_id, timezone, language'),
+        supabase.from('user_profiles').select('user_id, timezone'),
         supabase.from('training_cycles').select('user_id, cycle_length, start_date'),
     ])
     if (profilesResult.error) throw new Error(`Failed to fetch profiles: ${profilesResult.error.message}`)
@@ -101,11 +100,11 @@ export async function handler(): Promise<void> {
         ])
     )
 
-    const due: { userId: string; periodStart: string; periodEnd: string; language: string }[] = []
+    const due: { userId: string; periodStart: string; periodEnd: string }[] = []
     for (const profile of (profilesResult.data ?? []) as ProfileRow[]) {
         try {
             const period = lastCompletedPeriod(timeZoneOf(profile.timezone), cycles.get(profile.user_id) ?? null)
-            if (period) due.push({ userId: profile.user_id, ...period, language: profile.language || 'en' })
+            if (period) due.push({ userId: profile.user_id, ...period })
         } catch (err) {
             // A bad time zone on one profile must not stop everyone else's reports
             console.error(`Skipping user ${profile.user_id}: ${err instanceof Error ? err.message : String(err)}`)
@@ -113,7 +112,7 @@ export async function handler(): Promise<void> {
     }
     if (due.length === 0) return
 
-    // Notes written during each period travel with its report
+    // Notes written during each period are kept on its report row
     const { data: notes, error: notesError } = await supabase
         .from('period_notes')
         .select('user_id, period_start, note')
@@ -144,14 +143,8 @@ export async function handler(): Promise<void> {
     for (const row of claimed ?? []) {
         const d = due.find((x) => x.userId === row.user_id && x.periodStart === row.period_start)
         if (!d) continue
-        const message: AnalysisRequestMessage = {
-            userId: d.userId,
-            periodStart: d.periodStart,
-            periodEnd: d.periodEnd,
-            userNote: noteFor.get(`${d.userId}|${d.periodStart}`),
-            language: d.language,
-            queuedAt,
-        }
+        // The worker reads the period and the note from the row just claimed
+        const message: AnalysisRequestMessage = { userId: d.userId, periodStart: d.periodStart, queuedAt }
         try {
             const { MessageId } = await sqs.send(
                 new SendMessageCommand({ QueueUrl: queueUrl, MessageBody: JSON.stringify(message) })
