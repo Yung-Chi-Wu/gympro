@@ -6,7 +6,7 @@ import { BottomNav, type NavLink } from '@/components/BottomNav'
 import { AskRonnieButton, SidebarLink } from '@/components/SidebarLink'
 import { RonnieProvider, RonnieWidget } from '@/components/RonnieWidget'
 import { TimeZoneSync } from '@/components/TimeZoneSync'
-import { createClient } from '@/lib/supabase/server'
+import { getFrameProfile } from '@/lib/frame-profile'
 import { getEffectiveLanguage } from '@/lib/get-language'
 
 // The signed-in app's frame. Each page renders once inside <main>; what's around it
@@ -20,16 +20,9 @@ import { getEffectiveLanguage } from '@/lib/get-language'
 // they also fit when Ronnie's column makes it narrower.
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
     const t = await getTranslations('nav')
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    const profileResult = user ? await supabase
-        .from('user_profiles')
-        .select('language, timezone')
-        .eq('user_id', user.id)
-        .maybeSingle() : null
-
-    const language = await getEffectiveLanguage(profileResult?.data?.language)
+    // Shared with i18n/request.ts, which getTranslations above already asked
+    const { user, profile } = await getFrameProfile()
+    const language = await getEffectiveLanguage(profile)
 
     const NAV_LINKS: NavLink[] = [
         { href: '/dashboard', label: t('dashboard'), icon: 'today' },
@@ -74,7 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </div>
 
                 {user && <RonnieWidget language={language} userId={user.id} />}
-                {user && <TimeZoneSync timeZone={profileResult?.data?.timezone ?? null} />}
+                {user && <TimeZoneSync timeZone={profile?.timezone ?? null} />}
 
                 <BottomNav links={NAV_LINKS} />
             </div>

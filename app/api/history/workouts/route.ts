@@ -34,13 +34,13 @@ export async function GET(request: Request) {
 
     const { data: profile } = await supabase
         .from('user_profiles')
-        .select('timezone, language')
+        .select('timezone, language, onboarding_completed')
         .eq('user_id', user.id)
         .maybeSingle()
 
     const range = { start, end }
     const [language, reports] = await Promise.all([
-        getEffectiveLanguage(profile?.language),
+        getEffectiveLanguage(profile),
         loadReportStatuses(supabase, user.id, range),
     ])
     const days = await loadHistoryDays(supabase, {

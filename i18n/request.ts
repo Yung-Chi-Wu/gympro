@@ -1,27 +1,13 @@
 import { getRequestConfig } from 'next-intl/server'
-import { cookies, headers } from 'next/headers'
+import { getFrameProfile } from '@/lib/frame-profile'
+import { getEffectiveLanguage } from '@/lib/get-language'
 
+// The same language the pages pass down (lib/get-language.ts): a signed-in user's saved
+// one, else this device's cookie, else the browser's. Going by the cookie alone, a page on
+// a new device would mix the device's language with the saved one.
 export default getRequestConfig(async () => {
-    const cookieStore = await cookies()
-    const cookieLang = cookieStore.get('language')?.value
-
-    let locale = 'en'
-
-    if (cookieLang) {
-        locale = cookieLang === 'zh-TW' ? 'zh-TW' : 'en'
-    } else {
-        // 沒有 cookie，讀瀏覽器語言設定
-        const headerStore = await headers()
-        const acceptLanguage = headerStore.get('accept-language') ?? ''
-        if (acceptLanguage.toLowerCase().includes('zh-tw') ||
-            acceptLanguage.toLowerCase().includes('zh_tw') ||
-            acceptLanguage.toLowerCase().includes('zh-hant')) {
-            locale = 'zh-TW'
-        } else if (acceptLanguage.toLowerCase().startsWith('zh')) {
-            // zh-CN 也給繁中（台灣用戶有時候設 zh）
-            locale = 'zh-TW'
-        }
-    }
+    const { profile } = await getFrameProfile()
+    const locale = await getEffectiveLanguage(profile)
 
     return {
         locale,

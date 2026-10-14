@@ -17,11 +17,11 @@ export default async function SettingsPage() {
 
     const { data: profile } = await supabase
         .from('user_profiles')
-        .select('display_name, height_cm, date_of_birth, sex, training_goal, timezone, language, weight_unit, distance_unit')
+        .select('display_name, height_cm, date_of_birth, sex, training_goal, timezone, language, onboarding_completed, weight_unit, distance_unit')
         .eq('user_id', user.id)
         .maybeSingle()
 
-    const effectiveLanguage = await getEffectiveLanguage(profile?.language)
+    const effectiveLanguage = await getEffectiveLanguage(profile)
 
     return (
         <div className="space-y-5 md:space-y-4">
