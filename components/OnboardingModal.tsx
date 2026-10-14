@@ -274,7 +274,7 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
                                 {zh ? '把 GymPro 加到主畫面，像 App 一樣一鍵開啟。' : 'Add GymPro to your home screen for quick access.'}
                             </p>
                         </div>
-                        {/* Steps for the browser this is open in: Safari, another iOS browser, or a way out of LINE */}
+                        {/* Steps for the browser this is open in: Safari, another iOS browser, or already installed */}
                         <div className="rounded-xl bg-black/5 p-3 dark:bg-white/8">
                             <InstallGuide zh={zh} />
                         </div>

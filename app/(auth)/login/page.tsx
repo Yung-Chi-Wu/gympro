@@ -2,7 +2,6 @@ import { getLocale } from 'next-intl/server'
 import { LangToggle } from '@/components/LangToggle'
 import { LogoLink } from '@/components/LogoLink'
 import { LoginForm } from '@/components/LoginForm'
-import { InAppBrowserNotice } from '@/components/InstallGuide'
 
 export default async function LoginPage() {
   const locale = await getLocale()
@@ -12,11 +11,7 @@ export default async function LoginPage() {
         <LogoLink />
         <LangToggle currentLocale={locale} />
       </div>
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4">
-        {/* In LINE or another app's browser: Google sign-in may be blocked, and it can't install */}
-        <div className="w-full max-w-sm empty:hidden">
-          <InAppBrowserNotice zh={locale === 'zh-TW'} />
-        </div>
+      <div className="flex flex-1 items-center justify-center px-4">
         <LoginForm locale={locale} />
       </div>
     </div>
