@@ -32,6 +32,15 @@ interface CycleRow {
 }
 
 /**
+ * A Ronnie turn the user stopped is traced as an error, but nothing failed, so it isn't counted
+ * as one: "aborted: ..." after a change (app/api/ai/coach), and before one the abort's own
+ * message, from the SDK, the request's signal or the agent loop. Only these exact messages: an
+ * abort on a timeout is a failure.
+ */
+export const stoppedByUser = (error: string | null) =>
+    /^aborted: /.test(error ?? '') || ['Request was aborted.', 'This operation was aborted', 'Aborted'].includes(error ?? '')
+
+/**
  * The AI calls' health, from ai_traces: calls and failures in the past hour, and what the past
  * 24 hours cost. Logged in CloudWatch's embedded metric format, which CloudWatch turns into the
  * GymPro/AI metrics the alarms watch, with no API call or extra permission. A failure here is
@@ -40,11 +49,11 @@ interface CycleRow {
 export async function publishAiMetrics(supabase: SupabaseClient): Promise<void> {
     try {
         const now = Date.now()
-        const rows: { created_at: string; status: string; cost_usd: number | null }[] = []
+        const rows: { created_at: string; status: string; error: string | null; cost_usd: number | null }[] = []
         for (let from = 0; ; from += 1000) {
             const { data, error } = await supabase
                 .from('ai_traces')
-                .select('created_at, status, cost_usd')
+                .select('created_at, status, error, cost_usd')
                 .gte('created_at', new Date(now - 86_400_000).toISOString())
                 .range(from, from + 999)
             if (error) throw new Error(error.message)
@@ -67,7 +76,7 @@ export async function publishAiMetrics(supabase: SupabaseClient): Promise<void> 
                 }],
             },
             CallsLastHour: lastHour.length,
-            ErrorsLastHour: lastHour.filter((r) => r.status === 'error').length,
+            ErrorsLastHour: lastHour.filter((r) => r.status === 'error' && !stoppedByUser(r.error)).length,
             CostLast24hUSD: Math.round(cost * 10_000) / 10_000,
         }))
     } catch (err) {
