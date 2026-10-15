@@ -263,10 +263,10 @@ const client = (answers, delayMs = 0) => {
 
 // The plan: a cycle that started after the period planned nothing in it
 {
-    const fake = (startDate) => ({
+    const fake = (startDate, owner = 'u1') => ({
         from(table) {
             const data = table === 'training_cycles' ? { id: 'c1', cycle_length: 7, start_date: startDate }
-                : [{ day_index: 1, routines: { name: 'Push', routine_exercises: [{ exercise_id: 'e1', target_sets: 4 }] } }]
+                : [{ day_index: 1, routines: { user_id: owner, name: 'Push', routine_exercises: [{ exercise_id: 'e1', target_sets: 4 }] } }]
             const b = { select: () => b, eq: () => b, maybeSingle: () => b, then: (r) => r({ data, error: null }) }
             return b
         },
@@ -276,6 +276,8 @@ const client = (answers, delayMs = 0) => {
     const midway = await w.fetchSchedule(fake('2026-10-08'), 'u1', '2026-10-05', 7)
     check('a cycle that started before the period gives its plan', before?.length === 7 && before.some((d) => d.routine === 'Push'), JSON.stringify(before))
     check('a cycle that started after the period gives no plan, not 0 planned', after === null, JSON.stringify(after))
+    const theirs = await w.fetchSchedule(fake('2026-09-01', 'u2'), 'u1', '2026-10-05', 7)
+    check("a day pointing at another user's routine plans nothing from it", theirs?.length === 7 && theirs.every((d) => d.routine === null && !d.plan.length), JSON.stringify(theirs?.map((d) => d.routine)))
     check('a cycle that started during the period plans from its first day', midway?.length === 7 && midway.slice(0, 3).every((d) => d.routine === null) && midway[3].routine === 'Push', JSON.stringify(midway?.map((d) => d.routine)))
 }
 
