@@ -143,6 +143,21 @@ const valid = (messages) => messages.every((m, i) => {
     check(!t.message.includes('已處理'), "the model's own wording is not the reply")
 }
 
+// A plan card is said in the code's words under the reply: the model opened "✅ 課表排好了" and
+// left out that nothing is saved until the card's Save (eval v29)
+{
+    const { data } = createFixtureData()
+    const client = scripted([
+        toolUse(['plan_routines', { days: 5, minutes: 60, equipment: ['barbell', 'dumbbell', 'machine', 'cable'], goals: ['muscle'], level: 'intermediate' }]),
+        reply('一週五天，推拉腿加上下肢。'),
+    ])
+    const executor = executorFor(data)
+    const t = await turn(client, data, { executor })
+    check(t.message.startsWith('一週五天') && t.message.trim().endsWith('才會取代你目前的課表和訓練循環。'), `the reply keeps the model's words and ends with the app's line on saving: ${t.message.replace(/\n/g, ' / ')}`)
+    const shown = t.toolCalls[0].result
+    check(/Training days 1, 2, 3, 5, 6; rest days 4, 7\./.test(shown) && /don't open with ✅/.test(shown), `the tool result names the rest days: ${shown.split('\n').find((l) => l.startsWith('Training days'))}`)
+}
+
 // A plan card shown, then the next model call fails: the turn still ends with the card
 {
     const { data } = createFixtureData()
@@ -153,7 +168,7 @@ const valid = (messages) => messages.every((m, i) => {
     ])
     let t = null
     try { t = await turn(client, data, { executor }) } catch (err) { check(false, `a failure after a plan card is not thrown (${err.message})`) }
-    if (t) check(t.interrupted?.reason === 'error' && executor.plans.length === 1 && valid(t.messages), 'a failure after a plan card ends the turn with the card kept')
+    if (t) check(t.interrupted?.reason === 'error' && executor.plans.length === 1 && valid(t.messages) && t.message.includes('📋'), 'a failure after a plan card ends the turn with the card kept, and its line')
 }
 
 // ---------- the tools ----------

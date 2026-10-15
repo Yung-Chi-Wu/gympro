@@ -4,6 +4,7 @@ import { loadUserToday } from '@/lib/ronnie/context'
 import { appendConversation, loadConversation } from '@/lib/ronnie/conversation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { eventForDisplay, eventForModel, type RonnieEvent } from '@/lib/ronnie/events'
+import { reportError } from '@/lib/report-error'
 import { MAX_ROUTINE_NAME_CHARS } from '@/lib/text-limits'
 
 // After a plan card's routines were saved in Coach G's editor (save-routine): { planId, language }.
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
     const names = new Set(card.routines.flatMap((r) => [r.name, r.name_zh_tw].filter((n): n is string => !!n).map((n) => n.slice(0, MAX_ROUTINE_NAME_CHARS))))
     const { data: routines, error } = await supabase.from('routines').select('name').eq('user_id', user.id).order('created_at')
     if (error) {
-        console.error('Plan card: routines not read:', error.message)
+        reportError('ronnie/plan-saved', error, { userId: user.id })
         return NextResponse.json({ error: 'Could not check the routines' }, { status: 500 })
     }
     if (!routines?.length || !routines.every((r) => names.has(r.name))) return NextResponse.json({ error: 'Not saved' }, { status: 409 })
@@ -45,6 +46,6 @@ export async function POST(request: Request) {
         messages: [{ role: 'user', content: eventForModel(event) }],
         display: [{ kind: 'event', text, planId }],
     })
-    if (saveError) console.error('Ronnie event not saved:', saveError)
+    if (saveError) reportError('ronnie/event-save', saveError, { userId: user.id })
     return NextResponse.json({ status: 'saved', text })
 }
