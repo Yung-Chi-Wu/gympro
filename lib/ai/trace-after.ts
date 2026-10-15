@@ -1,3 +1,4 @@
+import 'server-only'
 import { after } from 'next/server'
 import { appErrorRow, saveAppError } from '@/lib/app-errors'
 import { createAdminClient } from '@/lib/supabase/admin'

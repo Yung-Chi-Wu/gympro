@@ -1,3 +1,4 @@
+import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 
 // The service-role client, for server code only: it bypasses row level security. Used for
