@@ -54,8 +54,14 @@ export const PERIODS_PER_PAGE = 4
 /** Reports on the 報告 tab come a page at a time, newest first */
 export const REPORTS_PER_PAGE = 6
 
-export const isDate = (s: string | null | undefined): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s)
-export const isMonth = (s: string | null | undefined): s is string => !!s && /^\d{4}-\d{2}$/.test(s)
+/** A day that exists, YYYY-MM-DD: the pattern alone lets 2026-02-30 and 2026-13-01 through */
+export const isDate = (s: string | null | undefined): s is string => {
+    if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false
+    // Date rolls 2026-02-30 over to March 2, and gives NaN for month 13
+    const t = Date.parse(`${s}T00:00:00Z`)
+    return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === s
+}
+export const isMonth = (s: string | null | undefined): s is string => !!s && /^\d{4}-(0[1-9]|1[0-2])$/.test(s)
 
 /** The period a day falls in. Before a training cycle's start, its rounds are counted backwards. */
 export function periodOf(date: string, cycle: CycleSettings | null): HistoryRange {
