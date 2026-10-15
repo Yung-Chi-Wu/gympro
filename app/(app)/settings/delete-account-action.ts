@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { reportError } from '@/lib/report-error'
 
 export async function deleteAccount(): Promise<{ success: boolean; error?: string }> {
     try {
@@ -13,6 +14,7 @@ export async function deleteAccount(): Promise<{ success: boolean; error?: strin
         }
 
         if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            reportError('account/delete', 'SUPABASE_SERVICE_ROLE_KEY is not set', { userId: user.id })
             return { success: false, error: 'Server configuration error: missing service role key' }
         }
 
@@ -24,6 +26,7 @@ export async function deleteAccount(): Promise<{ success: boolean; error?: strin
         const { error } = await adminClient.auth.admin.deleteUser(user.id)
 
         if (error) {
+            reportError('account/delete', error, { userId: user.id })
             return { success: false, error: error.message }
         }
 
@@ -31,7 +34,7 @@ export async function deleteAccount(): Promise<{ success: boolean; error?: strin
         return { success: true }
 
     } catch (err) {
-        console.error('deleteAccount error:', err)
+        reportError('account/delete', err)
         return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
     }
 }

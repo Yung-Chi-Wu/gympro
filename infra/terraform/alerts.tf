@@ -309,3 +309,26 @@ resource "aws_cloudwatch_metric_alarm" "lambda_logged_errors" {
   alarm_actions = [aws_sns_topic.alerts.arn]
   ok_actions    = [aws_sns_topic.alerts.arn]
 }
+
+# ---------- Alarm: the app hit an error ----------
+# The website's own failures outside AI calls (a save that failed, a conversation not stored,
+# an error no code caught), which only reached Vercel's log before. The app saves each to
+# app_errors (lib/app-errors.ts) and the hourly scheduler counts the past hour's. One is enough:
+# the owner wants to know of every bug. Warnings (an expired sign-in link) are left out.
+resource "aws_cloudwatch_metric_alarm" "app_errors" {
+  alarm_name        = "gympro-app-errors"
+  alarm_description = "The app hit an error in the past hour. In Supabase: select created_at, source, message, context from app_errors where level = 'error' order by created_at desc limit 20;"
+
+  namespace   = "GymPro/App"
+  metric_name = "AppErrorsLastHour"
+
+  statistic           = "Maximum"
+  period              = 3600
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
+}
