@@ -30,15 +30,14 @@ data "aws_iam_policy_document" "ai_worker_permissions" {
     resources = [aws_sqs_queue.ai_analysis_queue.arn]
   }
 
-  # Allow writing logs to CloudWatch, so we can debug failures
+  # Write to its own log group only (Terraform creates the group, cloudwatch.tf)
   statement {
     effect = "Allow"
     actions = [
-      "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:PutLogEvents",
     ]
-    resources = ["arn:aws:logs:*:*:*"]
+    resources = ["${aws_cloudwatch_log_group.ai_worker_logs.arn}:*"]
   }
 
   # Allow reading the API keys from SSM Parameter Store

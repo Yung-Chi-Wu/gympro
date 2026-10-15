@@ -68,8 +68,11 @@ function capped(value: unknown): unknown {
     return json.length > MAX_FIELD_CHARS ? { truncated: true, chars: json.length, start: json.slice(0, 2000) } : value
 }
 
-/** Writes one trace. Never throws: a trace that fails to save must not break the feature it records. */
-export async function recordTrace(supabase: SupabaseClient, trace: Trace): Promise<void> {
+/**
+ * Writes one trace. Never throws: a trace that fails to save must not break the feature it records.
+ * Says why it wasn't saved, or null.
+ */
+export async function recordTrace(supabase: SupabaseClient, trace: Trace): Promise<string | null> {
     try {
         const totals = usageTotals(trace.usage)
         const { error } = await supabase.from('ai_traces').insert({
@@ -91,8 +94,10 @@ export async function recordTrace(supabase: SupabaseClient, trace: Trace): Promi
             output: capped(trace.output),
         })
         if (error) console.error(`AI trace not saved (${trace.feature}): ${error.message}`)
+        return error?.message ?? null
     } catch (err) {
         console.error(`AI trace not saved (${trace.feature}):`, err)
+        return err instanceof Error ? err.message : String(err)
     }
 }
 

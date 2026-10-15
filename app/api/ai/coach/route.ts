@@ -19,6 +19,7 @@ import { asTypedMessage } from '@/lib/ronnie/events'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { errorText, usageOfError } from '@/lib/ai/trace'
 import { traceAfterResponse } from '@/lib/ai/trace-after'
+import { reportError } from '@/lib/report-error'
 
 // Ronnie lives in lib/ronnie so the eval can run the same agent against fixture
 // data; this route authenticates, keeps the day's conversation on the server, and
@@ -70,7 +71,10 @@ export async function POST(request: Request) {
     if (Number.isInteger(body?.editFrom)) {
         conv = truncateAtUserMessage(conv, body.editFrom)
         const error = await replaceConversation(admin, user.id, ctx.today, conv)
-        if (error) return NextResponse.json({ error: 'Could not edit the conversation' }, { status: 500 })
+        if (error) {
+            reportError('ronnie/edit', error, { userId: user.id })
+            return NextResponse.json({ error: 'Could not edit the conversation' }, { status: 500 })
+        }
     }
 
     const system = buildSystemPrompt(language, ctx.userContext)
@@ -103,7 +107,7 @@ export async function POST(request: Request) {
             messages: turn.messages.slice(conv.messages.length),
             display: [{ kind: 'user', text: message }, reply],
         })
-        if (error) console.error('Ronnie conversation not saved:', error)
+        if (error) reportError('ronnie/conversation-save', error, { userId: user.id })
         await deleteOldConversations(supabase, user.id, ctx.today)
         traceAfterResponse({
             userId: user.id, feature: 'ronnie', model: RONNIE_MODEL, servedModel: turn.servedModel,
