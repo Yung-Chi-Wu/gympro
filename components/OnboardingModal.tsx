@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useTheme } from 'next-themes'
 import type { WeightUnit } from '@/lib/weight-unit'
 import { toFriendlyError } from '@/lib/friendly-error'
+import { reportClientError } from '@/lib/report-client-error'
 import { MAX_DISPLAY_NAME_CHARS } from '@/lib/text-limits'
 import { InstallGuide } from './InstallGuide'
 
@@ -65,6 +66,7 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
         setSaveError(null)
         const { error } = await supabase.from('user_profiles').update(updates as never).eq('user_id', userId)
         if (error) {
+            reportClientError('client/onboarding/save', error)
             // Nothing is marked done, so the choices aren't lost: the user can try again
             setSaving(false)
             setSaveError(toFriendlyError(error, selectedLang))

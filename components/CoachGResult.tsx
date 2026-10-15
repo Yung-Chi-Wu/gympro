@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { REPS, SETS } from '@/lib/coach-g'
+import { reportClientError, responseError } from '@/lib/report-client-error'
 
 interface GeneratedExercise {
     exercise_id: string
@@ -99,13 +100,15 @@ export function CoachGResult({ routines, cycleLength, language, onBack, onSaved 
 
             const data = await res.json()
             if (!data.success) {
+                reportClientError('client/coach-g/save', responseError(`Save request failed: ${res.status}`, res.status, data))
                 setError(data.error === 'sets_reps' ? setsRepsError : saveError)
                 return
             }
 
             router.refresh()
             onSaved()
-        } catch {
+        } catch (err) {
+            reportClientError('client/coach-g/save', err)
             setError(saveError)
         } finally {
             setIsSaving(false)
