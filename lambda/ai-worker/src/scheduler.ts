@@ -19,6 +19,8 @@ const sqs = new SQSClient({})
 
 /** AI traces hold users' messages; they are kept this long for evals and debugging (lib/ai/trace.ts) */
 const TRACE_RETENTION_DAYS = 90
+/** App errors (lib/app-errors.ts) are kept as long */
+const APP_ERROR_RETENTION_DAYS = 90
 
 interface ProfileRow {
     user_id: string
@@ -32,6 +34,15 @@ interface CycleRow {
 }
 
 /**
+ * A Ronnie turn the user stopped is traced as an error, but nothing failed, so it isn't counted
+ * as one: "aborted: ..." after a change (app/api/ai/coach), and before one the abort's own
+ * message, from the SDK, the request's signal or the agent loop. Only these exact messages: an
+ * abort on a timeout is a failure.
+ */
+export const stoppedByUser = (error: string | null) =>
+    /^aborted: /.test(error ?? '') || ['Request was aborted.', 'This operation was aborted', 'Aborted'].includes(error ?? '')
+
+/**
  * The AI calls' health, from ai_traces: calls and failures in the past hour, and what the past
  * 24 hours cost. Logged in CloudWatch's embedded metric format, which CloudWatch turns into the
  * GymPro/AI metrics the alarms watch, with no API call or extra permission. A failure here is
@@ -40,11 +51,11 @@ interface CycleRow {
 export async function publishAiMetrics(supabase: SupabaseClient): Promise<void> {
     try {
         const now = Date.now()
-        const rows: { created_at: string; status: string; cost_usd: number | null }[] = []
+        const rows: { created_at: string; status: string; error: string | null; cost_usd: number | null }[] = []
         for (let from = 0; ; from += 1000) {
             const { data, error } = await supabase
                 .from('ai_traces')
-                .select('created_at, status, cost_usd')
+                .select('created_at, status, error, cost_usd')
                 .gte('created_at', new Date(now - 86_400_000).toISOString())
                 .range(from, from + 999)
             if (error) throw new Error(error.message)
@@ -67,11 +78,37 @@ export async function publishAiMetrics(supabase: SupabaseClient): Promise<void> 
                 }],
             },
             CallsLastHour: lastHour.length,
-            ErrorsLastHour: lastHour.filter((r) => r.status === 'error').length,
+            ErrorsLastHour: lastHour.filter((r) => r.status === 'error' && !stoppedByUser(r.error)).length,
             CostLast24hUSD: Math.round(cost * 10_000) / 10_000,
         }))
     } catch (err) {
         console.error(`AI metrics not published: ${err instanceof Error ? err.message : String(err)}`)
+    }
+}
+
+/**
+ * The app's own failures in the past hour, from app_errors (warnings left out), as the GymPro/App
+ * metric the gympro-app-errors alarm watches. Logged in the embedded metric format like the AI
+ * metrics; a failure here is logged, never thrown.
+ */
+export async function publishAppMetrics(supabase: SupabaseClient): Promise<void> {
+    try {
+        const now = Date.now()
+        const { count, error } = await supabase
+            .from('app_errors')
+            .select('id', { count: 'exact', head: true })
+            .eq('level', 'error')
+            .gte('created_at', new Date(now - 3_600_000).toISOString())
+        if (error) throw new Error(error.message)
+        console.log(JSON.stringify({
+            _aws: {
+                Timestamp: now,
+                CloudWatchMetrics: [{ Namespace: 'GymPro/App', Dimensions: [[]], Metrics: [{ Name: 'AppErrorsLastHour', Unit: 'Count' }] }],
+            },
+            AppErrorsLastHour: count ?? 0,
+        }))
+    } catch (err) {
+        console.error(`App metrics not published: ${err instanceof Error ? err.message : String(err)}`)
     }
 }
 
@@ -84,7 +121,9 @@ export async function handler(): Promise<void> {
     const cutoff = new Date(Date.now() - TRACE_RETENTION_DAYS * 86_400_000).toISOString()
     const { error: traceError } = await supabase.from('ai_traces').delete().lt('created_at', cutoff)
     if (traceError) console.error(`Old AI traces not deleted: ${traceError.message}`)
-    await publishAiMetrics(supabase)
+    const { error: appErrorsError } = await supabase.from('app_errors').delete().lt('created_at', new Date(Date.now() - APP_ERROR_RETENTION_DAYS * 86_400_000).toISOString())
+    if (appErrorsError) console.error(`Old app errors not deleted: ${appErrorsError.message}`)
+    await Promise.all([publishAiMetrics(supabase), publishAppMetrics(supabase)])
 
     const [profilesResult, cyclesResult] = await Promise.all([
         supabase.from('user_profiles').select('user_id, timezone'),

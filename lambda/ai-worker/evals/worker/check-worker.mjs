@@ -279,5 +279,13 @@ const client = (answers, delayMs = 0) => {
     check('a cycle that started during the period plans from its first day', midway?.length === 7 && midway.slice(0, 3).every((d) => d.routine === null) && midway[3].routine === 'Push', JSON.stringify(midway?.map((d) => d.routine)))
 }
 
+// The AI error alarms count failures: a Ronnie turn the user stopped is traced as an error, and isn't one
+for (const [error, stopped] of [
+    ['aborted: Request was aborted.', true], ['Request was aborted.', true], ['This operation was aborted', true], ['Aborted', true],
+    ['error: Overloaded', false], ['Request timed out.', false], ['The operation was aborted due to timeout', false], ['401 invalid x-api-key', false], [null, false],
+]) {
+    check(`a trace error ${JSON.stringify(error)} ${stopped ? 'is the user stopping, not counted' : 'is counted as a failure'}`, w.stoppedByUser(error) === stopped)
+}
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nThe worker trusts only the request in a message, runs it once, saves only to its own row, stops in time, and checks its text')
 process.exit(failed ? 1 : 0)

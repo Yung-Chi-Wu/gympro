@@ -7,6 +7,7 @@ import { memoryLines, type MemoryNote } from './memory'
 import type { RonnieUserContext } from './prompt'
 import { dateGuide } from './time'
 import { vercelQueryEmbedder } from '../embeddings'
+import { reportError } from '../report-error'
 
 export interface RonnieContext {
     data: RonnieData
@@ -55,7 +56,7 @@ export async function loadRonnieContext(supabase: SupabaseClient<Database>, user
         })(),
         // Without its notes Ronnie still answers; it just doesn't know what it was told before
         language === null ? [] : data.listMemories().catch((err): MemoryNote[] => {
-            console.error('Ronnie memory notes not read:', err)
+            reportError('ronnie/memory-read', err, { userId })
             return []
         }),
     ])

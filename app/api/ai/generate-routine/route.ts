@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { errorText } from '@/lib/ai/trace'
 import { traceAfterResponse } from '@/lib/ai/trace-after'
+import { reportError } from '@/lib/report-error'
 import { COACH_CYCLE_DAYS, parseGenerateRequest } from '@/lib/coach-g'
 import { buildPlan, mergeReading, readAnswers, readingRequest, type Answers, type PlannerExercise } from '@/lib/coach-g-planner'
 
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
         .order('muscle_group')
         .order('name')
     if (exercisesError) {
-        console.error('Coach G exercises not read:', exercisesError.message)
+        reportError('coach-g/generate', exercisesError, { userId: user.id, context: { step: 'exercises' } })
         return NextResponse.json({ error: 'Generation failed' }, { status: 500 })
     }
     const exercises = (data ?? []) as PlannerExercise[]
@@ -72,7 +73,10 @@ export async function POST(request: Request) {
 
     const routines = buildPlan(preferences, exercises)
     if (!routines.length) {
-        console.error('Coach G built no routine from', JSON.stringify(preferences))
+        // The choices only, not the injuries or exercises the user named
+        reportError('coach-g/generate', 'The planner built no routine', {
+            userId: user.id, context: { days: preferences.days, minutes: preferences.minutes, equipment: preferences.equipment.join(','), library: exercises.length },
+        })
         return NextResponse.json({ error: 'Generation failed' }, { status: 500 })
     }
     return NextResponse.json({ action: 'generate_routine', message: '', cycle_length: COACH_CYCLE_DAYS, routines })

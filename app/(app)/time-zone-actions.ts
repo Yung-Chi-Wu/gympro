@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { CHOSEN_UTC, isValidTimeZone, UNSET_TIME_ZONE } from '@/lib/time-zone'
+import { reportError } from '@/lib/report-error'
 
 /**
  * Gives a profile that never had a time zone (still the column's default) the browser's. A
@@ -20,7 +21,7 @@ export async function adoptBrowserTimeZone(zone: string): Promise<{ adopted: boo
         .or(`timezone.is.null,timezone.eq.${UNSET_TIME_ZONE}`)
         .select('user_id')
     if (error) {
-        console.error('Could not adopt the browser time zone:', error.message)
+        reportError('time-zone/adopt', error, { userId: user.id })
         return { adopted: false }
     }
     return { adopted: !!data?.length }

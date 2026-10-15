@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { parseSaveRequest } from '@/lib/coach-g'
 import { addDays, localDate, MAX_CYCLE_DAYS } from '@/lib/periods'
 import { timeZoneOf } from '@/lib/time-zone'
+import { reportError } from '@/lib/report-error'
 
 // Saves Coach G's routines and cycle in place of the user's own: { routines, cycleLength,
 // startDayIndex, language }. The whole replacement is one transaction (save_coach_routines,
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
         supabase.from('user_profiles').select('timezone').eq('user_id', user.id).maybeSingle(),
     ])
     if (exercisesError) {
-        console.error('Coach G save: exercises not read:', exercisesError.message)
+        reportError('coach-g/save', exercisesError, { userId: user.id, context: { step: 'exercises' } })
         return NextResponse.json({ error: 'save_failed' }, { status: 500 })
     }
     if ((known ?? []).length !== ids.length) return NextResponse.json({ error: 'invalid' }, { status: 400 })
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
         p_routines: save.routines,
     })
     if (error) {
-        console.error('Coach G save failed:', error.message)
+        reportError('coach-g/save', error, { userId: user.id, context: { step: 'save_coach_routines' } })
         return NextResponse.json({ error: 'save_failed' }, { status: 500 })
     }
     const saved = data as { cycle_id: string; routines: { id: string; name: string }[] }

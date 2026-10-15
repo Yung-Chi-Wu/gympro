@@ -5,6 +5,7 @@ import { appendConversation } from '@/lib/ronnie/conversation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { RoutineProposal } from '@/lib/ronnie/data'
 import { eventForDisplay, eventForModel, type ResolvedRow } from '@/lib/ronnie/events'
+import { reportError } from '@/lib/report-error'
 
 // Confirm or Cancel on one of Ronnie's proposal cards: { actionId, decision, language }.
 // The database applies it (resolve_ronnie_action: once, only if pending and
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabase.rpc('resolve_ronnie_action', { p_action_id: actionId, p_decision: decision })
     if (error) {
-        console.error('resolve_ronnie_action failed:', error)
+        reportError('ronnie/actions', error, { userId: user.id, context: { decision } })
         return NextResponse.json({ error: 'Could not apply the change' }, { status: 500 })
     }
     const result = data as unknown as ResolveResult
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
         messages: [{ role: 'user', content: eventForModel(event) }],
         display: [{ kind: 'event', text }],
     })
-    if (saveError) console.error('Ronnie event not saved:', saveError)
+    if (saveError) reportError('ronnie/event-save', saveError, { userId: user.id })
 
     return NextResponse.json({ status, text, reloadDashboard: status === 'confirmed' && event.rows.length > 0 })
 }

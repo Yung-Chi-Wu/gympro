@@ -6,7 +6,7 @@
 
 resource "aws_cloudwatch_log_group" "report_scheduler_logs" {
   name              = "/aws/lambda/gympro-report-scheduler"
-  retention_in_days = 14
+  retention_in_days = 30
 
   tags = {
     Project = "gympro"
