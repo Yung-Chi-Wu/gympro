@@ -611,7 +611,6 @@ interface ReportRow {
     status: string
     queued_at: string
     recommendation: unknown
-    error_message: string | null
     created_at: string
 }
 

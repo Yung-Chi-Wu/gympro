@@ -121,7 +121,7 @@ export async function loadReportStatuses(
 export async function loadReports(supabase: SupabaseClient<Database>, userId: string, before?: string) {
     let query = supabase
         .from('period_reports')
-        .select('period_start, period_end, status, queued_at, recommendation, error_message, created_at')
+        .select('period_start, period_end, status, queued_at, recommendation, created_at')
         .eq('user_id', userId)
         .order('period_start', { ascending: false })
         .limit(REPORTS_PER_PAGE)

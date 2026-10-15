@@ -1,33 +1,30 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { reportError } from '@/lib/report-error'
 
-export async function deleteAccount(): Promise<{ success: boolean; error?: string }> {
+// The browser gets a fixed code, never the error's own text: reportError keeps that
+export async function deleteAccount(): Promise<{ success: boolean; error?: 'not_signed_in' | 'delete_failed' }> {
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
 
         if (!user) {
-            return { success: false, error: 'Not authenticated' }
+            return { success: false, error: 'not_signed_in' }
         }
 
-        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        const adminClient = createAdminClient()
+        if (!adminClient) {
             reportError('account/delete', 'SUPABASE_SERVICE_ROLE_KEY is not set', { userId: user.id })
-            return { success: false, error: 'Server configuration error: missing service role key' }
+            return { success: false, error: 'delete_failed' }
         }
-
-        const adminClient = createAdminClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY
-        )
 
         const { error } = await adminClient.auth.admin.deleteUser(user.id)
 
         if (error) {
             reportError('account/delete', error, { userId: user.id })
-            return { success: false, error: error.message }
+            return { success: false, error: 'delete_failed' }
         }
 
         await supabase.auth.signOut()
@@ -35,6 +32,6 @@ export async function deleteAccount(): Promise<{ success: boolean; error?: strin
 
     } catch (err) {
         reportError('account/delete', err)
-        return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+        return { success: false, error: 'delete_failed' }
     }
 }

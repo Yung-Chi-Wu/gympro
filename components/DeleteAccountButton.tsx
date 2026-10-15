@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { deleteAccount } from '@/app/(app)/settings/delete-account-action'
+import { toFriendlyError } from '@/lib/friendly-error'
 
 interface DeleteAccountButtonProps {
     isZhTW: boolean
@@ -22,7 +23,9 @@ export function DeleteAccountButton({ isZhTW, className = 'text-sm text-red-500 
         const result = await deleteAccount()
 
         if (!result.success) {
-            setError(result.error ?? 'Something went wrong.')
+            setError(result.error === 'not_signed_in'
+                ? (isZhTW ? '登入已過期，請重新登入後再試一次。' : 'Your sign-in has expired. Log in again, then try once more.')
+                : toFriendlyError(null, isZhTW ? 'zh-TW' : 'en'))
             setIsDeleting(false)
             return
         }
