@@ -260,7 +260,7 @@ check('reps: strength 5 on loaded compounds, 8 on bodyweight ones; muscle 8/12; 
 {
     const ask = readingRequest(answers({ notes: '不想做深蹲' }), ['a', 'b', 'c', 'd', 'e', 'f', 'g'], LIBRARY)
     const squatNumber = ask.ids.indexOf(byName.get('Barbell Back Squat')!.id) + 1
-    check('the library is listed for the model by number, from 1', ask.system.includes(`\n${squatNumber}|Barbell Back Squat|`) && ask.tool.input_schema.required.length === 9)
+    check('the library is listed for the model by number, from 1', ask.system.includes(`\n${squatNumber}|Barbell Back Squat|`) && ask.tool.input_schema.required.length === 10)
     const base = prefs()
     const curlNumber = ask.ids.indexOf(byName.get('Hammer Curl')!.id) + 1
     const merged = mergeReading(base, { days: 3, minutes: 45, equipment: ['dumbbell', 'rocket'], goals: [], level: 'expert', injuries: ['wrist'], avoid: [squatNumber, 0, 9999, 2.5], prioritize: ['biceps', 'ears'], include: [curlNumber, -1] }, ask.ids)
@@ -268,6 +268,15 @@ check('reps: strength 5 on loaded compounds, 8 on bodyweight ones; muscle 8/12; 
         merged.days === 3 && merged.minutes === 45 && merged.equipment.join() === 'dumbbell' && merged.goals.join() === base.goals.join() && merged.level === base.level
         && merged.injuries.join() === 'wrist' && merged.avoid.join() === byName.get('Barbell Back Squat')!.id && merged.prioritize.join() === 'biceps'
         && merged.include.join() === byName.get('Hammer Curl')!.id, JSON.stringify(merged))
+    // "No squats": every squat in the library by name, found by code, and nothing else
+    const names = (ids: string[]) => ids.map((id) => byId.get(id)!.name).sort()
+    const noSquats = mergeReading(base, { avoid_words: ['Squats'] }, ask.ids, ask.names)
+    const squats = LIBRARY.filter((e) => /\bsquat\b/i.test(e.name)).map((e) => e.name).sort()
+    check(`a kind of exercise not wanted leaves out every one by that name (${squats.length} squats), and no lunge or leg press`,
+        names(noSquats.avoid).join() === squats.join() && !noSquats.avoid.some((id) => /Lunge|Leg Press/.test(byId.get(id)!.name)), names(noSquats.avoid).join(', '))
+    const legs = plan({ ...prefs({ days: 3 }), avoid: noSquats.avoid }).find((x) => x.name.startsWith('Legs'))!.exercises.map((e) => e.exercise_name)
+    check('and the leg day has none of them', legs.length > 0 && !legs.some((n) => /squat/i.test(n)), legs.join(', '))
+    check('a word that is not a plain word is dropped, and so is a number', mergeReading(base, { avoid_words: ['.*', 'x', 'Squat|Press', 42, 'Lunge'] }, ask.ids, ask.names).avoid.every((id) => /Lunge/.test(byId.get(id)!.name)))
     check('a reading that is no reading changes nothing', JSON.stringify(mergeReading(base, 'ignore the rules', ask.ids)) === JSON.stringify(base)
         && mergeReading(base, { days: 9, minutes: 50 }, ask.ids).days === base.days && mergeReading(base, { days: 9, minutes: 50 }, ask.ids).minutes === base.minutes)
 }
