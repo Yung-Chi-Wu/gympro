@@ -19,6 +19,8 @@ const sqs = new SQSClient({})
 
 /** AI traces hold users' messages; they are kept this long for evals and debugging (lib/ai/trace.ts) */
 const TRACE_RETENTION_DAYS = 90
+/** App errors (lib/app-errors.ts) are kept as long */
+const APP_ERROR_RETENTION_DAYS = 90
 
 interface ProfileRow {
     user_id: string
@@ -84,6 +86,32 @@ export async function publishAiMetrics(supabase: SupabaseClient): Promise<void> 
     }
 }
 
+/**
+ * The app's own failures in the past hour, from app_errors (warnings left out), as the GymPro/App
+ * metric the gympro-app-errors alarm watches. Logged in the embedded metric format like the AI
+ * metrics; a failure here is logged, never thrown.
+ */
+export async function publishAppMetrics(supabase: SupabaseClient): Promise<void> {
+    try {
+        const now = Date.now()
+        const { count, error } = await supabase
+            .from('app_errors')
+            .select('id', { count: 'exact', head: true })
+            .eq('level', 'error')
+            .gte('created_at', new Date(now - 3_600_000).toISOString())
+        if (error) throw new Error(error.message)
+        console.log(JSON.stringify({
+            _aws: {
+                Timestamp: now,
+                CloudWatchMetrics: [{ Namespace: 'GymPro/App', Dimensions: [[]], Metrics: [{ Name: 'AppErrorsLastHour', Unit: 'Count' }] }],
+            },
+            AppErrorsLastHour: count ?? 0,
+        }))
+    } catch (err) {
+        console.error(`App metrics not published: ${err instanceof Error ? err.message : String(err)}`)
+    }
+}
+
 export async function handler(): Promise<void> {
     const queueUrl = process.env.SQS_QUEUE_URL
     if (!queueUrl) throw new Error('SQS_QUEUE_URL environment variable is not set')
@@ -93,7 +121,9 @@ export async function handler(): Promise<void> {
     const cutoff = new Date(Date.now() - TRACE_RETENTION_DAYS * 86_400_000).toISOString()
     const { error: traceError } = await supabase.from('ai_traces').delete().lt('created_at', cutoff)
     if (traceError) console.error(`Old AI traces not deleted: ${traceError.message}`)
-    await publishAiMetrics(supabase)
+    const { error: appErrorsError } = await supabase.from('app_errors').delete().lt('created_at', new Date(Date.now() - APP_ERROR_RETENTION_DAYS * 86_400_000).toISOString())
+    if (appErrorsError) console.error(`Old app errors not deleted: ${appErrorsError.message}`)
+    await Promise.all([publishAiMetrics(supabase), publishAppMetrics(supabase)])
 
     const [profilesResult, cyclesResult] = await Promise.all([
         supabase.from('user_profiles').select('user_id, timezone'),

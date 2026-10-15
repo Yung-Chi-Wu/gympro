@@ -5,6 +5,7 @@ import { appendConversation } from '@/lib/ronnie/conversation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { eventForDisplay, eventForModel, type RonnieEvent } from '@/lib/ronnie/events'
 import { localDateToUtcRange } from '@/lib/ronnie/time'
+import { reportError } from '@/lib/report-error'
 
 // The button on one of Ronnie's recommendation cards: { exerciseId, replacesExerciseId?, language }.
 // "Add to today" adds the exercise; "Swap" also removes the one it replaces. Today's workout
@@ -28,7 +29,10 @@ export async function POST(request: Request) {
 
     // Created from today's routine if it hasn't started, so the exercise to replace is there
     const workoutId = await ctx.data.ensureTodayWorkout()
-    if (!workoutId) return NextResponse.json({ error: "Could not create today's workout" }, { status: 500 })
+    if (!workoutId) {
+        reportError('ronnie/recommendations', "Could not create today's workout", { userId: user.id })
+        return NextResponse.json({ error: "Could not create today's workout" }, { status: 500 })
+    }
     const range = localDateToUtcRange(ctx.today, ctx.timeZone)
     const planned = (await ctx.data.getLatestWorkoutBetween(range.start, range.end))?.workout_planned_exercises ?? []
     const replaced = body?.replacesExerciseId ? planned.find((p) => p.exercise_id === body.replacesExerciseId) : undefined
@@ -41,7 +45,7 @@ export async function POST(request: Request) {
     const addError = alreadyIn ? null : await ctx.data.addPlannedExercise(workoutId, exercise.id)
     const removeError = !addError && replaced ? (await ctx.data.removePlannedExercise(workoutId, replaced.exercise_id)).error : null
     if (addError || removeError) {
-        console.error('Recommendation card failed:', addError ?? removeError)
+        reportError('ronnie/recommendations', addError ?? removeError, { userId: user.id, context: { step: addError ? 'add' : 'remove' } })
         return NextResponse.json({ error: 'Could not change the workout' }, { status: 500 })
     }
 
@@ -54,6 +58,6 @@ export async function POST(request: Request) {
         messages: [{ role: 'user', content: eventForModel(event) }],
         display: [{ kind: 'event', text }],
     })
-    if (saveError) console.error('Ronnie event not saved:', saveError)
+    if (saveError) reportError('ronnie/event-save', saveError, { userId: user.id })
     return NextResponse.json({ status: replaced ? 'swapped' : 'added', text, reloadDashboard: true })
 }

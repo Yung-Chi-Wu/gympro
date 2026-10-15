@@ -6,6 +6,7 @@ import { awsCredentialsProvider } from '@vercel/oidc-aws-credentials-provider'
 import { currentPeriod, localDate } from '@/lib/periods'
 import { toFriendlyError } from '@/lib/friendly-error'
 import { timeZoneOf } from '@/lib/time-zone'
+import { reportError } from '@/lib/report-error'
 
 // Reports are queued automatically when a period ends (the report-scheduler
 // Lambda). These actions cover what the user still does by hand: today's weight
@@ -192,10 +193,10 @@ export async function retryFailedReport(periodStart: string, { auto = false }: {
         // The worker Lambda logs the same messageId, so this report can be traced in CloudWatch.
         console.log(`Re-queued report for user ${user.id}, period ${periodStart} (messageId ${MessageId})`)
     } catch (err) {
-        console.error(`Failed to re-queue report for user ${user.id}, period ${periodStart}:`, err)
+        reportError('report/requeue', err, { userId: user.id, context: { periodStart } })
         // Otherwise it would show as being made until it looked stale
         const { error: markError } = await supabase.rpc('mark_report_queue_failed', { p_period_start: periodStart, p_queued_at: queuedAt })
-        if (markError) console.error(`Report for user ${user.id}, period ${periodStart} not marked failed:`, markError.message)
+        if (markError) reportError('report/mark-failed', markError, { userId: user.id, context: { periodStart } })
         return { success: false, message: 'Failed to queue your report. Please try again.' }
     }
 
