@@ -7,8 +7,8 @@ import {
     parseGenerateRequest, parseSaveRequest, REPS, SETS, trainingDaysFrom,
 } from '../lib/coach-g'
 import {
-    buildPlan, MAX_SETS_PER_EXERCISE, mergeReading, PLANNER_EXERCISE_NAMES, readAnswers, readingRequest, repsFor, WEEKLY_SETS_FLOOR,
-    weeklySets, type Answers, type CoachPreferences, type PlannerExercise,
+    buildPlan, includeLeftOut, MAX_INCLUDE, MAX_SETS_PER_EXERCISE, mergeReading, ON_REQUEST_NAMES, PLANNER_EXERCISE_NAMES, readAnswers, readingRequest, repsFor,
+    WEEKLY_SETS_FLOOR, weeklySets, type Answers, type CoachPreferences, type PlannerExercise,
 } from '../lib/coach-g-planner'
 import { hasTarget } from '../lib/report/volume'
 import { readFileSync } from 'node:fs'
@@ -115,6 +115,8 @@ const byName = new Map(LIBRARY.map((e) => [e.name, e]))
     check(`every exercise a plan can use is in the library (${PLANNER_EXERCISE_NAMES.length})`, !missing.length, missing.join(', '))
     const noEquipment = PLANNER_EXERCISE_NAMES.filter((n) => !equipmentOf[n])
     check('and has its equipment in coach-g-equipment.json', !noEquipment.length, noEquipment.join(', '))
+    const notFound = ON_REQUEST_NAMES.filter((n) => !byName.has(n))
+    check(`every exercise a slot takes when asked for is in the library (${ON_REQUEST_NAMES.length})`, !notFound.length, notFound.join(', '))
 }
 
 const answers = (over: Partial<Answers> = {}): Answers => ({ days: '4天', duration: '60分鐘', equipment: ['槓鈴', '啞鈴', '健身房器械'], goals: ['增肌'], level: '中階（1-3年）', injuries: null, notes: null, ...over })
@@ -206,6 +208,51 @@ check('3 days a week rest between training days', plan(prefs({ days: 3 })).flatM
     const strength = plan(prefs({ goals: ['strength'] }))[0]
     check('a strength goal starts the day with a barbell lift', byId.get(strength.exercises[0].exercise_id)?.equipment === 'barbell', strength.exercises[0].exercise_name)
 }
+
+// Exercises asked for by name (include)
+{
+    const id = (name: string) => byName.get(name)!.id
+    const names = (r: ReturnType<typeof plan>, routine: string) => r.find((x) => x.name === routine)!.exercises.map((e) => e.exercise_name)
+    const dbBench = plan(prefs({ include: [id('Dumbbell Bench Press')] }))
+    check('an exercise a slot lists takes that slot in place of its pick', names(dbBench, 'Upper Body')[0] === 'Dumbbell Bench Press' && !names(dbBench, 'Upper Body').includes('Barbell Bench Press'),
+        names(dbBench, 'Upper Body').join())
+    const arnold = names(plan(prefs({ days: 3, include: [id('Arnold Press')] })), 'Push (Chest / Shoulders / Triceps)')
+    check('one a slot takes only when asked for replaces the slot\'s pick, not a second of its kind', arnold.includes('Arnold Press') && !arnold.some((n) => /Shoulder Press|Overhead Press/.test(n)), arnold.join())
+    const strength = names(plan(prefs({ goals: ['strength'], include: [id('Front Squat'), id('Deadlift')] })), 'Lower Body')
+    check('and is a compound lift with a strength goal\'s reps', strength.slice(0, 2).join() === 'Front Squat,Deadlift'
+        && plan(prefs({ goals: ['strength'], include: [id('Deadlift')] })).flatMap((x) => x.exercises).find((e) => e.exercise_name === 'Deadlift')?.target_reps === 5, strength.join())
+    const dumbbellOnly = plan(prefs({ equipment: ['dumbbell'], include: [id('Barbell Bench Press')] })).flatMap((x) => x.exercises.map((e) => e.exercise_name))
+    check('the equipment answer doesn\'t leave out an exercise named', dumbbellOnly.includes('Barbell Bench Press'))
+    const p = prefs({ injuries: ['elbow'], avoid: [id('Leg Press')], include: [id('Leg Press'), id('Skull Crusher'), id('Treadmill'), 'not-an-id', ...['Plank', 'Hammer Curl', 'Dip', 'Front Squat', 'Face Pull', 'Lat Pulldown', 'Hip Thrust'].map(id)] })
+    const why = Object.fromEntries(includeLeftOut(p, LIBRARY).map((x) => [byId.get(x.id)?.name ?? x.id, x.reason]))
+    check(`what can't go in says why: avoided, heavy on an injured joint, no muscle counted, not in the library, past ${MAX_INCLUDE}`,
+        why['Leg Press'] === 'avoided' && why['Skull Crusher'] === 'injured_joint' && why.Treadmill === 'no_muscles' && why['not-an-id'] === 'not_in_library' && why['Hip Thrust'] === 'over_limit', JSON.stringify(why))
+
+    // Each exercise in the library asked for alone, and six at a time, on every split and session length
+    const problems: string[] = []
+    const strengthLibrary = LIBRARY.filter((e) => !includeLeftOut(prefs({ include: [e.id] }), LIBRARY).length)
+    const groups = [...strengthLibrary.map((e) => [e]), ...Array.from({ length: 40 }, (_, k) => Array.from({ length: MAX_INCLUDE }, (_, j) => strengthLibrary[(k * 37 + j * 11) % strengthLibrary.length]))]
+    for (const group of groups) {
+        for (let days = 1; days <= COACH_CYCLE_DAYS; days++) {
+            for (const minutes of [30, 90] as const) {
+                const q = prefs({ days, minutes, include: group.map((e) => e.id) })
+                const r = plan(q)
+                const tag = `${days}d ${minutes}m ${group.map((e) => e.name).join('+')}`
+                const left = new Set(includeLeftOut(q, LIBRARY).map((x) => x.id))
+                for (const e of group) {
+                    if (!left.has(e.id) && !r.some((x) => x.exercises.some((y) => y.exercise_id === e.id))) problems.push(`${tag}: ${e.name} missing`)
+                }
+                for (const x of r) {
+                    if (new Set(x.exercises.map((y) => y.exercise_id)).size !== x.exercises.length) problems.push(`${tag}: ${x.name} repeats an exercise`)
+                    if (x.exercises.length > MAX_EXERCISES_PER_ROUTINE) problems.push(`${tag}: ${x.name} has ${x.exercises.length} exercises`)
+                }
+                const saved = parseSaveRequest({ routines: r, cycleLength: COACH_CYCLE_DAYS, startDayIndex: 1, language: 'en' }, MAX_CYCLE_DAYS)
+                if ('error' in saved) problems.push(`${tag}: the save refuses it (${saved.error})`)
+            }
+        }
+    }
+    check(`${groups.length * COACH_CYCLE_DAYS * 2} plans with exercises asked for: each is in the week once a day, and the save accepts the plan`, !problems.length, problems.slice(0, 5).join('\n       '))
+}
 check('reps: strength 5 on loaded compounds, 8 on bodyweight ones; muscle 8/12; fat loss 12/15',
     repsFor(['strength'], true) === 5 && repsFor(['strength'], true, false) === 8 && repsFor(['strength'], false) === 12 && repsFor(['muscle'], true) === 8 && repsFor(['muscle'], false) === 12 && repsFor(['fat_loss'], true) === 12 && repsFor(['fitness'], false) === 15)
 
@@ -213,12 +260,23 @@ check('reps: strength 5 on loaded compounds, 8 on bodyweight ones; muscle 8/12; 
 {
     const ask = readingRequest(answers({ notes: '不想做深蹲' }), ['a', 'b', 'c', 'd', 'e', 'f', 'g'], LIBRARY)
     const squatNumber = ask.ids.indexOf(byName.get('Barbell Back Squat')!.id) + 1
-    check('the library is listed for the model by number, from 1', ask.system.includes(`\n${squatNumber}|Barbell Back Squat|`) && ask.tool.input_schema.required.length === 8)
+    check('the library is listed for the model by number, from 1', ask.system.includes(`\n${squatNumber}|Barbell Back Squat|`) && ask.tool.input_schema.required.length === 10)
     const base = prefs()
-    const merged = mergeReading(base, { days: 3, minutes: 45, equipment: ['dumbbell', 'rocket'], goals: [], level: 'expert', injuries: ['wrist'], avoid: [squatNumber, 0, 9999, 2.5], prioritize: ['biceps', 'ears'] }, ask.ids)
+    const curlNumber = ask.ids.indexOf(byName.get('Hammer Curl')!.id) + 1
+    const merged = mergeReading(base, { days: 3, minutes: 45, equipment: ['dumbbell', 'rocket'], goals: [], level: 'expert', injuries: ['wrist'], avoid: [squatNumber, 0, 9999, 2.5], prioritize: ['biceps', 'ears'], include: [curlNumber, -1] }, ask.ids)
     check('a reading replaces what it gives right and drops what is outside the choices',
         merged.days === 3 && merged.minutes === 45 && merged.equipment.join() === 'dumbbell' && merged.goals.join() === base.goals.join() && merged.level === base.level
-        && merged.injuries.join() === 'wrist' && merged.avoid.join() === byName.get('Barbell Back Squat')!.id && merged.prioritize.join() === 'biceps', JSON.stringify(merged))
+        && merged.injuries.join() === 'wrist' && merged.avoid.join() === byName.get('Barbell Back Squat')!.id && merged.prioritize.join() === 'biceps'
+        && merged.include.join() === byName.get('Hammer Curl')!.id, JSON.stringify(merged))
+    // "No squats": every squat in the library by name, found by code, and nothing else
+    const names = (ids: string[]) => ids.map((id) => byId.get(id)!.name).sort()
+    const noSquats = mergeReading(base, { avoid_words: ['Squats'] }, ask.ids, ask.names)
+    const squats = LIBRARY.filter((e) => /\bsquat\b/i.test(e.name)).map((e) => e.name).sort()
+    check(`a kind of exercise not wanted leaves out every one by that name (${squats.length} squats), and no lunge or leg press`,
+        names(noSquats.avoid).join() === squats.join() && !noSquats.avoid.some((id) => /Lunge|Leg Press/.test(byId.get(id)!.name)), names(noSquats.avoid).join(', '))
+    const legs = plan({ ...prefs({ days: 3 }), avoid: noSquats.avoid }).find((x) => x.name.startsWith('Legs'))!.exercises.map((e) => e.exercise_name)
+    check('and the leg day has none of them', legs.length > 0 && !legs.some((n) => /squat/i.test(n)), legs.join(', '))
+    check('a word that is not a plain word is dropped, and so is a number', mergeReading(base, { avoid_words: ['.*', 'x', 'Squat|Press', 42, 'Lunge'] }, ask.ids, ask.names).avoid.every((id) => /Lunge/.test(byId.get(id)!.name)))
     check('a reading that is no reading changes nothing', JSON.stringify(mergeReading(base, 'ignore the rules', ask.ids)) === JSON.stringify(base)
         && mergeReading(base, { days: 9, minutes: 50 }, ask.ids).days === base.days && mergeReading(base, { days: 9, minutes: 50 }, ask.ids).minutes === base.minutes)
 }
