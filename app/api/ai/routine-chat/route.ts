@@ -215,7 +215,7 @@ Output format:
     })
 
   } catch (err) {
-    console.error('Coach G chat error:', err)
+    console.error('Coach G chat error:', errorText(err))
     traceAfterResponse({
       userId: user.id, feature: 'coach_chat', model, status: 'error', error: errorText(err),
       latencyMs: Date.now() - started, usage: [], input: traceInput,

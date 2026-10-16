@@ -47,6 +47,7 @@ next-env.d.ts
 *.tfstate
 *.tfstate.*
 *.tfvars
+*.tfvars.json
 # Saved plans embed resolved values, including sensitive ones
 *.tfplan
 crash.log
