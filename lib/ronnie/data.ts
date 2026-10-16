@@ -270,53 +270,19 @@ export function createSupabaseRonnieData(
         async ensureTodayWorkout() {
             const todayStr = localDateStr(now(), timeZone)
             const range = localDateToUtcRange(todayStr, timeZone)
-
-            // The latest, as the dashboard picks (lib/today-workout.ts), so both change the workout the user sees
-            const { data: existing } = await supabase
-                .from('workouts')
-                .select('id')
-                .eq('user_id', userId)
-                .gte('performed_at', range.start)
-                .lte('performed_at', range.end)
-                .order('performed_at', { ascending: false })
-                .limit(1)
-                .maybeSingle()
-
-            if (existing) return existing.id
-
-            // 建立新 workout
-            const { data: newWorkout, error } = await supabase
-                .from('workouts')
-                .insert({ user_id: userId, performed_at: new Date().toISOString() })
-                .select('id')
-                .single()
-
-            if (error || !newWorkout) return null
-
-            // 從 routine 複製今天的動作
+            // One transaction, shared with the dashboard card (start_today_workout): the latest of
+            // today's workouts, or a new one with today's routine planned, each exercise once
             const routineId = await getTodayRoutineId()
-            if (routineId) {
-                const { data: routineExercises } = await supabase
-                    .from('routine_exercises')
-                    .select('exercise_id')
-                    .eq('routine_id', routineId)
-                    .order('order_index')
-
-                if (routineExercises?.length) {
-                    // Once each: a routine can list an exercise twice, and the plan can't, so the whole
-                    // insert failed and today's workout was left without the routine
-                    const ids = [...new Set(routineExercises.map((re: { exercise_id: string }) => re.exercise_id))]
-                    const rows = ids.map((exercise_id) => ({ workout_id: newWorkout.id, exercise_id, user_id: userId }))
-                    const { error: planError } = await supabase.from('workout_planned_exercises').insert(rows)
-                    if (planError) {
-                        // An empty workout would be picked up as today's, hiding the routine for the day
-                        await supabase.from('workouts').delete().eq('id', newWorkout.id)
-                        return null
-                    }
-                }
-            }
-
-            return newWorkout.id
+            const { data: routineExercises } = routineId
+                ? await supabase.from('routine_exercises').select('exercise_id').eq('routine_id', routineId).order('order_index')
+                : { data: null }
+            const { data, error } = await supabase.rpc('start_today_workout', {
+                p_day_start: range.start,
+                p_day_end: range.end,
+                p_routine_id: routineId,
+                p_exercise_ids: (routineExercises ?? []).map((re: { exercise_id: string }) => re.exercise_id),
+            })
+            return error || !data ? null : data
         },
 
         async addPlannedExercise(workoutId, exerciseId) {

@@ -489,6 +489,12 @@ function fakeSupabase(answer) {
             })
             return builder
         },
+        // A database function: the call is kept as a request with its name and arguments
+        rpc(name, args) {
+            const q = { rpc: name, args, ops: [] }
+            requests.push(q)
+            return Promise.resolve().then(() => answer(q))
+        },
     }
 }
 const op = (q, name) => q.ops.find(([k]) => k === name)?.[1]
@@ -525,30 +531,29 @@ const op = (q, name) => q.ops.find(([k]) => k === name)?.[1]
     check(ids === null && seen.join() === 'AccessDenied', `a failed vector search gives no ranking and is reported (${seen.join() || 'not reported'})`)
 }
 
-// Today's workout is created with the routine's exercises once each, or not at all
+// Today's workout is started by the database in one transaction (start_today_workout), with today's
+// range and routine and the routine's exercises in order; a refusal means no workout. Each
+// exercise once and all-or-nothing are the function's own (tested on the migration)
 {
     const cycle = { id: 'c1', cycle_length: 3, start_date: '2026-10-01' }
-    const run = async (planError) => {
-        let plannedRows = null
+    const run = async (rpcError) => {
         const fake = fakeSupabase((q) => {
-            const has = (name) => q.ops.some(([k]) => k === name)
-            if (q.table === 'workouts' && has('insert')) return { data: { id: 'w-new' }, error: null }
-            if (q.table === 'workouts' && has('delete')) return { data: null, error: null }
-            if (q.table === 'workouts') return { data: null, error: null }
+            if (q.rpc === 'start_today_workout') return { data: rpcError ? null : 'w-new', error: rpcError }
             if (q.table === 'cycle_days') return { data: { routine_id: 'r1' }, error: null }
             if (q.table === 'routine_exercises') return { data: [{ exercise_id: 'squat' }, { exercise_id: 'squat' }, { exercise_id: 'rdl' }], error: null }
-            if (q.table === 'workout_planned_exercises') { plannedRows = op(q, 'insert')[0]; return { data: null, error: planError } }
             return { data: null, error: null }
         })
         const data = createSupabaseRonnieData(fake, 'u1', FIXTURE_TIME_ZONE, cycle, { now: () => FIXTURE_NOW })
         const id = await data.ensureTodayWorkout()
-        const deleted = fake.requests.some((q) => q.table === 'workouts' && q.ops.some(([k]) => k === 'delete'))
-        return { id, plannedRows, deleted }
+        return { id, call: fake.requests.find((q) => q.rpc === 'start_today_workout'), writes: fake.requests.filter((q) => q.ops.some(([k]) => ['insert', 'delete', 'update'].includes(k))) }
     }
     const ok = await run(null)
-    check(ok.id === 'w-new' && ok.plannedRows.length === 2 && !ok.deleted, `a routine listing squat twice plans it once (${ok.plannedRows?.map((r) => r.exercise_id).join(', ')})`)
-    const failed = await run({ message: 'duplicate key value violates unique constraint' })
-    check(failed.id === null && failed.deleted, 'a failed plan insert removes the empty workout and reports no workout')
+    const day = FIXTURE_NOW.toISOString().slice(0, 10)
+    check(ok.id === 'w-new' && ok.call?.args.p_routine_id === 'r1' && ok.call.args.p_exercise_ids.join() === 'squat,squat,rdl'
+        && ok.call.args.p_day_start < FIXTURE_NOW.toISOString() && ok.call.args.p_day_end > FIXTURE_NOW.toISOString() && !ok.writes.length,
+        `today's workout is started by start_today_workout with today's routine (${JSON.stringify(ok.call?.args ?? null).slice(0, 160)}, ${day})`)
+    const refused = await run({ message: 'new row violates row-level security policy' })
+    check(refused.id === null && !refused.writes.length, 'a refused start reports no workout and writes nothing itself')
 }
 
 // Memory notes go through the service-role client, always for this user; without it there is no memory

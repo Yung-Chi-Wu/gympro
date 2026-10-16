@@ -103,6 +103,8 @@
         "switchUnit": "切換單位",
         "dayOf": "第 {day} 天 / 共 {total} 天",
         "removeExercise": "移除這個動作",
+        "newDay": "已經是新的一天，已重新載入今天的課表。",
+        "removeWithSets": "這個動作今天已經記了 {count} 組，移除會一起刪掉這些組。要移除嗎？",
         "switchTo": "改用 {unit}"
     },
     "sets": {

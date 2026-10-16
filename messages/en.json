@@ -103,6 +103,8 @@
         "switchUnit": "Switch unit",
         "dayOf": "Day {day} of {total}",
         "removeExercise": "Remove this exercise",
+        "newDay": "It's a new day: today's plan has been reloaded.",
+        "removeWithSets": "{count, plural, one {This exercise has # set logged today, and removing it deletes it.} other {This exercise has # sets logged today, and removing it deletes them.}} Remove it?",
         "switchTo": "Switch to {unit}"
     },
     "sets": {

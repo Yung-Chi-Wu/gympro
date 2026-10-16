@@ -67,6 +67,38 @@ export async function findTodayWorkoutId(
     return data?.id ?? null
 }
 
+/** Thrown when the page's day has ended: the caller reloads today instead of logging into yesterday */
+export class DayOverError extends Error {
+    constructor() {
+        super('day_over')
+        this.name = 'DayOverError'
+    }
+}
+
+/** Whether the day this range covers is over: a page left open overnight still holds yesterday's */
+export const dayIsOver = (range: { end: string }, now = Date.now()) => now > Date.parse(range.end)
+
+/**
+ * Today's workout, started if there's none yet (start_today_workout): the workout and its planned
+ * exercises in one transaction, each exercise once, in the order given. One that already exists
+ * comes back as it is. Refuses a day that is already over (DayOverError).
+ */
+export async function startTodayWorkout(
+    supabase: SupabaseClient<Database>,
+    { range, routineId, exerciseIds }: { range: { start: string; end: string }; routineId: string | null; exerciseIds: string[] },
+): Promise<string> {
+    if (dayIsOver(range)) throw new DayOverError()
+    const { data, error } = await supabase.rpc('start_today_workout', {
+        p_day_start: range.start,
+        p_day_end: range.end,
+        p_routine_id: routineId,
+        p_exercise_ids: exerciseIds,
+    })
+    if (error?.message.includes('day_over')) throw new DayOverError()
+    if (error || !data) throw new Error(`Could not start today's workout: ${error?.message ?? 'no workout returned'}`, { cause: error })
+    return data
+}
+
 /** The kg/lb the user chose for each of these exercises (exercise_log_units); an exercise without a choice is left out. */
 export async function exerciseLogUnits(
     supabase: SupabaseClient<Database>,
@@ -155,19 +187,29 @@ export async function loadTodayWorkout(
             supabase.from('workouts').select('routine_id').eq('id', workoutId).maybeSingle(),
         ])
         const sets = (setsResult.data as unknown as SetRow[] | null) ?? []
+        const planned = (plannedResult.data as unknown as PlannedRow[] | null) ?? []
+        // An exercise taken off today's plan after its sets were logged stays on the card with them:
+        // History and the report count those sets, so hiding them here made the day disagree
+        const offPlanIds = [...new Set(sets.map((s) => s.exercise_id))].filter((id) => !planned.some((p) => p.exercise_id === id))
         // The targets of the routine the workout follows (Ronnie may start one without a routine: today's then)
         const targetRoutineId = workoutResult.data?.routine_id ?? routineId
-        const { data: targetRows } = targetRoutineId
-            ? await supabase.from('routine_exercises').select(TARGET_COLUMNS).eq('routine_id', targetRoutineId)
-            : { data: null }
+        const [{ data: targetRows }, { data: offPlanInfo }] = await Promise.all([
+            targetRoutineId
+                ? supabase.from('routine_exercises').select(TARGET_COLUMNS).eq('routine_id', targetRoutineId)
+                : Promise.resolve({ data: null }),
+            offPlanIds.length
+                ? supabase.from('exercises').select(`id, ${EXERCISE_COLUMNS}`).in('id', offPlanIds)
+                : Promise.resolve({ data: null }),
+        ])
+        const setsOf = (exerciseId: string) => sets
+            .filter((s) => s.exercise_id === exerciseId)
+            .map((s) => ({ ...setValuesOf(s), id: s.id, setNumber: s.set_number, createdAt: s.created_at }))
         return {
             workoutId,
-            exercises: await withPrevious(((plannedResult.data as unknown as PlannedRow[] | null) ?? []).map((p) =>
-                exerciseOf(p.exercise_id, p.exercises, p.id, sets
-                    .filter((s) => s.exercise_id === p.exercise_id)
-                    .map((s) => ({ ...setValuesOf(s), id: s.id, setNumber: s.set_number, createdAt: s.created_at })),
-                targetOf(targetRows?.find((re) => re.exercise_id === p.exercise_id)))
-            )),
+            exercises: await withPrevious([
+                ...planned.map((p) => exerciseOf(p.exercise_id, p.exercises, p.id, setsOf(p.exercise_id), targetOf(targetRows?.find((re) => re.exercise_id === p.exercise_id)))),
+                ...offPlanIds.map((id) => exerciseOf(id, (offPlanInfo as unknown as ({ id: string } & NonNullable<ExerciseInfo>)[] | null)?.find((e) => e.id === id) ?? null, null, setsOf(id), null)),
+            ]),
         }
     }
 
