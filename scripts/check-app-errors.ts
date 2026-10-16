@@ -80,6 +80,10 @@ const unreported = ['app', 'lib'].flatMap((d) => files(join(root, d)))
     .flatMap((p) => readFileSync(join(root, p), 'utf8').split('\n').flatMap((line, i) =>
         /console\.error\(/.test(line) && !AI_TRACED.some((m) => line.includes(m)) ? [`${p}:${i + 1}`] : []))
 check('every console.error on the app server is an AI call (traced) or goes through reportError', !unreported.length, unreported.join(', '))
+// And an AI call's log line keeps only the error's text: the whole error object can carry the request
+const rawAiErrors = ['app', 'lib'].flatMap((d) => files(join(root, d))).flatMap((p) => readFileSync(p, 'utf8').split('\n').flatMap((line, i) =>
+    /console\.error\(/.test(line) && AI_TRACED.some((m) => line.includes(m)) && !line.includes('errorText(') ? [`${relative(root, p)}:${i + 1}`] : []))
+check('an AI call\'s console.error logs errorText(err), not the whole error', !rawAiErrors.length, rawAiErrors.join(', '))
 
 // ---------- The browser's failures: what counts as lost signal ----------
 for (const m of NETWORK_FAILURES) {

@@ -103,11 +103,17 @@ data "aws_iam_policy_document" "scheduler_assume_role" {
       identifiers = ["scheduler.amazonaws.com"]
     }
 
-    # Confused-deputy protection: only schedules in this account may use the role
+    # Confused-deputy protection: only schedules in this account's default group may use the role
     condition {
       test     = "StringEquals"
       variable = "aws:SourceAccount"
       values   = [data.aws_caller_identity.current.account_id]
+    }
+
+    condition {
+      test     = "ArnEquals"
+      variable = "aws:SourceArn"
+      values   = ["arn:aws:scheduler:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:schedule-group/default"]
     }
   }
 }
