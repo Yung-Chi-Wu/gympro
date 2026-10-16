@@ -106,8 +106,17 @@ export async function saveReport(supabase: SupabaseClient, request: ReportReques
     if (error) throw new Error(`Failed to save report: ${error.message}`)
 }
 
-export async function saveFailedStatus(supabase: SupabaseClient, request: ReportRequest, errorMessage: string): Promise<void> {
-    const { error } = await updateOwnRow(supabase, request, { status: 'failed', error_message: errorMessage, pdf_status: 'not_applicable' })
+/**
+ * What a failed row says. Never the error's own text, which can name AWS resources: the row is
+ * the user's to read. The cause is in the Lambda's log.
+ */
+const FAILED_MESSAGES = {
+    invalid_period: 'Invalid report period.',
+    error: 'The report could not be made.',
+} as const
+
+export async function saveFailedStatus(supabase: SupabaseClient, request: ReportRequest, reason: keyof typeof FAILED_MESSAGES): Promise<void> {
+    const { error } = await updateOwnRow(supabase, request, { status: 'failed', error_message: FAILED_MESSAGES[reason], pdf_status: 'not_applicable' })
     if (error) console.error('Failed to save failure status:', error.message)
 }
 

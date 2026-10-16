@@ -103,7 +103,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
             <HistoryReports
                 initialReports={await loadReports(supabase, user.id)}
                 // Today's "see the full report" opens that period's report here
-                openPeriod={/^\d{4}-\d{2}-\d{2}$/.test(params.report ?? '') ? params.report! : null}
+                openPeriod={isDate(params.report) ? params.report : null}
                 cycle={cycle}
                 language={language}
                 weightUnit={weightUnit}

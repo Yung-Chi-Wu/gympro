@@ -12,7 +12,7 @@ const autoRetried = new Set<string>()
 
 /** A failed report, or one still pending long after it was queued. Showing it queues it again,
  *  once ever, as if it were still being made; after that it shows the error and a button. The
- *  row's error_message holds the technical cause for debugging; users get a plain message. */
+ *  cause is in the worker's log, not the row; users get a plain message. */
 export function FailedReport({ periodStart, onRetried }: { periodStart: string; onRetried: () => void }) {
     const t = useTranslations('report')
     const [retrying, setRetrying] = useState(() => !autoRetried.has(periodStart))

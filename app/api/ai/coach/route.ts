@@ -120,7 +120,8 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ message: turn.message, reloadDashboard: turn.reloadDashboard, proposals, recommendations, plans })
     } catch (err) {
-        console.error('Ronnie error:', err)
+        // The text only: the error carries the turn's tool calls, which hold the user's own data
+        console.error('Ronnie error:', errorText(err))
         const partial = err as { servedModel?: string | null; toolCalls?: unknown }
         traceAfterResponse({
             userId: user.id, feature: 'ronnie', model: RONNIE_MODEL, servedModel: partial.servedModel ?? null, status: 'error', error: errorText(err),

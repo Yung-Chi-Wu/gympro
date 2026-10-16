@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Free check of how the report worker treats a request (no model, no database): a message only
 // names its request, and the period and the note come from the row; a message runs only while
-// its row is pending with the message's queued_at, every save is limited to that row, a period
+// its row is pending with the message's queued_at, every save is limited to that row, a failed
+// row keeps no error text, a period
 // is 1 to 28 days, a model call can't outlast the Lambda, a text that fails its checks is retried
 // with the problems and then replaced by the app's own labels, and the brief gives the app's
 // Chinese words.
@@ -98,7 +99,7 @@ for (const [name, start, end, days] of [
 // Every save is an update limited to this request's row: never an upsert, never another request's
 for (const [name, save] of [
     ['saveReport', (sb) => w.saveReport(sb, request, { version: 3 }, null)],
-    ['saveFailedStatus', (sb) => w.saveFailedStatus(sb, request, 'boom')],
+    ['saveFailedStatus', (sb) => w.saveFailedStatus(sb, request, 'error')],
     ['saveInsufficientDataStatus', (sb) => w.saveInsufficientDataStatus(sb, request, 4, 10)],
 ]) {
     const sb = fakeSupabase(null)
@@ -107,6 +108,14 @@ for (const [name, save] of [
     const has = (col, val) => q.filters.some(([c, v]) => c === col && v === val)
     check(`${name} updates only the pending row of this request`, q.kind === 'update' && has('user_id', 'u1') && has('period_start', '2026-10-05') && has('status', 'pending') && has('queued_at', QUEUED),
         `${q.kind} with ${JSON.stringify(q.filters)}`)
+}
+
+// A failed row says a fixed line: an error's own text can name AWS resources, and the row is the user's
+for (const [reason, line] of [['error', 'The report could not be made.'], ['invalid_period', 'Invalid report period.']]) {
+    const sb = fakeSupabase(null)
+    await w.saveFailedStatus(sb, request, reason)
+    const m = sb.queries.at(-1).values?.error_message
+    check(`a failed row (${reason}) says "${line}", not the error`, m === line, JSON.stringify(m))
 }
 
 // Stale pending: shown as failed after 30 minutes, not before

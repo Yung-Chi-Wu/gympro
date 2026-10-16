@@ -41,7 +41,7 @@ async function processMessage(record: SQSRecord, deadline: number): Promise<void
   // bad one, from sizing the report
   if (periodEnd === null || periodDays(periodStart, periodEnd) === null) {
     console.error(`Not reporting on user ${userId}, period ${periodStart} to ${periodEnd}: not a period a report covers (messageId ${record.messageId})`)
-    await saveFailedStatus(supabase, request, 'Invalid report period.')
+    await saveFailedStatus(supabase, request, 'invalid_period')
     return
   }
 
@@ -82,12 +82,12 @@ async function processMessage(record: SQSRecord, deadline: number): Promise<void
     await saveReport(supabase, request, report, userNote ?? null)
     console.log(`Successfully saved recommendation for user ${userId} (messageId ${record.messageId})`)
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err)
+    // The cause goes to the log only: the row gets a fixed line (saveFailedStatus)
     console.error(
       `Failed to process recommendation for user ${userId} (messageId ${record.messageId}):`,
-      errorMessage
+      err instanceof Error ? err.message : String(err)
     )
-    await saveFailedStatus(supabase, request, errorMessage)
+    await saveFailedStatus(supabase, request, 'error')
     // Thrown for the Lambda Errors alarm; the redelivery finds the row failed and skips it
     throw err
   }
