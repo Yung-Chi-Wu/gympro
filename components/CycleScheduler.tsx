@@ -4,6 +4,7 @@ import { useState, type Dispatch, type SetStateAction } from 'react'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { toFriendlyError } from '@/lib/friendly-error'
+import { reportClientError } from '@/lib/report-client-error'
 import { addDays, daysBetween, MAX_CYCLE_DAYS } from '@/lib/periods'
 import { MoreMenu } from './MoreMenu'
 
@@ -104,7 +105,8 @@ export function CycleScheduler({
                 .select('id')
                 .single()
 
-            if (cycleError || !cycle) throw new Error(toFriendlyError(cycleError, language))
+            // The user sees the friendly message; the report gets what failed, its cause
+            if (cycleError || !cycle) throw new Error(toFriendlyError(cycleError, language), { cause: cycleError })
 
             const newDays = Array.from({ length }, (_, i) => ({
                 training_cycle_id: cycle.id,
@@ -112,7 +114,7 @@ export function CycleScheduler({
                 routine_id: null,
             }))
             const { error: daysError } = await supabase.from('cycle_days').insert(newDays)
-            if (daysError) throw new Error(toFriendlyError(daysError, language))
+            if (daysError) throw new Error(toFriendlyError(daysError, language), { cause: daysError })
 
             setCycleId(cycle.id)
             setCycleLength(length)
@@ -121,6 +123,7 @@ export function CycleScheduler({
             // A new cycle's days are all rest days: go straight to picking routines
             setEditing(true)
         } catch (err) {
+            reportClientError('client/cycle/create', err)
             setError(err instanceof Error ? err.message : (zh ? '發生錯誤，請再試一次。' : 'Something went wrong.'))
         } finally {
             setIsSaving(false)
@@ -141,7 +144,7 @@ export function CycleScheduler({
                 .from('training_cycles')
                 .delete()
                 .eq('id', cycleId)
-            if (deleteError) throw new Error(toFriendlyError(deleteError, language))
+            if (deleteError) throw new Error(toFriendlyError(deleteError, language), { cause: deleteError })
 
             await clearEmptyTodayWorkout(userId)
             setCycleId(null)
@@ -151,6 +154,7 @@ export function CycleScheduler({
             setTodayDayInput('1')
             setEditing(false)
         } catch (err) {
+            reportClientError('client/cycle/delete', err)
             setError(err instanceof Error ? err.message : (zh ? '發生錯誤，請再試一次。' : 'Something went wrong.'))
         } finally {
             setIsSaving(false)
@@ -213,7 +217,7 @@ export function CycleScheduler({
                 .from('training_cycles')
                 .update(updates)
                 .eq('id', cycleId)
-            if (updateError) throw new Error(toFriendlyError(updateError, language))
+            if (updateError) throw new Error(toFriendlyError(updateError, language), { cause: updateError })
 
             if (pending.newLength > cycleLength) {
                 const newRows = Array.from(
@@ -225,7 +229,7 @@ export function CycleScheduler({
                     })
                 )
                 const { error: insertError } = await supabase.from('cycle_days').insert(newRows)
-                if (insertError) throw new Error(toFriendlyError(insertError, language))
+                if (insertError) throw new Error(toFriendlyError(insertError, language), { cause: insertError })
                 setDays((prev) => [
                     ...prev,
                     ...newRows.map((r) => ({ dayIndex: r.day_index, routineId: null })),
@@ -236,7 +240,7 @@ export function CycleScheduler({
                     .delete()
                     .eq('training_cycle_id', cycleId)
                     .gt('day_index', pending.newLength)
-                if (deleteError) throw new Error(toFriendlyError(deleteError, language))
+                if (deleteError) throw new Error(toFriendlyError(deleteError, language), { cause: deleteError })
                 setDays((prev) => prev.filter((d) => d.dayIndex <= pending.newLength))
             }
 
@@ -244,6 +248,7 @@ export function CycleScheduler({
             if (resetStartDate) setStartDate(today)
             setPending(null)
         } catch (err) {
+            reportClientError('client/cycle/change-length', err)
             setError(err instanceof Error ? err.message : (zh ? '發生錯誤，請再試一次。' : 'Something went wrong.'))
         } finally {
             setIsSaving(false)
@@ -260,7 +265,11 @@ export function CycleScheduler({
                 { training_cycle_id: cycleId, day_index: dayIndex, routine_id: value },
                 { onConflict: 'training_cycle_id,day_index' }
             )
-        if (upsertError) { setError(toFriendlyError(upsertError, language)); return }
+        if (upsertError) {
+            reportClientError('client/cycle/set-day', upsertError)
+            setError(toFriendlyError(upsertError, language))
+            return
+        }
         setDays((prev) =>
             prev.map((d) => (d.dayIndex === dayIndex ? { ...d, routineId: value } : d))
         )

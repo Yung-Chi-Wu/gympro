@@ -5,6 +5,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslations } from 'next-intl'
 import { MAX_MESSAGE_CHARS, type DisplayItem, type PlanCard, type ProposalCard, type ProposalStatus, type RecommendationCard } from '@/lib/ronnie/conversation'
 import { describeProposal } from '@/lib/ronnie/events'
+import { reportClientError, responseError } from '@/lib/report-client-error'
 import { isSubmitEnter, useKeyboardOpen, useVisibleViewport, type VisibleViewport } from '@/lib/keyboard'
 import { CoachGResult } from './CoachGResult'
 import { Icon } from './Icon'
@@ -109,9 +110,11 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                 const data = await res.json().catch(() => null)
                 if (cancelled) return
                 if (res.ok && Array.isArray(data?.items)) setItems(data.items)
+                else reportClientError('client/ronnie/load', responseError(`Conversation request failed: ${res.status}`, res.status, data))
                 setLoaded(true)
             } catch (err) {
                 console.error(err)
+                reportClientError('client/ronnie/load', err)
             }
         }
         void load()
@@ -135,7 +138,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
             }
             // An error response has no message: show the error line instead of an empty reply
             if (!res.ok || typeof data?.message !== 'string' || !data.message.trim()) {
-                throw new Error(`Ronnie request failed: ${res.status} ${data?.error ?? ''}`)
+                throw responseError(`Ronnie request failed: ${res.status} ${data?.error ?? ''}`, res.status, data)
             }
             setItems((prev) => [...prev, {
                 kind: 'assistant',
@@ -148,6 +151,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         } catch (err: unknown) {
             if (err instanceof Error && err.name === 'AbortError') return
             console.error(err)
+            reportClientError('client/ronnie/send', err)
             setItems((prev) => [...prev, { kind: 'error', text: errorText }])
         } finally {
             setIsLoading(false)
@@ -174,9 +178,11 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                 const res = await fetch('/api/ai/coach')
                 const data = await res.json().catch(() => null)
                 if (res.ok && Array.isArray(data?.items)) setItems(data.items)
+                else reportClientError('client/ronnie/reload', responseError(`Conversation request failed: ${res.status}`, res.status, data))
                 notifyDashboard()
             } catch (err) {
                 console.error(err)
+                reportClientError('client/ronnie/reload', err)
             }
         }, RELOAD_AFTER_STOP_MS)
     }
@@ -214,12 +220,13 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                 body: JSON.stringify({ actionId: card.id, decision, language }),
             })
             const data = await res.json().catch(() => null)
-            if (!res.ok || !data?.status) throw new Error(`Action failed: ${res.status}`)
+            if (!res.ok || !data?.status) throw responseError(`Action failed: ${res.status}`, res.status, data)
             setCardStatus(card.id, data.status)
             if (data.text) setItems((prev) => [...prev, { kind: 'event', text: data.text }])
             if (data.reloadDashboard) notifyDashboard()
         } catch (err) {
             console.error(err)
+            reportClientError('client/ronnie/action', err)
             setItems((prev) => [...prev, { kind: 'error', text: errorText }])
         } finally {
             setBusyCard(null)
@@ -241,12 +248,13 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                 body: JSON.stringify({ exerciseId: rec.exerciseId, replacesExerciseId: rec.replacesExerciseId, language }),
             })
             const data = await res.json().catch(() => null)
-            if (!res.ok || !data?.status) throw new Error(`Add failed: ${res.status}`)
+            if (!res.ok || !data?.status) throw responseError(`Add failed: ${res.status}`, res.status, data)
             setAddedToday((prev) => new Set(prev).add(rec.exerciseId))
             if (data.text) setItems((prev) => [...prev, { kind: 'event', text: data.text }])
             if (data.reloadDashboard) notifyDashboard()
         } catch (err) {
             console.error(err)
+            reportClientError('client/ronnie/add-recommendation', err)
             setItems((prev) => [...prev, { kind: 'error', text: errorText }])
         } finally {
             setBusyCard(null)
@@ -265,11 +273,12 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                 body: JSON.stringify({ planId: card.id, language }),
             })
             const data = await res.json().catch(() => null)
-            if (!res.ok) throw new Error(`Plan event failed: ${res.status}`)
+            if (!res.ok) throw responseError(`Plan event failed: ${res.status}`, res.status, data)
             if (data?.text) setItems((prev) => [...prev, { kind: 'event', text: data.text, planId: card.id }])
         } catch (err) {
             // The routines are saved; only Ronnie's note of it is missing
             console.error(err)
+            reportClientError('client/ronnie/plan-saved', err)
         }
     }
 

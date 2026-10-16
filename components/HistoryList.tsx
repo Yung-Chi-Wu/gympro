@@ -20,6 +20,7 @@ import {
     type HistoryDay, type HistoryRange, type PeriodRange, type PeriodReportStatus,
 } from '@/lib/history'
 import { closeSubPage, openSubPage } from '@/lib/sub-page'
+import { reportClientError, responseError } from '@/lib/report-client-error'
 import { compactSet, SummaryLine } from './set-format'
 import { Icon } from './Icon'
 import { isReportV3, ReportView } from './report/ReportView'
@@ -151,7 +152,7 @@ export function HistoryTraining({
         try {
             const res = await fetch(`/api/history/workouts?start=${range.start}&end=${range.end}`)
             const data = await res.json().catch(() => null)
-            if (!res.ok || !Array.isArray(data?.days)) throw new Error(`History request failed: ${res.status}`)
+            if (!res.ok || !Array.isArray(data?.days)) throw responseError(`History request failed: ${res.status}`, res.status, data)
             setDays((prev) => {
                 const next = { ...prev }
                 for (const d of datesIn(range)) delete next[d]
@@ -166,6 +167,7 @@ export function HistoryTraining({
             return true
         } catch (err) {
             console.error(err)
+            reportClientError('client/history/load-days', err)
             setLoadError(true)
             return false
         } finally {
@@ -648,11 +650,12 @@ export function HistoryReports({ initialReports, openPeriod = null, cycle, langu
         try {
             const res = await fetch(`/api/history/reports?before=${last.period_start}`)
             const data = await res.json().catch(() => null)
-            if (!res.ok || !Array.isArray(data?.reports)) throw new Error(`Reports request failed: ${res.status}`)
+            if (!res.ok || !Array.isArray(data?.reports)) throw responseError(`Reports request failed: ${res.status}`, res.status, data)
             setOlder((prev) => [...prev, ...data.reports])
             if (data.reports.length < REPORTS_PER_PAGE) setNoMore(true)
         } catch (err) {
             console.error(err)
+            reportClientError('client/history/load-reports', err)
             setLoadError(true)
         } finally {
             setLoading(false)

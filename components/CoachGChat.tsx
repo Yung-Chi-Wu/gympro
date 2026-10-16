@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { isSubmitEnter } from '@/lib/keyboard'
 import { MAX_ANSWER_CHARS } from '@/lib/coach-g'
+import { reportClientError, responseError } from '@/lib/report-client-error'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -122,7 +123,11 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
                 onRoutinesGenerated(genData.routines, genData.cycle_length ?? genData.routines.length)
                 return
             }
-        } catch { /* said below */ } finally {
+            reportClientError('client/coach-g/generate', responseError(`Generate request failed: ${genRes.status}`, genRes.status, genData))
+        } catch (err) {
+            // Said to the user below
+            reportClientError('client/coach-g/generate', err)
+        } finally {
             setIsGenerating(false)
         }
         setMessages((prev) => [...prev, {
@@ -142,7 +147,10 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
     // The first question, once the chat opens. State changes only when the answer arrives,
     // and there is nothing to clear yet (isLoading starts true)
     useEffect(() => {
-        fetchStep(0, null, {}).then(applyStep).catch(showError).finally(() => setIsLoading(false))
+        fetchStep(0, null, {}).then(applyStep).catch((err) => {
+            reportClientError('client/coach-g/step', err)
+            showError()
+        }).finally(() => setIsLoading(false))
     }, [])
 
     async function handleAnswer(answer: string) {
@@ -172,7 +180,8 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
         startRequest()
         try {
             await applyStep(await fetchStep(currentStep, answer, updatedCollected))
-        } catch {
+        } catch (err) {
+            reportClientError('client/coach-g/step', err)
             showError()
         } finally {
             setIsLoading(false)
