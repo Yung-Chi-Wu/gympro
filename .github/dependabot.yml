@@ -1,0 +1,9 @@
+# The CI actions are pinned to commit SHAs (a moved tag can't change what runs); this opens a
+# pull request when a new version comes out. npm packages get only security updates, which
+# are a repository setting, not listed here.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
