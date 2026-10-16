@@ -7,6 +7,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { appErrorRow, errorMessageOf, MAX_ERROR_MESSAGE_CHARS, MAX_SOURCE_CHARS, saveAppError, type AppErrorRow } from '../lib/app-errors'
+import { isTransientAwsError } from '../lib/embeddings'
 import {
     CLIENT_SOURCE_PATTERN, isNetworkFailure, MAX_CLIENT_CONTEXT_VALUE_CHARS, MAX_CLIENT_MESSAGE_CHARS, MAX_REPORTS_PER_PAGE,
     NETWORK_FAILURES, parseClientErrorReport, reportClientError, responseError,
@@ -84,6 +85,15 @@ check('every console.error on the app server is an AI call (traced) or goes thro
 const rawAiErrors = ['app', 'lib'].flatMap((d) => files(join(root, d))).flatMap((p) => readFileSync(p, 'utf8').split('\n').flatMap((line, i) =>
     /console\.error\(/.test(line) && AI_TRACED.some((m) => line.includes(m)) && !line.includes('errorText(') ? [`${relative(root, p)}:${i + 1}`] : []))
 check('an AI call\'s console.error logs errorText(err), not the whole error', !rawAiErrors.length, rawAiErrors.join(', '))
+
+// ---------- A failed vector search: what passes by itself, and what alarms ----------
+{
+    const timeout = Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' })
+    const passes = [timeout, { name: 'ThrottlingException' }, { name: 'X', $metadata: { httpStatusCode: 503 } }, { $metadata: { httpStatusCode: 429 } }]
+    const stays = [{ name: 'AccessDenied', $metadata: { httpStatusCode: 403 } }, { name: 'AccessDeniedException' }, { name: 'InvalidIdentityToken' }, { name: 'ValidationException', $metadata: { httpStatusCode: 400 } }, new Error('boom'), null]
+    check('a timeout, throttling or a 5xx is a warning; a role or model access that broke is an error',
+        passes.every(isTransientAwsError) && !stays.some(isTransientAwsError), JSON.stringify([passes.map(isTransientAwsError), stays.map(isTransientAwsError)]))
+}
 
 // ---------- The browser's failures: what counts as lost signal ----------
 for (const m of NETWORK_FAILURES) {

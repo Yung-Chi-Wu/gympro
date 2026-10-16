@@ -6,7 +6,7 @@ import { createSupabaseRonnieData, type RonnieData } from './data'
 import { memoryLines, type MemoryNote } from './memory'
 import type { RonnieUserContext } from './prompt'
 import { dateGuide } from './time'
-import { vercelQueryEmbedder } from '../embeddings'
+import { isTransientAwsError, vercelQueryEmbedder } from '../embeddings'
 import { reportError } from '../report-error'
 
 export interface RonnieContext {
@@ -47,7 +47,18 @@ export async function loadRonnieContext(supabase: SupabaseClient<Database>, user
     const cycle = cycleResult.data
     const timeZone = timeZoneOf(profile?.timezone)
     // Memory notes and proposals are backend-only: written with the service role, for this user only
-    const data = createSupabaseRonnieData(supabase, userId, timeZone, cycle, { embedQuery: vercelQueryEmbedder(), admin: createAdminClient() })
+    // Search goes on with keywords either way. A timeout or throttling passes by itself and is kept
+    // as a warning; anything else (a role or model access that broke) alarms, since it stays broken.
+    // On Vercel a missing role is the same breakage, so it's reported too.
+    const embedQuery = vercelQueryEmbedder()
+    if (!embedQuery && (process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview')) reportError('ronnie/vector-search', new Error('AWS_ROLE_ARN is not set: search uses keywords only'), { userId })
+    const data = createSupabaseRonnieData(supabase, userId, timeZone, cycle, {
+        embedQuery,
+        onSearchError: (err) => reportError('ronnie/vector-search', err, {
+            userId, level: isTransientAwsError(err) ? 'warning' : 'error', context: { kind: (err as Error | null)?.name ?? 'unknown' },
+        }),
+        admin: createAdminClient(),
+    })
 
     const [todayRoutineName, notes] = await Promise.all([
         (async () => {

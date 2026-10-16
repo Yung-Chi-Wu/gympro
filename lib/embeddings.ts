@@ -92,6 +92,18 @@ export async function embed(
 }
 
 /**
+ * Whether a failed embedding call is the kind that passes by itself: the query's own
+ * timeout, Bedrock throttling or a server error. Anything else (a role that can't be
+ * assumed, a model the role can't call) stays broken until someone fixes it.
+ */
+export function isTransientAwsError(err: unknown): boolean {
+    const e = err as { name?: string; $metadata?: { httpStatusCode?: number } } | null
+    const status = e?.$metadata?.httpStatusCode ?? 0
+    return ['TimeoutError', 'AbortError', 'ThrottlingException', 'ServiceUnavailableException', 'InternalServerException', 'ModelNotReadyException', 'ModelTimeoutException'].includes(e?.name ?? '')
+        || status === 429 || status >= 500
+}
+
+/**
  * Embeds one search query on Vercel, with the deployment's OIDC role, or null where
  * there is no role (local dev). Callers fall back to keyword search on null or on an error.
  */

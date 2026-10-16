@@ -119,10 +119,12 @@ export function createSupabaseRonnieData(
     userId: string,
     timeZone: string,
     cycle: CycleRow | null,
-    { now = () => new Date(), embedQuery = null, admin = null }: {
+    { now = () => new Date(), embedQuery = null, onSearchError = null, admin = null }: {
         now?: () => Date
         /** Turns a search query into a vector (lib/embeddings.ts); null disables vector search */
         embedQuery?: ((text: string) => Promise<number[]>) | null
+        /** Told when vector search fails and keywords stand in, so it reaches app_errors (context.ts) */
+        onSearchError?: ((err: unknown) => void) | null
         /**
          * The service-role client (lib/supabase/admin.ts) for what users can't write themselves:
          * memory notes and proposals. Every query names userId. Null: no memory (no notes, saving
@@ -208,7 +210,8 @@ export function createSupabaseRonnieData(
                 if (error) throw error
                 return (data ?? []).map((row) => row.id)
             } catch (err) {
-                console.warn('Ronnie vector search unavailable, using keywords:', err)
+                if (onSearchError) onSearchError(err)
+                else console.warn('Ronnie vector search unavailable, using keywords:', err)
                 return null
             }
         },
