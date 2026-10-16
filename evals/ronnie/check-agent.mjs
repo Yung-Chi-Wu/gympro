@@ -514,6 +514,17 @@ const op = (q, name) => q.ops.find(([k]) => k === name)?.[1]
     check(/Could not read the sets: timeout/.test(message ?? ''), `a failed read throws instead of reading as no sets (${message})`)
 }
 
+// A vector search that fails leaves the ranking to keywords, and is handed on to be reported
+{
+    const seen = []
+    const data = createSupabaseRonnieData(fakeSupabase(() => ({ data: [], error: null })), 'u1', FIXTURE_TIME_ZONE, null, {
+        embedQuery: async () => { throw Object.assign(new Error('not authorized to perform sts:AssumeRoleWithWebIdentity'), { name: 'AccessDenied' }) },
+        onSearchError: (err) => seen.push(err.name),
+    })
+    const ids = await data.nearestExercises('bulgarian split squat')
+    check(ids === null && seen.join() === 'AccessDenied', `a failed vector search gives no ranking and is reported (${seen.join() || 'not reported'})`)
+}
+
 // Today's workout is created with the routine's exercises once each, or not at all
 {
     const cycle = { id: 'c1', cycle_length: 3, start_date: '2026-10-01' }
