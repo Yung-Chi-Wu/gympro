@@ -513,8 +513,6 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
                 p.injuries.length ? `sparing the ${p.injuries.map((j) => j.replace('_', ' ')).join(', ')}` : '',
                 p.avoid.length ? `without ${p.avoid.map((id) => nameOf(byId.get(id))).join(', ')}` : '',
             ].filter(Boolean)
-            // The joints the library doesn't rate (Ronnie's notes keep them): said, since nothing steers around them
-            const unrated = injured.filter((j) => !isOneOf(JOINTS, j))
             const keptDisliked = include.filter((id) => disliked.includes(id))
             const training = routines.flatMap((r) => r.day_indices).sort((a, b) => a - b)
             const rest = Array.from({ length: COACH_CYCLE_DAYS }, (_, i) => i + 1).filter((d) => !training.includes(d))
@@ -525,7 +523,6 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
                 `Training days ${training.join(', ')}; rest days ${rest.length ? rest.join(', ') : 'none'}. Day 1 is the day the user picks as the cycle's first when saving, not a weekday.`,
                 ...includeLeftOut(p, plannerLibrary).map((x) => `Not in the plan: ${byId.has(x.id) ? nameOf(byId.get(x.id)) : `the ID ${x.id}`} (${why[x.reason]})`),
                 ...(keptDisliked.length ? [`Kept as asked, though your notes say they don't want it: ${keptDisliked.map((id) => nameOf(byId.get(id))).join(', ')}. Ask once whether to change that note.`] : []),
-                ...(unrated.length ? [`Your notes have an active ${unrated.join(', ')} injury, and the library rates exercise load only on the shoulder, elbow, lower back and knee, so the plan doesn't steer around it. Tell the user, and offer to swap any exercise that bothers it.`] : []),
                 "Nothing is saved yet: the user opens the card, can edit it, and saving there replaces all their routines and their training cycle. The app says so under your reply, so don't say it, and don't open with ✅: nothing is done yet. Say how the week is laid out and what you fitted to them, not every exercise (the card lists them), and what you assumed.",
             ].join('\n')
         },

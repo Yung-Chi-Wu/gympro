@@ -28,11 +28,10 @@ export const MEMORY_STATES: Record<MemoryKind, readonly string[]> = {
 }
 
 /**
- * Where an injury can be: the joints the library rates each exercise's load on (JOINTS), which
- * search and recommendations can steer around, and a few it doesn't rate, kept as notes only.
- * The migration's check lists the same.
+ * Where an injury can be: the joints the library rates each exercise's load on (JOINTS), so
+ * search, recommendations and plans can steer around every one. The migration's check lists the same.
  */
-export const INJURY_SITES = [...JOINTS, 'wrist', 'hip', 'ankle', 'neck'] as const
+export const INJURY_SITES = JOINTS
 
 /** A note's text is a few words; longer is cut */
 export const MAX_NOTE_CHARS = 200

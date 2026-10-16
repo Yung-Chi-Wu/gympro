@@ -7,7 +7,7 @@ import {
     parseGenerateRequest, parseSaveRequest, REPS, SETS, trainingDaysFrom,
 } from '../lib/coach-g'
 import {
-    buildPlan, includeLeftOut, MAX_INCLUDE, MAX_SETS_PER_EXERCISE, mergeReading, ON_REQUEST_NAMES, PLANNER_EXERCISE_NAMES, readAnswers, readingRequest, repsFor,
+    buildPlan, includeLeftOut, INJURIES, MAX_INCLUDE, MAX_SETS_PER_EXERCISE, mergeReading, ON_REQUEST_NAMES, PLANNER_EXERCISE_NAMES, readAnswers, readingRequest, repsFor,
     WEEKLY_SETS_FLOOR, weeklySets, type Answers, type CoachPreferences, type PlannerExercise,
 } from '../lib/coach-g-planner'
 import { hasTarget } from '../lib/report/volume'
@@ -132,9 +132,17 @@ const answers = (over: Partial<Answers> = {}): Answers => ({ days: '4天', durat
         ['notes', { notes: '不想做深蹲' }],
         ['days typed in words', { days: 'three' }],
         ['equipment typed', { equipment: ['只有彈力帶'] }],
-        ['an injury typed', { injuries: 'my left hip' }],
+        ['an injury typed', { injuries: 'my left big toe' }],
     ] as [string, Partial<Answers>][]) check(`${name} need the model`, readAnswers(answers(over)).needsModel)
     check('a skipped note needs no model', !readAnswers(answers({ notes: '跳過' })).needsModel && !readAnswers(answers({ notes: 'Skip' })).needsModel)
+    // The chat's step 6 options (app/api/ai/routine-chat), each read as its one joint
+    const options: [string, string, CoachPreferences['injuries'][number]][] = [
+        ['脖子', 'Neck', 'neck'], ['肩膀', 'Shoulder', 'shoulder'], ['手肘', 'Elbow', 'elbow'], ['手腕', 'Wrist', 'wrist'],
+        ['下背', 'Lower Back', 'lower_back'], ['髖部', 'Hip', 'hip'], ['膝蓋', 'Knee', 'knee'], ['腳踝', 'Ankle', 'ankle'],
+    ]
+    const misread = options.flatMap(([zh, en, joint]) => [zh, en].map((o) => [o, readAnswers(answers({ injuries: o }))] as const)
+        .filter(([, r]) => r.needsModel || r.preferences.injuries.join() !== joint).map(([o, r]) => `${o}: ${r.preferences.injuries.join() || 'none'}`))
+    check(`every injury option reads as its joint, without the model (${options.length})`, options.length === INJURIES.length && !misread.length, misread.join(', '))
 }
 
 const prefs = (over: Partial<CoachPreferences> = {}): CoachPreferences => ({ ...readAnswers(answers()).preferences, ...over })
@@ -192,6 +200,18 @@ check('3 days a week rest between training days', plan(prefs({ days: 3 })).flatM
 {
     const knee = plan(prefs({ injuries: ['knee'] })).flatMap((x) => x.exercises.map((e) => byId.get(e.exercise_id)!))
     check('a knee injury: no exercise loads the knee heavily', knee.every((e) => e.joint_load?.knee !== 'high'), knee.filter((e) => e.joint_load?.knee === 'high').map((e) => e.name).join())
+    // Every joint, with any equipment and days: nothing heavy on it, and still a day of training. Two
+    // exercises at least, not three: with only bodyweight, the diamond push-up is the one triceps
+    // exercise, and a wrist injury leaves push day the push-up and the crunch
+    const heavy: string[] = []
+    for (const joint of INJURIES) for (const equipment of [['bodyweight'], ['dumbbell'], ['machine', 'cable'], ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight']] as CoachPreferences['equipment'][]) {
+        for (const days of [2, 3, 4, 5, 6]) {
+            const r = plan(prefs({ injuries: [joint], equipment, days }))
+            const bad = r.flatMap((x) => x.exercises).filter((e) => byId.get(e.exercise_id)?.joint_load?.[joint] === 'high')
+            if (bad.length || r.length === 0 || r.some((x) => x.exercises.length < 2)) heavy.push(`${joint} ${equipment} ${days}d: ${bad.map((e) => e.exercise_name).join() || 'a short day'}`)
+        }
+    }
+    check(`each of the ${INJURIES.length} joints, injured: no exercise loads it heavily, and every day keeps at least 2 exercises`, !heavy.length, heavy.slice(0, 5).join('; '))
     const squat = byName.get('Barbell Back Squat')!.id
     const avoided = plan(prefs({ avoid: [squat] })).flatMap((x) => x.exercises.map((e) => e.exercise_id))
     check('an avoided exercise is left out', !avoided.includes(squat) && avoided.length > 0)

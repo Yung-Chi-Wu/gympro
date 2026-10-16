@@ -4,19 +4,19 @@
 // so a plan comes back in a moment, and the same answers always give the same plan.
 // The offline check is scripts/check-coach-g.ts.
 import { COACH_CYCLE_DAYS, trainingDaysFrom, type PlannedRoutine } from './coach-g'
+import { JOINTS } from './exercise-attributes'
 import { hasTarget, setWeights, VOLUME_UNIT_IDS, type VolumeUnit } from './report/volume'
 
 export const EQUIPMENT = ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight'] as const
 export const GOALS = ['muscle', 'strength', 'fat_loss', 'fitness'] as const
 export const LEVELS = ['beginner', 'intermediate', 'advanced'] as const
-/** The joints the library rates exercises on, and the wrist, which it doesn't (so it can't be avoided by load) */
-export const INJURIES = ['shoulder', 'elbow', 'lower_back', 'knee', 'wrist'] as const
+/** The joints the library rates every exercise's load on, so a plan can spare any of them */
+export const INJURIES = JOINTS
 export const SESSION_MINUTES = [30, 45, 60, 90] as const
 export type Equipment = (typeof EQUIPMENT)[number]
 export type Goal = (typeof GOALS)[number]
 export type Level = (typeof LEVELS)[number]
 export type Injury = (typeof INJURIES)[number]
-type RatedJoint = Exclude<Injury, 'wrist'>
 
 export interface CoachPreferences {
     /** Training days a week, 1 to 7 */
@@ -42,7 +42,7 @@ export interface PlannerExercise {
     equipment: string | null
     primary_muscles: string[]
     secondary_muscles: string[]
-    joint_load: Partial<Record<RatedJoint, 'low' | 'medium' | 'high'>> | null
+    joint_load: Partial<Record<Injury, 'low' | 'medium' | 'high'>> | null
     stability_demand: string | null
 }
 
@@ -74,6 +74,9 @@ const INJURY_WORDS: [Injury, RegExp][] = [
     ['lower_back', /lower back|back|下背|腰/i],
     ['knee', /knee|膝/i],
     ['wrist', /wrist|手腕|腕/i],
+    ['hip', /\bhips?\b|髖/i],
+    ['ankle', /ankle|腳踝|踝/i],
+    ['neck', /neck|脖子|頸/i],
 ]
 const SKIP = /^(skip|跳過|none|no|無|沒有)$/i
 
@@ -270,7 +273,6 @@ export function repsFor(goals: Goal[], compound: boolean, loadable = true): numb
 
 const LOAD = { low: 0, medium: 1, high: 2 } as const
 const STABILITY: Record<string, number> = { low: 0, medium: 1, high: 2 }
-const injuredJoints = (p: CoachPreferences) => p.injuries.filter((i): i is RatedJoint => i !== 'wrist')
 /** The muscles an exercise trains as the report counts them, the ones it mainly trains first */
 const unitsOf = (e: PlannerExercise) => setWeights(e.primary_muscles, e.secondary_muscles, e.muscle_group).sort((a, b) => b[1] - a[1])
 
@@ -281,7 +283,7 @@ export type LeftOutReason = 'not_in_library' | 'avoided' | 'injured_joint' | 'no
 function includeCheck(p: CoachPreferences, byId: Map<string, PlannerExercise>) {
     const kept: PlannerExercise[] = []
     const leftOut: { id: string; reason: LeftOutReason }[] = []
-    const joints = injuredJoints(p)
+    const joints = p.injuries
     for (const id of new Set(p.include)) {
         const e = byId.get(id)
         const reason: LeftOutReason | null = !e ? 'not_in_library'
@@ -322,7 +324,7 @@ const looksCompound = (e: PlannerExercise) => {
  * compound lifts.
  */
 function pick(slot: Slot, library: Map<string, PlannerExercise>, p: CoachPreferences, used: Set<string>): PlannerExercise | null {
-    const joints = injuredJoints(p)
+    const joints = p.injuries
     const allowed = new Set<string>([...p.equipment, 'bodyweight'])
     const loadOf = (e: PlannerExercise) => joints.reduce((sum, j) => sum + LOAD[e.joint_load?.[j] ?? 'low'], 0)
     const candidates = slot.names

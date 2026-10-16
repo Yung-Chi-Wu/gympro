@@ -48,7 +48,7 @@ const QUESTIONS = {
     {
       step: 6,
       question: '有沒有受傷或要避開的部位？',
-      options: ['肩膀', '膝蓋', '下背', '手腕'],
+      options: ['脖子', '肩膀', '手肘', '手腕', '下背', '髖部', '膝蓋', '腳踝'],
       multi_select: false,
       skippable: true,
     },
@@ -99,7 +99,7 @@ const QUESTIONS = {
     {
       step: 6,
       question: 'Any injuries or areas to avoid?',
-      options: ['Shoulder', 'Knee', 'Lower Back', 'Wrist'],
+      options: ['Neck', 'Shoulder', 'Elbow', 'Wrist', 'Lower Back', 'Hip', 'Knee', 'Ankle'],
       multi_select: false,
       skippable: true,
     },

@@ -268,7 +268,7 @@ const valid = (messages) => messages.every((m, i) => {
     const planned = executor.plans[0].routines.flatMap((r) => r.exercises.map((e) => EXERCISES.find((x) => x.id === e.exercise_id)))
     check(planned.every((e) => e.joint_load?.knee !== 'high') && /sparing the knee/.test(shown), `the knee in the notes is spared without being passed: ${shown.split('\n')[0]}`)
     check(!planned.some((e) => e.name === 'Leg Press') && /without 腿推/.test(shown), 'the disliked exercise in the notes is left out')
-    check(/active hip injury/.test(shown) && /doesn't steer around it/.test(shown), 'a hip injury, which the library does not rate, is said to be not steered around')
+    check(planned.every((e) => e.joint_load?.hip !== 'high') && /sparing the knee, hip/.test(shown), `the hip in the notes is spared as well: ${shown.split('\n')[0]}`)
     const kept = await executorFor(data).executeTool('plan_routines', { days: 3, minutes: 60, equipment: ['machine'], goals: ['muscle'], level: 'intermediate', include: [id('Leg Press').slice(0, 8)] })
     check(/Kept as asked/.test(kept) && /腿推 \d/.test(kept), `a disliked exercise asked for by its short ID is kept, and Ronnie asks about the note: ${kept.split('\n').find((l) => l.startsWith('Kept'))?.slice(0, 60)}`)
 }
