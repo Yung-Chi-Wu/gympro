@@ -81,6 +81,7 @@ function loadLibrary(): Exercise[] {
             secondary_muscles: a.secondary,
             joint_load: a.jointLoad as Record<string, string>,
             log_type: logTypeOf(a.logType),
+            stability_demand: a.stability,
         }
     })
 }

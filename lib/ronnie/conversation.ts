@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, Json } from '../types/database.types'
+import type { PlannedRoutine } from '../coach-g'
 import type { RoutineProposal } from './data'
 import { EVENT_PREFIX } from './events'
 
@@ -22,10 +23,21 @@ export interface RecommendationCard {
     replacesName?: string
 }
 
+/**
+ * A week Coach G's planner built for Ronnie (plan_routines). Its button opens Coach G's editor
+ * with these routines; saving there replaces the user's routines and cycle (save-routine).
+ */
+export interface PlanCard {
+    id: string
+    routines: PlannedRoutine[]
+    cycleLength: number
+}
+
 export type DisplayItem =
     | { kind: 'user'; text: string }
-    | { kind: 'assistant'; text: string; proposals?: ProposalCard[]; recommendations?: RecommendationCard[] }
-    | { kind: 'event'; text: string }
+    | { kind: 'assistant'; text: string; proposals?: ProposalCard[]; recommendations?: RecommendationCard[]; plans?: PlanCard[] }
+    /** planId: the plan card this event is about, so the card shows it saved */
+    | { kind: 'event'; text: string; planId?: string }
 
 export interface Conversation {
     messages: Anthropic.MessageParam[]

@@ -32,6 +32,9 @@ export interface LibraryExercise {
     joint_load: Record<string, string> | null
     /** How its sets are logged (lib/set-log.ts): a treadmill set is minutes and speed, not reps x weight */
     log_type: LogType
+    /** For Coach G's planner (plan_routines): what it needs, and how much balance it takes */
+    equipment: string | null
+    stability_demand: string | null
 }
 
 /** A logged set, every column of it, with the workout and exercise it belongs to */
@@ -188,7 +191,7 @@ export function createSupabaseRonnieData(
 
         async listExercises() {
             // RLS already limits custom exercises to the user who created them
-            const { data } = await supabase.from('exercises').select('id, name, name_zh_tw, muscle_group, primary_muscles, secondary_muscles, joint_load, log_type')
+            const { data } = await supabase.from('exercises').select('id, name, name_zh_tw, muscle_group, primary_muscles, secondary_muscles, joint_load, log_type, equipment, stability_demand')
             return (data ?? []).map((e) => ({ ...e, joint_load: e.joint_load as Record<string, string> | null, log_type: logTypeOf(e.log_type) }))
         },
 
