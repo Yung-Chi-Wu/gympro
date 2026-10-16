@@ -273,11 +273,12 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                 body: JSON.stringify({ planId: card.id, language }),
             })
             const data = await res.json().catch(() => null)
-            if (!res.ok) throw new Error(`Plan event failed: ${res.status}`)
+            if (!res.ok) throw responseError(`Plan event failed: ${res.status}`, res.status, data)
             if (data?.text) setItems((prev) => [...prev, { kind: 'event', text: data.text, planId: card.id }])
         } catch (err) {
             // The routines are saved; only Ronnie's note of it is missing
             console.error(err)
+            reportClientError('client/ronnie/plan-saved', err)
         }
     }
 

@@ -130,6 +130,16 @@ const badSources = clientSources.filter(({ source }) => !/^'[^']*'$/.test(source
 check(`every component reports with a written-out client/ source the route takes (${clientSources.length} calls)`,
     clientSources.length > 0 && !badSources.length, badSources.map((b) => `${b.at}: ${b.source}`).join(', '))
 
+// And a failure the browser logs is reported too: reportClientError beside each console.error
+const browserFiles = [...files(join(root, 'components')),
+    ...['app', 'lib'].flatMap((d) => files(join(root, d))).filter((p) => /^['"]use client['"]/m.test(readFileSync(p, 'utf8')))]
+const logOnly = browserFiles.flatMap((p) => {
+    const lines = readFileSync(p, 'utf8').split('\n')
+    return lines.flatMap((line, i) => /console\.error\(/.test(line) && !lines.slice(Math.max(0, i - 3), i + 4).some((l) => l.includes('reportClientError('))
+        ? [`${relative(root, p)}:${i + 1}`] : [])
+})
+check('every console.error in the browser is also sent with reportClientError', !logOnly.length, logOnly.join(', '))
+
 // ---------- What a page sends ----------
 {
     const posted: { url: string; init: RequestInit }[] = []
