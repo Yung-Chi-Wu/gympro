@@ -155,7 +155,7 @@ const valid = (messages) => messages.every((m, i) => {
     const t = await turn(client, data, { executor })
     check(t.message.startsWith('一週五天') && t.message.trim().endsWith('才會取代你目前的課表和訓練循環。'), `the reply keeps the model's words and ends with the app's line on saving: ${t.message.replace(/\n/g, ' / ')}`)
     const shown = t.toolCalls[0].result
-    check(/Training days 1, 2, 3, 5, 6; rest days 4, 7\./.test(shown) && /don't open with ✅/.test(shown), `the tool result names the rest days: ${shown.split('\n').find((l) => l.startsWith('Training days'))}`)
+    check(/Training days 1, 2, 3, 5, 6; rest days 4, 7; in a row: 3 training, 1 rest, 2 training, 1 rest\./.test(shown) && /don't open with ✅/.test(shown), `the tool result names the rest days: ${shown.split('\n').find((l) => l.startsWith('Training days'))}`)
 }
 
 // A plan card shown, then the next model call fails: the turn still ends with the card
@@ -194,6 +194,10 @@ const valid = (messages) => messages.every((m, i) => {
     const before = writes.length
     const result = await executor.executeTool('add_exercise_today', { exercise_id: planned.id })
     check(/already in today's workout; nothing added/.test(result) && writes.length === before, `adding a planned exercise again is refused without a write: ${result}`)
+    // What's done and what's still to do come apart: the bench press has sets, the incline press none
+    const [done, todo] = today.split(/Not done yet, no sets logged \(still to come today: don't say they're done or already trained\):/)
+    check(/^Done today:\n.*槓鈴臥推: 8×82\.5kg/.test(done) && !/上斜啞鈴臥推/.test(done) && /上斜啞鈴臥推/.test(todo ?? '') && !/槓鈴臥推/.test(todo ?? ''),
+        `today lists the exercises done apart from those not done yet: ${today.replace(/\n/g, ' / ')}`)
 }
 
 // A muscle written with a space or capitals still filters

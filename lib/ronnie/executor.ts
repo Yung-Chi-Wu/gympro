@@ -304,9 +304,17 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             const workout = await data.getLatestWorkoutBetween(range.start, range.end)
             if (workout) {
                 const [sets, types] = await Promise.all([data.getSets([workout.id]), logTypes()])
-                const lines = await Promise.all((await workoutExercises(workout.workout_planned_exercises ?? [], sets)).map((pe) =>
-                    listLine(pe.exercise_id, `${nameOf(pe.exercises)}${pe.unplanned ? unplannedNote : ''}`, setsText(types, sets.filter((s) => s.exercise_id === pe.exercise_id)) || 'no sets yet')))
-                return lines.join('\n') || 'Nothing planned today'
+                const rows = await Promise.all((await workoutExercises(workout.workout_planned_exercises ?? [], sets)).map(async (pe) => {
+                    const done = setsText(types, sets.filter((s) => s.exercise_id === pe.exercise_id))
+                    return { done: !!done, line: await listLine(pe.exercise_id, `${nameOf(pe.exercises)}${pe.unplanned ? unplannedNote : ''}`, done) }
+                }))
+                if (!rows.length) return 'Nothing planned today'
+                // Apart, each in today's order: in one list a reply took an exercise still to do as done
+                const group = (title: string, lines: string[], none: string) => (lines.length ? [`${title}:`, ...lines] : [`${title}: ${none}`])
+                return [
+                    ...group('Done today', rows.filter((r) => r.done).map((r) => r.line), 'nothing yet'),
+                    ...group("Not done yet, no sets logged (still to come today: don't say they're done or already trained)", rows.filter((r) => !r.done).map((r) => r.line), 'none'),
+                ].join('\n')
             }
             const routineId = await data.getTodayRoutineId()
             const plan = routineId ? await data.getRoutineExercises(routineId) : []
@@ -516,11 +524,18 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             const keptDisliked = include.filter((id) => disliked.includes(id))
             const training = routines.flatMap((r) => r.day_indices).sort((a, b) => a - b)
             const rest = Array.from({ length: COACH_CYCLE_DAYS }, (_, i) => i + 1).filter((d) => !training.includes(d))
+            // And counted in a row, as a reply puts it: one read rest days 6 and 7 as "three off"
+            const inARow: { training: boolean; days: number }[] = []
+            for (let d = 1; d <= COACH_CYCLE_DAYS; d++) {
+                const last = inARow[inARow.length - 1]
+                if (last?.training === training.includes(d)) last.days++
+                else inARow.push({ training: training.includes(d), days: 1 })
+            }
             return [
                 `${replaced ? 'Replaced the earlier card with' : 'Showing'} Coach G's plan as a card: ${p.days} days a week, ${p.minutes} min a session, ${p.goals.join(' and ').replace(/_/g, ' ')}, ${p.level}${spared.length ? `, ${spared.join(', ')}` : ''}.`,
                 ...routines.map((r) => `${routineName(r)} (day ${r.day_indices.join(', ')} of the week): ${r.exercises.map((x) => `${exerciseName(x)} ${x.target_sets}x${x.target_reps}`).join(', ')}`),
                 // Said outright: worked out from the routines' days, a reply put the rest days on the wrong ones
-                `Training days ${training.join(', ')}; rest days ${rest.length ? rest.join(', ') : 'none'}. Day 1 is the day the user picks as the cycle's first when saving, not a weekday.`,
+                `Training days ${training.join(', ')}; rest days ${rest.length ? rest.join(', ') : 'none'}; in a row: ${inARow.map((r) => `${r.days} ${r.training ? 'training' : 'rest'}`).join(', ')}. Day 1 is the day the user picks as the cycle's first when saving, not a weekday.`,
                 ...includeLeftOut(p, plannerLibrary).map((x) => `Not in the plan: ${byId.has(x.id) ? nameOf(byId.get(x.id)) : `the ID ${x.id}`} (${why[x.reason]})`),
                 ...(keptDisliked.length ? [`Kept as asked, though your notes say they don't want it: ${keptDisliked.map((id) => nameOf(byId.get(id))).join(', ')}. Ask once whether to change that note.`] : []),
                 "Nothing is saved yet: the user opens the card, can edit it, and saving there replaces all their routines and their training cycle. The app says so under your reply, so don't say it, and don't open with ✅: nothing is done yet. Say how the week is laid out and what you fitted to them, not every exercise (the card lists them), and what you assumed.",
