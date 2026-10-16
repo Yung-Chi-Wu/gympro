@@ -707,10 +707,10 @@
       ],
       "writes": [],
       "memory_unchanged": true,
-      "judge": "Ronnie's notes already say everything a plan needs: three days a week, 45 minutes, only adjustable dumbbells and bands at home, about a year of training, and the goal of building muscle is in the profile. Ronnie plans right away with plan_routines: days 3, minutes 45, equipment dumbbell (bodyweight may be added) and no barbell, machine or cable, level beginner or intermediate, asking nothing its notes answer. The tool result says the plan can't steer around the hip, which the library doesn't rate, and the reply tells the user so and offers to swap anything that bothers it. Fail if it asks about days, time or equipment, plans with equipment they don't have, leaves out the hip, or claims the routines were changed."
+      "judge": "Ronnie's notes already say everything a plan needs: three days a week, 45 minutes, only adjustable dumbbells and bands at home, about a year of training, and the goal of building muscle is in the profile. Ronnie plans right away with plan_routines: days 3, minutes 45, equipment dumbbell (bodyweight may be added) and no barbell, machine or cable, level beginner or intermediate, asking nothing its notes answer. The hip injury in the notes is spared by the planner (the tool result says so), and the reply tells the user the plan takes the right hip into account; it may add to ease off or swap an exercise if the hip still hurts. Fail if it asks about days, time or equipment, plans with equipment they don't have, leaves out the hip, says the plan can't account for the hip, or claims the routines were changed."
     },
     "meta": {
-      "why": "記憶裡有器材、時間、經驗：直接排，不再問；髖關節引擎避不開，要跟使用者說，並願意幫忙換動作。"
+      "why": "記憶裡有器材、時間、經驗：直接排，不再問；筆記裡的右髖傷由排課程式避開，回覆要說有顧到右髖。"
     }
   }
 ]

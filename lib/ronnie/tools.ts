@@ -41,7 +41,7 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
                     type: 'string',
                     description: 'Only exercises that mainly train this: a group (chest, back, shoulders, biceps, triceps, legs, glutes, core) or a muscle (upper_chest, lower_chest, front_delts, side_delts, rear_delts, lats, upper_back, traps, lower_back, forearms, quads, hamstrings, adductors, calves, abductors, abs, obliques)',
                 },
-                low_load_on: { type: 'string', enum: ['shoulder', 'elbow', 'lower_back', 'knee'], description: 'Only exercises with low load on this joint, for when it hurts' },
+                low_load_on: { type: 'string', enum: [...JOINTS], description: 'Only exercises with low load on this joint, for when it hurts' },
             },
             required: [],
         },
