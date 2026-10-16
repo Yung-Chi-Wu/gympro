@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { REPS, SETS } from '@/lib/coach-g'
+import { reportClientError, responseError } from '@/lib/report-client-error'
 
 interface GeneratedExercise {
     exercise_id: string
@@ -27,9 +28,11 @@ interface CoachGResultProps {
     language: string
     onBack: () => void
     onSaved: () => void
+    /** The header's back button: Redesign in Coach G's chat; Close from Ronnie's plan card */
+    backLabel?: string
 }
 
-export function CoachGResult({ routines, cycleLength, language, onBack, onSaved }: CoachGResultProps) {
+export function CoachGResult({ routines, cycleLength, language, onBack, onSaved, backLabel }: CoachGResultProps) {
     const zh = language === 'zh-TW'
     const router = useRouter()
     const [editableRoutines, setEditableRoutines] = useState<GeneratedRoutine[]>(routines)
@@ -99,13 +102,15 @@ export function CoachGResult({ routines, cycleLength, language, onBack, onSaved 
 
             const data = await res.json()
             if (!data.success) {
+                reportClientError('client/coach-g/save', responseError(`Save request failed: ${res.status}`, res.status, data))
                 setError(data.error === 'sets_reps' ? setsRepsError : saveError)
                 return
             }
 
             router.refresh()
             onSaved()
-        } catch {
+        } catch (err) {
+            reportClientError('client/coach-g/save', err)
             setError(saveError)
         } finally {
             setIsSaving(false)
@@ -126,7 +131,7 @@ export function CoachGResult({ routines, cycleLength, language, onBack, onSaved 
                 </div>
                 <button type="button" onClick={onBack}
                     className="text-sm text-ink/40 hover:text-ink transition-colors">
-                    {zh ? '重新設計' : 'Redesign'}
+                    {backLabel ?? (zh ? '重新設計' : 'Redesign')}
                 </button>
             </div>
 

@@ -1,4 +1,8 @@
 import type Anthropic from '@anthropic-ai/sdk'
+import { COACH_CYCLE_DAYS } from '../coach-g'
+import { EQUIPMENT, GOALS, LEVELS, MAX_INCLUDE, SESSION_MINUTES } from '../coach-g-planner'
+import { JOINTS } from '../exercise-attributes'
+import { VOLUME_UNIT_IDS } from '../report/volume'
 import { INJURY_SITES, MEMORY_KINDS } from './memory'
 
 // Ronnie's tools. Today's workout is changed directly; routines only through a
@@ -37,7 +41,7 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
                     type: 'string',
                     description: 'Only exercises that mainly train this: a group (chest, back, shoulders, biceps, triceps, legs, glutes, core) or a muscle (upper_chest, lower_chest, front_delts, side_delts, rear_delts, lats, upper_back, traps, lower_back, forearms, quads, hamstrings, adductors, calves, abductors, abs, obliques)',
                 },
-                low_load_on: { type: 'string', enum: ['shoulder', 'elbow', 'lower_back', 'knee'], description: 'Only exercises with low load on this joint, for when it hurts' },
+                low_load_on: { type: 'string', enum: [...JOINTS], description: 'Only exercises with low load on this joint, for when it hurts' },
             },
             required: [],
         },
@@ -99,6 +103,25 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
                 target_reps: { type: 'integer', description: 'add only, default 10' },
             },
             required: ['change', 'exercise_id'],
+        },
+    },
+    {
+        name: 'plan_routines',
+        description: "Build a whole new week of routines with Coach G's planner and show it as a card. The planner picks the split from the days a week, each day's exercises from the library by equipment and level, and sets and reps from the goal and session length, steering around injured joints. Your notes' active injuries and the exercises they don't want are applied for you; liked exercises aren't, so pass the ones to keep as include. The card opens Coach G's editor, where the user can change sets and reps, drop exercises and pick today's day of the cycle; saving there replaces all their routines and their training cycle. This call saves nothing.",
+        input_schema: {
+            type: 'object',
+            properties: {
+                days: { type: 'integer', minimum: 1, maximum: COACH_CYCLE_DAYS, description: 'Training days a week' },
+                minutes: { type: 'integer', enum: [...SESSION_MINUTES], description: 'Session length: the nearest of these' },
+                equipment: { type: 'array', items: { type: 'string', enum: [...EQUIPMENT] }, description: 'What they can train with; bodyweight exercises are always allowed' },
+                goals: { type: 'array', items: { type: 'string', enum: [...GOALS] } },
+                level: { type: 'string', enum: [...LEVELS], description: 'Training experience' },
+                injuries: { type: 'array', items: { type: 'string', enum: [...JOINTS] }, description: 'Joints to spare besides the injuries in your notes' },
+                prioritize: { type: 'array', items: { type: 'string', enum: [...VOLUME_UNIT_IDS] }, description: 'Muscles they want to work more' },
+                avoid: { type: 'array', items: exerciseId('search_exercises'), description: "Exercises they don't want, besides those in your notes: IDs from search_exercises" },
+                include: { type: 'array', items: exerciseId('search_exercises or your notes'), maxItems: MAX_INCLUDE, description: `Exercises to keep in the plan, at most ${MAX_INCLUDE}: IDs from search_exercises or your notes` },
+            },
+            required: ['days', 'minutes', 'equipment', 'goals', 'level'],
         },
     },
     {

@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
 import { createClient } from '@/lib/supabase/client'
 import { setLanguageCookie } from '@/lib/set-language-cookie'
+import { reportClientError } from '@/lib/report-client-error'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
 import { closeSubPage, openSubPage } from '@/lib/sub-page'
@@ -125,7 +126,10 @@ export function ProfileSettingsForm({ userId, initial }: { userId: string; initi
 
         if (Object.keys(row).length > 2) {
             const { error } = await createClient().from('user_profiles').upsert(row, { onConflict: 'user_id' })
-            if (error) return t('saveFailed', { message: error.message })
+            if (error) {
+                reportClientError('client/settings/save-profile', error)
+                return t('saveFailed', { message: error.message })
+            }
         }
 
         const profileChanges = { ...changes }

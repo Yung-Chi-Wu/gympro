@@ -124,6 +124,11 @@ ${renames}
     if v_missing > 0 then
         raise exception '% built-in exercises have no primary muscle; the library changed since the data was written', v_missing;
     end if;
+    select count(*) into v_missing from exercises
+    where not coalesce(is_custom, false) and not coalesce(joint_load ?& array[${JOINTS.map(quote).join(', ')}], false);
+    if v_missing > 0 then
+        raise exception '% built-in exercises lack a joint''s load', v_missing;
+    end if;
 end
 $$;
 `

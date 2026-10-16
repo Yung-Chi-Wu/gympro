@@ -3,8 +3,9 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 // A failure the app server hit outside an AI call, as a row of app_errors (migration
 // 20261015120000): AI calls are traced in ai_traces, with their own alarms. The hourly scheduler
 // Lambda counts the past hour's errors into the gympro-app-errors alarm. Reported from routes and
-// actions with reportError (lib/report-error.ts), and from errors no code caught by
-// instrumentation.ts. Nothing here throws: a failure that can't be saved is logged instead.
+// actions with reportError (lib/report-error.ts), from errors no code caught by
+// instrumentation.ts, and from the browser through POST /api/errors (lib/report-client-error.ts),
+// with a client/ source. Nothing here throws: a failure that can't be saved is logged instead.
 
 export const MAX_ERROR_MESSAGE_CHARS = 1000
 export const MAX_SOURCE_CHARS = 100

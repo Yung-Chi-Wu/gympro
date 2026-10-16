@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { MuscleGroupExercisePicker } from './MuscleGroupExercisePicker'
 import { toFriendlyError } from '@/lib/friendly-error'
+import { reportClientError } from '@/lib/report-client-error'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
@@ -118,7 +119,10 @@ export function TodayWorkoutCard({
         const { error: saveError } = await supabase
             .from('exercise_log_units')
             .upsert({ user_id: userId, exercise_id: exerciseId, unit, updated_at: new Date().toISOString() }, { onConflict: 'user_id,exercise_id' })
-        if (saveError) setError(toFriendlyError(saveError, language))
+        if (saveError) {
+            reportClientError('client/today/exercise-unit', saveError)
+            setError(toFriendlyError(saveError, language))
+        }
     }
 
     async function handleDistanceUnit(next: DistanceUnit) {
@@ -154,8 +158,9 @@ export function TodayWorkoutCard({
             .select('id')
             .single()
 
+        // The user sees the friendly message; the report gets what failed, its cause
         if (workoutError || !workout) {
-            throw new Error(toFriendlyError(workoutError, language))
+            throw new Error(toFriendlyError(workoutError, language), { cause: workoutError })
         }
 
         let planned = exercises
@@ -171,7 +176,7 @@ export function TodayWorkoutCard({
                 .select('id, exercise_id')
 
             if (plannedError || !plannedRows) {
-                throw new Error(toFriendlyError(plannedError, language))
+                throw new Error(toFriendlyError(plannedError, language), { cause: plannedError })
             }
 
             const idByExercise = new Map(plannedRows.map((p) => [p.exercise_id, p.id]))
@@ -190,7 +195,7 @@ export function TodayWorkoutCard({
             .insert({ workout_id: wId, exercise_id: exercise.exerciseId, user_id: userId })
             .select('id')
             .single()
-        if (insertError || !data) throw new Error(toFriendlyError(insertError, language))
+        if (insertError || !data) throw new Error(toFriendlyError(insertError, language), { cause: insertError })
         return [...current, { ...exercise, plannedRowId: data.id, loggedSets: [] }]
     }
 
@@ -221,7 +226,7 @@ export function TodayWorkoutCard({
                 .single()
 
             if (insertError || !data) {
-                throw new Error(toFriendlyError(insertError, language))
+                throw new Error(toFriendlyError(insertError, language), { cause: insertError })
             }
 
             // On the list as it is now, so a set changed or deleted during the save stays that way;
@@ -239,6 +244,7 @@ export function TodayWorkoutCard({
             showToast('✓')
             return true
         } catch (err) {
+            reportClientError('client/today/save-set', err)
             setError(err instanceof Error ? err.message : 'Something went wrong.')
             return false
         }
@@ -258,6 +264,7 @@ export function TodayWorkoutCard({
         show(values)
         const { error: updateError } = await supabase.from('workout_sets').update(toSetRow(values)).eq('id', setId)
         if (updateError) {
+            reportClientError('client/today/update-set', updateError)
             if (before) show(before)
             setError(toFriendlyError(updateError, language))
         }
@@ -266,7 +273,11 @@ export function TodayWorkoutCard({
     async function handleDeleteSet(exerciseId: string, setId: string) {
         setError(null)
         const { error: deleteError } = await supabase.from('workout_sets').delete().eq('id', setId)
-        if (deleteError) { setError(toFriendlyError(deleteError, language)); return }
+        if (deleteError) {
+            reportClientError('client/today/delete-set', deleteError)
+            setError(toFriendlyError(deleteError, language))
+            return
+        }
         setExercises((prev) =>
             prev.map((ex) =>
                 ex.exerciseId !== exerciseId
@@ -286,9 +297,10 @@ export function TodayWorkoutCard({
                 .from('workout_planned_exercises')
                 .delete()
                 .eq('id', plannedRowId)
-            if (deleteError) throw new Error(toFriendlyError(deleteError, language))
+            if (deleteError) throw new Error(toFriendlyError(deleteError, language), { cause: deleteError })
             setExercises(current.filter((ex) => ex.exerciseId !== exerciseId))
         } catch (err) {
+            reportClientError('client/today/remove-exercise', err)
             setError(err instanceof Error ? err.message : 'Something went wrong.')
         }
     }
@@ -316,6 +328,7 @@ export function TodayWorkoutCard({
             setOpenState((s) => ({ ...s, open: s.open.includes(exercise.id) ? s.open : [...s.open, exercise.id] }))
             setShowAddPicker(false)
         } catch (err) {
+            reportClientError('client/today/add-exercise', err)
             setError(err instanceof Error ? err.message : 'Something went wrong.')
         }
     }

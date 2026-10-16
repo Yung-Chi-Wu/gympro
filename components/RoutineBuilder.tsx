@@ -11,6 +11,7 @@ import { CoachGEntry } from './CoachGEntry'
 import { Icon } from './Icon'
 import { MoreMenu } from './MoreMenu'
 import { toFriendlyError } from '@/lib/friendly-error'
+import { reportClientError } from '@/lib/report-client-error'
 import { closeSubPage, openSubPage } from '@/lib/sub-page'
 import { isSubmitEnter } from '@/lib/keyboard'
 import { MAX_ROUTINE_NAME_CHARS } from '@/lib/text-limits'
@@ -163,6 +164,7 @@ export function RoutineBuilder({
             .single()
 
         if (insertError || !data) {
+            reportClientError('client/routines/create', insertError)
             setError(toFriendlyError(insertError, language))
             return
         }
@@ -181,7 +183,11 @@ export function RoutineBuilder({
         await supabase.from('workouts').update({ routine_id: null }).eq('routine_id', routine.id)
 
         const { error: deleteError } = await supabase.from('routines').delete().eq('id', routine.id)
-        if (deleteError) { setError(toFriendlyError(deleteError, language)); return }
+        if (deleteError) {
+            reportClientError('client/routines/delete', deleteError)
+            setError(toFriendlyError(deleteError, language))
+            return
+        }
 
         setRoutines((prev) => prev.filter((r) => r.id !== routine.id))
         setDays((prev) => prev.map((d) => (d.routineId === routine.id ? { ...d, routineId: null } : d)))
@@ -204,7 +210,11 @@ export function RoutineBuilder({
         const { error: updateError } = await supabase
             .from('routines').update({ name: trimmedName }).eq('id', routineId)
 
-        if (updateError) { setError(toFriendlyError(updateError, language)); return }
+        if (updateError) {
+            reportClientError('client/routines/rename', updateError)
+            setError(toFriendlyError(updateError, language))
+            return
+        }
 
         updateRoutine(routineId, (r) => ({ ...r, name: trimmedName }))
     }
@@ -237,6 +247,7 @@ export function RoutineBuilder({
             .single()
 
         if (insertError || !data) {
+            reportClientError('client/routines/add-exercise', insertError)
             setError(toFriendlyError(insertError, language))
             return false
         }
@@ -263,7 +274,11 @@ export function RoutineBuilder({
             .from('routine_exercises')
             .update({ exercise_id: exercise.id })
             .eq('id', routineExerciseId)
-        if (updateError) { setError(toFriendlyError(updateError, language)); return }
+        if (updateError) {
+            reportClientError('client/routines/change-exercise', updateError)
+            setError(toFriendlyError(updateError, language))
+            return
+        }
         updateRoutine(routineId, (r) => ({
             ...r,
             exercises: r.exercises.map((ex) =>
@@ -276,7 +291,11 @@ export function RoutineBuilder({
         setError(null)
         const { error: deleteError } = await supabase
             .from('routine_exercises').delete().eq('id', routineExerciseId)
-        if (deleteError) { setError(toFriendlyError(deleteError, language)); return }
+        if (deleteError) {
+            reportClientError('client/routines/remove-exercise', deleteError)
+            setError(toFriendlyError(deleteError, language))
+            return
+        }
         updateRoutine(routineId, (r) => ({ ...r, exercises: r.exercises.filter((ex) => ex.id !== routineExerciseId) }))
     }
 
@@ -291,7 +310,11 @@ export function RoutineBuilder({
             .from('routine_exercises')
             .update({ target_sets: targetSets, target_reps: targetReps })
             .eq('id', routineExerciseId)
-        if (updateError) { setError(toFriendlyError(updateError, language)); return }
+        if (updateError) {
+            reportClientError('client/routines/update-target', updateError)
+            setError(toFriendlyError(updateError, language))
+            return
+        }
         updateRoutine(routineId, (r) => ({
             ...r,
             exercises: r.exercises.map((ex) =>
@@ -317,6 +340,7 @@ export function RoutineBuilder({
             .map((ex) => supabase.from('routine_exercises').update({ order_index: ex.order_index }).eq('id', ex.id)))
         const failed = results.find((r) => r.error)
         if (failed) {
+            reportClientError('client/routines/reorder', failed.error)
             setError(toFriendlyError(failed.error, language))
             await loadRoutines()
         }
