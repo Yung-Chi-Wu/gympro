@@ -313,7 +313,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
                 const group = (title: string, lines: string[], none: string) => (lines.length ? [`${title}:`, ...lines] : [`${title}: ${none}`])
                 return [
                     ...group('Done today', rows.filter((r) => r.done).map((r) => r.line), 'nothing yet'),
-                    ...group('Not done yet, no sets logged', rows.filter((r) => !r.done).map((r) => r.line), 'none'),
+                    ...group("Not done yet, no sets logged (still to come today: don't say they're done or already trained)", rows.filter((r) => !r.done).map((r) => r.line), 'none'),
                 ].join('\n')
             }
             const routineId = await data.getTodayRoutineId()

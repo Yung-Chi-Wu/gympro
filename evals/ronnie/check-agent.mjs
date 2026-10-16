@@ -195,7 +195,7 @@ const valid = (messages) => messages.every((m, i) => {
     const result = await executor.executeTool('add_exercise_today', { exercise_id: planned.id })
     check(/already in today's workout; nothing added/.test(result) && writes.length === before, `adding a planned exercise again is refused without a write: ${result}`)
     // What's done and what's still to do come apart: the bench press has sets, the incline press none
-    const [done, todo] = today.split('Not done yet, no sets logged:')
+    const [done, todo] = today.split(/Not done yet, no sets logged \(still to come today: don't say they're done or already trained\):/)
     check(/^Done today:\n.*槓鈴臥推: 8×82\.5kg/.test(done) && !/上斜啞鈴臥推/.test(done) && /上斜啞鈴臥推/.test(todo ?? '') && !/槓鈴臥推/.test(todo ?? ''),
         `today lists the exercises done apart from those not done yet: ${today.replace(/\n/g, ' / ')}`)
 }
