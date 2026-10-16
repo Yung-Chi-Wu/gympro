@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import attributes from '../../supabase/data/exercise-attributes.json'
+import plannerEquipment from '../../scripts/coach-g-equipment.json'
 import type { PlannedExercise, RonnieData, RoutineProposal } from '../../lib/ronnie/data'
 import { logTypeOf, setValuesOf } from '../../lib/set-log'
 import type { ResolvedRow } from '../../lib/ronnie/events'
@@ -72,7 +73,12 @@ const attributesOf = (name: string) => {
     const real = (LIBRARY_NAME[name] ?? name).toLowerCase()
     const a = attributes.find((x) => x.name.toLowerCase() === real)
     if (!a) throw new Error(`fixture exercise ${name} has no counterpart in exercise-attributes.json`)
-    return { primary_muscles: a.primary, secondary_muscles: a.secondary, joint_load: a.jointLoad as Record<string, string>, log_type: logTypeOf(a.logType) }
+    // Equipment lives only in the database; Coach G's offline check keeps the planner's (null: bodyweight)
+    const equipment = Object.entries(plannerEquipment as Record<string, string>).find(([n]) => n.toLowerCase() === real)?.[1] ?? null
+    return {
+        primary_muscles: a.primary, secondary_muscles: a.secondary, joint_load: a.jointLoad as Record<string, string>, log_type: logTypeOf(a.logType),
+        equipment, stability_demand: a.stability,
+    }
 }
 
 export const EXERCISES = EXERCISE_LIST.map(([name, name_zh_tw, muscle_group]) => ({

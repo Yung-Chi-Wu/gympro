@@ -56,7 +56,7 @@ export async function POST(request: Request) {
                 messages: [{ role: 'user', content: ask.user }],
             })
             const reading = response.content.find((b) => b.type === 'tool_use')?.input
-            preferences = mergeReading(byWords, reading, ask.ids)
+            preferences = mergeReading(byWords, reading, ask.ids, ask.names)
             traceAfterResponse({
                 userId: user.id, feature: 'coach_routine', model: READER_MODEL, servedModel: response.model, status: 'ok',
                 latencyMs: Date.now() - started, usage: [response.usage], input: traceInput, output: { reading, preferences },

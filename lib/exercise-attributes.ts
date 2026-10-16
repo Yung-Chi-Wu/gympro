@@ -34,7 +34,7 @@ export type Muscle = keyof typeof MUSCLES
 export const MUSCLE_IDS = Object.keys(MUSCLES) as Muscle[]
 
 /** Joints an exercise loads, each rated low, medium or high */
-export const JOINTS = ['shoulder', 'elbow', 'lower_back', 'knee'] as const
+export const JOINTS = ['shoulder', 'elbow', 'lower_back', 'knee', 'wrist', 'hip', 'ankle', 'neck'] as const
 export type Joint = (typeof JOINTS)[number]
 export const LEVELS = ['low', 'medium', 'high'] as const
 export type Level = (typeof LEVELS)[number]
@@ -44,6 +44,10 @@ export const JOINT_LABELS: Record<Joint, { zh: string; en: string }> = {
     elbow: { zh: '手肘', en: 'Elbow' },
     lower_back: { zh: '下背', en: 'Lower back' },
     knee: { zh: '膝', en: 'Knee' },
+    wrist: { zh: '手腕', en: 'Wrist' },
+    hip: { zh: '髖', en: 'Hip' },
+    ankle: { zh: '腳踝', en: 'Ankle' },
+    neck: { zh: '頸', en: 'Neck' },
 }
 
 /** How a set of the exercise is logged, shown and summarised */

@@ -1,5 +1,12 @@
-import type { RecommendationCard } from './conversation'
+import type { PlanCard, RecommendationCard } from './conversation'
 import type { LibraryExercise, PlannedExercise, RonnieData, RoutineProposal, WorkoutSet } from './data'
+import { COACH_CYCLE_DAYS, type PlannedRoutine } from '../coach-g'
+import {
+    buildPlan, EQUIPMENT, GOALS, includeLeftOut, LEVELS, MAX_INCLUDE, SESSION_MINUTES,
+    type CoachPreferences, type LeftOutReason, type PlannerExercise,
+} from '../coach-g-planner'
+import { JOINTS } from '../exercise-attributes'
+import { VOLUME_UNIT_IDS } from '../report/volume'
 import { describeProposal } from './events'
 import { gatedSearch, latinTokens, searchLibrary } from './search'
 import {
@@ -37,6 +44,8 @@ export interface RonnieExecutor {
     readonly proposals: (RoutineProposal & { id: string })[]
     /** Exercises recommended this turn, shown as cards with an Add to today or a Swap button. */
     readonly recommendations: RecommendationCard[]
+    /** The week Coach G's planner built this turn (one at most), shown as a card that opens Coach G's editor. */
+    readonly plans: PlanCard[]
     /** What this turn changed or proposed, in the user's language: the reply when the model's can't be used. */
     readonly confirmations: string[]
     /** What was asked for but not proposed, in the user's language: said alongside the confirmations. */
@@ -52,12 +61,11 @@ export interface RonnieExecutor {
 // Results show the first 8 characters of an exercise ID (the model mis-copied full UUIDs);
 // inputs are resolved back. A prefix two exercises share is shown in full.
 const SHORT_ID_LENGTH = 8
-// More removals than this in one turn is a redesign, not a tweak
-export const MAX_REMOVALS_PER_TURN = 3
 const UNKNOWN_ID = 'Unknown exercise ID - look it up with search_exercises first'
 
 /** A filter value as the tools take it: "upper chest" and "Lower-Back" are upper_chest and lower_back. */
 const vocabulary = (value: string | undefined) => value?.trim().toLowerCase().replace(/[\s-]+/g, '_') || undefined
+const isOneOf = <T extends string>(choices: readonly T[], v: unknown): v is T => (choices as readonly unknown[]).includes(v)
 
 /**
  * The routine a name means: the exact name (any case), else the only one containing it. Two
@@ -122,9 +130,9 @@ const mondayOf = (iso: string) => shiftDate(iso, -((new Date(`${iso}T00:00:00Z`)
 export function createRonnieExecutor({ data, language, timeZone, todayRoutineName, weightUnit = 'kg', distanceUnit = 'km', now = () => new Date() }: RonnieExecutorContext): RonnieExecutor {
     const zh = language === 'zh-TW'
     let needsDashboardReload = false
-    let removalAttempts = 0
     const proposals: (RoutineProposal & { id: string })[] = []
     const recommendations: RecommendationCard[] = []
+    const plans: PlanCard[] = []
     const confirmations: string[] = []
     const notices: string[] = []
     const remembered: string[] = []
@@ -380,20 +388,14 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         get_training_summary: (input) => trainingSummary(input.date_from, input.date_to),
 
         async propose_routine_change(input) {
-            // Only proposed: the change happens when the user confirms it in the app. The cap is
-            // counted before any await, so parallel calls in one response can't all slip under it.
+            // Only proposed: the change happens when the user confirms it in the app, each card on
+            // its own, so there is no cap on how many one turn proposes (the owner, 2026-10-14).
             // No default: a missing change once read as a removal of an exercise the user asked to add
             if (input.change !== 'add' && input.change !== 'remove') return 'Not proposed: say change "add" or "remove"'
             const add = input.change === 'add'
-            const tooMany = !add && removalAttempts++ >= MAX_REMOVALS_PER_TURN
             const exercise = await findExercise(input.exercise_id)
             if (!exercise) return UNKNOWN_ID
             const exerciseName = nameOf(exercise)
-            if (tooMany) {
-                notice(`一次最多移除 ${MAX_REMOVALS_PER_TURN} 個動作，「${exerciseName}」這次沒有提出。要大改課表，可以用課表頁的 Coach G。`,
-                    `At most ${MAX_REMOVALS_PER_TURN} removals at once, so "${exerciseName}" wasn't proposed. For a bigger change, try Coach G on the Routines page.`)
-                return `At most ${MAX_REMOVALS_PER_TURN} removals at once; this one was not proposed. For a bigger change, suggest a redesign with Coach G.`
-            }
             const containing = await data.findRoutinesWithExercise(exercise.id)
             let proposal: RoutineProposal
             if (add) {
@@ -453,6 +455,76 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             // Said outright: the model guessed which routines had it, and a guess counts as invented
             const scope = !add && !input.routine_name ? ' (the only routines with this exercise)' : ''
             return `Proposed, not applied yet: ${describeProposal(proposal, false)}${scope}. It takes effect when the user confirms it in the app.`
+        },
+
+        // Coach G's planner as a tool: code builds the week from what Ronnie gathered, the card shows
+        // it, and only Coach G's editor, which the card opens, saves it
+        async plan_routines(input) {
+            const raw = input as unknown as Record<string, unknown>
+            const list = <T extends string>(choices: readonly T[], v: unknown): T[] => Array.isArray(v)
+                ? [...new Set(v.map((x) => vocabulary(String(x))).filter((x): x is T => (choices as readonly unknown[]).includes(x)))]
+                : []
+            const days = Number(raw.days)
+            const minutes = Number(raw.minutes)
+            const level = vocabulary(String(raw.level ?? ''))
+            const goals = list(GOALS, raw.goals)
+            if (!Number.isInteger(days) || days < 1 || days > COACH_CYCLE_DAYS) return `Not planned: days is training days a week, 1 to ${COACH_CYCLE_DAYS}`
+            if (!Number.isFinite(minutes) || minutes <= 0) return `Not planned: minutes is the session length, one of ${SESSION_MINUTES.join(', ')}`
+            if (!isOneOf(LEVELS, level)) return `Not planned: level is one of ${LEVELS.join(', ')}`
+            if (!goals.length) return `Not planned: goals is one or more of ${GOALS.join(', ')}`
+
+            const [library, noteList] = await Promise.all([exercises(), notesOrNone()])
+            const ids = async (v: unknown) => (Array.isArray(v) ? [...new Set(await Promise.all(v.map((x) => resolveId(String(x)))))] : [])
+            const include = await ids(raw.include)
+            // The notes hold whatever the call says: their injured joints are spared, and what they
+            // don't want is left out, unless the user asked for it this time
+            const injured = noteList.filter(isActiveInjury).map((n) => String(n.subject))
+            const disliked = noteList.filter(isDislike).map((n) => String(n.subject))
+            const p: CoachPreferences = {
+                days,
+                minutes: SESSION_MINUTES.reduce((best, m) => (Math.abs(m - minutes) < Math.abs(best - minutes) ? m : best)),
+                equipment: list(EQUIPMENT, raw.equipment),
+                goals,
+                level,
+                injuries: [...new Set([...list(JOINTS, raw.injuries), ...injured.filter((j): j is (typeof JOINTS)[number] => isOneOf(JOINTS, j))])],
+                avoid: [...new Set([...(await ids(raw.avoid)), ...disliked.filter((id) => !include.includes(id))])],
+                prioritize: list(VOLUME_UNIT_IDS, raw.prioritize),
+                include,
+            }
+            // The library as the planner reads it: joint loads are rated low, medium or high
+            const plannerLibrary = library as unknown as PlannerExercise[]
+            const routines = buildPlan(p, plannerLibrary)
+            if (!routines.length) return 'Not planned: no exercise in the library fits these choices. Ask about their equipment again.'
+            // One plan a turn: a second call replaces the first card
+            const replaced = plans.length > 0
+            plans.splice(0, plans.length, { id: crypto.randomUUID(), routines, cycleLength: COACH_CYCLE_DAYS })
+
+            const byId = new Map(library.map((e) => [e.id, e]))
+            const routineName = (r: PlannedRoutine) => (zh && r.name_zh_tw) || r.name
+            const exerciseName = (x: PlannedRoutine['exercises'][number]) => (zh && x.exercise_name_zh_tw) || x.exercise_name
+            const why: Record<LeftOutReason, string> = {
+                not_in_library: 'not in the library',
+                avoided: "also among the exercises they don't want",
+                injured_joint: 'heavy on an injured joint',
+                no_muscles: "cardio, which the planner doesn't place: suggest it as a warm-up or on its own",
+                over_limit: `past the ${MAX_INCLUDE} exercises a plan keeps`,
+            }
+            const spared = [
+                p.injuries.length ? `sparing the ${p.injuries.map((j) => j.replace('_', ' ')).join(', ')}` : '',
+                p.avoid.length ? `without ${p.avoid.map((id) => nameOf(byId.get(id))).join(', ')}` : '',
+            ].filter(Boolean)
+            const keptDisliked = include.filter((id) => disliked.includes(id))
+            const training = routines.flatMap((r) => r.day_indices).sort((a, b) => a - b)
+            const rest = Array.from({ length: COACH_CYCLE_DAYS }, (_, i) => i + 1).filter((d) => !training.includes(d))
+            return [
+                `${replaced ? 'Replaced the earlier card with' : 'Showing'} Coach G's plan as a card: ${p.days} days a week, ${p.minutes} min a session, ${p.goals.join(' and ').replace(/_/g, ' ')}, ${p.level}${spared.length ? `, ${spared.join(', ')}` : ''}.`,
+                ...routines.map((r) => `${routineName(r)} (day ${r.day_indices.join(', ')} of the week): ${r.exercises.map((x) => `${exerciseName(x)} ${x.target_sets}x${x.target_reps}`).join(', ')}`),
+                // Said outright: worked out from the routines' days, a reply put the rest days on the wrong ones
+                `Training days ${training.join(', ')}; rest days ${rest.length ? rest.join(', ') : 'none'}. Day 1 is the day the user picks as the cycle's first when saving, not a weekday.`,
+                ...includeLeftOut(p, plannerLibrary).map((x) => `Not in the plan: ${byId.has(x.id) ? nameOf(byId.get(x.id)) : `the ID ${x.id}`} (${why[x.reason]})`),
+                ...(keptDisliked.length ? [`Kept as asked, though your notes say they don't want it: ${keptDisliked.map((id) => nameOf(byId.get(id))).join(', ')}. Ask once whether to change that note.`] : []),
+                "Nothing is saved yet: the user opens the card, can edit it, and saving there replaces all their routines and their training cycle. The app says so under your reply, so don't say it, and don't open with ✅: nothing is done yet. Say how the week is laid out and what you fitted to them, not every exercise (the card lists them), and what you assumed.",
+            ].join('\n')
         },
 
         // A slot's note is replaced here, by its kind and subject, never added beside the old one,
@@ -625,6 +697,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         },
         proposals,
         recommendations,
+        plans,
         confirmations,
         notices,
         remembered,

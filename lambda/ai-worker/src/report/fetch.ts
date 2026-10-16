@@ -147,11 +147,14 @@ export async function fetchSchedule(supabase: SupabaseClient, userId: string, pe
     if (!cycle || daysBetween(cycle.start_date, addDays(periodStart, days - 1)) < 0) return null
     const { data: cycleDays, error: daysError } = await supabase
         .from('cycle_days')
-        .select('day_index, routines ( name, routine_exercises ( exercise_id, target_sets ) )')
+        .select('day_index, routines ( user_id, name, routine_exercises ( exercise_id, target_sets ) )')
         .eq('training_cycle_id', cycle.id)
     if (daysError) throw new Error(`Failed to fetch cycle days: ${daysError.message}`)
-    type Row = { day_index: number; routines: { name: string; routine_exercises: { exercise_id: string; target_sets: number | null }[] } | null }
-    const routineFor = new Map(((cycleDays ?? []) as unknown as Row[]).map((d) => [d.day_index, d.routines]))
+    type Row = { day_index: number; routines: { user_id: string; name: string; routine_exercises: { exercise_id: string; target_sets: number | null }[] } | null }
+    // Only the user's own routines: this reads with the service role, so a day pointing at another
+    // user's routine would put that routine in this user's report (the policies refuse such a row
+    // now, migration 20261015130000; this keeps one written before them out)
+    const routineFor = new Map(((cycleDays ?? []) as unknown as Row[]).map((d) => [d.day_index, d.routines?.user_id === userId ? d.routines : null]))
     return Array.from({ length: days }, (_, i) => {
         const date = addDays(periodStart, i)
         const since = daysBetween(cycle.start_date, date)

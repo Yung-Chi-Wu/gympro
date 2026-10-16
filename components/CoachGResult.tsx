@@ -28,9 +28,11 @@ interface CoachGResultProps {
     language: string
     onBack: () => void
     onSaved: () => void
+    /** The header's back button: Redesign in Coach G's chat; Close from Ronnie's plan card */
+    backLabel?: string
 }
 
-export function CoachGResult({ routines, cycleLength, language, onBack, onSaved }: CoachGResultProps) {
+export function CoachGResult({ routines, cycleLength, language, onBack, onSaved, backLabel }: CoachGResultProps) {
     const zh = language === 'zh-TW'
     const router = useRouter()
     const [editableRoutines, setEditableRoutines] = useState<GeneratedRoutine[]>(routines)
@@ -129,7 +131,7 @@ export function CoachGResult({ routines, cycleLength, language, onBack, onSaved 
                 </div>
                 <button type="button" onClick={onBack}
                     className="text-sm text-ink/40 hover:text-ink transition-colors">
-                    {zh ? '重新設計' : 'Redesign'}
+                    {backLabel ?? (zh ? '重新設計' : 'Redesign')}
                 </button>
             </div>
 

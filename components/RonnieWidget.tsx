@@ -3,16 +3,19 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslations } from 'next-intl'
-import { MAX_MESSAGE_CHARS, type DisplayItem, type ProposalCard, type ProposalStatus, type RecommendationCard } from '@/lib/ronnie/conversation'
+import { MAX_MESSAGE_CHARS, type DisplayItem, type PlanCard, type ProposalCard, type ProposalStatus, type RecommendationCard } from '@/lib/ronnie/conversation'
 import { describeProposal } from '@/lib/ronnie/events'
 import { reportClientError, responseError } from '@/lib/report-client-error'
 import { isSubmitEnter, useKeyboardOpen, useVisibleViewport, type VisibleViewport } from '@/lib/keyboard'
+import { CoachGResult } from './CoachGResult'
 import { Icon } from './Icon'
 
 // Ronnie's chat window. The conversation lives on the server (one per day); this
 // shows it, sends one message at a time, and handles the cards' buttons:
 //   proposal: Confirm applies a routine change - a removal asks a second time first
 //   recommendation: Add to today, or Swap (removes the exercise it replaces and adds it)
+//   plan: View plan opens Coach G's editor with the week Coach G's planner built; saving
+//     there replaces the routines and cycle, as Coach G's own does
 // Each button's outcome is recorded in the conversation by the server, so Ronnie knows.
 //
 // Where it sits: on a phone, a round button the user can drag to either edge opens the
@@ -77,6 +80,9 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     // The removal waiting for its second confirmation
     const [confirming, setConfirming] = useState<ProposalCard | null>(null)
     const [addedToday, setAddedToday] = useState<Set<string>>(new Set())
+    // The plan card whose routines are open in Coach G's editor, and the cards saved since the window loaded
+    const [openPlan, setOpenPlan] = useState<PlanCard | null>(null)
+    const [savedHere, setSavedHere] = useState<Set<string>>(new Set())
     const abortRef = useRef<AbortController | null>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
@@ -139,6 +145,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                 text: data.message,
                 ...(data.proposals?.length ? { proposals: data.proposals } : {}),
                 ...(data.recommendations?.length ? { recommendations: data.recommendations } : {}),
+                ...(data.plans?.length ? { plans: data.plans } : {}),
             }])
             if (data.reloadDashboard) notifyDashboard()
         } catch (err: unknown) {
@@ -194,6 +201,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     async function handleClear() {
         setItems([])
         setAddedToday(new Set())
+        setSavedHere(new Set())
         await fetch('/api/ai/coach', { method: 'DELETE' }).catch(() => null)
     }
 
@@ -253,6 +261,26 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         }
     }
 
+    // Saved in Coach G's editor: the routines and cycle are new, and the conversation says so
+    async function planSaved(card: PlanCard) {
+        setOpenPlan(null)
+        setSavedHere((prev) => new Set(prev).add(card.id))
+        notifyDashboard()
+        try {
+            const res = await fetch('/api/ai/coach/plans', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ planId: card.id, language }),
+            })
+            const data = await res.json().catch(() => null)
+            if (!res.ok) throw new Error(`Plan event failed: ${res.status}`)
+            if (data?.text) setItems((prev) => [...prev, { kind: 'event', text: data.text, planId: card.id }])
+        } catch (err) {
+            // The routines are saved; only Ronnie's note of it is missing
+            console.error(err)
+        }
+    }
+
     function renderContent(text: string) {
         return text.split('\n').map((line, i, arr) => (
             <span key={i}>
@@ -308,6 +336,34 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                         className="px-3 py-1 rounded-lg text-white disabled:opacity-50 shrink-0" style={{ backgroundColor: ACCENT }}>
                         {swap ? (zh ? '替換' : 'Swap') : (zh ? '加入今天' : 'Add to today')}
                     </button>
+                )}
+            </div>
+        )
+    }
+
+    // The week in one line, and a button to Coach G's editor; saving there replaces the routines
+    function renderPlan(card: PlanCard) {
+        const saved = savedHere.has(card.id) || items.some((it) => it.kind === 'event' && it.planId === card.id)
+        const names = card.routines.map((r) => ((zh && r.name_zh_tw) || r.name).split(/[ （(]/)[0])
+        const days = card.routines.reduce((n, r) => n + r.day_indices.length, 0)
+        return (
+            <div key={card.id} className="mt-2 rounded-xl border border-ink/10 dark:border-white/10 p-3 text-xs space-y-2">
+                <p className="font-semibold">{zh ? '📋 Coach G 排好的課表' : "📋 Coach G's plan"}</p>
+                <p>{zh ? `每週 ${days} 天：${names.join('、')}` : `${days} days a week: ${names.join(', ')}`}</p>
+                {saved ? (
+                    <p className="text-ink/50 dark:text-white/50">{zh ? '已存入 ✓' : 'Saved ✓'}</p>
+                ) : (
+                    <>
+                        <p className="text-ink/50 dark:text-white/50">
+                            {zh ? '可以先修改再存。存入後會取代你目前的課表和訓練循環。' : 'You can edit it first. Saving replaces your current routines and training cycle.'}
+                        </p>
+                        <div className="flex justify-end">
+                            <button type="button" onClick={() => setOpenPlan(card)}
+                                className="px-3 py-1 rounded-lg text-white" style={{ backgroundColor: ACCENT }}>
+                                {zh ? '看課表' : 'View plan'}
+                            </button>
+                        </div>
+                    </>
                 )}
             </div>
         )
@@ -409,6 +465,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                             </div>
                                             {item.proposals?.map(renderProposal)}
                                             {item.recommendations?.map(renderRecommendation)}
+                                            {item.plans?.map(renderPlan)}
                                         </div>
                                     </div>
                                 )
@@ -541,6 +598,22 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                         </div>
                     )}
                 </aside>
+            )}
+
+            {/* A plan card's routines in Coach G's editor, over the page as Coach G's own opens */}
+            {openPlan && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+                    <div className="w-full max-w-lg h-[85vh] rounded-xl bg-white dark:bg-[#2C2923] shadow-xl flex flex-col overflow-hidden">
+                        <CoachGResult
+                            routines={openPlan.routines}
+                            cycleLength={openPlan.cycleLength}
+                            language={language}
+                            onBack={() => setOpenPlan(null)}
+                            onSaved={() => void planSaved(openPlan)}
+                            backLabel={zh ? '關閉' : 'Close'}
+                        />
+                    </div>
+                </div>
             )}
         </>
     )
