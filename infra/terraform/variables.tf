@@ -24,12 +24,6 @@ variable "vercel_project_name" {
   type        = string
 }
 
-variable "vercel_environments" {
-  description = "Vercel environments allowed to assume the Next.js role (production, preview, development)"
-  type        = list(string)
-  default     = ["production"]
-}
-
 variable "ai_errors_per_hour_alarm" {
   description = "Failed AI calls in one hour that raise the gympro-ai-errors alarm"
   type        = number

@@ -8,8 +8,12 @@ resource "aws_iam_openid_connect_provider" "vercel" {
   client_id_list = ["https://vercel.com/${var.vercel_team_slug}"]
 }
 
-# ---------- Trust policy: only this project's chosen environments ----------
+# ---------- Trust policies: production, and preview apart ----------
+# Production may enqueue reports and embed queries. Preview deployments (any branch) get their
+# own role that can only embed queries: a branch's code can't send to the production queue.
 data "aws_iam_policy_document" "vercel_assume_role" {
+  for_each = toset(["production", "preview"])
+
   statement {
     effect  = "Allow"
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -28,17 +32,19 @@ data "aws_iam_policy_document" "vercel_assume_role" {
     condition {
       test     = "StringEquals"
       variable = "oidc.vercel.com/${var.vercel_team_slug}:sub"
-      values = [
-        for env in var.vercel_environments :
-        "owner:${var.vercel_team_slug}:project:${var.vercel_project_name}:environment:${env}"
-      ]
+      values   = ["owner:${var.vercel_team_slug}:project:${var.vercel_project_name}:environment:${each.key}"]
     }
   }
 }
 
 resource "aws_iam_role" "nextjs" {
   name               = "gympro-nextjs-vercel-role"
-  assume_role_policy = data.aws_iam_policy_document.vercel_assume_role.json
+  assume_role_policy = data.aws_iam_policy_document.vercel_assume_role["production"].json
+}
+
+resource "aws_iam_role" "nextjs_preview" {
+  name               = "gympro-nextjs-vercel-preview-role"
+  assume_role_policy = data.aws_iam_policy_document.vercel_assume_role["preview"].json
 }
 
 # ---------- Permissions: Next.js can only enqueue report requests ----------
@@ -75,10 +81,21 @@ resource "aws_iam_role_policy" "nextjs_bedrock_embed" {
   policy = data.aws_iam_policy_document.nextjs_bedrock_embed.json
 }
 
+resource "aws_iam_role_policy" "nextjs_preview_bedrock_embed" {
+  name   = "gympro-nextjs-preview-bedrock-embed"
+  role   = aws_iam_role.nextjs_preview.id
+  policy = data.aws_iam_policy_document.nextjs_bedrock_embed.json
+}
+
 # ---------- Values to copy into Vercel environment variables ----------
 output "nextjs_role_arn" {
-  description = "Set as AWS_ROLE_ARN in Vercel"
+  description = "Set as AWS_ROLE_ARN in Vercel, for Production"
   value       = aws_iam_role.nextjs.arn
+}
+
+output "nextjs_preview_role_arn" {
+  description = "Set as AWS_ROLE_ARN in Vercel, for Preview"
+  value       = aws_iam_role.nextjs_preview.arn
 }
 
 output "ai_analysis_queue_url" {
