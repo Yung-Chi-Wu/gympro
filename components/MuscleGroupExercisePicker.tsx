@@ -13,6 +13,11 @@ interface MuscleGroupExercisePickerProps {
     initialGroup?: string
     /** Shown while no exercise is picked; changing the group then leaves the choice to the user */
     placeholder?: string
+    /**
+     * For a choice already saved: changing the group only shows that group's exercises, and
+     * nothing changes until one is picked (picking the group's first one swapped a saved exercise)
+     */
+    keepUntilPicked?: boolean
 }
 
 export function MuscleGroupExercisePicker({
@@ -22,11 +27,15 @@ export function MuscleGroupExercisePicker({
     language = 'en',
     initialGroup,
     placeholder,
+    keepUntilPicked = false,
 }: MuscleGroupExercisePickerProps) {
     // The group picked by hand; it shows only while no exercise is selected (an empty group)
     const [pickedGroup, setPickedGroup] = useState<string>(initialGroup ?? MUSCLE_GROUPS[0])
+    // A group being looked through for a saved choice (keepUntilPicked), until an exercise is picked
+    const [browseGroup, setBrowseGroup] = useState<string | null>(null)
     // Otherwise the selected exercise's group, so a value set from outside moves the group with it
-    const muscleGroup = exercises.find((ex) => ex.id === value)?.muscle_group ?? pickedGroup
+    const valueGroup = exercises.find((ex) => ex.id === value)?.muscle_group
+    const muscleGroup = browseGroup ?? valueGroup ?? pickedGroup
 
     const exercisesInGroup = useMemo(
         () => exercises.filter((ex) => ex.muscle_group === muscleGroup),
@@ -35,12 +44,19 @@ export function MuscleGroupExercisePicker({
 
     function handleMuscleGroupChange(newGroup: string) {
         setPickedGroup(newGroup)
+        if (keepUntilPicked) {
+            setBrowseGroup(newGroup === valueGroup ? null : newGroup)
+            return
+        }
         if (placeholder) return
         const firstInGroup = exercises.find((ex) => ex.muscle_group === newGroup)
         onChange(firstInGroup?.id ?? '')
     }
 
     const noExercisesLabel = language === 'zh-TW' ? '這個肌群還沒有動作' : 'No exercises in this group'
+    const valueInGroup = exercisesInGroup.some((ex) => ex.id === value)
+    const chooseLabel = placeholder ?? (language === 'zh-TW' ? '選擇動作' : 'Choose an exercise')
+    const showChoose = (!!placeholder && !value) || (keepUntilPicked && !valueInGroup)
 
     return (
         <div className="flex gap-2">
@@ -57,14 +73,17 @@ export function MuscleGroupExercisePicker({
             </select>
 
             <select
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
+                value={keepUntilPicked && !valueInGroup ? '' : value}
+                onChange={(e) => {
+                    setBrowseGroup(null)
+                    onChange(e.target.value)
+                }}
                 className="min-w-0 flex-1 rounded-md border px-3 py-2 text-sm"
             >
                 {exercisesInGroup.length === 0 ? (
                     <option value="">{noExercisesLabel}</option>
-                ) : placeholder && !value && (
-                    <option value="">{placeholder}</option>
+                ) : showChoose && (
+                    <option value="" disabled={keepUntilPicked}>{chooseLabel}</option>
                 )}
                 {exercisesInGroup.map((ex) => {
                     const displayName =

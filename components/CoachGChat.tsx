@@ -199,7 +199,18 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
                         <p className="text-xs text-ink/40">{zh ? 'AI 課表設計師' : 'AI Routine Designer'}</p>
                     </div>
                 </div>
-                <button type="button" onClick={onClose} className="text-ink/40 hover:text-ink transition-colors text-lg">✕</button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        // Answers given so far aren't kept, so closing after the first one asks first
+                        if (Object.keys(collected).length > 0 && !confirm(zh ? '要關閉 Coach G 嗎？已經回答的內容不會保留。' : "Close Coach G? Your answers so far won't be kept.")) return
+                        onClose()
+                    }}
+                    aria-label={zh ? '關閉 Coach G' : 'Close Coach G'}
+                    className="-m-3 p-3 text-ink/40 hover:text-ink transition-colors text-lg"
+                >
+                    ✕
+                </button>
             </div>
 
             {/* Messages */}

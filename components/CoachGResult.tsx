@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { REPS, SETS } from '@/lib/coach-g'
 import { reportClientError, responseError } from '@/lib/report-client-error'
+import { createClient } from '@/lib/supabase/client'
 
 interface GeneratedExercise {
     exercise_id: string
@@ -41,6 +42,9 @@ export function CoachGResult({ routines, cycleLength, language, onBack, onSaved,
     const [error, setError] = useState<string | null>(null)
     // The save is one transaction: when it fails, the user's routines are as they were
     const saveError = zh ? '存不進去，你原本的課表沒有變動。請再試一次。' : "Couldn't save; your routines are unchanged. Please try again."
+    const replaceQuestion = (count: number | null) => zh
+        ? `存入會取代你目前的${count ? ` ${count} 份` : ''}課表和訓練循環，無法復原。要存入嗎？`
+        : `Saving replaces your ${count ? `${count} current routine${count === 1 ? '' : 's'}` : 'current routines'} and your training cycle, and can't be undone. Save?`
     const setsRepsError = zh
         ? `組數要在 ${SETS.min} 到 ${SETS.max} 之間，次數要在 ${REPS.min} 到 ${REPS.max} 之間。`
         : `Sets must be ${SETS.min} to ${SETS.max} and reps ${REPS.min} to ${REPS.max}.`
@@ -85,8 +89,16 @@ export function CoachGResult({ routines, cycleLength, language, onBack, onSaved,
     }
 
     async function handleSave() {
+        if (isSaving) return
         setIsSaving(true)
         setError(null)
+        // Saving replaces every routine and the cycle, so it's asked here, at the button, with how
+        // many go; the warning when Coach G opened may be long gone (or never seen, from Ronnie's card)
+        const { count, error: countError } = await createClient().from('routines').select('id', { count: 'exact', head: true })
+        if ((countError || (count ?? 0) > 0) && !confirm(replaceQuestion(countError ? null : count))) {
+            setIsSaving(false)
+            return
+        }
 
         try {
             const res = await fetch('/api/ai/save-routine', {
