@@ -1,0 +1,51 @@
+{
+  "id": "done-claim-incline-trained",
+  "source": "ronnie/v33/traces/swap-question-only-zh_rep4.json",
+  "why": "The incline press had no sets yet; the reply said it was done, reasoning about the front delts. The check catches it, and the retry fixes it.",
+  "language": "zh-TW",
+  "user": "肩推有什麼替代動作？",
+  "model": [
+    {
+      "tool": "get_today_workout",
+      "input": {}
+    },
+    {
+      "tool": "search_exercises",
+      "input": {
+        "query": "shoulder press alternative overhead press",
+        "muscle": "front_delts"
+      }
+    },
+    {
+      "tool": "search_exercises",
+      "input": {
+        "query": "側平舉 lateral raise",
+        "muscle": "side_delts"
+      }
+    },
+    {
+      "tool": "recommend_exercise",
+      "input": {
+        "exercise_id": "@Lateral Raise",
+        "replaces_exercise_id": "@Overhead Press"
+      }
+    },
+    {
+      "reply": "🔄 我推薦用側平舉來替代肩推。它主練肩的側束，對關節負擔低，今天推日剛好可以補足肩部。點卡片上的 Swap 就能換掉今天的肩推。\n\n💡 側平舉不會練到前束的推舉動作。你今天已經做過臥推和上斜臥推，前束本來就有練到，所以影響不大。\n\n你是想只換今天，還是以後的推日課表都換掉？"
+    }
+  ],
+  "expect": {
+    "claimed": [
+      "上斜啞鈴臥推"
+    ],
+    "fixed": true,
+    "shownIncludes": [
+      "等一下還有上斜臥推"
+    ],
+    "shownExcludes": [
+      "已經做過臥推和上斜臥推",
+      "📌"
+    ]
+  },
+  "retry": "🔄 我推薦用側平舉來替代肩推。它主練肩的側束，對關節負擔低，今天推日剛好可以補足肩部。點卡片上的 Swap 就能換掉今天的肩推。\n\n💡 側平舉不會練到前束的推舉動作。你今天已經做過臥推，等一下還有上斜臥推，前束本來就會練到，所以影響不大。\n\n你是想只換今天，還是以後的推日課表都換掉？"
+}

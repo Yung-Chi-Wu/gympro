@@ -1,0 +1,43 @@
+{
+  "id": "incline-not-trained-yet",
+  "source": "ronnie/v33/traces/swap-question-only-zh_rep7.json",
+  "why": "'也能補上臥推和上斜臥推沒練到的部分' says what they don't train, not that they were done.",
+  "language": "zh-TW",
+  "user": "肩推有什麼替代動作？",
+  "model": [
+    {
+      "tool": "get_today_workout",
+      "input": {}
+    },
+    {
+      "tool": "search_exercises",
+      "input": {
+        "query": "肩推替代 shoulder press alternative",
+        "muscle": "front_delts"
+      }
+    },
+    {
+      "tool": "search_exercises",
+      "input": {
+        "query": "overhead press machine or landmine or dumbbell shoulder",
+        "muscle": "shoulders"
+      }
+    },
+    {
+      "tool": "recommend_exercise",
+      "input": {
+        "exercise_id": "@Lateral Raise",
+        "replaces_exercise_id": "@Overhead Press"
+      }
+    },
+    {
+      "reply": "🔄 我推薦用側平舉來替代今天的肩推。它主練肩膀側束，對關節的負荷很低，也能補上臥推和上斜臥推沒練到的部分。點卡片上的「Swap」就能替換。\n\n💡 資料庫裡沒有其他推舉類的動作，所以側平舉是最合適的選擇。你想換掉肩推，是因為肩膀不舒服，還是只是想換個口味？"
+    }
+  ],
+  "expect": {
+    "claimed": [],
+    "shownExcludes": [
+      "📌"
+    ]
+  }
+}

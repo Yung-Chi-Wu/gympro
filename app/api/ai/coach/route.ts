@@ -115,7 +115,7 @@ export async function POST(request: Request) {
             ...(turn.interrupted ? { status: 'error' as const, error: `${turn.interrupted.reason}: ${turn.interrupted.error}` } : { status: 'ok' as const }),
             latencyMs: Date.now() - started, usage: turn.usage, input: traceInput,
             // What the turn added after the user's message: tool calls, their results, the reply
-            output: { reply: turn.message, messages: turn.messages.slice(sent.length), proposals, recommendations, plans, reloadDashboard: turn.reloadDashboard },
+            output: { reply: turn.message, messages: turn.messages.slice(sent.length), proposals, recommendations, plans, reloadDashboard: turn.reloadDashboard, ...(turn.replyCheck ? { replyCheck: turn.replyCheck } : {}) },
         })
 
         return NextResponse.json({ message: turn.message, reloadDashboard: turn.reloadDashboard, proposals, recommendations, plans })

@@ -1,0 +1,42 @@
+{
+  "id": "planned-incline-not-claimed",
+  "source": "ronnie/v32/traces/swap-question-only-zh_rep1.json",
+  "why": "'也能和你今天的上斜啞鈴臥推搭配' names the incline press still to come without saying it was done.",
+  "language": "zh-TW",
+  "user": "肩推有什麼替代動作？",
+  "model": [
+    {
+      "tool": "get_today_workout",
+      "input": {}
+    },
+    {
+      "tool": "search_exercises",
+      "input": {
+        "query": "shoulder press alternative",
+        "muscle": "shoulders"
+      }
+    },
+    {
+      "tool": "search_exercises",
+      "input": {
+        "query": "dumbbell or machine overhead press, Arnold press, landmine press"
+      }
+    },
+    {
+      "tool": "recommend_exercise",
+      "input": {
+        "exercise_id": "@Lateral Raise",
+        "replaces_exercise_id": "@Overhead Press"
+      }
+    },
+    {
+      "reply": "我推薦用側平舉來替代肩推。它主練側三角，肩關節負荷低，也能和你今天的上斜啞鈴臥推搭配。想換的話，點卡片上的「Swap」就會換進今天的訓練。\n\n💡 資料庫裡沒有其他肩推的變化式，例如機械肩推或阿諾推舉。\n\n這是只換今天，還是要長期調整課表？"
+    }
+  ],
+  "expect": {
+    "claimed": [],
+    "shownExcludes": [
+      "📌"
+    ]
+  }
+}
