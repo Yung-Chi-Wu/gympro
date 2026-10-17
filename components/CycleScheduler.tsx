@@ -436,6 +436,17 @@ export function CycleScheduler({
                                 ? `從 ${cycleLength} 天改成 ${pending.newLength} 天會影響你目前在循環中的位置。`
                                 : `Changing from ${cycleLength} to ${pending.newLength} days affects where you are in the cycle.`}
                         </p>
+                        {/* Shorter: the days past the new end leave the cycle, with what was on them */}
+                        {(() => {
+                            const dropped = days.filter((d) => d.dayIndex > pending.newLength && d.routineId).map((d) => d.dayIndex)
+                            return dropped.length > 0 && (
+                                <p className="text-sm font-semibold">
+                                    {zh
+                                        ? `第 ${dropped.join('、')} 天排的課表會從循環拿掉（課表本身還在）。`
+                                        : `Day ${dropped.join(', ')} ${dropped.length === 1 ? 'leaves' : 'leave'} the cycle with the routine${dropped.length === 1 ? '' : 's'} on ${dropped.length === 1 ? 'it' : 'them'} (the routines themselves stay).`}
+                                </p>
+                            )
+                        })()}
                         <div className="flex flex-col gap-2">
                             {pending.canContinue && (
                                 <button

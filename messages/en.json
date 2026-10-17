@@ -105,6 +105,8 @@
         "removeExercise": "Remove this exercise",
         "newDay": "It's a new day: today's plan has been reloaded.",
         "removeWithSets": "{count, plural, one {This exercise has # set logged today, and removing it deletes it.} other {This exercise has # sets logged today, and removing it deletes them.}} Remove it?",
+        "setDeleted": "Set {n} deleted",
+        "undo": "Undo",
         "switchTo": "Switch to {unit}"
     },
     "sets": {
@@ -240,7 +242,7 @@
         "onDays": "Day {days}",
         "separator": " · ",
         "pickOrCreate": "Pick a routine, or create one.",
-        "deleteRoutineConfirm": "Delete \"{name}\"? The days it's on in your cycle become rest days.",
+        "deleteRoutineConfirm": "Delete \"{name}\"? Its exercises go with it, and the days it's on in your cycle become rest days.",
         "rename": "Rename",
         "delete": "Delete",
         "emptyRoutine": "No exercises in this routine yet.",
@@ -251,6 +253,8 @@
         "moveExercise": "Reorder {name} (arrow keys work too)",
         "removeExercise": "Remove {name} from the routine",
         "alreadyInRoutine": "That exercise is already in this routine.",
+        "exerciseRemoved": "Removed {name} from the routine",
+        "undo": "Undo",
         "coachGButton": "Plan with Coach G",
         "coachGPrompt": "Not sure how to plan it?",
         "routineActions": "More for {name}",

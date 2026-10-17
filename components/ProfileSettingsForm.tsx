@@ -182,7 +182,8 @@ export function ProfileSettingsForm({ userId, initial }: { userId: string; initi
             <li>
                 <LogoutButton className={`${ROW} justify-between`} />
             </li>
-            <li>
+            {/* Apart from 登出 just above, so a tap meant for one doesn't land on the other */}
+            <li className="mt-6">
                 <DeleteAccountButton isZhTW={isZhTW} className={`${ROW} font-bold text-miss`} />
             </li>
         </>

@@ -85,7 +85,8 @@ export function TodayWorkoutCard({
     const [workoutId, setWorkoutId] = useState<string | null>(initialWorkoutId)
     const [exercises, setExercises] = useState<TodayExercise[]>(initialExercises)
     const [showAddPicker, setShowAddPicker] = useState(false)
-    const [toast, setToast] = useState<string | null>(null)
+    const [toast, setToast] = useState<{ message: string; undo?: () => void } | null>(null)
+    const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>(initialDistanceUnit)
     const [isCollapsed, setIsCollapsed] = useState(false)
@@ -133,9 +134,11 @@ export function TodayWorkoutCard({
         return true
     }
 
-    function showToast(message: string) {
-        setToast(message)
-        setTimeout(() => setToast(null), 1800)
+    /** A short note above the tab bar; with undo, it stays long enough to tap it */
+    function showToast(message: string, undo?: () => void) {
+        if (toastTimer.current) clearTimeout(toastTimer.current)
+        setToast({ message, undo })
+        toastTimer.current = setTimeout(() => setToast(null), undo ? 5000 : 1800)
     }
 
     function toggleOpen(exerciseId: string) {
@@ -267,8 +270,11 @@ export function TodayWorkoutCard({
         }
     }
 
+    // Deleted at once, with a few seconds to undo it: the × is one tap, and a set is real work.
+    // Undo logs it again as it was, under its own number.
     async function handleDeleteSet(exerciseId: string, setId: string) {
         setError(null)
+        const deleted = exercises.find((ex) => ex.exerciseId === exerciseId)?.loggedSets.find((s) => s.id === setId)
         const { error: deleteError } = await supabase.from('workout_sets').delete().eq('id', setId)
         if (deleteError) {
             reportClientError('client/today/delete-set', deleteError)
@@ -282,6 +288,24 @@ export function TodayWorkoutCard({
                     : { ...ex, loggedSets: ex.loggedSets.filter((s) => s.id !== setId) }
             )
         )
+        if (!deleted || !workoutId) return
+        showToast(t('setDeleted', { n: deleted.setNumber }), async () => {
+            setToast(null)
+            const { data, error: insertError } = await supabase
+                .from('workout_sets')
+                .insert({ workout_id: workoutId, exercise_id: exerciseId, user_id: userId, set_number: deleted.setNumber, ...toSetRow(deleted) })
+                .select('id, created_at')
+                .single()
+            if (insertError || !data) {
+                reportClientError('client/today/undo-delete-set', insertError)
+                setError(toFriendlyError(insertError, language))
+                return
+            }
+            setExercises((prev) => prev.map((ex) => ex.exerciseId !== exerciseId ? ex : {
+                ...ex,
+                loggedSets: [...ex.loggedSets, { ...deleted, id: data.id, createdAt: data.created_at }].sort((a, b) => a.setNumber - b.setNumber),
+            }))
+        })
     }
 
     async function handleRemoveExercise(exerciseId: string) {
@@ -363,9 +387,8 @@ export function TodayWorkoutCard({
                 </span>
             </button>
 
-            {/* 可摺疊內容 */}
-            {!isCollapsed && (
-                <>
+            {/* Folded away, not unmounted: what was being typed is still there when it opens again */}
+            <div className={isCollapsed ? 'hidden' : 'space-y-4'}>
                     {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
                     {hasCycle && isRestDay && exercises.length === 0 && (
@@ -426,13 +449,17 @@ export function TodayWorkoutCard({
                         initialNote={initialDayNote}
                         weightUnit={readingUnit}
                     />
-                </>
-            )}
+            </div>
 
             {toast && (
                 // Above the phone's tab bar
-                <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-50 -translate-x-1/2 rounded-md bg-plate px-4 py-2 text-sm text-chalk shadow-lg md:bottom-6">
-                    {toast}
+                <div role="status" className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-md bg-plate px-4 py-2 text-sm text-chalk shadow-lg md:bottom-6">
+                    <span>{toast.message}</span>
+                    {toast.undo && (
+                        <button type="button" onClick={toast.undo} className="-my-2 min-h-11 px-2 font-bold text-accent md:min-h-9">
+                            {t('undo')}
+                        </button>
+                    )}
                 </div>
             )}
         </div>
@@ -456,13 +483,15 @@ function Chevron({ closed, size }: { closed: boolean; size: number }) {
 interface AddExercisePanelProps {
     exercises: ExerciseOption[]
     language: string
-    onAdd: (exercise: ExerciseOption) => void
+    onAdd: (exercise: ExerciseOption) => Promise<void>
     onCancel: () => void
 }
 
 function AddExercisePanel({ exercises, language, onAdd, onCancel }: AddExercisePanelProps) {
     const t = useTranslations('today')
     const [selectedId, setSelectedId] = useState(exercises[0]?.id ?? '')
+    // One add at a time: a second tap while the first saves would add it twice
+    const [adding, setAdding] = useState(false)
 
     return (
         <div className="rounded-md border border-dashed p-3 space-y-2">
@@ -475,10 +504,12 @@ function AddExercisePanel({ exercises, language, onAdd, onCancel }: AddExerciseP
             <div className="flex gap-2">
                 <button
                     type="button"
-                    disabled={!selectedId}
-                    onClick={() => {
+                    disabled={!selectedId || adding}
+                    onClick={async () => {
                         const exercise = exercises.find((ex) => ex.id === selectedId)
-                        if (exercise) onAdd(exercise)
+                        if (!exercise || adding) return
+                        setAdding(true)
+                        try { await onAdd(exercise) } finally { setAdding(false) }
                     }}
                     className="flex-1 rounded-md border px-3 py-2 text-sm disabled:opacity-50"
                 >
@@ -532,8 +563,8 @@ function ExerciseBlock({ exercise, isOpen, onToggle, language, units, onUnitChan
                 </span>
             </button>
 
-            {isOpen && (
-                <>
+            {/* Folded away, not unmounted, so a set being typed waits for the exercise to open again */}
+            <div className={isOpen ? 'contents' : 'hidden'}>
                     {/* Typed values are in the units shown, so switching units starts the row over */}
                     <SetTable
                         key={`${units.weight}-${units.distance}`}
@@ -552,8 +583,7 @@ function ExerciseBlock({ exercise, isOpen, onToggle, language, units, onUnitChan
                     >
                         {t('removeExercise')}
                     </button>
-                </>
-            )}
+            </div>
         </div>
     )
 }
@@ -584,6 +614,9 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
     const [draft, setDraft] = useState<string[]>(() => fields.map(() => ''))
     const [saving, setSaving] = useState(false)
     const firstInput = useRef<HTMLInputElement>(null)
+    // When the last set was added: its × takes the place where ＋ was, so a quick second tap on ＋
+    // would delete the set just logged
+    const addedAt = useRef(0)
     // One column template for every row, so the numbers, cells and buttons line up
     const grid = { gridTemplateColumns: `28px repeat(${fields.length}, minmax(0, 1fr)) auto` }
     const next = exercise.loggedSets.length
@@ -598,6 +631,7 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
         const saved = await onAddSet(exercise.exerciseId, toStoredSet(exercise.logType, draft.map(Number), units))
         setSaving(false)
         if (saved) {
+            addedAt.current = Date.now()
             setDraft(fields.map(() => ''))
             firstInput.current?.focus()
         }
@@ -655,7 +689,10 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
                         : <span className={`${CELL} text-ink/60`} style={{ gridColumn: `span ${fields.length}` }}>{compactSet(ts, 'weight_reps', s, units)}</span>}
                     <button
                         type="button"
-                        onClick={() => onDeleteSet(exercise.exerciseId, s.id)}
+                        onClick={() => {
+                            if (i === exercise.loggedSets.length - 1 && Date.now() - addedAt.current < 700) return
+                            onDeleteSet(exercise.exerciseId, s.id)
+                        }}
                         aria-label={ts('deleteSet', { n: i + 1 })}
                         className="h-11 w-11 text-lg text-faint hover:text-miss active:opacity-50 md:h-9 md:w-9"
                     >

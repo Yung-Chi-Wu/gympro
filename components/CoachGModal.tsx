@@ -40,7 +40,10 @@ export function CoachGModal({ language, onClose, onSaved }: CoachGModalProps) {
                         routines={generatedPlan.routines}
                         cycleLength={generatedPlan.cycleLength}
                         language={language}
-                        onBack={() => setGeneratedPlan(null)}
+                        // Redesign starts the questions over, and this plan is gone
+                        onBack={() => {
+                            if (confirm(language === 'zh-TW' ? '重新設計會清掉這份課表，從第一題重新開始。要重新設計嗎？' : 'Redesigning drops this plan and starts again from the first question. Redesign?')) setGeneratedPlan(null)
+                        }}
                         onSaved={onSaved}
                     />
                 ) : (

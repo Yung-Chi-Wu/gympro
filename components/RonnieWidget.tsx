@@ -189,7 +189,8 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
 
     function handleEditSubmit(index: number) {
         const content = editingText.trim()
-        if (!content) return
+        // Not while a reply is coming: resending cuts the conversation at this message
+        if (!content || isLoading) return
         // The server counts the user's messages, not the window's items
         const userIndex = items.slice(0, index).filter((it) => it.kind === 'user').length
         setItems((prev) => [...prev.slice(0, index), { kind: 'user', text: content }])
@@ -199,6 +200,8 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     }
 
     async function handleClear() {
+        // Deleted on the server, cards not yet confirmed with it, so it's asked first
+        if (!confirm(zh ? '要清除今天的對話嗎？還沒確認的卡片也會一起消失。' : "Clear today's conversation? Cards you haven't confirmed go with it.")) return
         setItems([])
         setAddedToday(new Set())
         setSavedHere(new Set())
@@ -404,10 +407,11 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        {/* Clear stays clear of ✕, whose tap area reaches past its icon */}
+                        <div className="flex items-center gap-6">
                             {items.length > 0 && (
                                 <button type="button" onClick={handleClear}
-                                    className="text-xs text-white/40 hover:text-white/70 transition-colors">
+                                    className="min-h-11 px-2 text-xs text-white/40 hover:text-white/70 transition-colors md:min-h-9">
                                     {zh ? '清除' : 'Clear'}
                                 </button>
                             )}

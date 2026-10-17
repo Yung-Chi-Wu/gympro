@@ -105,6 +105,8 @@
         "removeExercise": "移除這個動作",
         "newDay": "已經是新的一天，已重新載入今天的課表。",
         "removeWithSets": "這個動作今天已經記了 {count} 組，移除會一起刪掉這些組。要移除嗎？",
+        "setDeleted": "已刪除第 {n} 組",
+        "undo": "復原",
         "switchTo": "改用 {unit}"
     },
     "sets": {
@@ -240,7 +242,7 @@
         "onDays": "第 {days} 天",
         "separator": "・",
         "pickOrCreate": "選一個課表，或新增一個。",
-        "deleteRoutineConfirm": "確定刪除「{name}」？循環裡排了它的日子會變成休息日。",
+        "deleteRoutineConfirm": "確定刪除「{name}」？它的動作會一起刪除，循環裡排了它的日子會變成休息日。",
         "rename": "重新命名",
         "delete": "刪除",
         "emptyRoutine": "這個課表還沒有動作。",
@@ -251,6 +253,8 @@
         "moveExercise": "調整「{name}」的順序（也可以用上下鍵）",
         "removeExercise": "從課表刪除「{name}」",
         "alreadyInRoutine": "這個動作已經在這份課表裡了。",
+        "exerciseRemoved": "已從課表移除「{name}」",
+        "undo": "復原",
         "coachGButton": "Coach G 幫我排",
         "coachGPrompt": "不知道怎麼排？",
         "routineActions": "「{name}」的其他動作",

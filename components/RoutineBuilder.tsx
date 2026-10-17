@@ -80,6 +80,12 @@ export function RoutineBuilder({
     const [isCreating, setIsCreating] = useState(false)
     const [newRoutineName, setNewRoutineName] = useState('')
     const [error, setError] = useState<string | null>(null)
+    // One save at a time for what a double tap would do twice: create a routine, add an exercise
+    const [savingRoutine, setSavingRoutine] = useState(false)
+    const addingExercise = useRef(false)
+    // A removal undone within a few seconds
+    const [undo, setUndo] = useState<{ message: string; run: () => void } | null>(null)
+    const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
     // From 今天's Coach G link (?coachG=1): Coach G opens once, and the param is dropped so
     // going back or reloading doesn't open it again
     const [coachGOnArrival] = useState(() => searchParams.get('coachG') === '1')
@@ -148,7 +154,7 @@ export function RoutineBuilder({
         setError(null)
 
         const trimmedName = newRoutineName.trim()
-        if (!trimmedName) return
+        if (!trimmedName || savingRoutine) return
 
         const isDuplicate = routines.some(
             (r) => r.name.trim().toLowerCase() === trimmedName.toLowerCase()
@@ -158,11 +164,13 @@ export function RoutineBuilder({
             return
         }
 
+        setSavingRoutine(true)
         const { data, error: insertError } = await supabase
             .from('routines')
             .insert({ user_id: userId, name: trimmedName })
             .select('id, name')
             .single()
+        setSavingRoutine(false)
 
         if (insertError || !data) {
             reportClientError('client/routines/create', insertError)
@@ -235,6 +243,17 @@ export function RoutineBuilder({
             setError(t('alreadyInRoutine'))
             return false
         }
+        if (addingExercise.current) return false
+        addingExercise.current = true
+        try {
+            return await insertRoutineExercise(routine, exercise, targetSets, targetReps)
+        } finally {
+            addingExercise.current = false
+        }
+    }
+
+    async function insertRoutineExercise(routine: RoutineWithExercises, exercise: ExerciseOption, targetSets: number, targetReps: number): Promise<boolean> {
+        const routineId = routine.id
 
         const nextOrderIndex = routine.exercises.length > 0
             ? Math.max(...routine.exercises.map((ex) => ex.order_index)) + 1
@@ -297,8 +316,11 @@ export function RoutineBuilder({
         }))
     }
 
+    // Removed at once, with a few seconds to undo it: 刪除 is one tap. Undo puts it back as it
+    // was, in its place with its sets × reps.
     async function handleRemoveExercise(routineId: string, routineExerciseId: string) {
         setError(null)
+        const removed = routines.find((r) => r.id === routineId)?.exercises.find((ex) => ex.id === routineExerciseId)
         const { error: deleteError } = await supabase
             .from('routine_exercises').delete().eq('id', routineExerciseId)
         if (deleteError) {
@@ -307,6 +329,30 @@ export function RoutineBuilder({
             return
         }
         updateRoutine(routineId, (r) => ({ ...r, exercises: r.exercises.filter((ex) => ex.id !== routineExerciseId) }))
+        if (!removed) return
+        const name = (zh && exercises.find((ex) => ex.id === removed.exercise_id)?.name_zh_tw) || removed.exercise_name
+        if (undoTimer.current) clearTimeout(undoTimer.current)
+        setUndo({
+            message: t('exerciseRemoved', { name }),
+            run: async () => {
+                setUndo(null)
+                const { data, error: insertError } = await supabase
+                    .from('routine_exercises')
+                    .insert({ routine_id: routineId, exercise_id: removed.exercise_id, order_index: removed.order_index, target_sets: removed.target_sets, target_reps: removed.target_reps })
+                    .select('id')
+                    .single()
+                if (insertError || !data) {
+                    reportClientError('client/routines/undo-remove-exercise', insertError)
+                    setError(toFriendlyError(insertError, language))
+                    return
+                }
+                updateRoutine(routineId, (r) => ({
+                    ...r,
+                    exercises: [...r.exercises, { ...removed, id: data.id }].sort((a, b) => a.order_index - b.order_index),
+                }))
+            },
+        })
+        undoTimer.current = setTimeout(() => setUndo(null), 5000)
     }
 
     async function handleUpdateTarget(
@@ -441,7 +487,7 @@ export function RoutineBuilder({
                                     className="h-11 min-w-0 flex-1 rounded-[9px] border border-line bg-card px-3 text-base md:h-auto md:py-2 md:text-sm"
                                 />
                                 <div className="flex gap-2">
-                                    <button type="submit" className={PRIMARY}>{t('create')}</button>
+                                    <button type="submit" disabled={savingRoutine} className={`${PRIMARY} disabled:opacity-50`}>{t('create')}</button>
                                     <button type="button" onClick={() => setIsCreating(false)} className={BUTTON}>{t('cancel')}</button>
                                 </div>
                             </form>
@@ -507,6 +553,16 @@ export function RoutineBuilder({
                     )}
                 </div>
             </div>
+
+            {undo && (
+                // Above the phone's tab bar
+                <div role="status" className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-md bg-plate px-4 py-2 text-sm text-chalk shadow-lg md:bottom-6">
+                    <span>{undo.message}</span>
+                    <button type="button" onClick={undo.run} className="-my-2 min-h-11 px-2 font-bold text-accent md:min-h-9">
+                        {t('undo')}
+                    </button>
+                </div>
+            )}
         </div>
     )
 }
@@ -839,6 +895,7 @@ function ExerciseRow({ exercise, language, exercises, startGroup, dragging = fal
                         language={language}
                         initialGroup={startGroup}
                         placeholder={exercise ? undefined : t('chooseExercise')}
+                        keepUntilPicked={!!exercise}
                     />
                 </div>
 
