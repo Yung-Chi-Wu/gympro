@@ -7,6 +7,7 @@ import {
 } from '../coach-g-planner'
 import { JOINTS } from '../exercise-attributes'
 import { isTarget, TARGET_REPS, TARGET_SETS } from '../targets'
+import { namesOf, type LoggedToday } from './reply-check'
 import { VOLUME_UNIT_IDS } from '../report/volume'
 import { describeProposal } from './events'
 import { gatedSearch, latinTokens, searchLibrary } from './search'
@@ -57,6 +58,8 @@ export interface RonnieExecutor {
      * claimed that wasn't.
      */
     readonly remembered: string[]
+    /** Today's exercises with every name each goes by and whether it has sets, to check a reply against (reply-check.ts) */
+    todayLog(): Promise<LoggedToday[]>
 }
 
 // Results show the first 8 characters of an exercise ID (the model mis-copied full UUIDs);
@@ -717,5 +720,16 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         confirmations,
         notices,
         remembered,
+        async todayLog() {
+            const range = todayRange()
+            const workout = await data.getLatestWorkoutBetween(range.start, range.end)
+            if (!workout) return []
+            const sets = await data.getSets([workout.id])
+            return (await workoutExercises(workout.workout_planned_exercises ?? [], sets)).map((pe) => ({
+                // The user's language first: the first name is the one said back
+                names: namesOf(zh ? [pe.exercises?.name_zh_tw, pe.exercises?.name] : [pe.exercises?.name, pe.exercises?.name_zh_tw]),
+                done: sets.some((s) => s.exercise_id === pe.exercise_id),
+            }))
+        },
     }
 }

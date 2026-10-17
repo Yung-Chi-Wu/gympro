@@ -57,11 +57,12 @@ jobs:
         run: npm run check:coach-g
       - name: Every server error reaches app_errors
         run: npm run check:app-errors
-      - name: Ronnie's tools, turn loop and grader (offline)
+      - name: Ronnie's tools, turn loop, recorded conversations and grader (offline)
         run: |
           npm run eval:ronnie:build
           node evals/ronnie/check-executor.mjs
           node evals/ronnie/check-agent.mjs
+          node evals/ronnie/check-replays.mjs
           node evals/ronnie/check-grader.mjs
       # No environment variables: every page reads the session per request, so the build
       # never connects to Supabase, Anthropic or AWS

@@ -2,6 +2,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { stripMarkdown } from './prompt'
 import { RONNIE_TOOLS } from './tools'
 import type { RonnieExecutor } from './executor'
+import { doneClaimCorrection, doneClaimFeedback, doneClaims } from './reply-check'
 
 // Ronnie's agent loop. The caller passes the full history - tool calls and results
 // included - and stores the `messages` returned, so an ID looked up stays available.
@@ -37,6 +38,8 @@ export interface RonnieTurn {
     toolCalls: RonnieToolCall[]
     usage: Anthropic.Usage[]
     servedModel: string | null
+    /** Set when the reply said exercises with no sets today were done (reply-check.ts): which, and whether the one retry fixed it */
+    replyCheck?: { claimed: string[]; fixed: boolean }
 }
 
 const isUserText = (m: Anthropic.MessageParam) =>
@@ -110,6 +113,47 @@ export async function runRonnieTurn({
         ? (zh ? '📋 課表在下面的卡片上：可以先修改，按「存入」後才會取代你目前的課表和訓練循環。' : '📋 The plan is on the card below: you can edit it first, and it replaces your current routines and training cycle only when you tap Save.')
         : '')
 
+    // The reply, checked against today's log before it's shown (reply-check.ts). A claim the log
+    // contradicts goes back to the model once, without tools; if it stays, or the retry fails, the
+    // reply is shown with a correction in the code's words under it
+    let replyCheck: RonnieTurn['replyCheck']
+    let correction = ''
+    const checked = async (content: Anthropic.ContentBlock[]): Promise<Anthropic.ContentBlock[]> => {
+        // A turn with a proposal answers in the code's words, which claim nothing about the log
+        const text = textOf(content)
+        if (executor.proposals.length || !text.trim()) return content
+        // A log that can't be read checks nothing: the reply goes as it is
+        const today = await executor.todayLog().catch(() => [])
+        const claimed = doneClaims(text, today)
+        if (!claimed.length) return content
+        replyCheck = { claimed, fixed: false }
+        try {
+            const retry = await client.messages.create({
+                model,
+                max_tokens: 1024,
+                system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+                tools: RONNIE_TOOLS,
+                tool_choice: { type: 'none' },
+                // The reply and the check aren't kept in the history: only the reply shown is
+                messages: compactHistory([...history, { role: 'assistant', content: [{ type: 'text', text }] }, { role: 'user', content: doneClaimFeedback(claimed) }]),
+                ...options.params,
+            }, { signal, ...(options.headers ? { headers: options.headers } : {}) })
+            usage.push(retry.usage)
+            servedModel = retry.model
+            const again = textOf(retry.content)
+            if (again.trim()) {
+                const still = doneClaims(again, today)
+                replyCheck.fixed = still.length === 0
+                if (still.length) correction = doneClaimCorrection(still, zh)
+                return retry.content
+            }
+        } catch (err) {
+            if (signal?.aborted) throw err
+        }
+        correction = doneClaimCorrection(claimed, zh)
+        return content
+    }
+
     const finish = (content: Anthropic.ContentBlock[]): RonnieTurn => {
         // A turn that proposed a routine change answers in the code's words: whether a change is
         // applied must be stated exactly, and given the wording the model still said "Done!". What
@@ -122,10 +166,14 @@ export async function runRonnieTurn({
         // A note saved or forgotten is said in the code's words, first, as something done: the model
         // claimed to have remembered things it never saved (the memory baseline, 5 of 42 runs)
         const memoryLines = executor.remembered.join('\n')
-        const text = [memoryLines, answer || (memoryLines || planLine() ? '' : sorry), planLine()].filter(Boolean).join('\n\n')
+        const text = [memoryLines, answer || (memoryLines || planLine() ? '' : sorry), correction, planLine()].filter(Boolean).join('\n\n')
         // A reply cut off by max_tokens can end in a half-written tool call, which stored
         // without its result would make the next request invalid
-        const kept = proposed ? [] : content.filter((b) => b.type !== 'tool_use')
+        const kept = proposed ? [] : [
+            ...content.filter((b) => b.type !== 'tool_use'),
+            // The correction is part of what was said, so the next turn doesn't take the claim as standing
+            ...(correction ? [{ type: 'text' as const, text: correction, citations: null }] : []),
+        ]
         return {
             message: text,
             reloadDashboard: executor.needsDashboardReload,
@@ -133,6 +181,7 @@ export async function runRonnieTurn({
             toolCalls,
             usage,
             servedModel,
+            ...(replyCheck ? { replyCheck } : {}),
         }
     }
 
@@ -188,7 +237,7 @@ export async function runRonnieTurn({
                     emptyRetried = true
                     continue
                 }
-                return finish(response.content)
+                return finish(await checked(response.content))
             }
 
             // A tool that throws (a database error, a malformed date) answers as a failed result, so the

@@ -1,0 +1,39 @@
+{
+  "id": "done-claim-incline-front-delts",
+  "source": "ronnie/v33/traces/swap-question-only-zh_rep2.json",
+  "why": "'臥推和上斜臥推已經練到前三角': the judge let it pass, but the incline press had no sets. Asked to fix it, the model says the same again, so the reply goes out with the code's correction under it.",
+  "language": "zh-TW",
+  "user": "肩推有什麼替代動作？",
+  "model": [
+    {
+      "tool": "get_today_workout",
+      "input": {}
+    },
+    {
+      "tool": "search_exercises",
+      "input": {
+        "query": "shoulder press alternative",
+        "muscle": "shoulders"
+      }
+    },
+    {
+      "tool": "recommend_exercise",
+      "input": {
+        "exercise_id": "@Lateral Raise",
+        "replaces_exercise_id": "@Overhead Press"
+      }
+    },
+    {
+      "reply": "我推薦用側平舉來替代今天的肩推。它主練中三角肌，關節負擔低，臥推和上斜臥推已經練到前三角，所以這樣剛好補足肩部。\n\n🔄 點卡片上的「Swap」就能換。\n\n你是想只換今天，還是以後的課表都換掉？"
+    }
+  ],
+  "expect": {
+    "claimed": [
+      "上斜啞鈴臥推"
+    ],
+    "fixed": false,
+    "shownIncludes": [
+      "📌 更正：今天還沒有上斜啞鈴臥推的紀錄。"
+    ]
+  }
+}
