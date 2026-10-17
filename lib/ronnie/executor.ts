@@ -6,6 +6,7 @@ import {
     type CoachPreferences, type LeftOutReason, type PlannerExercise,
 } from '../coach-g-planner'
 import { JOINTS } from '../exercise-attributes'
+import { isTarget, TARGET_REPS, TARGET_SETS } from '../targets'
 import { VOLUME_UNIT_IDS } from '../report/volume'
 import { describeProposal } from './events'
 import { gatedSearch, latinTokens, searchLibrary } from './search'
@@ -79,10 +80,10 @@ function pickRoutine<T extends { name: string }>(found: T[], name: string): { ro
     return found.length ? { ambiguous: exact.length ? exact : found } : { none: true }
 }
 
-/** A whole number from 1 to 100 (the model may send it as a string), else the default. */
-function positiveInt(value: unknown, fallback: number): number {
+/** A whole number in the target's range (the model may send it as a string), else the default */
+function targetOr(value: unknown, range: { min: number; max: number }, fallback: number): number {
     const n = Number(value)
-    return Number.isInteger(n) && n >= 1 && n <= 100 ? n : fallback
+    return isTarget(n, range) ? n : fallback
 }
 
 type Named = { exercise_id: string; exercises: { name: string; name_zh_tw: string | null } | null }
@@ -430,8 +431,8 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
                     exerciseName,
                     routineIds: [routine.id],
                     routineNames: [routine.name],
-                    targetSets: positiveInt(input.target_sets, 3),
-                    targetReps: positiveInt(input.target_reps, 10),
+                    targetSets: targetOr(input.target_sets, TARGET_SETS, 3),
+                    targetReps: targetOr(input.target_reps, TARGET_REPS, 10),
                 }
             } else {
                 // "Upper" removes it from "Upper", not also from "Upper Power": the routine means only one

@@ -49,6 +49,8 @@ jobs:
         run: npm run check:evidence
       - name: Day boundaries in every time zone
         run: npm run check:time-zone
+      - name: What a user types has the same limits in the app and the tables
+        run: npm run check:limits
       - name: The install guide reads every browser right
         run: npm run check:browser-env
       - name: Coach G accepts only what it can use and save

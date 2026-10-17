@@ -1,0 +1,82 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { REPS, SETS } from '../lib/coach-g'
+import { isValidField, STORED_MAX, type Units } from '../lib/set-log'
+import { isTarget, TARGET_REPS, TARGET_SETS } from '../lib/targets'
+
+// The limits on what a user types: a set's amounts in any unit, and a routine's targets. The app
+// and the tables must agree, or a value the app lets through fails on save, so the migrations'
+// numbers are read here too. In CI: npm run check:limits
+
+let failed = 0
+const check = (name: string, ok: boolean, detail = '') => {
+    if (!ok) failed++
+    console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${ok ? '' : `\n       ${detail}`}`)
+}
+
+const metric: Units = { weight: 'kg', distance: 'km' }
+const imperial: Units = { weight: 'lb', distance: 'mi' }
+const cases: [string, Parameters<typeof isValidField>[0], string, Units, boolean][] = [
+    ['1000 kg', 'weight', '1000', metric, true],
+    ['1000.5 kg', 'weight', '1000.5', metric, false],
+    ['2204 lb (999.7 kg)', 'weight', '2204', imperial, true],
+    ['2210 lb (1002.4 kg)', 'weight', '2210', imperial, false],
+    ['500 kg of assistance', 'assist', '500', metric, true],
+    ['501 kg of assistance', 'assist', '501', metric, false],
+    ['1000 reps', 'reps', '1000', metric, true],
+    ['1001 reps', 'reps', '1001', metric, false],
+    ['86400 s', 'seconds', '86400', metric, true],
+    ['86401 s', 'seconds', '86401', metric, false],
+    ['1440 min', 'minutes', '1440', metric, true],
+    ['1441 min', 'minutes', '1441', metric, false],
+    ['50 km/h', 'speed', '50', metric, true],
+    ['51 km/h', 'speed', '51', metric, false],
+    ['31 mph (49.9 km/h)', 'speed', '31', imperial, true],
+    ['32 mph (51.5 km/h)', 'speed', '32', imperial, false],
+    ['40% incline', 'incline', '40', metric, true],
+    ['41% incline', 'incline', '41', metric, false],
+    ['level 100', 'level', '100', metric, true],
+    ['level 101', 'level', '101', metric, false],
+    ['100000 m', 'metres', '100000', metric, true],
+    ['100001 m', 'metres', '100001', metric, false],
+    ['0 kg (bodyweight alone)', 'added', '0', metric, true],
+    ['0 reps', 'reps', '0', metric, false],
+    ['-5 kg', 'weight', '-5', metric, false],
+    ['8.5 reps', 'reps', '8.5', metric, false],
+    ['nothing typed', 'reps', '', metric, false],
+]
+const wrong = cases.filter(([, key, text, units, ok]) => isValidField(key, text, units) !== ok).map(([name]) => name)
+check(`a set's amounts are held to the table's limits in the unit typed (${cases.length} cases)`, !wrong.length, wrong.join(', '))
+
+check('targets are whole numbers, 1-20 sets and 1-100 reps',
+    isTarget(1, TARGET_SETS) && isTarget(20, TARGET_SETS) && !isTarget(0, TARGET_SETS) && !isTarget(21, TARGET_SETS) && !isTarget(2.5, TARGET_SETS)
+    && isTarget(100, TARGET_REPS) && !isTarget(101, TARGET_REPS))
+check("Coach G's plans stay inside the targets the table takes",
+    SETS.min >= TARGET_SETS.min && SETS.max <= TARGET_SETS.max && REPS.min >= TARGET_REPS.min && REPS.max <= TARGET_REPS.max,
+    JSON.stringify({ SETS, REPS, TARGET_SETS, TARGET_REPS }))
+
+// The numbers in the migrations, as the app's
+const migration = (name: string) => readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', name), 'utf8')
+const limits = migration('20261017130000_routine_and_set_limits.sql')
+const amounts = migration('20261010140000_set_log_types.sql')
+const has = (sql: string, pattern: string) => sql.includes(pattern)
+const sqlMatches: [string, boolean][] = [
+    [`target_sets between ${TARGET_SETS.min} and ${TARGET_SETS.max}`, has(limits, `target_sets between ${TARGET_SETS.min} and ${TARGET_SETS.max}`)],
+    [`target_reps between ${TARGET_REPS.min} and ${TARGET_REPS.max}`, has(limits, `target_reps between ${TARGET_REPS.min} and ${TARGET_REPS.max}`)],
+    [`reps <= ${STORED_MAX.reps}`, has(limits, `reps <= ${STORED_MAX.reps}`)],
+    [`weight_kg <= ${STORED_MAX.weightKg}`, has(limits, `weight_kg <= ${STORED_MAX.weightKg}`)],
+    [`assist_kg <= ${STORED_MAX.assistKg}`, has(limits, `assist_kg <= ${STORED_MAX.assistKg}`)],
+    [`duration_s <= ${STORED_MAX.durationS}`, has(limits, `duration_s <= ${STORED_MAX.durationS}`)],
+    [`level <= ${STORED_MAX.level}`, has(limits, `level <= ${STORED_MAX.level}`)],
+    [`distance_m <= ${STORED_MAX.distanceM}`, has(limits, `distance_m <= ${STORED_MAX.distanceM}`)],
+    [`speed_kmh between 0 and ${STORED_MAX.speedKmh}`, has(amounts, `speed_kmh between 0 and ${STORED_MAX.speedKmh}`)],
+    [`incline_pct between 0 and ${STORED_MAX.inclinePct}`, has(amounts, `incline_pct between 0 and ${STORED_MAX.inclinePct}`)],
+]
+const missing = sqlMatches.filter(([, ok]) => !ok).map(([p]) => p)
+check(`the migrations' limits are the app's (${sqlMatches.length})`, !missing.length, missing.join('; '))
+
+if (failed) {
+    console.log(`\n${failed} check(s) failed`)
+    process.exit(1)
+}
+console.log('\nWhat a user types is held to the same limits in the app and the tables')

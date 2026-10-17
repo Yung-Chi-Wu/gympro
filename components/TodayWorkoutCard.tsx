@@ -589,7 +589,7 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
     const next = exercise.loggedSets.length
     // Last time's set with the same number, as hints; none if it was logged another way
     const hint = exercise.previous[next] && fitsLogType(exercise.logType, exercise.previous[next]) ? exercise.previous[next] : null
-    const ready = fields.every((key, i) => isValidField(key, draft[i]))
+    const ready = fields.every((key, i) => isValidField(key, draft[i], units))
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
@@ -706,7 +706,7 @@ function LoggedCell({ field, set, units, label, onSave }: {
     const cancelled = useRef(false)
 
     function finish() {
-        if (!cancelled.current && draft != null && draft.trim() !== typedAs && isValidField(field, draft)) onSave(Number(draft))
+        if (!cancelled.current && draft != null && draft.trim() !== typedAs && isValidField(field, draft, unitsOfSet(set, units))) onSave(Number(draft))
         cancelled.current = false
         setDraft(null)
     }
@@ -732,7 +732,7 @@ function LoggedCell({ field, set, units, label, onSave }: {
                 }
             }}
             aria-label={label}
-            aria-invalid={draft != null && !isValidField(field, draft)}
+            aria-invalid={draft != null && !isValidField(field, draft, unitsOfSet(set, units))}
             data-logged=""
             className={LOGGED}
         />
