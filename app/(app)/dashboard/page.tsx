@@ -146,7 +146,7 @@ export default async function DashboardPage() {
       {/* Today's log, then the report: side by side once the page is wide enough */}
       <div className="grid grid-cols-1 items-start gap-5 @4xl:grid-cols-[3fr_2fr] @4xl:gap-6">
         <TodayWorkoutCard
-          key={today.workoutId ?? 'no-workout'}
+          key={`${todayIso}:${today.workoutId ?? 'no-workout'}`}
           userId={user.id}
           initialWorkoutId={today.workoutId}
           todayRange={todayRange}

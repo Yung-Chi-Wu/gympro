@@ -680,6 +680,15 @@ export type Database = {
         }
         Returns: Json
       }
+      start_today_workout: {
+        Args: {
+          p_day_end: string
+          p_day_start: string
+          p_exercise_ids: string[]
+          p_routine_id: string | null
+        }
+        Returns: string
+      }
       mark_report_queue_failed: {
         Args: {
           p_period_start: string

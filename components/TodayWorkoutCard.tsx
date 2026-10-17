@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { MuscleGroupExercisePicker } from './MuscleGroupExercisePicker'
 import { toFriendlyError } from '@/lib/friendly-error'
@@ -12,7 +13,7 @@ import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
 import { fieldValue, fitsLogType, isValidField, isWeightField, LOG_FIELDS, logTypeOf, toSetRow, toStoredSet, unitsOfSet, withField, type FieldKey, type SetValues, type Units } from '@/lib/set-log'
 import type { ExerciseOption } from './log-types'
-import { exerciseLogUnits, findTodayWorkoutId, lastSessionSets, loadTodayWorkout, type TodayExercise } from '@/lib/today-workout'
+import { dayIsOver, DayOverError, exerciseLogUnits, lastSessionSets, loadTodayWorkout, startTodayWorkout, type TodayExercise } from '@/lib/today-workout'
 import { cellText, compactSet, fieldLabel, SummaryLine } from './set-format'
 import { DayLogFields } from './DayLogFields'
 
@@ -80,6 +81,7 @@ export function TodayWorkoutCard({
 }: TodayWorkoutCardProps) {
     const t = useTranslations('today')
     const supabase = createClient()
+    const router = useRouter()
     const [workoutId, setWorkoutId] = useState<string | null>(initialWorkoutId)
     const [exercises, setExercises] = useState<TodayExercise[]>(initialExercises)
     const [showAddPicker, setShowAddPicker] = useState(false)
@@ -102,6 +104,34 @@ export function TodayWorkoutCard({
         window.addEventListener('ronnie-workout-changed', reload)
         return () => window.removeEventListener('ronnie-workout-changed', reload)
     }, [userId, todayRange, routineIdForToday, language])
+
+    // A page left open overnight still holds yesterday: once the day is over, reload today when the
+    // page is seen again or a minute passes. Once per day, in case this device's clock runs ahead.
+    const reloadedFor = useRef<string | null>(null)
+    useEffect(() => {
+        const check = () => {
+            if (!dayIsOver(todayRange) || reloadedFor.current === todayRange.end) return
+            reloadedFor.current = todayRange.end
+            router.refresh()
+        }
+        const onVisible = () => { if (document.visibilityState === 'visible') check() }
+        document.addEventListener('visibilitychange', onVisible)
+        window.addEventListener('focus', check)
+        const timer = setInterval(check, 60_000)
+        return () => {
+            document.removeEventListener('visibilitychange', onVisible)
+            window.removeEventListener('focus', check)
+            clearInterval(timer)
+        }
+    }, [todayRange, router])
+
+    /** A day that ended while the page was open: today is reloaded, nothing logged into yesterday */
+    function newDay(err: unknown): boolean {
+        if (!(err instanceof DayOverError)) return false
+        setError(t('newDay'))
+        router.refresh()
+        return true
+    }
 
     function showToast(message: string) {
         setToast(message)
@@ -131,61 +161,27 @@ export function TodayWorkoutCard({
     }
 
     /**
-     * Today's workout and its exercises, creating the workout on the first set. Ronnie or another
-     * tab may have started one since the page loaded, so look first and use the latest (the one
-     * every reader of today's workout picks): a second workout would split today's log in two.
+     * Today's workout and its exercises, starting the workout on the first set. Starting is one
+     * transaction (start_today_workout): the workout and its planned exercises, or nothing. Ronnie
+     * or another tab may have started one since the page loaded; that one comes back instead, read
+     * with its own planned exercises, so today's log isn't split in two.
      */
     async function ensureWorkout(): Promise<{ id: string; exercises: TodayExercise[] }> {
+        if (dayIsOver(todayRange)) throw new DayOverError()
         if (workoutId) return { id: workoutId, exercises }
 
-        if (await findTodayWorkoutId(supabase, userId, todayRange)) {
-            // That workout with its own planned exercises, not this page's list
-            const today = await loadTodayWorkout(supabase, { userId, range: todayRange, routineId: routineIdForToday, language })
-            if (today.workoutId) {
-                setWorkoutId(today.workoutId)
-                setExercises(today.exercises)
-                return { id: today.workoutId, exercises: today.exercises }
-            }
+        try {
+            await startTodayWorkout(supabase, { range: todayRange, routineId: routineIdForToday, exerciseIds: exercises.map((ex) => ex.exerciseId) })
+        } catch (err) {
+            // The user sees the friendly message; the report gets what failed, its cause
+            if (err instanceof DayOverError) throw err
+            throw new Error(toFriendlyError((err as { cause?: { message: string; code?: string } }).cause ?? null, language), { cause: err })
         }
-
-        const { data: workout, error: workoutError } = await supabase
-            .from('workouts')
-            .insert({
-                user_id: userId,
-                performed_at: new Date().toISOString(),
-                routine_id: routineIdForToday,
-            })
-            .select('id')
-            .single()
-
-        // The user sees the friendly message; the report gets what failed, its cause
-        if (workoutError || !workout) {
-            throw new Error(toFriendlyError(workoutError, language), { cause: workoutError })
-        }
-
-        let planned = exercises
-        if (exercises.length > 0) {
-            const rows = exercises.map((ex) => ({
-                workout_id: workout.id,
-                exercise_id: ex.exerciseId,
-                user_id: userId,
-            }))
-            const { data: plannedRows, error: plannedError } = await supabase
-                .from('workout_planned_exercises')
-                .insert(rows)
-                .select('id, exercise_id')
-
-            if (plannedError || !plannedRows) {
-                throw new Error(toFriendlyError(plannedError, language), { cause: plannedError })
-            }
-
-            const idByExercise = new Map(plannedRows.map((p) => [p.exercise_id, p.id]))
-            planned = exercises.map((ex) => ({ ...ex, plannedRowId: idByExercise.get(ex.exerciseId) ?? ex.plannedRowId }))
-            setExercises(planned)
-        }
-
-        setWorkoutId(workout.id)
-        return { id: workout.id, exercises: planned }
+        const today = await loadTodayWorkout(supabase, { userId, range: todayRange, routineId: routineIdForToday, language })
+        if (!today.workoutId) throw new Error("Today's workout was started but could not be read")
+        setWorkoutId(today.workoutId)
+        setExercises(today.exercises)
+        return { id: today.workoutId, exercises: today.exercises }
     }
 
     /** Adds the exercise to today's workout; returns the list with it */
@@ -244,6 +240,7 @@ export function TodayWorkoutCard({
             showToast('✓')
             return true
         } catch (err) {
+            if (newDay(err)) return false
             reportClientError('client/today/save-set', err)
             setError(err instanceof Error ? err.message : 'Something went wrong.')
             return false
@@ -289,17 +286,28 @@ export function TodayWorkoutCard({
 
     async function handleRemoveExercise(exerciseId: string) {
         setError(null)
+        // Its logged sets go with it, once the user says so: kept, they'd be counted in History and
+        // the report while the card showed nothing
+        const logged = exercises.find((ex) => ex.exerciseId === exerciseId)?.loggedSets.length ?? 0
+        if (logged > 0 && !confirm(t('removeWithSets', { count: logged }))) return
         try {
-            const { exercises: current } = await ensureWorkout()
-            const plannedRowId = current.find((ex) => ex.exerciseId === exerciseId)?.plannedRowId
-            if (!plannedRowId) return
-            const { error: deleteError } = await supabase
-                .from('workout_planned_exercises')
-                .delete()
-                .eq('id', plannedRowId)
-            if (deleteError) throw new Error(toFriendlyError(deleteError, language), { cause: deleteError })
+            const { id: wId, exercises: current } = await ensureWorkout()
+            const exercise = current.find((ex) => ex.exerciseId === exerciseId)
+            if (!exercise) return
+            if (exercise.loggedSets.length > 0) {
+                const { error: setsError } = await supabase.from('workout_sets').delete().eq('workout_id', wId).eq('exercise_id', exerciseId)
+                if (setsError) throw new Error(toFriendlyError(setsError, language), { cause: setsError })
+            }
+            if (exercise.plannedRowId) {
+                const { error: deleteError } = await supabase
+                    .from('workout_planned_exercises')
+                    .delete()
+                    .eq('id', exercise.plannedRowId)
+                if (deleteError) throw new Error(toFriendlyError(deleteError, language), { cause: deleteError })
+            }
             setExercises(current.filter((ex) => ex.exerciseId !== exerciseId))
         } catch (err) {
+            if (newDay(err)) return
             reportClientError('client/today/remove-exercise', err)
             setError(err instanceof Error ? err.message : 'Something went wrong.')
         }
@@ -328,6 +336,7 @@ export function TodayWorkoutCard({
             setOpenState((s) => ({ ...s, open: s.open.includes(exercise.id) ? s.open : [...s.open, exercise.id] }))
             setShowAddPicker(false)
         } catch (err) {
+            if (newDay(err)) return
             reportClientError('client/today/add-exercise', err)
             setError(err instanceof Error ? err.message : 'Something went wrong.')
         }
