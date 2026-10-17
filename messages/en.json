@@ -250,6 +250,7 @@
         "reorderHint": "Drag ⋮⋮ to reorder; the first exercise counts as a main lift",
         "moveExercise": "Reorder {name} (arrow keys work too)",
         "removeExercise": "Remove {name} from the routine",
+        "alreadyInRoutine": "That exercise is already in this routine.",
         "coachGButton": "Plan with Coach G",
         "coachGPrompt": "Not sure how to plan it?",
         "routineActions": "More for {name}",

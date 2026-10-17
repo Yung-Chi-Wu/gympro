@@ -51,8 +51,11 @@ export const hasWeight = (logType: LogType) => LOG_FIELDS[logType].some(isWeight
 /** A set with no reps or no time isn't a set. Every other field may be 0 (no incline, bodyweight alone). */
 const MUST_BE_POSITIVE = new Set<FieldKey>(['reps', 'seconds', 'minutes'])
 const WHOLE_NUMBER = new Set<FieldKey>(['reps', 'seconds'])
-/** The table's limits (workout_sets_amounts_valid), so a typo is caught before it is saved */
-const MAX: Partial<Record<FieldKey, number>> = { incline: 40 }
+/**
+ * The table's limits (workout_sets_amounts_valid and workout_sets_amounts_max), as stored (kg, km/h,
+ * seconds, metres), so a typo is caught before it is saved, in whatever unit it was typed
+ */
+export const STORED_MAX = { reps: 1000, weightKg: 1000, assistKg: 500, durationS: 86_400, speedKmh: 50, inclinePct: 40, level: 100, distanceM: 100_000 } as const
 
 export function logTypeOf(value: string | null | undefined): LogType {
     return LOG_TYPE_IDS.includes(value as LogType) ? (value as LogType) : 'weight_reps'
@@ -138,13 +141,16 @@ export function fitsLogType(logType: LogType, s: SetValues): boolean {
     return LOG_FIELDS[logType].every((key) => fieldValue(key, s, { weight: 'kg', distance: 'km' }) != null)
 }
 
-/** Whether what the user typed in a field is a value it can take */
-export function isValidField(key: FieldKey, text: string): boolean {
+/** Whether what the user typed in a field, in the units shown, is a value it can take */
+export function isValidField(key: FieldKey, text: string, units: Units): boolean {
     if (text.trim() === '') return false
     const n = Number(text)
     if (!Number.isFinite(n) || n < 0) return false
     if (WHOLE_NUMBER.has(key) && !Number.isInteger(n)) return false
-    if (MAX[key] != null && n > MAX[key]) return false
+    // Stored the way a save stores it, then held to the table's limits
+    const stored: SetValues = { reps: 0, weightKg: 0, durationS: null, speedKmh: null, inclinePct: null, level: null, distanceM: null, assistKg: null, inputUnit: null }
+    storeField(stored, key, n, units)
+    if ((Object.keys(STORED_MAX) as (keyof typeof STORED_MAX)[]).some((k) => (stored[k] ?? 0) > STORED_MAX[k])) return false
     // Minutes are saved as whole seconds, which must come to at least one
     if (key === 'minutes') return Math.round(n * 60) > 0
     return MUST_BE_POSITIVE.has(key) ? n > 0 : true

@@ -250,6 +250,7 @@
         "reorderHint": "拖曳 ⋮⋮ 調整順序；第一個動作算主要動作",
         "moveExercise": "調整「{name}」的順序（也可以用上下鍵）",
         "removeExercise": "從課表刪除「{name}」",
+        "alreadyInRoutine": "這個動作已經在這份課表裡了。",
         "coachGButton": "Coach G 幫我排",
         "coachGPrompt": "不知道怎麼排？",
         "routineActions": "「{name}」的其他動作",

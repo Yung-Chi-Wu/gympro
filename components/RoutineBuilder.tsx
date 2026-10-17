@@ -15,6 +15,7 @@ import { reportClientError } from '@/lib/report-client-error'
 import { closeSubPage, openSubPage } from '@/lib/sub-page'
 import { isSubmitEnter } from '@/lib/keyboard'
 import { MAX_ROUTINE_NAME_CHARS } from '@/lib/text-limits'
+import { isTarget, TARGET_REPS, TARGET_SETS } from '@/lib/targets'
 import { MUSCLE_GROUPS, type ExerciseOption } from './log-types'
 import type { RoutineWithExercises, RoutineExerciseRow } from '@/app/(app)/routines/page'
 
@@ -229,6 +230,11 @@ export function RoutineBuilder({
         setError(null)
         const routine = routines.find((r) => r.id === routineId)
         if (!routine) return false
+        // Once per routine: the table refuses a second one (routine_exercises_routine_exercise_key)
+        if (routine.exercises.some((ex) => ex.exercise_id === exercise.id)) {
+            setError(t('alreadyInRoutine'))
+            return false
+        }
 
         const nextOrderIndex = routine.exercises.length > 0
             ? Math.max(...routine.exercises.map((ex) => ex.order_index)) + 1
@@ -270,6 +276,10 @@ export function RoutineBuilder({
     // Another exercise in the same place, keeping its sets × reps
     async function handleChangeExercise(routineId: string, routineExerciseId: string, exercise: ExerciseOption) {
         setError(null)
+        if (routines.find((r) => r.id === routineId)?.exercises.some((ex) => ex.id !== routineExerciseId && ex.exercise_id === exercise.id)) {
+            setError(t('alreadyInRoutine'))
+            return
+        }
         const { error: updateError } = await supabase
             .from('routine_exercises')
             .update({ exercise_id: exercise.id })
@@ -766,13 +776,14 @@ function ExerciseRow({ exercise, language, exercises, startGroup, dragging = fal
     })()
     const removeLabel = exercise ? t('removeExercise', { name: displayName }) : t('removeShort')
 
-    // A saved row saves new numbers when an input loses focus; anything but a positive number
-    // goes back to what was saved. The new row keeps them until its exercise is picked.
+    // A saved row saves new numbers when an input loses focus; anything but a whole number in the
+    // target's range (lib/targets.ts) goes back to what was saved. The new row keeps them until its
+    // exercise is picked.
     function commitIfChanged() {
         if (!exercise) return
         const setsNum = Number(targetSets)
         const repsNum = Number(targetReps)
-        if (!(setsNum > 0) || !(repsNum > 0)) {
+        if (!isTarget(setsNum, TARGET_SETS) || !isTarget(repsNum, TARGET_REPS)) {
             setTargetSets(String(exercise.target_sets ?? ''))
             setTargetReps(String(exercise.target_reps ?? ''))
             return
@@ -785,7 +796,7 @@ function ExerciseRow({ exercise, language, exercises, startGroup, dragging = fal
         if (!picked || picked.id === exercise?.exercise_id) return
         const setsNum = Number(targetSets)
         const repsNum = Number(targetReps)
-        onPick(picked, setsNum > 0 ? setsNum : DEFAULT_SETS, repsNum > 0 ? repsNum : DEFAULT_REPS)
+        onPick(picked, isTarget(setsNum, TARGET_SETS) ? setsNum : DEFAULT_SETS, isTarget(repsNum, TARGET_REPS) ? repsNum : DEFAULT_REPS)
     }
 
     const input = (value: string, set: (v: string) => void, label: string) => (
