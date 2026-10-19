@@ -514,6 +514,15 @@ const op = (q, name) => q.ops.find(([k]) => k === name)?.[1]
     check(sets.length === rows.length, `all ${rows.length} sets come back (got ${sets.length})`)
     check(widest <= 100 && fake.requests.every((q) => op(q, 'order')), `at most 100 workouts per request, each ordered (widest ${widest})`)
 
+    // Today's plan is read in its order: one insert gave its rows one time, so without an order
+    // the table's own order came back, a different one from load to load
+    const planFake = fakeSupabase(() => ({ data: null, error: null }))
+    const planData = createSupabaseRonnieData(planFake, 'u1', FIXTURE_TIME_ZONE, null)
+    await planData.getLatestWorkoutBetween('2026-10-19T04:00:00Z', '2026-10-20T03:59:59Z')
+    await planData.getWorkoutsBetween('2026-10-12T04:00:00Z', '2026-10-20T03:59:59Z')
+    const planOrders = planFake.requests.map((q) => q.ops.filter(([k, [, o]]) => k === 'order' && o?.referencedTable === 'workout_planned_exercises').map(([, [col]]) => col).join())
+    check(planOrders.every((cols) => cols === 'created_at,id'), `today's and a range's planned exercises are ordered by created_at, then id (${planOrders.join(' | ')})`)
+
     const broken = createSupabaseRonnieData(fakeSupabase(() => ({ data: null, error: { message: 'timeout' } })), 'u1', FIXTURE_TIME_ZONE, null)
     let message = null
     try { await broken.getSets(['w1']) } catch (err) { message = err.message }
