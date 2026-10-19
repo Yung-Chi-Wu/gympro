@@ -177,7 +177,10 @@ export async function loadTodayWorkout(
             supabase
                 .from('workout_planned_exercises')
                 .select(`id, exercise_id, exercises ( ${EXERCISE_COLUMNS} )`)
-                .eq('workout_id', workoutId),
+                .eq('workout_id', workoutId)
+                // The plan's order: start_today_workout writes each row a moment after the one before
+                .order('created_at')
+                .order('id'),
             supabase
                 .from('workout_sets')
                 .select(`id, exercise_id, set_number, created_at, ${SET_COLUMNS}`)

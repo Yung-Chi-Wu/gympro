@@ -224,6 +224,8 @@ export function createSupabaseRonnieData(
                 .gte('performed_at', startIso)
                 .lte('performed_at', endIso)
                 .order('performed_at')
+                .order('created_at', { referencedTable: 'workout_planned_exercises' })
+                .order('id', { referencedTable: 'workout_planned_exercises' })
             return (data ?? []) as Awaited<ReturnType<RonnieData['getWorkoutsBetween']>>
         },
 
@@ -235,6 +237,9 @@ export function createSupabaseRonnieData(
                 .gte('performed_at', startIso)
                 .lte('performed_at', endIso)
                 .order('performed_at', { ascending: false })
+                // Today's plan in its order, as the logging card shows it
+                .order('created_at', { referencedTable: 'workout_planned_exercises' })
+                .order('id', { referencedTable: 'workout_planned_exercises' })
                 .limit(1)
                 .maybeSingle()
             return data as Awaited<ReturnType<RonnieData['getLatestWorkoutBetween']>>
