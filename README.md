@@ -1,36 +1,240 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GymPro
 
-## Getting Started
+A workout tracker with an AI coach, in English and Traditional Chinese. It has three AI features, and an eval suite decides what ships in each:
 
-First, run the development server:
+- **Ronnie**: a coaching agent that works on the user's own training data.
+- **Coach G**: a routine planner.
+- **The weekly report**: a training review.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+**Live:** [gympro.chichi.mom](https://gympro.chichi.mom). I log every workout in it.
+
+![Ronnie beside today's workout. Asked about a sore elbow, it skips a swap that wouldn't help. Asked about upper chest, it offers one that is easy on the elbow, as a card the user taps.](docs/screenshots/ronnie.png)
+
+## Highlights
+
+- **An agent with guardrails.** Ronnie is a Claude tool-use agent with 12 tools over the user's data.
+  - Reads are free. A change to today's workout that the user names is made at once. A change Ronnie picks, and any change to a routine, is shown as a card, and code applies it when the user taps it.
+  - Code writes every line that states a fact: memory receipts, plan summaries, corrections.
+  - A reply that contradicts today's log is caught before it's shown.
+- **Evals decide what ships.**
+  - 71 scripted conversations against a fixture user, plus 66 search queries and 32 report scenarios.
+  - Graded by code checks and an LLM judge.
+  - Every run is recorded in the repo, and the model for each feature was chosen by eval.
+  - Mistakes found in evals are replayed in CI on every pull request, at no cost.
+- **Facts in code, words from the model.**
+  - The weekly report's numbers and advice come from a rule table in code, backed by 15 cited papers whose DOIs are checked in CI. The model only phrases what fired.
+  - Coach G's plan is built by code; a small model only reads the user's free text.
+- **Production infrastructure in Terraform.**
+  - Vercel and Supabase, with AWS for the report pipeline: SQS, Lambda and EventBridge Scheduler.
+  - No long-lived AWS keys.
+  - 12 CloudWatch alarms. Every AI call is traced with its tokens and cost.
+
+## What it does
+
+| | |
+|---|---|
+| **Log** | One set table for strength and cardio, with 8 log types: weight × reps, bodyweight plus added weight, assisted, timed, treadmill, machine level, rower, time only. Units are per exercise (kg or lb, km or mi). There is also a daily note and body weight. |
+| **Ronnie** | A chat coach. *"My elbow hurts, what instead of pushdowns?"*, *"What's left today?"*, *"Plan me a 4-day week."* It remembers injuries, likes and dislikes, equipment and schedule across conversations. |
+| **Coach G** | The user answers a few questions and gets a week of routines built from a 148-exercise library, rated for muscles and joint load. |
+| **Weekly report** | Generated when the user's training period ends, in their time zone. It shows the status, the key numbers, follow-up on last period's advice, and an action for each rule that fired. Each action names its data and the research behind it. |
+| **Layouts** | Separate phone and desktop layouts. On iPhone it installs to the home screen. |
+
+<p>
+  <img src="docs/screenshots/report.png" alt="The weekly report: the status, the numbers, the week's sessions, and one piece of advice with the research behind it" width="58%">
+  &nbsp;
+  <img src="docs/screenshots/today-phone.png" alt="Today's workout on a phone: done, under way and still to come" width="34%">
+</p>
+
+The screenshots are from a demo account with made-up training ([`supabase/seed/demo_account.sql`](supabase/seed/demo_account.sql)). The report and Ronnie's replies in them are real model output.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    user["Browser / home-screen app"] --> app["Next.js 16 on Vercel"]
+    app -->|"queries under row-level security"| db[("Supabase Postgres + pgvector")]
+    app -->|"Ronnie, Coach G"| claude["Claude API"]
+    app -->|"Vercel OIDC → IAM role"| bedrock["Bedrock: Cohere Embed v4"]
+    app -->|"Vercel OIDC → IAM role"| sqs["SQS report queue"]
+    sched["EventBridge Scheduler, hourly"] --> schedfn["Scheduler Lambda"]
+    schedfn --> sqs
+    sqs --> worker["Report worker Lambda"]
+    worker --> db
+    worker -->|"report text"| claude
+    schedfn -->|"AI health metrics"| cw["CloudWatch alarms → SNS email"]
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **App:** Next.js 16 (App Router, server actions and route handlers) on Vercel. The UI strings are in English and Traditional Chinese, using next-intl.
+- **Data:** Supabase Postgres, with row-level security on every user table. The policies are in the repo. pgvector holds the exercise embeddings.
+- **Reports:** an hourly scheduler finds the users whose period has ended in their own time zone, claims a report row, and queues it. The worker Lambda builds and writes the report. A request is retried up to 3 times, then goes to a dead-letter queue, which raises an alarm.
+- **AWS access:** Vercel deployments assume IAM roles through OIDC, with separate roles for production and preview. API keys live in SSM Parameter Store. Everything AWS-side is in [`infra/terraform`](infra/terraform).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How the AI parts are built
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Ronnie, an agent
 
-## Learn More
+[`lib/ronnie`](lib/ronnie): Claude Sonnet 5.5 in a tool-use loop.
 
-To learn more about Next.js, take a look at the following resources:
+| Tools | |
+|---|---|
+| Read | `get_today_workout`, `get_workout_history`, `get_training_summary`, `get_routine_exercises`, `search_exercises` |
+| Change today | `add_exercise_today`, `remove_exercise_today`, `recommend_exercise` (a swap card) |
+| Change routines | `propose_routine_change`, `plan_routines` (a plan card, built by Coach G's planner) |
+| Memory | `remember`, `forget` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Who decides a change.** A change to today's workout that the user names, Ronnie makes at once. A change Ronnie picks, and any change to a routine, is shown as a card, and code applies it after the tap. Removing an exercise from a routine asks twice. The model never makes a permanent change itself; that is enforced by code, not by the prompt.
+- **Memory.** The kinds the code acts on have fixed slots:
+  - one injury per joint, active or resolved;
+  - a like or dislike per exercise;
+  - equipment;
+  - schedule.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+  A new fact replaces the old one in code. Everything else goes into up to 30 free-text notes. The "saved" line under a reply is written by code from what was actually stored.
+- **Reply check.** Before a reply is shown, code reads it clause by clause. It looks for a claim that an exercise was done while today's log has no sets of it.
+  - If it finds one, the model rewrites the reply once, without tools.
+  - If the claim survives, a correction in the code's words is added.
 
-## Deploy on Vercel
+  This took the case that kept failing from 5/8 to 8/8 passing ([#62](https://github.com/Yung-Chi-Wu/gympro/pull/62)).
+- **Exercise search.** Keyword ranking, with plurals, word order and near-miss Chinese names, runs alongside pgvector search over Cohere Embed v4 vectors. If the keywords match a name, both rankings are fused with reciprocal rank fusion, so a typed name stays on top. Otherwise the vector ranking is used. Filters cover the main muscle and low load on a painful joint.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Coach G, a workflow
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [`lib/coach-g-planner.ts`](lib/coach-g-planner.ts) builds the week in code:
+  - the split, from the days a week;
+  - each day's exercises, from a fixed list per slot, leaving out those with high load on an injured joint;
+  - sets and reps, from the goal, the level and the session's length.
+
+  The same answers always give the same plan.
+- Claude Haiku 4.5 only reads the user's free text, such as injuries and exercises asked for by name.
+- The result is validated and saved in one database transaction.
+
+### Weekly report, a workflow
+
+[`lambda/ai-worker/src/report`](lambda/ai-worker/src/report) runs these steps:
+
+1. **Facts:** the numbers are computed in code. That covers sets per muscle, with half sets for secondary muscles, estimated 1RM trends, missed sessions, body weight and cardio minutes.
+2. **Rules:** a rule table fires on those facts, for example deload, regression, stall, low volume, missed sessions, weight trend, and cardio before legs. For low volume, code also picks the exercises to add the sets with.
+3. **Words:** Claude Sonnet 4.6 phrases only the rules that fired.
+   - Code checks the text before it's saved: Traditional, not Simplified, characters; punctuation; no Markdown; the user's weight unit; headline length; and that each action names every finding of its rule.
+   - A failure is retried with the specific error.
+   - After two failures, a code template is used.
+4. **Research:** each rule's research line comes from a table of 15 papers in [`lib/report/evidence.ts`](lib/report/evidence.ts), not from the model.
+
+## Evaluation
+
+| Suite | Size | Graded by |
+|---|---|---|
+| Ronnie, development | 37 conversations | Code checks on every run: the right tools, the right writes and nothing else, valid IDs, date ranges, language, no fallback. A judge (Claude Opus 5.5) with a rubric on 28 of them. |
+| Ronnie, held out | 5 | The same. Run only for acceptance. |
+| Ronnie, fitness knowledge | 8 | The judge |
+| Ronnie, memory | 21, some across several conversations | Code checks on the saved notes, plus the judge |
+| Exercise search | 46 queries, plus 20 held out | hit@1, hit@5, MRR |
+| Weekly report | 32 scenarios | Rule checks, a grader and the judge |
+
+**How it runs:**
+- A fixture user with fixed data stands in for the database ([`evals/ronnie/fixture.ts`](evals/ronnie/fixture.ts)). No real user data is used.
+- Each case runs k times, and high-risk cases are also reported as pass^k.
+- Every run is recorded under [`.claude/hillclimb`](.claude/hillclimb), one folder per iteration: what changed, and each case's grades and the reasons for them.
+- **Grading drift is blocked.** The runner refuses to start if the grader, cases, fixture or dependencies changed since a human last approved them. It checks this with a hash.
+
+**What the evals decided:**
+
+| Question | Measured | Decision |
+|---|---|---|
+| Which model for Ronnie? | Knowledge suite: Haiku 4.5 48%, Sonnet 5.5 88% (40 runs each) | Sonnet 5.5 |
+| Which model for reports? | Free-text reports: Haiku 4.5 23%, Sonnet 4.6 76% (66 runs each) | Sonnet 4.6. Then a redesign that moved the facts into code. |
+| Which embeddings? | Held-out hit@5: keywords 75%, Titan V2 70%, Cohere Embed v4 90% | Cohere Embed v4, gated with keywords |
+| Embed the muscles too? | Held-out hit@1 55% → 70%, MRR 0.73 → 0.81 (hit@5 95% → 90%) | Shipped |
+| Ronnie called an exercise still to come "already done" | 5/8 → 8/8, with a code check instead of more prompt | The check is in code ([#62](https://github.com/Yung-Chi-Wu/gympro/pull/62)) |
+| Reports misread cardio sessions | 12/15 → 15/15 after rewriting how sessions reach the model | Shipped |
+
+When an eval fails, the fix goes into code, tool design or tool results before the prompt. Evals are also used to delete prompt rules safely.
+
+## CI
+
+Every pull request runs these free checks, with no secrets ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)). `main` accepts changes only through a pull request with CI green.
+
+- Types, lint and the production build, for the app and the Lambda.
+- Ronnie's tools, turn loop and grader, offline.
+- **Replays of recorded conversations** ([`evals/ronnie/replays`](evals/ronnie/replays)). The recorded model output is fed through the current code, so a fixed mistake can't come back.
+- The report's rules, grader and queue behavior, offline.
+- Research citations resolve, by DOI.
+- Day boundaries are right in every time zone.
+- The app and the database enforce the same input limits.
+- Every server error reaches the error log.
+- Coach G accepts only what it can use and save.
+
+## Operations
+
+- **AI traces.** Every AI call stores its input, output, tool calls, tokens, cost and latency. Traces are kept 90 days, with a daily usage view.
+- **Errors.** Server and browser errors go to an `app_errors` table.
+- **Alarms.** 12 CloudWatch alarms send email when:
+  - AI calls fail, or half of an hour's calls fail (a dead key);
+  - a day's AI spend runs high;
+  - the scheduler goes silent;
+  - a report is stuck, or reaches the dead-letter queue;
+  - a Lambda nears its timeout;
+  - the app logs an error.
+- **Data integrity.** Today's workout and its plan are created in one transaction, under a per-user lock. Limits on sets, targets and amounts are enforced in both the app and the database.
+
+## Security
+
+- Row-level security on every user table, with the policies in [`supabase/migrations`](supabase/migrations). Conversation and memory tables are written only by the server.
+- No long-lived AWS credentials. Production and preview deployments get separate IAM roles through OIDC.
+- Queues are encrypted, size-capped and TLS-only.
+- Security headers are set, and sign-in redirects are validated. A Content Security Policy runs in report-only mode.
+- Dependabot is on, and GitHub Actions are pinned to commit SHAs.
+
+## Tech stack
+
+| | |
+|---|---|
+| Frontend | Next.js 16, React 19, Tailwind CSS 4, next-intl, Recharts |
+| Backend | Next.js route handlers and server actions, Supabase (Postgres, Auth, pgvector) |
+| AI | Anthropic Claude (Sonnet 5.5, Sonnet 4.6, Haiku 4.5; Opus 5.5 as the eval judge), Cohere Embed v4 on Amazon Bedrock |
+| AWS | Lambda, SQS, EventBridge Scheduler, CloudWatch, SNS, SSM Parameter Store, IAM OIDC, Budgets |
+| Infrastructure as code | Terraform |
+| CI | GitHub Actions |
+
+## Repository layout
+
+```
+app/                 Next.js routes: pages, API handlers, server actions
+components/          UI
+lib/ronnie/          Ronnie: agent loop, tools, executor, memory, search, reply check
+lib/coach-g*.ts      Coach G: request parsing and the code planner
+lib/report/          Report evidence table, volume units, queue
+lib/ai/              AI tracing
+lambda/ai-worker/    Report worker and hourly scheduler (Lambda), with the report evals
+evals/ronnie/        Ronnie evals: cases, fixture, grader, judge, runner, replays
+evals/search/        Exercise search eval
+infra/terraform/     AWS infrastructure
+supabase/            Migrations, exercise attributes, seed data
+scripts/             CI checks and data scripts
+.claude/hillclimb/   Recorded eval runs, one folder per iteration
+```
+
+## Running it locally
+
+You need Node 22 (see `.nvmrc`), a Supabase project and an Anthropic API key.
+
+```bash
+npm ci
+npm ci --prefix lambda/ai-worker   # esbuild and the worker's types, used by the scripts
+```
+
+Create `.env.local`:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+ANTHROPIC_API_KEY=...
+```
+
+Then run `npm run dev`.
+
+- **Without AWS:** exercise search uses keywords only, and reports can't be queued. Those need the Terraform stack, and `AWS_ROLE_ARN`, `AWS_REGION` and `SQS_QUEUE_URL` on Vercel.
+- **The database:** `supabase/migrations` holds the schema changes since October 2026. Each is one idempotent block. The base tables are older than the folder.
+
+The free checks run as in CI: `npm run lint`, `npx tsc --noEmit`, `node evals/ronnie/check-replays.mjs`, and the `check:*` scripts in `package.json`.
