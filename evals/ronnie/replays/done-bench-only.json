@@ -1,0 +1,36 @@
+{
+  "id": "done-bench-only",
+  "source": "ronnie/v33/traces/swap-question-only-zh_rep0.json",
+  "why": "'你今天已經做過臥推': the bench press has three sets today, so nothing is wrong and the reply goes out as written.",
+  "language": "zh-TW",
+  "user": "肩推有什麼替代動作？",
+  "model": [
+    {
+      "tool": "get_today_workout",
+      "input": {}
+    },
+    {
+      "tool": "search_exercises",
+      "input": {
+        "query": "shoulder press alternative",
+        "muscle": "shoulders"
+      }
+    },
+    {
+      "tool": "recommend_exercise",
+      "input": {
+        "exercise_id": "@Lateral Raise",
+        "replaces_exercise_id": "@Overhead Press"
+      }
+    },
+    {
+      "reply": "🔄 我推薦用側平舉來替代肩推。它主練中三角，關節負擔低，而且你今天已經做過臥推，前三角有被練到，不用再加。點卡片上的「Swap」就能換成今天的動作。\n\n💡 如果你想換成一樣是推類的動作，也可以告訴我你有哪些器材。"
+    }
+  ],
+  "expect": {
+    "claimed": [],
+    "shownExcludes": [
+      "📌"
+    ]
+  }
+}

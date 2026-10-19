@@ -1,0 +1,41 @@
+{
+  "id": "done-claim-incline-done",
+  "source": "ronnie/v33/traces/swap-question-only-zh_rep5.json",
+  "why": "'你今天已經做過臥推和上斜啞鈴臥推' with the incline press still to come. The retry says it another way and still claims it, so the correction goes under the retry.",
+  "language": "zh-TW",
+  "user": "肩推有什麼替代動作？",
+  "model": [
+    {
+      "tool": "get_today_workout",
+      "input": {}
+    },
+    {
+      "tool": "search_exercises",
+      "input": {
+        "query": "肩推替代 shoulder press alternative",
+        "muscle": "shoulders"
+      }
+    },
+    {
+      "tool": "recommend_exercise",
+      "input": {
+        "exercise_id": "@Lateral Raise",
+        "replaces_exercise_id": "@Overhead Press"
+      }
+    },
+    {
+      "reply": "🔄 我推薦用側平舉來替代肩推。它練側三角，關節負擔低。你今天已經做過臥推和上斜啞鈴臥推，前三角練得不少，側三角正好補上。點卡片上的「Swap」就能換。\n\n💡 如果你是想找另一種推的動作，也可以跟我說。"
+    }
+  ],
+  "expect": {
+    "claimed": [
+      "上斜啞鈴臥推"
+    ],
+    "fixed": false,
+    "shownIncludes": [
+      "上斜啞鈴臥推你今天已經練了",
+      "📌 更正：今天還沒有上斜啞鈴臥推的紀錄。"
+    ]
+  },
+  "retry": "🔄 我推薦側平舉。它練側三角，對關節的負擔低。上斜啞鈴臥推你今天已經練了，前三角練得不少，側三角正好補上。點卡片上的「Swap」就能換。"
+}
