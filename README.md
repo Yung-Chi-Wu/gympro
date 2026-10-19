@@ -8,6 +8,8 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
 
 **Live:** [gympro.chichi.mom](https://gympro.chichi.mom). I log every workout in it.
 
+![Ronnie beside today's workout. Asked about a sore elbow, it skips a swap that wouldn't help. Asked about upper chest, it offers one that is easy on the elbow, as a card the user taps.](docs/screenshots/ronnie.png)
+
 ## Highlights
 
 - **An agent with guardrails.** Ronnie is a Claude tool-use agent with 12 tools over the user's data.
@@ -36,6 +38,14 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
 | **Coach G** | The user answers a few questions and gets a week of routines built from a 148-exercise library, rated for muscles and joint load. |
 | **Weekly report** | Generated when the user's training period ends, in their time zone. It shows the status, the key numbers, follow-up on last period's advice, and an action for each rule that fired. Each action names its data and the research behind it. |
 | **Layouts** | Separate phone and desktop layouts. On iPhone it installs to the home screen. |
+
+<p>
+  <img src="docs/screenshots/report.png" alt="The weekly report: the status, the numbers, the week's sessions, and one piece of advice with the research behind it" width="58%">
+  &nbsp;
+  <img src="docs/screenshots/today-phone.png" alt="Today's workout on a phone: done, under way and still to come" width="34%">
+</p>
+
+The screenshots are from a demo account with made-up training ([`supabase/seed/demo_account.sql`](supabase/seed/demo_account.sql)). The report and Ronnie's replies in them are real model output.
 
 ## Architecture
 
