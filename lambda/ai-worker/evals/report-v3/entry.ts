@@ -2,3 +2,4 @@
 export { analyze } from '../../src/report/analyze'
 export { buildPrompt, findingName, generateNarrative, NARRATIVE_MODEL, optionNames } from '../../src/report/narrative'
 export { getClaudeClient } from '../../src/claude'
+export { optionLines } from '../../../../lib/report/report-text'

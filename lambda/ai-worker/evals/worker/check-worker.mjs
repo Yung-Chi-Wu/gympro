@@ -208,6 +208,27 @@ const client = (answers, delayMs = 0) => {
     }
 }
 
+// A low muscle's options are lines code writes under a short lead: one per muscle, both options
+// named, and the lead held to its length
+{
+    const sc = SCENARIOS.find((x) => x.id === 'first-report-zh')
+    const a = w.analyze(inputsFor(sc))
+    const zhInput = { ...a, note: null, language: 'zh-TW', weightUnit: 'kg' }
+    const lows = a.findings.filter((f) => f.rule === 'low_volume')
+    const lead = '這三個部位每週組數偏少，每個選一種方式補上。'
+    const c = client([{ headline: '第一份報告，先記下你的基準。', actions: { low_volume: lead } }])
+    const r = await quiet(() => w.generateNarrative(zhInput, 'claude-sonnet-4-6', { client: c }))
+    const item = r.narrative?.items.find((i) => i.rule === 'low_volume')
+    const lines = item?.lines ?? []
+    const named = lows.every((f) => lines.some((l) => [f.data.addToZh, f.data.newExerciseZh].filter(Boolean).every((x) => l.text.includes(x))))
+    check('a short low_volume lead is kept, with a line per low muscle naming its options', c.calls.length === 1 && item?.action === lead && lines.length === lows.length && named,
+        JSON.stringify(r.narrative ?? r))
+    check('a line reads as the app writes it', lines.some((l) => l.label === '二頭' && l.text === '槓鈴彎舉每週多做 4 組，或新增啞鈴彎舉，每週 4 組'), JSON.stringify(lines))
+    const long = w.textProblems({ ...r.narrative, items: [{ rule: 'low_volume', action: '背'.repeat(71) }] }, zhInput)
+    check('text check: a low_volume lead over 70 characters', long.some((x) => /low_volume action is 71 characters/.test(x)), JSON.stringify(long))
+    check('a low_volume lead needn\'t name the muscles: the lines do', !w.textProblems(r.narrative, zhInput).length, JSON.stringify(w.textProblems(r.narrative, zhInput)))
+}
+
 // A text that fails the checks is written again with its problems; the second one is kept
 {
     const sc = SCENARIOS.find((x) => x.id === 'goal-lift-few-sets-en')
@@ -238,8 +259,11 @@ const client = (answers, delayMs = 0) => {
         const a = w.analyze(inputsFor(sc))
         for (const language of ['en', 'zh-TW']) {
             const n = w.fallbackNarrative(a.facts, a.findings, language)
-            const text = [n.headline, ...n.items.map((i) => i.action)].join(' ')
+            const text = [n.headline, ...n.items.flatMap((i) => [i.action, ...(i.lines ?? []).flatMap((l) => [l.label, l.text])])].join(' ')
             if (/[{}]/.test(text)) problems.push(`${sc.id} ${language}: ${text}`)
+            const lows = a.findings.filter((f) => f.rule === 'low_volume')
+            const lines = n.items.find((i) => i.rule === 'low_volume')?.lines ?? []
+            if (lines.length !== lows.length) problems.push(`${sc.id} ${language}: ${lines.length} lines for ${lows.length} low muscles`)
             const p = w.textProblems(n, { ...a, note: sc.note ?? null, language, weightUnit: sc.weightUnit ?? 'kg' })
             if (p.length) problems.push(`${sc.id} ${language}: ${p.join('; ')}`)
         }

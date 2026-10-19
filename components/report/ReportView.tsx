@@ -187,6 +187,17 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                                     <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-plate text-xs font-bold text-chalk dark:bg-chalk dark:text-plate">{i + 1}</span>
                                     <p className="font-semibold leading-relaxed">{item.action}</p>
                                 </div>
+                                {/* Written by code, one per finding: a low muscle and its options */}
+                                {!!item.lines?.length && (
+                                    <ul className="mt-1.5 space-y-1 pl-[34px] text-sm leading-relaxed">
+                                        {item.lines.map((line) => (
+                                            <li key={line.label}>
+                                                {/* In the report's language, which may not be the app's now */}
+                                                <span className="font-semibold">{line.label}</span>{/[一-鿿]/.test(line.label) ? '：' : ': '}{line.text}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                                 {/* The reasons and research are in the full report */}
                                 {!summary && (
                                     <dl className="space-y-1 pl-[34px] text-[13px] text-ink/70 dark:text-white/70">

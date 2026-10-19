@@ -1,11 +1,11 @@
 import en from '../../messages/en.json'
 import zh from '../../messages/zh-TW.json'
 import { unitLabel } from './volume'
-import type { Finding, ReportFacts, ReportNarrative, RuleId } from './types'
+import type { Finding, NarrativeLine, ReportFacts, ReportNarrative, RuleId } from './types'
 
 // The report's text in the app's own words (messages/*.json), for the report worker: the
-// Chinese terms the model must use, and the text the report falls back to when the model's
-// fails its checks twice.
+// Chinese terms the model must use, the lines code writes under an action, and the text the
+// report falls back to when the model's fails its checks twice.
 
 /**
  * The app's Chinese word for each phrase the brief uses in English. Without them the model
@@ -50,32 +50,60 @@ export function formatLabel(message: string, values: Record<string, string>): st
         .replace(/\{(\w+)\}/g, (_, name: string) => values[name] ?? '')
 }
 
+const labelIn = (language: string) => (key: string, values: Record<string, string>) =>
+    formatLabel(String(messageAt(language === 'zh-TW' ? zh : en, `reportV3.${key}`) ?? ''), values)
+
+/**
+ * The lines under a low_volume action, one per muscle: the ways to add its sets that
+ * withExerciseOptions picked, for the user to choose between. In the action's prose, four low
+ * muscles with two options each made one paragraph of over 200 characters (the owner's report,
+ * 2026-10-18), so code lists them and the action is a short lead.
+ */
+export function optionLines(findings: Finding[], language: string, unit: 'week' | 'cycle'): NarrativeLine[] {
+    const isZh = language === 'zh-TW'
+    const t = labelIn(language)
+    const count = (n: unknown) => (Number(n) === 1 ? 'one' : 'other')
+    return findings.filter((f) => f.rule === 'low_volume' && f.subject).map((f) => {
+        const d = f.data
+        const name = (k: 'addTo' | 'newExercise') => String((isZh && d[`${k}Zh`]) || d[k])
+        const options = [
+            d.addTo != null && t(Number(d.addToHalf) ? 'options.addToHalf' : 'options.addTo', { exercise: name('addTo'), sets: String(d.addToSets), count: count(d.addToSets), unit }),
+            d.newExercise != null && t('options.newExercise', { exercise: name('newExercise'), sets: String(d.newExerciseSets), count: count(d.newExerciseSets), unit }),
+        ].filter((x): x is string => !!x)
+        return {
+            label: unitLabel(String(f.subject), language, (x) => x),
+            text: options.length ? options.join(t('options.or', {})) : t('options.none', { sets: String(d.addSets), count: count(d.addSets), unit }),
+        }
+    })
+}
+
+/** Each action with the lines code writes under it: a low_volume action gets one per muscle */
+export function withLines(narrative: ReportNarrative, findings: Finding[], language: string, unit: 'week' | 'cycle'): ReportNarrative {
+    return {
+        ...narrative,
+        items: narrative.items.map((i) => (i.rule === 'low_volume' ? { ...i, lines: optionLines(findings, language, unit) } : i)),
+    }
+}
+
 /**
  * The report's text from the app's own labels: the status line as the headline, and each fired
- * rule's short advice with every item named, a low muscle's options in brackets. Plain, but always right, so a report whose text
- * failed its checks twice still arrives instead of failing.
+ * rule's short advice with every item named; a low muscle's options are its lines. Plain, but
+ * always right, so a report whose text failed its checks twice still arrives instead of failing.
  */
 export function fallbackNarrative(facts: ReportFacts, findings: Finding[], language: string): ReportNarrative {
     const isZh = language === 'zh-TW'
-    const t = (key: string, values: Record<string, string>) => formatLabel(String(messageAt(isZh ? zh : en, `reportV3.${key}`) ?? ''), values)
+    const t = labelIn(language)
     const unit = facts.period.days === 7 ? 'week' : 'cycle'
     const rules = [...new Set(findings.map((f) => f.rule))] as RuleId[]
     const nameOf = (f: Finding) => String((isZh && f.data.nameZh) || f.data.name || '')
     const muscleOf = (f: Finding) => (f.subject ? unitLabel(f.subject, language, (x) => x) : '')
-    // A low muscle's ways to add sets, which its advice must offer
-    const optionsOf = (f: Finding) => (['addTo', 'newExercise'] as const)
-        .map((k) => (isZh ? f.data[`${k}Zh`] : null) ?? f.data[k])
-        .filter((v): v is string => typeof v === 'string')
-    const withOptions = (text: string, f: Finding) => {
-        const options = optionsOf(f)
-        return options.length ? `${text}${isZh ? `（${options.join('或')}）` : ` (${options.join(' or ')})`}` : text
-    }
     const end = isZh ? '。' : '.'
-    return {
+    return withLines({
         headline: `${t(`statusHint.${facts.status}`, { unit })}${end}`,
         items: rules.map((rule) => {
-            const each = findings.filter((f) => f.rule === rule).map((f) => withOptions(t(`advised.${rule}`, { lift: nameOf(f), muscle: muscleOf(f), unit }), f))
+            if (rule === 'low_volume') return { rule, action: t('options.lead', {}) }
+            const each = findings.filter((f) => f.rule === rule).map((f) => t(`advised.${rule}`, { lift: nameOf(f), muscle: muscleOf(f), unit }))
             return { rule, action: `${[...new Set(each)].join(isZh ? '；' : '; ')}${end}` }
         }),
-    }
+    }, findings, language, unit)
 }

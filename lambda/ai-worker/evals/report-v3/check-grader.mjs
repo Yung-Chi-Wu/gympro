@@ -11,7 +11,7 @@ import { inputsFor, SCENARIOS } from './scenarios.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 execFileSync(join(here, '..', '..', 'node_modules/.bin/esbuild'), ['evals/report-v3/entry.ts', '--bundle', '--platform=node', '--format=cjs', '--outfile=evals/report-v3/dist/report.cjs', '--log-level=warning'], { cwd: join(here, '..', '..'), stdio: 'inherit' })
-const { analyze, findingName, optionNames } = createRequire(import.meta.url)(join(here, 'dist', 'report.cjs'))
+const { analyze, findingName, optionLines, optionNames } = createRequire(import.meta.url)(join(here, 'dist', 'report.cjs'))
 
 let failures = 0
 const check = (ok, msg) => { if (!ok) { failures++; console.log(`FAIL ${msg}`) } }
@@ -19,8 +19,8 @@ const check = (ok, msg) => { if (!ok) { failures++; console.log(`FAIL ${msg}`) }
 for (const c of SCENARIOS) {
     const { findings, facts } = analyze(inputsFor(c))
     const zh = c.language === 'zh-TW'
-    // Ideal: one action per fired rule in priority order (a deload first), naming every item of it
-    // and, for a low muscle, both exercises to choose between
+    // Ideal: one action per fired rule in priority order (a deload first), naming every item of it;
+    // for low muscles a short lead, with code's lines naming each and both exercises to choose between
     const names = Object.fromEntries(findings.map((f) => [f.id, findingName(f, c.language)]))
     const options = Object.fromEntries(findings.map((f) => [f.id, optionNames(f, c.language)]))
     const rules = [...new Set(findings.map((f) => f.rule))]
@@ -28,7 +28,9 @@ for (const c of SCENARIOS) {
     const ideal = {
         narrative: {
             headline: zh ? '這週整體穩定，照下面的重點調整就好。' : 'A steady week; the points below are what to adjust.',
-            items: rules.map((r) => ({ rule: r, action: `${named(r)}${zh ? '下週照這個方向調整。' : ' adjust this next week.'}` })),
+            items: rules.map((r) => (r === 'low_volume'
+                ? { rule: r, action: zh ? '每個部位選一種方式補上組數。' : 'Pick one way for each muscle.', lines: optionLines(findings, c.language, facts.period.days === 7 ? 'week' : 'cycle') }
+                : { rule: r, action: `${named(r)}${zh ? '下週照這個方向調整。' : ' adjust this next week.'}` })),
         },
         findings, status: facts.status, brief: '', names, options,
     }
@@ -44,18 +46,25 @@ for (const c of SCENARIOS) {
         if (rules.length > 1) check(programmaticGrade(c, broken({ items: ideal.narrative.items.slice(1) })).grade.advice_valid === 0, `${c.id}: leaving out a fired rule should fail`)
         const withName = findings.find((f) => names[f.id])
         if (withName) {
-            const dropName = ideal.narrative.items.map((i) => ({ ...i, action: i.action.replaceAll(names[withName.id], '') }))
-            check(programmaticGrade(c, broken({ items: dropName })).grade.covers_all === 0, `${c.id}: an action that leaves out ${names[withName.id]} should fail`)
+            const drop = (text, name) => text.replaceAll(name, '')
+            const dropName = ideal.narrative.items.map((i) => ({ ...i, action: drop(i.action, names[withName.id]), lines: i.lines?.map((l) => ({ label: drop(l.label, names[withName.id]), text: drop(l.text, names[withName.id]) })) }))
+            check(programmaticGrade(c, broken({ items: dropName })).grade.covers_all === 0, `${c.id}: an item that leaves out ${names[withName.id]} should fail`)
         }
         const withOption = findings.find((f) => options[f.id].length)
         if (withOption) {
             const option = options[withOption.id].at(-1)
-            const dropOption = ideal.narrative.items.map((i) => ({ ...i, action: i.action.replaceAll(option, '') }))
+            const dropOption = ideal.narrative.items.map((i) => ({ ...i, action: i.action.replaceAll(option, ''), lines: i.lines?.map((l) => ({ ...l, text: l.text.replaceAll(option, '') })) }))
             const g = programmaticGrade(c, broken({ items: dropOption })).grade
             check(hasNote(c) ? g.options_named === null : g.options_named === 0, `${c.id}: an action that leaves out ${option} should ${hasNote(c) ? 'be left to the judge (a note)' : 'fail'}`)
         }
     } else {
         check(programmaticGrade(c, broken({ items: [{ rule: 'low_volume', action: 'x' }] })).grade.advice_valid === 0, `${c.id}: advice when nothing fired should fail`)
+    }
+    if (rules.includes('low_volume')) {
+        const long = ideal.narrative.items.map((i) => (i.rule === 'low_volume' ? { ...i, action: zh ? '組'.repeat(71) : 'set '.repeat(46) } : i))
+        check(programmaticGrade(c, broken({ items: long })).grade.lead_short === 0, `${c.id}: a low_volume lead over its limit should fail`)
+    } else {
+        check(g.lead_short === null, `${c.id}: no low_volume, no lead to measure`)
     }
     if (rules.includes('deload') && rules.length > 1) {
         check(programmaticGrade(c, broken({ items: [...ideal.narrative.items].reverse() })).grade.deload_first === 0, `${c.id}: deload not first should fail`)

@@ -248,7 +248,15 @@ export interface ReportNarrative {
      *  before 2026-10-09 have one item per finding (findingId) instead. */
     items: NarrativeItem[]
 }
-export type NarrativeItem = { action: string } & ({ rule: RuleId; findingId?: undefined } | { findingId: string; rule?: undefined })
+/**
+ * One finding's part of an action, written by code and shown under it: a low muscle and the ways
+ * to add its sets. Reports saved before 2026-10-19 have none; their actions name every item.
+ */
+export interface NarrativeLine {
+    label: string
+    text: string
+}
+export type NarrativeItem = { action: string; lines?: NarrativeLine[] } & ({ rule: RuleId; findingId?: undefined } | { findingId: string; rule?: undefined })
 
 export interface ReportV3 {
     version: 3
