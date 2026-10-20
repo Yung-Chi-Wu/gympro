@@ -428,7 +428,8 @@
             "newExercise": "新增{exercise}，每{unit, select, week {週} other {輪}} {sets} 組",
             "none": "每{unit, select, week {週} other {輪}}多做 {sets} 組主要練它的動作",
             "or": "，或",
-            "lead": "下面每個部位選一種方式補上組數。"
+            "lead": "每個部位選一種方式補上組數。",
+            "leadOne": "選一種方式補上組數。"
         },
         "advised": {
             "lift_stalled": "{lift}先加次數再加重",

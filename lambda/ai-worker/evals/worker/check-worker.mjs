@@ -208,25 +208,30 @@ const client = (answers, delayMs = 0) => {
     }
 }
 
-// A low muscle's options are lines code writes under a short lead: one per muscle, both options
-// named, and the lead held to its length
+// Low muscles: code writes the lead and a line per muscle with both options; the model adds only
+// a sentence for a note, empty without one, held to its length
 {
     const sc = SCENARIOS.find((x) => x.id === 'first-report-zh')
     const a = w.analyze(inputsFor(sc))
     const zhInput = { ...a, note: null, language: 'zh-TW', weightUnit: 'kg' }
     const lows = a.findings.filter((f) => f.rule === 'low_volume')
-    const lead = '這三個部位每週組數偏少，每個選一種方式補上。'
-    const c = client([{ headline: '第一份報告，先記下你的基準。', actions: { low_volume: lead } }])
-    const r = await quiet(() => w.generateNarrative(zhInput, 'claude-sonnet-4-6', { client: c }))
-    const item = r.narrative?.items.find((i) => i.rule === 'low_volume')
-    const lines = item?.lines ?? []
+    const run = async (lowText) => {
+        const c = client([{ headline: '第一份報告，先記下你的基準。', actions: { low_volume: lowText } }])
+        const r = await quiet(() => w.generateNarrative(zhInput, 'claude-sonnet-4-6', { client: c }))
+        return { calls: c.calls.length, r, item: r.narrative?.items.find((i) => i.rule === 'low_volume') }
+    }
+    const plain = await run('')
+    const lines = plain.item?.lines ?? []
     const named = lows.every((f) => lines.some((l) => [f.data.addToZh, f.data.newExerciseZh].filter(Boolean).every((x) => l.text.includes(x))))
-    check('a short low_volume lead is kept, with a line per low muscle naming its options', c.calls.length === 1 && item?.action === lead && lines.length === lows.length && named,
-        JSON.stringify(r.narrative ?? r))
+    check('no note: the action is code\'s lead, with a line per low muscle naming its options', plain.calls === 1 && plain.item?.action === '每個部位選一種方式補上組數。' && lines.length === lows.length && named,
+        JSON.stringify(plain.r.narrative ?? plain.r))
     check('a line reads as the app writes it', lines.some((l) => l.label === '二頭' && l.text === '槓鈴彎舉每週多做 4 組，或新增啞鈴彎舉，每週 4 組'), JSON.stringify(lines))
-    const long = w.textProblems({ ...r.narrative, items: [{ rule: 'low_volume', action: '背'.repeat(71) }] }, zhInput)
-    check('text check: a low_volume lead over 70 characters', long.some((x) => /low_volume action is 71 characters/.test(x)), JSON.stringify(long))
-    check('a low_volume lead needn\'t name the muscles: the lines do', !w.textProblems(r.narrative, zhInput).length, JSON.stringify(w.textProblems(r.narrative, zhInput)))
+    const noted = await run('肩後束先用反向蝴蝶機，從輕重量開始。')
+    check('a sentence for a note comes after the lead', noted.item?.action === '每個部位選一種方式補上組數。肩後束先用反向蝴蝶機，從輕重量開始。', JSON.stringify(noted.item))
+    const long = w.textProblems({ headline: '基準。', items: [{ rule: 'low_volume', action: '背'.repeat(51) }] }, zhInput)
+    check('text check: a low_volume sentence over 50 characters', long.some((x) => /low_volume text is 51 characters/.test(x)), JSON.stringify(long))
+    const one = w.fallbackNarrative(w.analyze(inputsFor(SCENARIOS.find((x) => x.id === 'shoulder-pain-note-zh'))).facts, w.analyze(inputsFor(SCENARIOS.find((x) => x.id === 'shoulder-pain-note-zh'))).findings, 'zh-TW')
+    check('one low muscle gets the one-muscle lead', one.items.find((i) => i.rule === 'low_volume')?.action === '選一種方式補上組數。', JSON.stringify(one.items))
 }
 
 // A text that fails the checks is written again with its problems; the second one is kept

@@ -57,7 +57,9 @@ const labelIn = (language: string) => (key: string, values: Record<string, strin
  * The lines under a low_volume action, one per muscle: the ways to add its sets that
  * withExerciseOptions picked, for the user to choose between. In the action's prose, four low
  * muscles with two options each made one paragraph of over 200 characters (the owner's report,
- * 2026-10-18), so code lists them and the action is a short lead.
+ * 2026-10-18), so code lists them, and code writes the lead too: the model's leads to them varied
+ * from run to run without adding anything (eval v11, v12). The model adds only a sentence for a
+ * note that bears on the options.
  */
 export function optionLines(findings: Finding[], language: string, unit: 'week' | 'cycle'): NarrativeLine[] {
     const isZh = language === 'zh-TW'
@@ -77,11 +79,21 @@ export function optionLines(findings: Finding[], language: string, unit: 'week' 
     })
 }
 
-/** Each action with the lines code writes under it: a low_volume action gets one per muscle */
+/**
+ * Each action with what code writes for it. A low_volume item comes in with the model's sentence
+ * for a note, or an empty action, and leaves with the lead before that sentence and a line per muscle.
+ */
 export function withLines(narrative: ReportNarrative, findings: Finding[], language: string, unit: 'week' | 'cycle'): ReportNarrative {
+    const t = labelIn(language)
+    const lines = optionLines(findings, language, unit)
+    const lead = t(lines.length === 1 ? 'options.leadOne' : 'options.lead', {})
     return {
         ...narrative,
-        items: narrative.items.map((i) => (i.rule === 'low_volume' ? { ...i, lines: optionLines(findings, language, unit) } : i)),
+        items: narrative.items.map((i) => {
+            if (i.rule !== 'low_volume') return i
+            const note = i.action.trim()
+            return { ...i, action: note ? `${lead}${language === 'zh-TW' ? '' : ' '}${note}` : lead, lines }
+        }),
     }
 }
 
@@ -101,7 +113,7 @@ export function fallbackNarrative(facts: ReportFacts, findings: Finding[], langu
     return withLines({
         headline: `${t(`statusHint.${facts.status}`, { unit })}${end}`,
         items: rules.map((rule) => {
-            if (rule === 'low_volume') return { rule, action: t('options.lead', {}) }
+            if (rule === 'low_volume') return { rule, action: '' }
             const each = findings.filter((f) => f.rule === rule).map((f) => t(`advised.${rule}`, { lift: nameOf(f), muscle: muscleOf(f), unit }))
             return { rule, action: `${[...new Set(each)].join(isZh ? '；' : '; ')}${end}` }
         }),

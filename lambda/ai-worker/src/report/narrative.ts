@@ -9,8 +9,9 @@ import type { CardioFacts, DayNote, Finding, FollowUp, LiftFacts, ReportFacts, R
 
 // The model's whole job in the report: one headline, and one plain-language action for each
 // rule code has already fired, covering every finding of that rule (all the muscles, all the
-// lifts), so no advice is dropped. A low muscle's ways to add sets are the exception: code lists
-// them under the action (optionLines), and the action is a short lead. Every number it may use
+// lifts), so no advice is dropped. Low muscles are the exception: code writes that action and lists
+// each muscle's ways to add sets under it (withLines), and the model adds only a sentence for a
+// note that bears on them. Every number it may use
 // is in the brief; it never sees raw sets, so it has nothing to recompute. Code decides the
 // order: by priority, a deload first.
 
@@ -26,7 +27,7 @@ const advice = (unit: WeightUnit, period: string): Record<RuleId, string> => ({
     deload: 'Plan one lighter week: the same exercises at about half of each lift\'s sets this period (listed above) and clearly lighter weights, then build back up. If a note mentions sleep or stress, suggest looking at it; don\'t claim it is the cause.',
     lift_regressed: 'Stay at holdAt (this period\'s weight; for a bodyweight lift, the same reps) instead of adding load, check recovery (sleep, food, stress) and technique, and aim to get back to previousBest before pushing on.',
     lift_stalled: `Double progression: keep the weight and add reps on every set until all sets reach the top of the rep range, then add the smallest jump (${unit === 'lb' ? '5 lb upper body, 10 lb lower body' : '2.5 kg upper body, 5 kg lower body'}).`,
-    low_volume: `It takes addSets more sets each ${period} to bring the muscle to 10 a week. Under this action the user sees each muscle with its options (the exercises and sets in its data), so don't list the muscles, the options or their numbers. Write one short sentence telling the user to pick one option for each muscle, or, with one muscle, one of its options. If a note bears on a muscle or one of its options (pain, discomfort, missing equipment), add one short sentence fitting the advice to it, such as which option to prefer or a lighter start; without such a note, say nothing about notes. Write about their training, not about the app or its lists. Add no exercise of your own unless a note rules out every option a muscle has.`,
+    low_volume: `It takes addSets more sets each ${period} to bring the muscle to 10 a week. Code writes this action: it tells the user to pick one way for each muscle and lists each muscle with its options (the exercises and sets in its data). Your text for low_volume is only for a note: if a note bears on a muscle or one of its options (pain, discomfort, missing equipment), one short sentence fitting the advice to it, naming the muscle, such as which option to prefer or a lighter start; otherwise an empty string. Add no exercise of your own unless a note rules out every option a muscle has.`,
     missed_sessions: 'Name the missed sessions and suggest a realistic way to fit those routines in, as planned, or plan around those days. Making them up is what brings lowGroups (muscles low only because of these sessions) back into range, so don\'t swap in other exercises. Never scold; if a note explains it, acknowledge that.',
     weight_trend: 'Body weight is moving against the goal: suggest a small daily calorie change (about 200-300 kcal) and steady weigh-ins, not a crash diet.',
     cardio_first: `On a lower-body day, do the leg lifts before the cardio (the cardio and lift in the data), or the cardio at another time; a 5-10 minute warm-up before lifting is fine. It is about leg strength: don't say cardio hurts muscle growth, and don't suggest doing more or less cardio.`,
@@ -93,7 +94,9 @@ const rulesOf = (findings: Finding[]): RuleId[] => [...new Set(findings.map((f) 
 function schemaFor(findings: Finding[]) {
     return z.object({
         headline: z.string().describe('One sentence: the most important thing about this period.'),
-        actions: z.object(Object.fromEntries(rulesOf(findings).map((r) => [r, z.string().describe(`What to do about ${r}, covering every item listed under it`)]))).strict(),
+        actions: z.object(Object.fromEntries(rulesOf(findings).map((r) => [r, z.string().describe(r === 'low_volume'
+            ? 'Only a sentence fitting the low muscles\' options to a note that bears on them, or an empty string'
+            : `What to do about ${r}, covering every item listed under it`)]))).strict(),
     })
 }
 
@@ -233,7 +236,7 @@ export function buildPrompt(input: NarrativeInput): string {
 ${lines.join('\n')}
 
 1. headline: one sentence the user reads first, the most important thing about this ${unit}, consistent with the status. It may use a number from above. ${zh ? 'At most 40 characters.' : 'At most 25 words.'}
-2. actions: ${findings.length ? `one for each rule above. Each says exactly what to do next ${unit} about every item under its rule, naming each one as written above (every muscle, every lift), with the exercise, sets, weights or reps from the data; as short as covering every item allows. Don't repeat the reason; the app shows it. Fit every action to the user's notes: if one mentions pain or discomfort in a movement or joint, don't simply add sets or load there; suggest a pain-free alternative or a lighter range, and getting it checked if it persists.${lowFired ? ` low_volume is the exception: the app lists its muscles and options, so its action is only the short text its advice describes${zh ? ` (at most ${LOW_VOLUME_MAX.zh} characters)` : ` (at most ${LOW_VOLUME_MAX.en} words)`}.` : ''}` : 'leave it empty: nothing fired, so give no advice.'}
+2. actions: ${findings.length ? `one for each rule above. Each says exactly what to do next ${unit} about every item under its rule, naming each one as written above (every muscle, every lift), with the exercise, sets, weights or reps from the data; as short as covering every item allows. Don't repeat the reason; the app shows it. Fit every action to the user's notes: if one mentions pain or discomfort in a movement or joint, don't simply add sets or load there; suggest a pain-free alternative or a lighter range, and getting it checked if it persists.${lowFired ? ` low_volume is the exception: code writes its action and lists its muscles and options, so its text is only the note sentence its advice describes, or an empty string${zh ? ` (at most ${LOW_VOLUME_NOTE_MAX.zh} characters)` : ` (at most ${LOW_VOLUME_NOTE_MAX.en} words)`}.` : ''}` : 'leave it empty: nothing fired, so give no advice.'}
 
 Use only the numbers above; never invent data. No myths, no diagnosis, no scolding. Plain text only: no Markdown, no lists inside a field. ${languageRule}`
 }
@@ -245,8 +248,8 @@ const HALF_WIDTH_AFTER_CJK = /[一-鿿][,?!:;]/
 const MARKDOWN = /\*\*|__|`|^\s*#|^\s*[-*]\s|^\s*\d+\.\s/m
 const WRONG_UNIT: Record<WeightUnit, RegExp> = { kg: /\d\s*(lbs?|磅)/i, lb: /\d\s*(kg|公斤)/i }
 const HEADLINE_MAX = { zh: 45, en: 30 }
-/** A low_volume action is a lead to the lines code lists under it, with room for a note's sentence */
-export const LOW_VOLUME_MAX = { zh: 70, en: 45 }
+/** The model's sentence for a note on a low muscle's options, after the lead code writes */
+export const LOW_VOLUME_NOTE_MAX = { zh: 50, en: 30 }
 
 /** Each problem with a report's text, in words the retry can act on; empty when it is fine */
 export function textProblems(n: ReportNarrative, input: NarrativeInput): string[] {
@@ -266,12 +269,12 @@ export function textProblems(n: ReportNarrative, input: NarrativeInput): string[
     const length = zh ? [...n.headline.replace(/\s/g, '')].length : n.headline.split(/\s+/).filter(Boolean).length
     const max = zh ? HEADLINE_MAX.zh : HEADLINE_MAX.en
     if (length > max) problems.push(`the headline is ${length} ${zh ? 'characters' : 'words'}; keep it to ${max}`)
-    // A low_volume action is short: its muscles and options are the lines under it
-    const lead = n.items.find((i) => i.rule === 'low_volume')?.action
-    if (lead != null) {
-        const leadLength = zh ? [...lead.replace(/\s/g, '')].length : lead.split(/\s+/).filter(Boolean).length
-        const leadMax = zh ? LOW_VOLUME_MAX.zh : LOW_VOLUME_MAX.en
-        if (leadLength > leadMax) problems.push(`the low_volume action is ${leadLength} ${zh ? 'characters' : 'words'}; keep it to ${leadMax}: the app lists the muscles and their options under it`)
+    // The model's low_volume text is one sentence for a note: code writes the rest
+    const note = n.items.find((i) => i.rule === 'low_volume')?.action
+    if (note) {
+        const noteLength = zh ? [...note.replace(/\s/g, '')].length : note.split(/\s+/).filter(Boolean).length
+        const noteMax = zh ? LOW_VOLUME_NOTE_MAX.zh : LOW_VOLUME_NOTE_MAX.en
+        if (noteLength > noteMax) problems.push(`the low_volume text is ${noteLength} ${zh ? 'characters' : 'words'}; keep it to one sentence of at most ${noteMax}, only for a note: code lists the muscles and their options`)
     }
     // Every other item named in its rule's action
     for (const f of input.findings) {
@@ -341,7 +344,8 @@ export async function generateNarrative(input: NarrativeInput, model: string = N
             else {
                 const { headline, actions } = parsed.data as { headline: string; actions: Record<string, string> }
                 const narrative: ReportNarrative = { headline, items: rulesOf(input.findings).map((rule) => ({ rule, action: actions[rule] })) }
-                const problems = headline.trim() && narrative.items.every((i) => i.action?.trim()) ? textProblems(narrative, input) : ['empty text']
+                // A low_volume text is empty without a note that bears on it
+                const problems = headline.trim() && narrative.items.every((i) => i.rule === 'low_volume' || i.action?.trim()) ? textProblems(narrative, input) : ['empty text']
                 if (!problems.length) return { narrative: withLines(narrative, input.findings, input.language, input.facts.period.days === 7 ? 'week' : 'cycle'), prompt, model: response.model, usage, attempts: attempt }
                 lastProblem = problems.join('; ')
                 feedback = lastProblem

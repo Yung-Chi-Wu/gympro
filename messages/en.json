@@ -428,7 +428,8 @@
             "newExercise": "add {exercise}, {sets} {count, select, one {set} other {sets}} {unit, select, week {a week} other {a cycle}}",
             "none": "{sets} more {count, select, one {set} other {sets}} {unit, select, week {a week} other {a cycle}} of an exercise that mainly trains it",
             "or": ", or ",
-            "lead": "Add the sets below, one way for each muscle."
+            "lead": "Pick one way to add sets for each muscle.",
+            "leadOne": "Pick one way to add the sets."
         },
         "advised": {
             "lift_stalled": "Add reps on {lift}",
