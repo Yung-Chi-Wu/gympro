@@ -78,8 +78,9 @@ resource "aws_lambda_function" "report_scheduler" {
   filename         = data.archive_file.ai_worker_zip.output_path
   source_code_hash = data.archive_file.ai_worker_zip.output_base64sha256
 
-  timeout     = 30
-  memory_size = 128
+  timeout = 30
+  # At 128 MB a run used 114-124 MB (Oct 2026), close to being stopped mid-run
+  memory_size = 256
 
   environment {
     variables = {
