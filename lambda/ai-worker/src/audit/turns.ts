@@ -30,7 +30,12 @@ export interface Turn {
     newConversation: boolean
     edited: boolean
     toolCalls: ToolCall[]
+    /** The reply as shown: Ronnie's words with the app's lines (lib/ronnie/agent.ts) */
     reply: string
+    /** What Ronnie itself wrote */
+    own: string
+    /** What the app added: 📝 note receipts, the 📌 correction, the 📋 plan line, a card's confirmations */
+    appLines: string[]
 }
 
 export interface Conversation {
@@ -74,12 +79,29 @@ export function toolCallsOf(messages: unknown[]): ToolCall[] {
     })))
 }
 
+/** Ronnie's own words: the text of its last message that called no tool, less the 📌 correction the app appends to it */
+export function ownTextOf(messages: unknown[]): string {
+    const last = [...messages].reverse().find((m) => (m as { role?: string })?.role === 'assistant' && !blocksOf(m).some((b) => b.type === 'tool_use'))
+    return blocksOf(last).filter((b) => b.type === 'text' && typeof b.text === 'string' && !b.text.trimStart().startsWith('📌')).map((b) => b.text!.trim()).filter(Boolean).join('\n\n')
+}
+
+/** Compared without Markdown or spacing: the app strips Markdown from Ronnie's text before showing it */
+const plain = (text: string) => text.replace(/[*_`#]/g, '').replace(/\s+/g, '')
+
+/** The paragraphs of the reply shown that Ronnie didn't write */
+export function appLinesOf(reply: string, own: string): string[] {
+    const mine = plain(own)
+    return reply.split(/\n{2,}/).map((p) => p.trim()).filter((p) => p && !(mine && mine.includes(plain(p))))
+}
+
 /** A trace as a turn, or null when it has no reply to review (the turn failed) */
 export function turnOf(row: RonnieTraceRow): Turn | null {
     const reply = row.output?.reply
     if (typeof reply !== 'string' || !reply.trim()) return null
     const user = String(row.input?.message ?? '')
     const edited = row.input?.editFrom != null
+    const messages = Array.isArray(row.output?.messages) ? row.output.messages : []
+    const own = ownTextOf(messages)
     return {
         traceId: row.id,
         at: row.created_at,
@@ -87,8 +109,10 @@ export function turnOf(row: RonnieTraceRow): Turn | null {
         event: user.startsWith(EVENT_PREFIX),
         newConversation: edited || !row.input?.history?.length,
         edited,
-        toolCalls: Array.isArray(row.output?.messages) ? toolCallsOf(row.output.messages) : [],
+        toolCalls: toolCallsOf(messages),
         reply,
+        own,
+        appLines: appLinesOf(reply, own),
     }
 }
 
@@ -142,6 +166,7 @@ export function renderConversation(c: Conversation): string {
         const tools = t.toolCalls.length
             ? t.toolCalls.map((x) => `[tool ${x.name}] input: ${JSON.stringify(x.input)}\nresult:\n${x.result}`).join('\n\n')
             : '[no tool calls]'
-        return `--- turn ${i + 1}, ${timeOf(t.at, c.timeZone)}${starts} ---\n${user}\n\n${tools}\n\nRonnie: ${t.reply}`
+        const app = t.appLines.length ? `\n\nShown with it, written by the app:\n${t.appLines.join('\n')}` : ''
+        return `--- turn ${i + 1}, ${timeOf(t.at, c.timeZone)}${starts} ---\n${user}\n\n${tools}\n\nRonnie: ${t.own || '(nothing of its own)'}${app}`
     }).join('\n\n')
 }

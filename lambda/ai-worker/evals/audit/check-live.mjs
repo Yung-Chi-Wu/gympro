@@ -5,7 +5,9 @@
 // leave the ones it passed. Each failed conversation is paired with a passed one of the same case.
 // Reads the local eval traces (.claude/hillclimb/ronnie/<variant>/traces, kept out of the repo
 // since v29) and makes one call per conversation, about US$0.05 each; --dry-run makes none.
-//   AWS_PROFILE=<profile> ANTHROPIC_API_KEY_PARAM=/gympro/anthropic-api-key node lambda/ai-worker/evals/audit/check-live.mjs [--dry-run] [--variants v29,v30,v31,v32,v33]
+//   AWS_PROFILE=<profile> ANTHROPIC_API_KEY_PARAM=/gympro/anthropic-api-key node lambda/ai-worker/evals/audit/check-live.mjs [--dry-run] [--max N] [--holdout N] [--variants v29,v30,v31,v32,v33]
+// --holdout N reads N passed conversations of other cases instead, one per case, for false alarms
+// on conversations the prompt wasn't written against.
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -20,6 +22,8 @@ const a = createRequire(import.meta.url)(join(here, 'dist', 'audit.cjs'))
 
 const args = process.argv.slice(2)
 const dryRun = args.includes('--dry-run')
+const max = args.includes('--max') ? Number(args[args.indexOf('--max') + 1]) : Infinity
+const holdout = args.includes('--holdout') ? Number(args[args.indexOf('--holdout') + 1]) : 0
 const variants = (args[args.indexOf('--variants') + 1] && args.includes('--variants') ? args[args.indexOf('--variants') + 1] : 'v29,v30,v31,v32,v33').split(',')
 const flow = join(repo, '.claude', 'hillclimb', 'ronnie')
 
@@ -44,27 +48,41 @@ const pairs = failedReps.flatMap((f) => {
     return [f, pass]
 })
 
-/** An eval trace ([user, tool_call..., assistant]) as the review's day of one turn */
+/** An eval trace ([app_event...] user, tool_call..., assistant, per turn) as the review's day */
 function conversationOf(rep) {
     const trace = JSON.parse(readFileSync(rep.path, 'utf8'))
     const language = rep.id.endsWith('-zh') ? 'zh-TW' : 'en'
-    const user = trace.find((m) => m.role === 'user')?.content ?? ''
-    const toolCalls = trace.filter((m) => m.role === 'tool_call').map((m) => {
-        const { input, result } = JSON.parse(m.content)
-        return { name: m.name, input, result: String(result) }
-    })
-    const reply = trace.filter((m) => m.role === 'assistant').at(-1)?.content ?? ''
     const at = a.FIXTURE_NOW.toISOString()
-    const traceId = `${rep.variant}/${rep.id}_rep${rep.rep}`
+    const turns = []
+    let events = []
+    for (const m of trace) {
+        if (m.role === 'app_event') events.push(m.content)
+        else if (m.role === 'user') {
+            const tapped = events.map((e) => `(Before this, the user tapped a button in the app: ${e})\n`).join('')
+            turns.push({ traceId: `${rep.variant}/${rep.id}_rep${rep.rep}#${turns.length + 1}`, at, user: `${tapped}${m.content}`, event: false, newConversation: turns.length === 0, edited: false, toolCalls: [], reply: '', own: '', appLines: [] })
+            events = []
+        } else if (m.role === 'tool_call' && turns.length) {
+            const { input, result } = JSON.parse(m.content)
+            turns.at(-1).toolCalls.push({ name: m.name, input, result: String(result) })
+        } else if (m.role === 'assistant' && turns.length) {
+            // An eval trace keeps only the reply shown; the app's lines are the paragraphs it starts with its marks
+            const paragraphs = String(m.content).split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)
+            const appLines = paragraphs.filter((p) => /^(📝|📌|📋)/u.test(p))
+            Object.assign(turns.at(-1), { reply: m.content, appLines, own: paragraphs.filter((p) => !appLines.includes(p)).join('\n\n') })
+        }
+    }
     return {
         userId: 'eval-fixture-user', day: new Date(at).toLocaleDateString('en-CA', { timeZone: a.FIXTURE_TIME_ZONE }), timeZone: a.FIXTURE_TIME_ZONE, language,
         system: a.buildSystemPrompt(language, { ...a.FIXTURE_USER, notes: a.fixtureNotes([], language) }),
-        turns: [{ traceId, at, user, event: false, newConversation: true, edited: false, toolCalls, reply }],
-        traceIds: [traceId],
+        turns: turns.filter((t) => t.reply),
+        traceIds: turns.map((t) => t.traceId),
     }
 }
 
-const items = pairs.map((rep) => ({ rep, conversation: conversationOf(rep) }))
+// One passed rep of each case that never failed, the latest variant first
+const failedCases = new Set(failedReps.map((r) => r.id))
+const holdoutReps = [...new Map([...reps].reverse().filter((r) => r.passed && !failedCases.has(r.id)).map((r) => [r.id, r])).values()].slice(0, holdout)
+const items = (holdout ? holdoutReps : pairs).slice(0, max).map((rep) => ({ rep, conversation: conversationOf(rep) }))
 console.log(`${items.length} conversations: ${items.filter((i) => !i.rep.passed).length} the judge failed, ${items.filter((i) => i.rep.passed).length} it passed (${variants.join(', ')})`)
 if (dryRun) {
     const chars = items.reduce((n, i) => n + i.conversation.system.length + JSON.stringify(i.conversation.turns).length, 0)

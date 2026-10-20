@@ -84,13 +84,14 @@ function fakeClient(answer, usage = { input_tokens: 10_000, output_tokens: 1_000
 }
 
 /** A Ronnie trace as app/api/ai/coach writes it */
-function trace(id, user, at, message, { reply = '好的。', history = [{ role: 'user', content: 'earlier' }], tools = [], editFrom = null, system = 'RONNIE SYSTEM PROMPT' } = {}) {
+function trace(id, user, at, message, { reply = '好的。', own, history = [{ role: 'user', content: 'earlier' }], tools = [], editFrom = null, system = 'RONNIE SYSTEM PROMPT' } = {}) {
     const messages = [
         ...tools.flatMap((t, i) => [
             { role: 'assistant', content: [{ type: 'thinking', thinking: '...' }, { type: 'tool_use', id: `${id}-t${i}`, name: t.name, input: t.input ?? {} }] },
             { role: 'user', content: [{ type: 'tool_result', tool_use_id: `${id}-t${i}`, content: t.result }] },
         ]),
-        ...(reply == null ? [] : [{ role: 'assistant', content: [{ type: 'text', text: reply }] }]),
+        // What Ronnie wrote (own, which the app may add lines to), or the reply itself; null: no closing text (a card's confirmations replace it)
+        ...(reply == null || own === null ? [] : [{ role: 'assistant', content: [own ?? reply].flat().map((text) => ({ type: 'text', text })) }]),
     ]
     return {
         id, user_id: user, created_at: at, feature: 'ronnie', status: reply == null ? 'error' : 'ok', audited_at: null,
@@ -121,6 +122,26 @@ const NOW = Date.parse('2026-10-21T12:15:00Z')
     check('a tool call with no result says so', unanswered[0].result === '[no result]', JSON.stringify(unanswered))
     check('an app event is told apart from typed text', w.turnOf(trace('a3', TAIPEI, '2026-10-20T05:02:00Z', `${w.EVENT_PREFIX} The user tapped Confirm`)).event === true && turn.event === false)
     check('an empty history or an edit starts a new conversation', w.turnOf(trace('a4', TAIPEI, '2026-10-20T05:03:00Z', 'hi', { history: [] })).newConversation && w.turnOf(trace('a5', TAIPEI, '2026-10-20T05:04:00Z', 'hi', { editFrom: 0 })).edited && !turn.newConversation)
+}
+
+// ---------- Ronnie's words apart from the app's ----------
+
+{
+    const saved = w.turnOf(trace('o1', TAIPEI, '2026-10-20T05:00:00Z', '過頭伸展手肘會痛', {
+        reply: '📝 我記住了：過頭伸展時手肘會痛\n\n練三頭可以改做三頭下壓。', own: '練三頭可以改做三頭下壓。',
+        tools: [{ name: 'remember', input: { kind: 'injury' }, result: 'Saved' }],
+    }))
+    check('a note receipt the app added is shown apart from Ronnie\'s words', saved.own === '練三頭可以改做三頭下壓。' && saved.appLines.join() === '📝 我記住了：過頭伸展時手肘會痛', JSON.stringify(saved))
+    const faked = w.turnOf(trace('o2', TAIPEI, '2026-10-20T05:00:00Z', '我手肘會痛', { reply: '📝 我記住了：手肘會痛\n\n改做三頭下壓。' }))
+    check('a receipt Ronnie wrote itself stays in its own words, where the reviewer can see it', faked.own.startsWith('📝') && faked.appLines.length === 0, JSON.stringify(faked))
+    const corrected = w.turnOf(trace('o3', TAIPEI, '2026-10-20T05:00:00Z', '我今天做了深蹲嗎', { reply: '你做完深蹲了。\n\n📌 更正：今天還沒有深蹲的紀錄。', own: ['你做完深蹲了。', '📌 更正：今天還沒有深蹲的紀錄。'] }))
+    check('the 📌 correction the app appends is the app\'s, not Ronnie\'s', corrected.own === '你做完深蹲了。' && corrected.appLines.join() === '📌 更正：今天還沒有深蹲的紀錄。', JSON.stringify(corrected))
+    const card = w.turnOf(trace('o4', TAIPEI, '2026-10-20T05:00:00Z', '把腿推加進腿日', { reply: '✅ 已提議把腿推加進腿日，確認後才會改。', own: null, tools: [{ name: 'propose_routine_change', result: 'Proposed' }] }))
+    check('a card\'s confirmations, which replace Ronnie\'s words, are all the app\'s', card.own === '' && card.appLines.length === 1, JSON.stringify(card))
+    const stripped = w.turnOf(trace('o5', TAIPEI, '2026-10-20T05:00:00Z', 'q', { reply: '深蹲做完了', own: '**深蹲**做完了' }))
+    check('Markdown the app stripped from Ronnie\'s words doesn\'t make them the app\'s', stripped.appLines.length === 0, JSON.stringify(stripped))
+    const rendered = w.renderConversation({ userId: TAIPEI, day: '2026-10-20', timeZone: 'Asia/Taipei', language: 'zh-TW', system: 'S', traceIds: ['o1', 'o4'], turns: [saved, card] })
+    check('the reviewer reads Ronnie\'s words and the app\'s lines under separate labels', rendered.includes('Ronnie: 練三頭可以改做三頭下壓。\n\nShown with it, written by the app:\n📝 我記住了') && rendered.includes('Ronnie: (nothing of its own)'), rendered)
 }
 
 // ---------- Which days are read ----------
@@ -172,7 +193,11 @@ const day = () => {
     const review = await w.reviewConversation(client, day())
     const call = client.calls[0]
     const schema = call.output_config?.format?.schema ?? {}
-    check('the reviewer is the eval judge\'s model, with a JSON schema answer', call.model === w.AUDIT_MODEL && call.output_config?.format?.type === 'json_schema' && call.system === w.AUDIT_SYSTEM && schema.properties?.problems && !('$schema' in schema), JSON.stringify({ model: call.model, format: call.output_config?.format?.type, keys: Object.keys(schema) }))
+    check('the reviewer is the eval judge\'s model, with a JSON schema answer', call.model === w.AUDIT_MODEL && call.output_config?.format?.type === 'json_schema' && call.system === w.AUDIT_SYSTEM && schema.properties?.problems, JSON.stringify({ model: call.model, format: call.output_config?.format?.type, keys: Object.keys(schema) }))
+    // Structured output refuses these (400), which zod's toJSONSchema adds to an integer
+    const refused = JSON.stringify(schema).match(/"(\$schema|minimum|maximum|exclusiveMinimum|exclusiveMaximum|minLength|maxLength|pattern|format)"/g)
+    check('the schema uses no keyword structured output refuses', !refused, String(refused))
+    check('every object in the schema closes its properties', (function closed(o) { return typeof o !== 'object' || o === null || ((o.type !== 'object' || o.additionalProperties === false) && Object.values(o).every(closed)) })(schema))
     check('the reviewer reads Ronnie\'s system prompt and the day\'s turns with their tool results', call.messages[0].content.includes('RONNIE SYSTEM PROMPT') && call.messages[0].content.includes('[tool get_today]') && call.messages[0].content.includes('{"done":[]}') && call.messages[0].content.includes('Ronnie: 你今天已經做完深蹲了！'))
     check('the reviewer is told which lines the app writes (📝, 📌)', w.AUDIT_SYSTEM.includes('📝') && w.AUDIT_SYSTEM.includes('📌'))
     check('a problem points at its turn\'s trace; a repeat and a turn the day lacks are dropped', review.problems.map((p) => `${p.traceId}:${p.kind}`).join() === 'r1:ungrounded,r2:other', JSON.stringify(review.problems))
