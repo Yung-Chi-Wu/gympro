@@ -343,7 +343,10 @@ export async function generateNarrative(input: NarrativeInput, model: string = N
             else if (!parsed.success) lastProblem = parsed.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ')
             else {
                 const { headline, actions } = parsed.data as { headline: string; actions: Record<string, string> }
-                const narrative: ReportNarrative = { headline, items: rulesOf(input.findings).map((rule) => ({ rule, action: actions[rule] })) }
+                // The low_volume text is only for a note: without one, whatever was written there is
+                // dropped (in v13 it said there was no note, and that "the code" listed the options)
+                const noted = !!input.note || input.dayNotes.length > 0
+                const narrative: ReportNarrative = { headline, items: rulesOf(input.findings).map((rule) => ({ rule, action: rule === 'low_volume' && !noted ? '' : actions[rule] })) }
                 // A low_volume text is empty without a note that bears on it
                 const problems = headline.trim() && narrative.items.every((i) => i.rule === 'low_volume' || i.action?.trim()) ? textProblems(narrative, input) : ['empty text']
                 if (!problems.length) return { narrative: withLines(narrative, input.findings, input.language, input.facts.period.days === 7 ? 'week' : 'cycle'), prompt, model: response.model, usage, attempts: attempt }

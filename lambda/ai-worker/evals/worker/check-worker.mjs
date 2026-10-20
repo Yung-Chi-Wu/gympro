@@ -226,8 +226,12 @@ const client = (answers, delayMs = 0) => {
     check('no note: the action is code\'s lead, with a line per low muscle naming its options', plain.calls === 1 && plain.item?.action === '每個部位選一種方式補上組數。' && lines.length === lows.length && named,
         JSON.stringify(plain.r.narrative ?? plain.r))
     check('a line reads as the app writes it', lines.some((l) => l.label === '二頭' && l.text === '槓鈴彎舉每週多做 4 組，或新增啞鈴彎舉，每週 4 組'), JSON.stringify(lines))
-    const noted = await run('肩後束先用反向蝴蝶機，從輕重量開始。')
-    check('a sentence for a note comes after the lead', noted.item?.action === '每個部位選一種方式補上組數。肩後束先用反向蝴蝶機，從輕重量開始。', JSON.stringify(noted.item))
+    const unnoted = await run('沒有備註，照程式列出的選項擇一即可。')
+    check('without a note, a low_volume sentence is dropped: the action is the lead alone', unnoted.item?.action === '每個部位選一種方式補上組數。', JSON.stringify(unnoted.item))
+    const withNote = { ...zhInput, dayNotes: [{ date: a.facts.period.start, note: '做臉拉左肩有點緊', routine: null, trained: true }] }
+    const nc = client([{ headline: '第一份報告，先記下你的基準。', actions: { low_volume: '肩後束先用反向蝴蝶機，從輕重量開始。' } }])
+    const noted = await quiet(() => w.generateNarrative(withNote, 'claude-sonnet-4-6', { client: nc }))
+    check('with a note, its sentence comes after the lead', noted.narrative?.items.find((i) => i.rule === 'low_volume')?.action === '每個部位選一種方式補上組數。肩後束先用反向蝴蝶機，從輕重量開始。', JSON.stringify(noted.narrative ?? noted))
     const long = w.textProblems({ headline: '基準。', items: [{ rule: 'low_volume', action: '背'.repeat(51) }] }, zhInput)
     check('text check: a low_volume sentence over 50 characters', long.some((x) => /low_volume text is 51 characters/.test(x)), JSON.stringify(long))
     const one = w.fallbackNarrative(w.analyze(inputsFor(SCENARIOS.find((x) => x.id === 'shoulder-pain-note-zh'))).facts, w.analyze(inputsFor(SCENARIOS.find((x) => x.id === 'shoulder-pain-note-zh'))).findings, 'zh-TW')
