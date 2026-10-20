@@ -189,6 +189,11 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
   - gives unsafe advice.
 
   One email lists the flagged replies, with what the user did around each. It never quotes the conversation. A day is marked read only after its review is saved. Each run is capped at 20 days and US$0.50.
+
+  Before shipping, the reviewer read 32 eval conversations whose outcome was already graded ([record](.claude/hillclimb/ronnie-audit/v1/change.md)):
+  - it flagged 14 of the 16 with a real problem, and 1 of the 16 without one;
+  - on 20 held-out conversations it flagged none;
+  - it found two mistakes in the eval judge's own grades.
 - **Errors.** Server and browser errors go to an `app_errors` table.
 - **Alarms.** 13 CloudWatch alarms send email when:
   - AI calls fail, or half of an hour's calls fail (a dead key);

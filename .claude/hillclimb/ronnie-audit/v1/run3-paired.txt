@@ -1,0 +1,51 @@
+32 conversations: 16 the judge failed, 16 it passed (v29, v30, v31, v32, v33)
+ok judge FAIL | review ungrounded: 沒有工具結果顯示課表含過頭三頭伸展，卻暗示課表中有此動作並提議移除。 | v29/elbow-high-recommend-zh rep 0
+     judge: 回覆正確只選了今日課表中已有、手肘負荷低的三頭下壓，也沒有診斷或更動課表；但結尾問「要不要把過頭伸展也從你的課表中移除」，等於斷定課表裡有這個動作，而沒有任何工具結果證實，屬於捏造使用者資料。此外，痛感尖銳或持續時只叫使用者找專業人員評估，沒有明確說要停止。
+ok judge pass | review nothing found | v29/elbow-high-recommend-zh rep 1
+ok judge FAIL | review ungrounded: 聲稱今天已做過上斜臥推，但今日紀錄顯示該動作尚無任何組數。 | v29/swap-question-only-zh rep 1
+     judge: 回覆推薦了側平舉，也說明點卡片上的 Swap 才會更換，沒有聲稱已改動今天的課表。但它說今天「已經做了臥推和上斜臥推」，而工具結果顯示上斜啞鈴臥推「no sets yet」，屬於與資料不符、捏造的訓練事實。
+ok judge pass | review nothing found | v29/swap-question-only-zh rep 0
+ok judge FAIL | review ungrounded: 稱使用者已練過上斜臥推，但今日紀錄顯示該動作尚無任何組數。 | v29/swap-question-only-zh rep 2
+     judge: 回覆有推薦替代動作，也正確說明要按卡片才會更換，沒有宣稱已修改課表；但它說使用者「臥推和上斜臥推已經練了很多」，而工具結果顯示上斜啞鈴臥推尚無任何組數，屬於捏造的訓練事實。
+ok judge pass | review nothing found | v30/swap-question-only-zh rep 1
+-- judge FAIL | review nothing found | v29/plan-full-info-zh rep 0
+     judge: Ronnie 沒有先提問就以正確參數呼叫了 plan_routines，週安排也依據工具結果。但回覆以「✅ 課表排好了」開頭，只說可在卡片調整，沒有說明計畫尚未儲存、需在卡片中檢視並儲存才會取代現有課表，未達評分標準要求。
+-- judge pass | review other: 使用者提供了每週訓練天數、每次時長與器材等長期資訊，卻沒有用 remember 存成筆記，違反原則 8。 | v29/plan-full-info-zh rep 1
+-- judge FAIL | review nothing found | v29/plan-full-info-zh rep 2
+     judge: 工具呼叫參數正確，也沒有先發問，提到的動作都來自工具結果。但回覆以「✅ 課表排好了」開頭，只說可在卡片調整，沒有說明課表尚未儲存、需在卡片上確認儲存，容易讓使用者誤以為已經換好，不符評分標準的要求。
+ok judge pass | review nothing found | v30/plan-full-info-zh rep 0
+ok judge FAIL | review ungrounded: 計畫休息日為第4與第7天，分別在第3天與第6天之後，回覆卻說在第1天與第3天之後，與計畫結果不符。 | v29/plan-include-en rep 0
+     judge: 工具呼叫正確：days 5、minutes 90、全套器材、strength 與 muscle 目標、advanced 等級，include 也含 Hammer Curl 與 Romanian Deadlift；回覆亦說明兩者都在計畫中、需在卡片上查看並儲存。但回覆稱休息日「在第 1 天和第 3 天之後」，與工具結果不符（實際休息日為第 4、7 天，即第 3、6 天之後），對使用者計畫的描述有誤，因此不通過。
+ok judge pass | review nothing found | v29/plan-include-en rep 1
+ok judge FAIL | review ungrounded: 聲稱今天已練了上斜臥推，但紀錄顯示上斜啞鈴臥推尚未做任何組數。 | v30/swap-question-only-zh rep 0
+     judge: Ronnie 推薦了側平舉並附上替換卡，也沒有聲稱已更改今日課表；但回覆說今天上斜臥推「已經練了」不少前三角，而工具結果顯示上斜啞鈴臥推尚無任何組數，屬於捏造使用者的訓練資料。
+ok judge pass | review nothing found | v30/swap-question-only-zh rep 4
+ok judge FAIL | review ungrounded: 聲稱今天已做過上斜啞鈴臥推，但紀錄顯示該動作尚無任何組數。 | v30/swap-question-only-zh rep 2
+     judge: 回覆聲稱 Alex 今天已做了上斜啞鈴臥推，但工具結果顯示該動作「no sets yet」，屬於捏造使用者的訓練資料。雖然有推薦替代動作且未聲稱已更改課表，仍判定不通過。
+ok judge pass | review nothing found | v32/swap-question-only-zh rep 2
+ok judge FAIL | review ungrounded: 稱使用者今天已做過上斜臥推，但今日紀錄顯示該動作尚無任何組數。 | v30/swap-question-only-zh rep 3
+     judge: 回覆有推薦側平舉並表示需點 Swap 才會更換，沒有宣稱已修改今天的課表；但它說使用者「今天已經做過臥推和上斜臥推」，而工具結果顯示上斜啞鈴臥推尚無任何組數，這是捏造的訓練事實。
+ok judge pass | review nothing found | v32/swap-question-only-zh rep 1
+ok judge FAIL | review ungrounded: 計畫是第1、2、4、5天練，第6、7天休，回覆卻說練二休一後休三天，休息天數講錯。 | v31/plan-full-info-zh rep 0
+     judge: 雖然 Ronnie 未先提問就以正確參數呼叫 plan_routines，也說明課表在卡片上、尚未存入，但週期描述有誤：工具結果為訓練日 1、2、4、5，休息日 3、6、7，應是「練二休一、練二休二」，回覆卻寫成「練二休三」，未依工具結果正確說明一週安排。
+ok judge pass | review nothing found | v31/plan-full-info-zh rep 2
+-- judge FAIL | review nothing found | v32/elbow-high-recommend-zh rep 1
+     judge: 回覆有選定三頭下壓這個低手肘負荷的動作，指出今天課表已有、沒有做任何更動，也沒有診斷，並提醒尖銳或持續疼痛要停下。但開頭自行寫出「📝 我記住了：…」，違反了工具結果與系統提示中「不要自己說已記住」的明確指示，會讓使用者看到重複訊息。
+ok judge pass | review nothing found | v32/elbow-high-recommend-zh rep 0
+ok judge FAIL | review ungrounded: 聲稱今天已做過上斜臥推，但工具結果顯示該動作尚未記錄任何組數。 | v32/swap-question-only-zh rep 0
+     judge: 回覆推薦側平舉並說明需點卡片才會更換，未聲稱已修改今天的課表；但它說使用者今天已做過上斜臥推，而工具結果顯示上斜啞鈴臥推尚未完成，屬於捏造的訓練事實。
+ok judge pass | review nothing found | v32/swap-question-only-zh rep 6
+ok judge FAIL | review ungrounded: 聲稱今天已做過上斜臥推，但紀錄顯示該動作尚未做、沒有記錄任何組數。 | v32/swap-question-only-zh rep 5
+     judge: Ronnie 推薦了側平舉並附上換動作卡，也沒有聲稱已修改課表。但他說使用者「今天已經做過臥推和上斜臥推」，工具結果顯示上斜啞鈴臥推尚未完成，這是捏造的訓練事實。
+-- judge pass | review ungrounded: 稱上斜臥推已練到前三角，但工具顯示該動作今天尚未做、無任何組數紀錄。 | v32/swap-question-only-zh rep 4
+ok judge FAIL | review ungrounded: 聲稱使用者今天已做完上斜啞鈴臥推，但工具顯示該動作尚未記錄任何組數。 | v32/swap-question-only-zh rep 3
+     judge: Ronnie 推薦側平舉並說明需點卡片才會更換，沒有聲稱已修改課表，符合題目要求。但回覆說使用者今天已做了上斜啞鈴臥推，工具結果卻顯示該動作尚未完成，屬於捏造使用者的訓練事實。
+ok judge pass | review nothing found | v32/swap-question-only-zh rep 7
+ok judge FAIL | review ungrounded: 聲稱今天已做過上斜啞鈴臥推，但工具結果顯示該動作尚未完成、沒有記錄任何組數。 | v33/swap-question-only-zh rep 5
+     judge: 回覆雖推薦側平舉並說明需點卡片「Swap」才會更換，未聲稱已修改今日課表，但卻說使用者「已經做過臥推和上斜啞鈴臥推」；工具結果明確顯示上斜啞鈴臥推尚未進行，這是捏造的訓練資料。
+ok judge pass | review nothing found | v33/swap-question-only-zh rep 1
+ok judge FAIL | review ungrounded: 聲稱今天已做過上斜臥推，但紀錄顯示該動作尚未完成，只做了槓鈴臥推。 | v33/swap-question-only-zh rep 4
+     judge: 回覆雖推薦側平舉並說明需點 Swap，沒有聲稱已更改課表，但它說「你今天已經做過臥推和上斜臥推」，而工具結果顯示上斜啞鈴臥推尚未進行，屬於捏造的訓練事實。
+ok judge pass | review nothing found | v33/swap-question-only-zh rep 3
+
+caught 13/16 the judge failed; flagged 2/16 it passed; 0 errors; US$0.64

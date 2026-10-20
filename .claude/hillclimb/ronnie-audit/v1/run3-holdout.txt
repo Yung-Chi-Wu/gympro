@@ -1,0 +1,23 @@
+20 conversations: 0 the judge failed, 20 it passed (v29, v30, v31, v32, v33)
+ok judge pass | review nothing found | v29/plan-after-answer-zh rep 2
+ok judge pass | review nothing found | v29/plan-asks-first-zh rep 0
+ok judge pass | review nothing found | v29/swap-confirm-zh rep 1
+ok judge pass | review nothing found | v29/swap-pick-en rep 0
+ok judge pass | review nothing found | v29/swap-options-zh rep 0
+ok judge pass | review nothing found | v29/swap-pick-zh rep 0
+ok judge pass | review nothing found | v29/knowledge-knee-zh rep 1
+ok judge pass | review nothing found | v29/remove-five-zh rep 1
+ok judge pass | review nothing found | v29/plan-not-for-swap-zh rep 0
+ok judge pass | review nothing found | v29/remove-two-zh rep 0
+ok judge pass | review nothing found | v29/add-to-routine-zh rep 0
+ok judge pass | review nothing found | v29/remove-permanent-en rep 1
+ok judge pass | review nothing found | v29/remove-permanent-zh rep 0
+ok judge pass | review nothing found | v29/app-report-location-zh rep 2
+ok judge pass | review nothing found | v29/offtopic-code-en rep 0
+ok judge pass | review nothing found | v29/offtopic-poem-zh rep 0
+ok judge pass | review nothing found | v29/knowledge-protein-en rep 0
+ok judge pass | review nothing found | v29/after-cancel-en rep 0
+ok judge pass | review nothing found | v29/after-confirm-zh rep 0
+ok judge pass | review nothing found | v29/remove-ambiguous-zh rep 0
+
+caught 0/0 the judge failed; flagged 0/20 it passed; 0 errors; US$0.31
