@@ -62,6 +62,10 @@ flowchart LR
     worker --> db
     worker -->|"report text"| claude
     schedfn -->|"AI health metrics"| cw["CloudWatch alarms → SNS email"]
+    daily["EventBridge Scheduler, daily"] --> reviewfn["Review Lambda"]
+    reviewfn -->|"each ended day of Ronnie chats"| db
+    reviewfn -->|"review"| claude
+    reviewfn -->|"one digest"| mail["SNS email"]
 ```
 
 - **App:** Next.js 16 (App Router, server actions and route handlers) on Vercel. The UI strings are in English and Traditional Chinese, using next-intl.
@@ -159,6 +163,7 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
 - Ronnie's tools, turn loop and grader, offline.
 - **Replays of recorded conversations** ([`evals/ronnie/replays`](evals/ronnie/replays)). The recorded model output is fed through the current code, so a fixed mistake can't come back.
 - The report's rules, grader and queue behavior, offline.
+- The daily review's grouping by local day, its flags and its email, offline.
 - Research citations resolve, by DOI.
 - Day boundaries are right in every time zone.
 - The app and the database enforce the same input limits.
@@ -173,16 +178,24 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
   - the user's next message says it was wrong;
   - the user edits the message it answered;
   - the user cancels its card or clears the chat within two minutes;
-  - the user taps Report a mistake under it.
+  - the user taps Report a mistake under it;
+  - the daily review finds a problem in it.
 
   A flagged trace is kept 365 days. These are the conversations that become eval cases.
+- **Daily review.** Each morning a Lambda reads every Ronnie conversation from a day that has ended in its user's time zone ([`lambda/ai-worker/src/audit`](lambda/ai-worker/src/audit)). The reviewer is Opus, the eval judge's model. It reads the system prompt and each turn's tool results, with no rubric, and flags a reply that:
+  - states something no tool result supports;
+  - claims an action no tool took;
+  - does the wrong thing, or misses the request;
+  - gives unsafe advice.
+
+  One email lists the flagged replies, with what the user did around each. It never quotes the conversation. A day is marked read only after its review is saved. Each run is capped at 20 days and US$0.50.
 - **Errors.** Server and browser errors go to an `app_errors` table.
-- **Alarms.** 12 CloudWatch alarms send email when:
+- **Alarms.** 13 CloudWatch alarms send email when:
   - AI calls fail, or half of an hour's calls fail (a dead key);
   - a day's AI spend runs high;
   - the scheduler goes silent;
   - a report is stuck, or reaches the dead-letter queue;
-  - a Lambda nears its timeout;
+  - a Lambda nears its timeout, or the daily review fails;
   - the app logs an error.
 - **Data integrity.** Today's workout and its plan are created in one transaction, under a per-user lock. Limits on sets, targets and amounts are enforced in both the app and the database.
 
@@ -214,7 +227,7 @@ lib/ronnie/          Ronnie: agent loop, tools, executor, memory, search, reply 
 lib/coach-g*.ts      Coach G: request parsing and the code planner
 lib/report/          Report evidence table, volume units, queue
 lib/ai/              AI tracing
-lambda/ai-worker/    Report worker and hourly scheduler (Lambda), with the report evals
+lambda/ai-worker/    Report worker, hourly scheduler and daily review (Lambda), with their evals
 evals/ronnie/        Ronnie evals: cases, fixture, grader, judge, runner, replays
 evals/search/        Exercise search eval
 infra/terraform/     AWS infrastructure

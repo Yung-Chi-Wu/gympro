@@ -96,6 +96,8 @@ jobs:
         run: node lambda/ai-worker/evals/report-v3/check-grader.mjs
       - name: Report requests run once and stop in time (offline)
         run: node lambda/ai-worker/evals/worker/check-worker.mjs
+      - name: The daily Ronnie review reads each ended day once and emails no quotes (offline)
+        run: node lambda/ai-worker/evals/worker/check-audit.mjs
       - name: Bundle
         run: npm run build
         working-directory: lambda/ai-worker
