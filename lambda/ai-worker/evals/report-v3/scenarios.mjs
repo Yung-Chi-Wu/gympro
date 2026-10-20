@@ -379,6 +379,22 @@ export const SCENARIOS = [
         expect: { status: 'progressing', findings: ['low_volume:side_delts'] },
     },
     {
+        id: 'many-low-note-zh',
+        why: '四個部位都不夠：肩中束 8 組、肩後束 6 組、腿後側 2 組、二頭 9 組，每個都有兩個選項。以前這會寫成一大段（擁有者 10/12–10/18 的報告），現在程式把每個部位和選項列成一行，模型只寫一句短的開頭。週二的筆記說做臉拉左肩有點緊：肩後束不能只叫他多做臉拉，要偏向不痛的選項（反向蝴蝶機）或先用輕重量。',
+        language: 'zh-TW', goal: '增肌', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH,
+        routines: {
+            push: [['bench', 4], ['ohp', 4], ['incline', 3], ['lateral', 2], ['pushdown', 2]],
+            pull: [['row', 4], ['pulldown', 3], ['facepull', 1], ['curl', 1]],
+            legs: [['squat', 4], ['legpress', 3], ['legcurl', 1]],
+        },
+        dayNotes: { 1: '做臉拉的時候左肩有點緊，活動度不如右邊' },
+        expect: {
+            status: 'progressing', findings: ['low_volume:side_delts', 'low_volume:rear_delts', 'low_volume:hamstrings', 'low_volume:biceps'],
+            options: { 'low_volume:rear_delts': { addTo: 'ex-facepull', addToSets: 4, newExercise: 'Rear Delt Machine' } },
+        },
+    },
+    {
         id: 'knee-note-missed-legs-en',
         why: 'Friday leg day was skipped, and the note says why: a sore knee. The missed-session advice must not just say make up the squats; it has to fit the knee.',
         language: 'en', goal: 'Build muscle', note: 'Skipped Friday legs, my knee was sore after the squats on Wednesday',

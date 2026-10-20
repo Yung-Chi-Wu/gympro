@@ -1,7 +1,8 @@
 // Programmatic checks for the v3 report text. Pure functions of (case, output), so
 // check-grader.mjs can exercise them offline. `output` is { narrative, findings, status, brief,
 // names, options }: names maps each finding id to the muscle or lift its rule's action must
-// mention, options to the exercises a low muscle's action offers to choose between.
+// mention, options to the exercises a low muscle's advice offers to choose between. What an
+// item shows is its action and the lines code writes under it (a low muscle and its options).
 
 // Characters that only appear in Simplified Chinese, for the zh-TW check
 const SIMPLIFIED_ONLY = /[这们训练进动议还时对说体发让点从过关应经]/g
@@ -13,9 +14,18 @@ export function hasNote(c) {
     return !!c.note || Object.keys(c.dayNotes ?? {}).length > 0
 }
 
-export function narrativeText(n) {
-    return [n?.headline, ...(n?.items ?? []).map((i) => i.action)].filter(Boolean).join('\n')
+/** An item as the user reads it: the action, then the lines under it, joined as ReportView does */
+export function itemText(i) {
+    return [i?.action, ...(i?.lines ?? []).map((l) => `${l.label}${/[一-鿿]/.test(l.label) ? '：' : ': '}${l.text}`)].filter(Boolean).join('\n')
 }
+
+export function narrativeText(n) {
+    return [n?.headline, ...(n?.items ?? []).map(itemText)].filter(Boolean).join('\n')
+}
+
+/** A low_volume action is a lead to its lines (narrative.ts LOW_VOLUME_MAX) */
+export const LOW_VOLUME_MAX = { zh: 70, en: 45 }
+const lengthOf = (text, language) => (language === 'zh-TW' ? [...String(text).replace(/\s/g, '')].length : String(text).split(/\s+/).filter(Boolean).length)
 
 export function languageCorrect(text, language) {
     const cjk = (text.match(/[一-鿿]/g) ?? []).length
@@ -39,19 +49,20 @@ export function programmaticGrade(c, out) {
     const unknown = chosen.filter((r) => !fired.includes(r))
     const missing = fired.filter((r) => !chosen.includes(r))
     const deloadFired = fired.includes('deload')
-    // Every finding's muscle or lift named in its rule's action
+    // Every finding's muscle or lift named in its rule's item
+    const shown = (rule) => itemText(items.find((i) => i.rule === rule)).toLowerCase()
     const unnamed = findings.filter((f) => {
         const name = out?.names?.[f.id]
-        const action = items.find((i) => i.rule === f.rule)?.action ?? ''
-        return name && !action.toLowerCase().includes(name.toLowerCase())
+        return name && !shown(f.rule).includes(name.toLowerCase())
     }).map((f) => out.names[f.id])
     // Both ways to add a low muscle's sets named, so the user can choose. With a note (the period's
     // or a day's) the judge decides instead (note_fits): a note about pain can rule one out.
     const optionsApply = !hasNote(c) && findings.some((f) => out?.options?.[f.id]?.length)
-    const unoffered = findings.flatMap((f) => {
-        const action = items.find((i) => i.rule === f.rule)?.action ?? ''
-        return (out?.options?.[f.id] ?? []).filter((name) => !action.toLowerCase().includes(name.toLowerCase()))
-    })
+    const unoffered = findings.flatMap((f) => (out?.options?.[f.id] ?? []).filter((name) => !shown(f.rule).includes(name.toLowerCase())))
+    // A low_volume lead that lists what its lines already show runs long
+    const lead = items.find((i) => i.rule === 'low_volume')
+    const leadLength = lead ? lengthOf(lead.action ?? '', c.language) : null
+    const leadMax = c.language === 'zh-TW' ? LOW_VOLUME_MAX.zh : LOW_VOLUME_MAX.en
     const headline = String(n.headline ?? '')
     const headlineLength = c.language === 'zh-TW' ? [...headline.replace(/\s/g, '')].length : headline.split(/\s+/).filter(Boolean).length
 
@@ -60,6 +71,7 @@ export function programmaticGrade(c, out) {
         deload_first: deloadFired ? (chosen[0] === 'deload' ? 1 : 0) : null,
         covers_all: findings.length ? (unnamed.length ? 0 : 1) : null,
         options_named: optionsApply ? (unoffered.length ? 0 : 1) : null,
+        lead_short: lead ? (leadLength <= leadMax ? 1 : 0) : null,
         headline_short: headline && headlineLength <= (c.language === 'zh-TW' ? 45 : 30) ? 1 : 0,
         plain_text: MARKDOWN.test(narrativeText(n)) ? 0 : 1,
         language_correct: languageCorrect(narrativeText(n), c.language) ? 1 : 0,
@@ -73,6 +85,7 @@ export function programmaticGrade(c, out) {
         deload_first: deloadFired ? (chosen[0] === 'deload' ? '減量排第一' : '減量沒有排第一') : undefined,
         covers_all: findings.length ? (unnamed.length ? `建議沒有提到：${unnamed.join('、')}` : '每個肌群和動作都有提到') : undefined,
         options_named: optionsApply ? (unoffered.length ? `沒有給的選項：${unoffered.join('、')}` : '加組數的選項都有列出') : undefined,
+        lead_short: lead ? `組數建議的開頭 ${leadLength}${c.language === 'zh-TW' ? ` 字（上限 ${leadMax}）` : ` 個字（上限 ${leadMax}）`}` : undefined,
         headline_short: `標題長度 ${headlineLength}${c.language === 'zh-TW' ? ' 字（上限 45）' : ' 個字（上限 30）'}`,
         plain_text: grade.plain_text ? '沒有 Markdown' : '有 Markdown 符號',
         language_correct: grade.language_correct ? `語言符合 ${c.language}` : `語言不符合 ${c.language}，或中文用了半形標點`,

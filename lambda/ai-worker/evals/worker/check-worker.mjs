@@ -208,6 +208,36 @@ const client = (answers, delayMs = 0) => {
     }
 }
 
+// Low muscles: code writes the lead and a line per muscle with both options; the model adds only
+// a sentence for a note, empty without one, held to its length
+{
+    const sc = SCENARIOS.find((x) => x.id === 'first-report-zh')
+    const a = w.analyze(inputsFor(sc))
+    const zhInput = { ...a, note: null, language: 'zh-TW', weightUnit: 'kg' }
+    const lows = a.findings.filter((f) => f.rule === 'low_volume')
+    const run = async (lowText) => {
+        const c = client([{ headline: '第一份報告，先記下你的基準。', actions: { low_volume: lowText } }])
+        const r = await quiet(() => w.generateNarrative(zhInput, 'claude-sonnet-4-6', { client: c }))
+        return { calls: c.calls.length, r, item: r.narrative?.items.find((i) => i.rule === 'low_volume') }
+    }
+    const plain = await run('')
+    const lines = plain.item?.lines ?? []
+    const named = lows.every((f) => lines.some((l) => [f.data.addToZh, f.data.newExerciseZh].filter(Boolean).every((x) => l.text.includes(x))))
+    check('no note: the action is code\'s lead, with a line per low muscle naming its options', plain.calls === 1 && plain.item?.action === '每個部位選一種方式補上組數。' && lines.length === lows.length && named,
+        JSON.stringify(plain.r.narrative ?? plain.r))
+    check('a line reads as the app writes it', lines.some((l) => l.label === '二頭' && l.text === '槓鈴彎舉每週多做 4 組，或新增啞鈴彎舉，每週 4 組'), JSON.stringify(lines))
+    const unnoted = await run('沒有備註，照程式列出的選項擇一即可。')
+    check('without a note, a low_volume sentence is dropped: the action is the lead alone', unnoted.item?.action === '每個部位選一種方式補上組數。', JSON.stringify(unnoted.item))
+    const withNote = { ...zhInput, dayNotes: [{ date: a.facts.period.start, note: '做臉拉左肩有點緊', routine: null, trained: true }] }
+    const nc = client([{ headline: '第一份報告，先記下你的基準。', actions: { low_volume: '肩後束先用反向蝴蝶機，從輕重量開始。' } }])
+    const noted = await quiet(() => w.generateNarrative(withNote, 'claude-sonnet-4-6', { client: nc }))
+    check('with a note, its sentence comes after the lead', noted.narrative?.items.find((i) => i.rule === 'low_volume')?.action === '每個部位選一種方式補上組數。肩後束先用反向蝴蝶機，從輕重量開始。', JSON.stringify(noted.narrative ?? noted))
+    const long = w.textProblems({ headline: '基準。', items: [{ rule: 'low_volume', action: '背'.repeat(51) }] }, zhInput)
+    check('text check: a low_volume sentence over 50 characters', long.some((x) => /low_volume text is 51 characters/.test(x)), JSON.stringify(long))
+    const one = w.fallbackNarrative(w.analyze(inputsFor(SCENARIOS.find((x) => x.id === 'shoulder-pain-note-zh'))).facts, w.analyze(inputsFor(SCENARIOS.find((x) => x.id === 'shoulder-pain-note-zh'))).findings, 'zh-TW')
+    check('one low muscle gets the one-muscle lead', one.items.find((i) => i.rule === 'low_volume')?.action === '選一種方式補上組數。', JSON.stringify(one.items))
+}
+
 // A text that fails the checks is written again with its problems; the second one is kept
 {
     const sc = SCENARIOS.find((x) => x.id === 'goal-lift-few-sets-en')
@@ -238,8 +268,11 @@ const client = (answers, delayMs = 0) => {
         const a = w.analyze(inputsFor(sc))
         for (const language of ['en', 'zh-TW']) {
             const n = w.fallbackNarrative(a.facts, a.findings, language)
-            const text = [n.headline, ...n.items.map((i) => i.action)].join(' ')
+            const text = [n.headline, ...n.items.flatMap((i) => [i.action, ...(i.lines ?? []).flatMap((l) => [l.label, l.text])])].join(' ')
             if (/[{}]/.test(text)) problems.push(`${sc.id} ${language}: ${text}`)
+            const lows = a.findings.filter((f) => f.rule === 'low_volume')
+            const lines = n.items.find((i) => i.rule === 'low_volume')?.lines ?? []
+            if (lines.length !== lows.length) problems.push(`${sc.id} ${language}: ${lines.length} lines for ${lows.length} low muscles`)
             const p = w.textProblems(n, { ...a, note: sc.note ?? null, language, weightUnit: sc.weightUnit ?? 'kg' })
             if (p.length) problems.push(`${sc.id} ${language}: ${p.join('; ')}`)
         }
