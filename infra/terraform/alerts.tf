@@ -273,12 +273,13 @@ resource "aws_cloudwatch_metric_alarm" "report_scheduler_near_timeout" {
 # ---------- Alarm: a Lambda logged an error ----------
 # Some failures are logged and the run goes on, so the Errors alarms never see them: a message
 # that isn't a report request, a status that couldn't be saved, a user the scheduler skipped,
-# the AI metrics not published. Every console.error line has the level ERROR in the log. A
+# the AI metrics not published, a day the daily review couldn't read. Every console.error line has the level ERROR in the log. A
 # thrown error is logged too, so it emails here as well as from its Errors alarm.
 resource "aws_cloudwatch_log_metric_filter" "lambda_logged_errors" {
   for_each = {
     worker    = aws_cloudwatch_log_group.ai_worker_logs.name
     scheduler = aws_cloudwatch_log_group.report_scheduler_logs.name
+    audit     = aws_cloudwatch_log_group.ronnie_audit_logs.name
   }
 
   name           = "gympro-${each.key}-logged-errors"
@@ -294,7 +295,7 @@ resource "aws_cloudwatch_log_metric_filter" "lambda_logged_errors" {
 
 resource "aws_cloudwatch_metric_alarm" "lambda_logged_errors" {
   alarm_name        = "gympro-lambda-logged-errors"
-  alarm_description = "A Lambda wrote an error to its log in the past hour, thrown or not. Search for ERROR in /aws/lambda/gympro-ai-worker and /aws/lambda/gympro-report-scheduler."
+  alarm_description = "A Lambda wrote an error to its log in the past hour, thrown or not. Search for ERROR in /aws/lambda/gympro-ai-worker, /aws/lambda/gympro-report-scheduler and /aws/lambda/gympro-ronnie-audit."
 
   namespace   = "GymPro/Lambda"
   metric_name = "LoggedErrors"

@@ -10,7 +10,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 //
 // Shared by the app (Next.js routes) and the report Lambda, so it imports nothing app-only.
 
-export type TraceFeature = 'ronnie' | 'coach_chat' | 'coach_routine' | 'report'
+/** audit is the daily review of Ronnie's conversations (lambda/ai-worker/src/audit.ts) */
+export type TraceFeature = 'ronnie' | 'coach_chat' | 'coach_routine' | 'report' | 'audit'
 
 /** US$ per million tokens, Anthropic first-party prices (2026-09-25). A 5-minute cache write costs 1.25x input. */
 const PRICES: Record<string, { input: number; output: number; cacheRead: number }> = {
