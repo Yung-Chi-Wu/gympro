@@ -263,6 +263,7 @@
     },
     "settings": {
         "title": "Settings",
+        "dataNote": "AI conversation records are kept 90 days to improve replies; reported or possibly wrong ones, a year. Deleting your account deletes them.",
         "displayName": "Display name",
         "displayNamePlaceholder": "What should we call you?",
         "height": "Height (cm)",

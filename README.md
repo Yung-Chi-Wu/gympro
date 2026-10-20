@@ -173,7 +173,7 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
   - the user's next message says it was wrong;
   - the user edits the message it answered;
   - the user cancels its card or clears the chat within two minutes;
-  - the user taps 👎.
+  - the user taps Report a mistake under it.
 
   A flagged trace is kept 365 days. These are the conversations that become eval cases.
 - **Errors.** Server and browser errors go to an `app_errors` table.

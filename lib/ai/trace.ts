@@ -112,10 +112,10 @@ export async function recordTrace(supabase: SupabaseClient, trace: Trace): Promi
  *   edit            the user edited the message it answered
  *   card_cancelled  its card was cancelled within two minutes
  *   cleared         the chat was cleared within two minutes of it
- *   thumbs_down     the user tapped 👎 on it
+ *   reported        the user tapped Report a mistake under it
  *   audit           the daily review found something in it
  */
-export type FlagKind = 'reply_check' | 'correction' | 'edit' | 'card_cancelled' | 'cleared' | 'thumbs_down' | 'audit'
+export type FlagKind = 'reply_check' | 'correction' | 'edit' | 'card_cancelled' | 'cleared' | 'reported' | 'audit'
 
 export interface TraceFlag {
     traceId: string

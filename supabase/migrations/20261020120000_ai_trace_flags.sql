@@ -3,8 +3,8 @@
 -- ai_trace_flags holds one row per signal on a trace: the reply check fired before the reply was
 -- shown (reply_check), the user's next message says it was wrong (correction), the user edited
 -- the message it answered (edit), cancelled its card or cleared the chat within two minutes of it
--- (card_cancelled, cleared), or tapped 👎 on it (thumbs_down). audit is for the daily review to
--- come. One row per trace and kind; detail says what was seen. The first flag sets the trace's
+-- (card_cancelled, cleared), or tapped Report a mistake under it (reported). audit is for the
+-- daily review to come. One row per trace and kind; detail says what was seen. The first flag sets the trace's
 -- flagged_at, and the hourly scheduler keeps a flagged trace 365 days instead of 90: these are
 -- the conversations that become eval cases. Like ai_traces, only the service role reads or writes
 -- flags, and they go with the trace and the user's account.
@@ -23,10 +23,14 @@ begin
         created_at timestamptz not null default now(),
         trace_id uuid not null references public.ai_traces (id) on delete cascade,
         user_id uuid not null references auth.users (id) on delete cascade,
-        kind text not null check (kind in ('reply_check', 'correction', 'edit', 'card_cancelled', 'cleared', 'thumbs_down', 'audit')),
+        kind text not null,
         detail jsonb,
         unique (trace_id, kind)
     );
+    -- Defined apart from the table, so a rerun brings an existing table to these kinds
+    alter table public.ai_trace_flags drop constraint if exists ai_trace_flags_kind_check;
+    alter table public.ai_trace_flags add constraint ai_trace_flags_kind_check
+        check (kind in ('reply_check', 'correction', 'edit', 'card_cancelled', 'cleared', 'reported', 'audit'));
     create index if not exists ai_trace_flags_created_idx on public.ai_trace_flags (created_at desc);
     alter table public.ai_trace_flags enable row level security;
     revoke all on public.ai_trace_flags from anon, authenticated;

@@ -18,7 +18,7 @@ export function traceAfterResponse(trace: Omit<Trace, 'appVersion'> & { flags?: 
     })
 }
 
-/** Flags earlier traces after the response is sent (a correction, an edit, a card cancelled, 👎) */
+/** Flags earlier traces after the response is sent (a correction, an edit, a card cancelled, a report) */
 export function flagAfterResponse(flags: TraceFlag[]) {
     if (!flags.length) return
     after(async () => {

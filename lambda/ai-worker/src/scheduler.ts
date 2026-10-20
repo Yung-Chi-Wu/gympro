@@ -19,7 +19,7 @@ const sqs = new SQSClient({})
 
 /** AI traces hold users' messages; they are kept this long for evals and debugging (lib/ai/trace.ts) */
 const TRACE_RETENTION_DAYS = 90
-/** A flagged trace (ai_trace_flags: the reply check fired, a correction, 👎) is kept this long, to become an eval case */
+/** A flagged trace (ai_trace_flags: the reply check fired, a correction, a report) is kept this long, to become an eval case */
 const FLAGGED_TRACE_RETENTION_DAYS = 365
 /** App errors (lib/app-errors.ts) are kept as long */
 const APP_ERROR_RETENTION_DAYS = 90

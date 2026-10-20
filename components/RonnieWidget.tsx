@@ -75,7 +75,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [editingIndex, setEditingIndex] = useState<number | null>(null)
-    // Replies the user marked 👎 this session; the server keeps the flag on the reply's trace
+    // Replies the user reported this session; the server keeps the flag on the reply's trace
     const [reported, setReported] = useState<Set<string>>(() => new Set())
     const [editingText, setEditingText] = useState('')
     const [busyCard, setBusyCard] = useState<string | null>(null)
@@ -376,7 +376,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         )
     }
 
-    // 👎 under a reply: it only flags the reply for review, so one tap and no confirm
+    // "Report a mistake" under a reply: it only flags the reply for review, so one tap and no confirm
     const report = async (traceId: string) => {
         setReported((prev) => new Set(prev).add(traceId))
         const res = await fetch('/api/ai/coach/feedback', {
@@ -387,14 +387,12 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         if (!res?.ok) setReported((prev) => { const next = new Set(prev); next.delete(traceId); return next })
     }
     const renderReport = (traceId: string) => (
-        <div className="mt-0.5 flex justify-start">
+        <div className="mt-0.5 flex justify-start px-1 text-[11px]">
             {reported.has(traceId) ? (
-                <span className="px-1 text-[11px] text-ink/40 dark:text-white/40">{zh ? '已回報，謝謝' : 'Reported, thanks'}</span>
+                <span className="text-ink/40 dark:text-white/40">{zh ? '已回報，對話將保留一年' : 'Reported; kept a year for review'}</span>
             ) : (
-                <button type="button" onClick={() => report(traceId)} title={zh ? '這則回覆有錯' : 'This reply is wrong'}
-                    aria-label={zh ? '回報這則回覆有錯' : 'Report this reply as wrong'}
-                    className="-m-1.5 p-1.5 text-xs opacity-40 transition-opacity hover:opacity-80 focus-visible:opacity-80">
-                    👎
+                <button type="button" onClick={() => report(traceId)} className="-my-1 py-1 text-red-500/70 hover:text-red-500">
+                    {zh ? '回報錯誤' : 'Report a mistake'}
                 </button>
             )}
         </div>

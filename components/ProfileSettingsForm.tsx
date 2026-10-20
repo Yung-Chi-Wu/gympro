@@ -186,6 +186,8 @@ export function ProfileSettingsForm({ userId, initial }: { userId: string; initi
             <li className="mt-6">
                 <DeleteAccountButton isZhTW={isZhTW} className={`${ROW} font-bold text-miss`} />
             </li>
+            {/* How long AI calls are kept (lib/ai/trace.ts), said where deleting them is */}
+            <li className="py-3 text-xs leading-relaxed text-faint">{t('dataNote')}</li>
         </>
     )
 
