@@ -39,7 +39,8 @@ export interface RonnieTurn {
     usage: Anthropic.Usage[]
     servedModel: string | null
     /** Set when the reply said exercises with no sets today were done (reply-check.ts): which, and whether the one retry fixed it */
-    replyCheck?: { claimed: string[]; fixed: boolean }
+    /** The reply check fired: what the first draft claimed, the draft itself, and whether the retry fixed it */
+    replyCheck?: { claimed: string[]; fixed: boolean; draft: string }
 }
 
 const isUserText = (m: Anthropic.MessageParam) =>
@@ -126,7 +127,7 @@ export async function runRonnieTurn({
         const today = await executor.todayLog().catch(() => [])
         const claimed = doneClaims(text, today)
         if (!claimed.length) return content
-        replyCheck = { claimed, fixed: false }
+        replyCheck = { claimed, fixed: false, draft: text }
         try {
             const retry = await client.messages.create({
                 model,

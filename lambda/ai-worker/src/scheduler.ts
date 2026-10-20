@@ -19,6 +19,8 @@ const sqs = new SQSClient({})
 
 /** AI traces hold users' messages; they are kept this long for evals and debugging (lib/ai/trace.ts) */
 const TRACE_RETENTION_DAYS = 90
+/** A flagged trace (ai_trace_flags: the reply check fired, a correction, 👎) is kept this long, to become an eval case */
+const FLAGGED_TRACE_RETENTION_DAYS = 365
 /** App errors (lib/app-errors.ts) are kept as long */
 const APP_ERROR_RETENTION_DAYS = 90
 
@@ -112,17 +114,27 @@ export async function publishAppMetrics(supabase: SupabaseClient): Promise<void>
     }
 }
 
+/**
+ * Deletes what is past its retention: AI traces after 90 days, a flagged one after 365, and app
+ * errors after 90. A failure is logged, never thrown: reports still go out.
+ */
+export async function deleteExpired(supabase: SupabaseClient, now = Date.now()): Promise<void> {
+    const daysAgo = (days: number) => new Date(now - days * 86_400_000).toISOString()
+    const { error: traceError } = await supabase.from('ai_traces').delete().lt('created_at', daysAgo(TRACE_RETENTION_DAYS)).is('flagged_at', null)
+    if (traceError) console.error(`Old AI traces not deleted: ${traceError.message}`)
+    const { error: flaggedError } = await supabase.from('ai_traces').delete().lt('created_at', daysAgo(FLAGGED_TRACE_RETENTION_DAYS))
+    if (flaggedError) console.error(`Old flagged AI traces not deleted: ${flaggedError.message}`)
+    const { error: appErrorsError } = await supabase.from('app_errors').delete().lt('created_at', daysAgo(APP_ERROR_RETENTION_DAYS))
+    if (appErrorsError) console.error(`Old app errors not deleted: ${appErrorsError.message}`)
+}
+
 export async function handler(): Promise<void> {
     const queueUrl = process.env.SQS_QUEUE_URL
     if (!queueUrl) throw new Error('SQS_QUEUE_URL environment variable is not set')
 
     const supabase = await getSupabaseClient()
 
-    const cutoff = new Date(Date.now() - TRACE_RETENTION_DAYS * 86_400_000).toISOString()
-    const { error: traceError } = await supabase.from('ai_traces').delete().lt('created_at', cutoff)
-    if (traceError) console.error(`Old AI traces not deleted: ${traceError.message}`)
-    const { error: appErrorsError } = await supabase.from('app_errors').delete().lt('created_at', new Date(Date.now() - APP_ERROR_RETENTION_DAYS * 86_400_000).toISOString())
-    if (appErrorsError) console.error(`Old app errors not deleted: ${appErrorsError.message}`)
+    await deleteExpired(supabase)
     await Promise.all([publishAiMetrics(supabase), publishAppMetrics(supabase)])
 
     const [profilesResult, cyclesResult] = await Promise.all([

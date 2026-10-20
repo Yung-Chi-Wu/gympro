@@ -35,7 +35,8 @@ export interface PlanCard {
 
 export type DisplayItem =
     | { kind: 'user'; text: string }
-    | { kind: 'assistant'; text: string; proposals?: ProposalCard[]; recommendations?: RecommendationCard[]; plans?: PlanCard[] }
+    /** traceId: the reply's trace, which a signal or 👎 flags (lib/ronnie/signals.ts); at: when it was shown */
+    | { kind: 'assistant'; text: string; proposals?: ProposalCard[]; recommendations?: RecommendationCard[]; plans?: PlanCard[]; traceId?: string; at?: string }
     /** planId: the plan card this event is about, so the card shows it saved */
     | { kind: 'event'; text: string; planId?: string }
 

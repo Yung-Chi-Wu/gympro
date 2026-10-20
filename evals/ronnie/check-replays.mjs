@@ -89,6 +89,8 @@ for (const file of replays) {
         const claimed = t.replyCheck?.claimed ?? []
         if (e.claimed && claimed.join() !== e.claimed.join()) problems.push(`claimed ${claimed.join() || 'none'}, expected ${e.claimed.join() || 'none'}`)
         if (e.fixed !== undefined && t.replyCheck?.fixed !== e.fixed) problems.push(`fixed ${t.replyCheck?.fixed}, expected ${e.fixed}`)
+        // The check keeps the reply it caught, so the trace says what was about to be shown
+        if (t.replyCheck && t.replyCheck.draft !== lastReply) problems.push('the reply check did not keep the draft it caught')
         // The fix is asked for only when there is something to fix, and only once
         const asked = calls.filter((c) => c.messages.at(-1)?.content?.toString().startsWith('[App check]')).length
         if (asked !== (e.claimed?.length ? 1 : 0)) problems.push(`the model was asked to fix its reply ${asked} times`)

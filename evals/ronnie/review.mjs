@@ -69,6 +69,11 @@ for (const r of rows) {
             if (m.role === 'app_event') return `（使用者按了按鈕）${m.content}`
             if (m.role === 'user') return `你：${m.content}`
             if (m.role === 'assistant') return `羅尼：${m.content}\n`
+            if (m.role === 'reply_check') {
+                const c = JSON.parse(m.content)
+                return `  [回覆檢查] 初稿說 ${c.claimed.join('、')} 已經做過；${c.fixed ? '重寫後改正了' : '加了更正'}\n    初稿：${short(c.draft)}`
+            }
+            if (m.role === 'memory') return `  [記憶] ${short(m.content)}`
             const { input, result } = JSON.parse(m.content)
             return `  [工具 ${m.name}] ${JSON.stringify(input)}\n    → ${short(String(result).replace(/\n/g, ' ⏎ '))}`
         })

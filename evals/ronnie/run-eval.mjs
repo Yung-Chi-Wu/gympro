@@ -186,6 +186,8 @@ async function runCase(c, ctx) {
       { role: 'user', content: t.user },
       ...t.toolCalls.map((x) => ({ role: 'tool_call', name: x.name, content: JSON.stringify({ input: x.input, result: x.result }) })),
       { role: 'assistant', content: t.message },
+      // The reply check fired: what the draft claimed, the draft, and whether the retry fixed it
+      ...(t.replyCheck ? [{ role: 'reply_check', content: JSON.stringify(t.replyCheck) }] : []),
       // The notes after a turn that changed them, so regrade.mjs can grade memory from the trace
       ...(t.memoryChanged ? [{ role: 'memory', content: JSON.stringify(t.memoryAfter) }] : []),
     ]),

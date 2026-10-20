@@ -19,6 +19,7 @@ const {
     appendConversation, replaceConversation, asTypedMessage, EVENT_PREFIX,
     createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER,
     buildSystemPrompt, fixtureNotes, memoryLines, MAX_NOTES, MAX_EXERCISE_NOTES_SHOWN, MAX_OTHER_NOTES,
+    correctionIn, flagForCancel, flagForClear, flagsForMessage, RIGHT_AFTER_MS,
 } = createRequire(import.meta.url)(join(here, 'dist', 'check.cjs'))
 
 let failures = 0
@@ -498,6 +499,36 @@ function fakeSupabase(answer) {
     }
 }
 const op = (q, name) => q.ops.find(([k]) => k === name)?.[1]
+
+// What the user does after a reply flags its trace: a correction, an edit, a clear or cancel right after it
+{
+    const said = ['不是，我是說肩推', '錯了，我還沒做上斜', '我還沒做上斜臥推', '你說錯了，臥推是昨天', 'No, I meant the incline press', "That's wrong, I haven't done it", "I didn't do the bench today"]
+    const notSaid = ['肩推有什麼替代動作？', '不是很累，今天可以練腿嗎', '我還沒吃飯，可以先練嗎', 'No problem, thanks', 'Not bad. What next?', '今天練什麼']
+    const wrong = [...said.filter((m) => !correctionIn(m)).map((m) => `missed: ${m}`), ...notSaid.filter(correctionIn).map((m) => `flagged: ${m}`)]
+    check(!wrong.length, `a correction is read from what the user writes next (${said.length} that are, ${notSaid.length} that aren't)${wrong.length ? `: ${wrong.join('; ')}` : ''}`)
+
+    const now = Date.parse('2026-10-20T18:00:00Z')
+    const at = (msAgo) => new Date(now - msAgo).toISOString()
+    const display = [
+        { kind: 'user', text: '肩推有什麼替代動作？' },
+        { kind: 'assistant', text: '推薦側平舉。', traceId: 't1', at: at(10 * 60_000), proposals: [{ id: 'a1' }] },
+        { kind: 'user', text: '那今天還剩什麼？' },
+        { kind: 'assistant', text: '還剩上斜臥推。', traceId: 't2', at: at(30_000) },
+    ]
+    const corrected = flagsForMessage(display, '不是，上斜我做完了', null, 'u1')
+    check(corrected.length === 1 && corrected[0].traceId === 't2' && corrected[0].kind === 'correction', `a correction flags the reply just shown (${JSON.stringify(corrected)})`)
+    check(!flagsForMessage(display, '好，謝謝', null, 'u1').length, 'an ordinary message flags nothing')
+    const edited = flagsForMessage(display, '肩推可以換什麼？', 0, 'u1')
+    check(edited.length === 1 && edited[0].traceId === 't1' && edited[0].kind === 'edit', `an edit flags the reply it replaces (${JSON.stringify(edited)})`)
+    check(!flagsForMessage([{ kind: 'user', text: 'x' }, { kind: 'assistant', text: 'y' }], '不是', null, 'u1').length, 'a reply saved before replies had traces flags nothing')
+
+    const cleared = flagForClear(display, 'u1', now)
+    check(cleared.length === 1 && cleared[0].kind === 'cleared' && cleared[0].detail.seconds === 30, `clearing 30 s after a reply flags it (${JSON.stringify(cleared)})`)
+    check(!flagForClear(display, 'u1', now + RIGHT_AFTER_MS).length, 'clearing over two minutes after flags nothing')
+    const cancelled = flagForCancel(display, 'a1', 'u1', Date.parse(display[1].at) + 20_000)
+    check(cancelled.length === 1 && cancelled[0].traceId === 't1' && cancelled[0].kind === 'card_cancelled', `a card cancelled 20 s after its reply flags that reply (${JSON.stringify(cancelled)})`)
+    check(!flagForCancel(display, 'a1', 'u1', now).length && !flagForCancel(display, 'other', 'u1', now).length, 'a card cancelled later, or another card, flags nothing')
+}
 
 // Sets past 1000 rows are read in pages, a limited number of workouts per request
 {

@@ -18,7 +18,8 @@ import {
 import { asTypedMessage } from '@/lib/ronnie/events'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { errorText, usageOfError } from '@/lib/ai/trace'
-import { traceAfterResponse } from '@/lib/ai/trace-after'
+import { flagAfterResponse, traceAfterResponse } from '@/lib/ai/trace-after'
+import { flagForClear, flagsForMessage } from '@/lib/ronnie/signals'
 import { reportError } from '@/lib/report-error'
 
 // Ronnie lives in lib/ronnie so the eval can run the same agent against fixture
@@ -28,6 +29,8 @@ import { reportError } from '@/lib/report-error'
 //   POST    { message, language, editFrom? } - one user message; editFrom replaces
 //           the user's message at that index and everything after it
 //   DELETE  clears today's conversation
+// Each reply keeps its trace's id, so what the user does next can flag it (lib/ronnie/signals.ts):
+// a correction, an edit, a clear right after it.
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -49,7 +52,10 @@ export async function DELETE() {
     const { supabase, user } = await authed()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { today } = await loadUserToday(supabase, user.id)
+    // Cleared right after a reply: that reply may be why
+    const { display } = await loadConversation(supabase, user.id, today)
     await deleteConversation(supabase, user.id, today)
+    flagAfterResponse(flagForClear(display, user.id))
     return NextResponse.json({ ok: true })
 }
 
@@ -68,8 +74,11 @@ export async function POST(request: Request) {
     const admin = createAdminClient()
     const ctx = await loadRonnieContext(supabase, user.id, language)
     let conv = await loadConversation(supabase, user.id, ctx.today)
-    if (Number.isInteger(body?.editFrom)) {
-        conv = truncateAtUserMessage(conv, body.editFrom)
+    const editFrom = Number.isInteger(body?.editFrom) ? Number(body.editFrom) : null
+    // What this message says about the replies before it: a correction, or an edit that replaces one
+    flagAfterResponse(flagsForMessage(conv.display, message, editFrom, user.id))
+    if (editFrom != null) {
+        conv = truncateAtUserMessage(conv, editFrom)
         const error = await replaceConversation(admin, user.id, ctx.today, conv)
         if (error) {
             reportError('ronnie/edit', error, { userId: user.id })
@@ -85,8 +94,10 @@ export async function POST(request: Request) {
     })
     const sent = [...conv.messages, { role: 'user' as const, content: message }]
     // The trace keeps what Ronnie was given: the system prompt with the user's context, and today's conversation so far
-    const traceInput = { language, message, editFrom: Number.isInteger(body?.editFrom) ? body.editFrom : null, system, history: conv.messages }
+    const traceInput = { language, message, editFrom, system, history: conv.messages }
     const started = Date.now()
+    // Made here, so the reply can carry it before the trace is written after the response
+    const traceId = crypto.randomUUID()
 
     try {
         // Stop in the chat window closes the request: the agent then stops between steps, and what it
@@ -98,6 +109,8 @@ export async function POST(request: Request) {
         const reply = {
             kind: 'assistant' as const,
             text: turn.message,
+            traceId,
+            at: new Date().toISOString(),
             ...(proposals.length ? { proposals } : {}),
             ...(recommendations.length ? { recommendations } : {}),
             ...(plans.length ? { plans } : {}),
@@ -110,15 +123,17 @@ export async function POST(request: Request) {
         if (error) reportError('ronnie/conversation-save', error, { userId: user.id })
         await deleteOldConversations(supabase, user.id, ctx.today)
         traceAfterResponse({
-            userId: user.id, feature: 'ronnie', model: RONNIE_MODEL, servedModel: turn.servedModel,
+            id: traceId, userId: user.id, feature: 'ronnie', model: RONNIE_MODEL, servedModel: turn.servedModel,
             // A turn cut short after a change is saved and answered, and traced as the error it was
             ...(turn.interrupted ? { status: 'error' as const, error: `${turn.interrupted.reason}: ${turn.interrupted.error}` } : { status: 'ok' as const }),
             latencyMs: Date.now() - started, usage: turn.usage, input: traceInput,
             // What the turn added after the user's message: tool calls, their results, the reply
             output: { reply: turn.message, messages: turn.messages.slice(sent.length), proposals, recommendations, plans, reloadDashboard: turn.reloadDashboard, ...(turn.replyCheck ? { replyCheck: turn.replyCheck } : {}) },
+            // The reply check fired: what was claimed, the first draft, and whether the retry fixed it
+            flags: turn.replyCheck ? [{ kind: 'reply_check' as const, detail: turn.replyCheck }] : [],
         })
 
-        return NextResponse.json({ message: turn.message, reloadDashboard: turn.reloadDashboard, proposals, recommendations, plans })
+        return NextResponse.json({ message: turn.message, reloadDashboard: turn.reloadDashboard, proposals, recommendations, plans, traceId, at: reply.at })
     } catch (err) {
         // The text only: the error carries the turn's tool calls, which hold the user's own data
         console.error('Ronnie error:', errorText(err))
