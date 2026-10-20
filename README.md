@@ -168,6 +168,14 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
 ## Operations
 
 - **AI traces.** Every AI call stores its input, output, tool calls, tokens, cost and latency. Traces are kept 90 days, with a daily usage view.
+- **Flagged replies.** A Ronnie reply is flagged when:
+  - the reply check fired;
+  - the user's next message says it was wrong;
+  - the user edits the message it answered;
+  - the user cancels its card or clears the chat within two minutes;
+  - the user taps Report a mistake under it.
+
+  A flagged trace is kept 365 days. These are the conversations that become eval cases.
 - **Errors.** Server and browser errors go to an `app_errors` table.
 - **Alarms.** 12 CloudWatch alarms send email when:
   - AI calls fail, or half of an hour's calls fail (a dead key);

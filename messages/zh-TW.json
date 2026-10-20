@@ -263,6 +263,7 @@
     },
     "settings": {
         "title": "設定",
+        "dataNote": "AI 對話紀錄保留 90 天，用來改進回覆；回報或可能有錯的保留一年。刪除帳號會一併刪除。",
         "displayName": "顯示名稱",
         "displayNamePlaceholder": "你想怎麼被稱呼？",
         "height": "身高（公分）",

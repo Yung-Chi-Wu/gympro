@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { loadUserToday } from '@/lib/ronnie/context'
-import { appendConversation } from '@/lib/ronnie/conversation'
+import { appendConversation, loadConversation } from '@/lib/ronnie/conversation'
+import { flagForCancel } from '@/lib/ronnie/signals'
+import { flagAfterResponse } from '@/lib/ai/trace-after'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { RoutineProposal } from '@/lib/ronnie/data'
 import { eventForDisplay, eventForModel, type ResolvedRow } from '@/lib/ronnie/events'
@@ -11,7 +13,8 @@ import { reportError } from '@/lib/report-error'
 // The database applies it (resolve_ronnie_action: once, only if pending and
 // unexpired, only the user's own routines). The removal's second confirmation is
 // the chat window's dialog; this is called after it. Then the outcome is written
-// into today's conversation, so Ronnie knows what the user did.
+// into today's conversation, so Ronnie knows what the user did. A card cancelled right
+// after it was shown flags the reply that showed it (lib/ronnie/signals.ts).
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -56,6 +59,7 @@ export async function POST(request: Request) {
     }
     const text = eventForDisplay(event, zh)
     const { today } = await loadUserToday(supabase, user.id)
+    if (status === 'cancelled') flagAfterResponse(flagForCancel((await loadConversation(supabase, user.id, today)).display, actionId, user.id))
     const saveError = await appendConversation(createAdminClient(), user.id, today, {
         messages: [{ role: 'user', content: eventForModel(event) }],
         display: [{ kind: 'event', text }],

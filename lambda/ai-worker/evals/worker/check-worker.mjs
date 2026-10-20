@@ -260,6 +260,26 @@ const client = (answers, delayMs = 0) => {
         JSON.stringify(f.narrative))
 }
 
+// Retention: an unflagged trace goes after 90 days, a flagged one after 365, app errors after 90
+{
+    const calls = []
+    const fake = { from(table) {
+        const q = { table, ops: [] }
+        calls.push(q)
+        const b = new Proxy({}, { get: (_, k) => (k === 'then' ? (res) => res({ error: null }) : (...args) => { q.ops.push([k, ...args]); return b }) })
+        return b
+    } }
+    const now = Date.parse('2026-10-20T12:00:00Z')
+    await w.deleteExpired(fake, now)
+    const days = (iso) => Math.round((now - Date.parse(iso)) / 86_400_000)
+    const read = calls.map((q) => `${q.table}: ${q.ops.map(([k, ...a]) => (k === 'lt' ? `before ${days(a[1])} days` : k === 'is' ? `${a[0]} ${a[1]}` : k)).join(', ')}`)
+    check('retention: unflagged traces 90 days, flagged 365, app errors 90', JSON.stringify(read) === JSON.stringify([
+        'ai_traces: delete, before 90 days, flagged_at null',
+        'ai_traces: delete, before 365 days',
+        'app_errors: delete, before 90 days',
+    ]), JSON.stringify(read))
+}
+
 // The app's labels stand in for any report: every scenario, both languages, nothing left in
 // braces, and they pass the same text checks
 {

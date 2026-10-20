@@ -1,7 +1,9 @@
 // Turns a conversation into a replay for check-replays.mjs: what the user said, and what the
 // model did and said, with exercise IDs written as @ and the fixture's library name, so the
 // replay runs on the fixture whatever IDs the conversation had. The expectations are added by
-// hand. Takes an eval trace (.claude/hillclimb/<flow>/<variant>/traces/<case>_rep<n>.json):
+// hand. Where the reply check fired, the model's reply is the draft it caught and the retry is
+// what was shown, the expectations started from what the check found. Takes an eval trace
+// (.claude/hillclimb/<flow>/<variant>/traces/<case>_rep<n>.json):
 //   node evals/ronnie/trace-to-replay.mjs <trace.json> <replay id> > evals/ronnie/replays/<replay id>.json
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -33,4 +35,14 @@ const model = trace.flatMap((m) => {
     }
     return m.role === 'assistant' ? [{ reply: m.content }] : []
 })
-console.log(JSON.stringify({ id, source: tracePath.replace(/^.*\.claude\/hillclimb\//, ''), why: '', language: 'zh-TW', user: users[0].content, model, expect: {} }, null, 2))
+// The reply check fired: the model said the draft first, then the reply shown, less the correction code adds
+const check = trace.find((m) => m.role === 'reply_check')
+const caught = check ? JSON.parse(check.content) : null
+const shown = model.findLast((s) => s.reply)
+const retry = caught && shown ? shown.reply.replace(/\n*📌[^\n]*$/u, '') : undefined
+if (caught && shown) shown.reply = caught.draft
+console.log(JSON.stringify({
+    id, source: tracePath.replace(/^.*\.claude\/hillclimb\//, ''), why: '', language: 'zh-TW', user: users[0].content, model,
+    ...(retry != null ? { retry } : {}),
+    expect: caught ? { claimed: caught.claimed, fixed: caught.fixed } : {},
+}, null, 2))

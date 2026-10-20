@@ -5,7 +5,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 // back (tool calls and their results included), tokens, cost, time, and any error. Traces are
 // how a real conversation becomes an eval case, how cost is counted per feature and user, and
 // how a wrong answer is debugged. Only the service role reads or writes them (the app server
-// and the Lambdas); they are kept 90 days and go with the user's account.
+// and the Lambdas); they are kept 90 days, a flagged one 365 (flagTrace), and go with the
+// user's account.
 //
 // Shared by the app (Next.js routes) and the report Lambda, so it imports nothing app-only.
 
@@ -24,6 +25,8 @@ const CACHE_WRITE = 1.25
 const MAX_FIELD_CHARS = 256_000
 
 export interface Trace {
+    /** Made by the caller when something must point at the trace (Ronnie's reply), else by the database */
+    id?: string
     userId: string
     feature: TraceFeature
     /** The model asked for; servedModel is the one that answered */
@@ -76,6 +79,7 @@ export async function recordTrace(supabase: SupabaseClient, trace: Trace): Promi
     try {
         const totals = usageTotals(trace.usage)
         const { error } = await supabase.from('ai_traces').insert({
+            ...(trace.id ? { id: trace.id } : {}),
             user_id: trace.userId,
             feature: trace.feature,
             model: trace.model,
@@ -97,6 +101,45 @@ export async function recordTrace(supabase: SupabaseClient, trace: Trace): Promi
         return error?.message ?? null
     } catch (err) {
         console.error(`AI trace not saved (${trace.feature}):`, err)
+        return err instanceof Error ? err.message : String(err)
+    }
+}
+
+/**
+ * Why a trace may hold a mistake, from what the code or the user did around it (lib/ronnie/signals.ts):
+ *   reply_check     the reply check fired before the reply was shown
+ *   correction      the user's next message says it was wrong
+ *   edit            the user edited the message it answered
+ *   card_cancelled  its card was cancelled within two minutes
+ *   cleared         the chat was cleared within two minutes of it
+ *   reported        the user tapped Report a mistake under it
+ *   audit           the daily review found something in it
+ */
+export type FlagKind = 'reply_check' | 'correction' | 'edit' | 'card_cancelled' | 'cleared' | 'reported' | 'audit'
+
+export interface TraceFlag {
+    traceId: string
+    userId: string
+    kind: FlagKind
+    detail?: Record<string, unknown>
+}
+
+/**
+ * Flags a trace (ai_trace_flags), which keeps it 365 days for review. Once per trace and kind: a
+ * second flag of the kind is ignored. Never throws; says why it wasn't saved, or null.
+ */
+export async function flagTrace(supabase: SupabaseClient, flag: TraceFlag): Promise<string | null> {
+    try {
+        const { error } = await supabase.from('ai_trace_flags').upsert({
+            trace_id: flag.traceId,
+            user_id: flag.userId,
+            kind: flag.kind,
+            detail: capped(flag.detail ?? null),
+        }, { onConflict: 'trace_id,kind', ignoreDuplicates: true })
+        if (error) console.error(`AI trace not flagged (${flag.kind}): ${error.message}`)
+        return error?.message ?? null
+    } catch (err) {
+        console.error(`AI trace not flagged (${flag.kind}):`, err)
         return err instanceof Error ? err.message : String(err)
     }
 }

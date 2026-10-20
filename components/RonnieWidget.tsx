@@ -75,6 +75,8 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [editingIndex, setEditingIndex] = useState<number | null>(null)
+    // Replies the user reported this session; the server keeps the flag on the reply's trace
+    const [reported, setReported] = useState<Set<string>>(() => new Set())
     const [editingText, setEditingText] = useState('')
     const [busyCard, setBusyCard] = useState<string | null>(null)
     // The removal waiting for its second confirmation
@@ -143,6 +145,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
             setItems((prev) => [...prev, {
                 kind: 'assistant',
                 text: data.message,
+                ...(typeof data.traceId === 'string' ? { traceId: data.traceId, at: data.at } : {}),
                 ...(data.proposals?.length ? { proposals: data.proposals } : {}),
                 ...(data.recommendations?.length ? { recommendations: data.recommendations } : {}),
                 ...(data.plans?.length ? { plans: data.plans } : {}),
@@ -373,6 +376,28 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         )
     }
 
+    // "Report a mistake" under a reply: it only flags the reply for review, so one tap and no confirm
+    const report = async (traceId: string) => {
+        setReported((prev) => new Set(prev).add(traceId))
+        const res = await fetch('/api/ai/coach/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ traceId }),
+        }).catch(() => null)
+        if (!res?.ok) setReported((prev) => { const next = new Set(prev); next.delete(traceId); return next })
+    }
+    const renderReport = (traceId: string) => (
+        <div className="mt-0.5 flex justify-start px-1 text-[11px]">
+            {reported.has(traceId) ? (
+                <span className="text-ink/40 dark:text-white/40">{zh ? '已回報，對話將保留一年' : 'Reported; kept a year for review'}</span>
+            ) : (
+                <button type="button" onClick={() => report(traceId)} className="-my-1 py-1 text-red-500/70 hover:text-red-500">
+                    {zh ? '回報錯誤' : 'Report a mistake'}
+                </button>
+            )}
+        </div>
+    )
+
     const avatar = (
         <div className="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs mr-2 mt-1 shrink-0"
             style={{ backgroundColor: ACCENT }}>
@@ -471,6 +496,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                             {item.proposals?.map(renderProposal)}
                                             {item.recommendations?.map(renderRecommendation)}
                                             {item.plans?.map(renderPlan)}
+                                            {item.traceId && renderReport(item.traceId)}
                                         </div>
                                     </div>
                                 )
