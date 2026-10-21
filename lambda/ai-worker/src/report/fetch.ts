@@ -120,7 +120,7 @@ export async function fetchReportInputs(
     ])
 
     return {
-        inputs: { periodStart, periodEnd, sets, exercises, schedule, weighIns, bodyFat, goal: profile?.training_goal ?? null, routineLeads, previousFindings: previous.findings, notes, memory },
+        inputs: { periodStart, periodEnd, sets, exercises, schedule, weighIns, bodyFat, goal: profile?.training_goal ?? null, routineLeads, previousFindings: previous.findings, notes, memory, weightUnit: profile?.weight_unit === 'lb' ? 'lb' : 'kg' },
         language: profile?.language ?? 'en',
         weightUnit: profile?.weight_unit === 'lb' ? 'lb' : 'kg',
         distanceUnit: profile?.distance_unit === 'mi' ? 'mi' : 'km',
@@ -130,11 +130,15 @@ export async function fetchReportInputs(
     }
 }
 
-const EXERCISE_COLUMNS = 'id, name, name_zh_tw, muscle_group, primary_muscles, secondary_muscles, log_type'
-type ExerciseRow = { id: string; name: string; name_zh_tw: string | null; muscle_group: string; primary_muscles: string[] | null; secondary_muscles: string[] | null; log_type: string | null }
+const EXERCISE_COLUMNS = 'id, name, name_zh_tw, muscle_group, primary_muscles, secondary_muscles, log_type, joint_load, equipment'
+type ExerciseRow = {
+    id: string; name: string; name_zh_tw: string | null; muscle_group: string; primary_muscles: string[] | null; secondary_muscles: string[] | null; log_type: string | null
+    joint_load: Record<string, string> | null; equipment: string | null
+}
 const toExercise = (e: ExerciseRow): ExerciseInfo => ({
     id: e.id, name: e.name, nameZh: e.name_zh_tw, muscleGroup: e.muscle_group,
     primaryMuscles: e.primary_muscles ?? [], secondaryMuscles: e.secondary_muscles ?? [], logType: logTypeOf(e.log_type),
+    jointLoad: e.joint_load ?? null, equipment: e.equipment ?? null,
 })
 
 /** The library (no custom exercises), which a goal may name before the user logs it ("a first pull-up") */

@@ -40,10 +40,15 @@ const MARKDOWN = /\*\*|__|`|^\s*#|^\s*[-*]\s|^\s*\d+\.\s/m
 // A weight in the other unit than the user's
 const WRONG_UNIT = { kg: /\d\s*(lbs?|磅)/i, lb: /\d\s*(kg|公斤)/i }
 
+// The next-session advice code writes in full (lib/report/types.ts CODE_RULES): check-plan.mjs checks it, the model writes none of it
+const CODE_RULES = new Set(['goal_path', 'next_session', 'pain_hold'])
+/** The model's part of a report: its items and the findings it writes for */
+export const modelPart = (n) => ({ ...n, items: (n?.items ?? []).filter((i) => i.rule && !CODE_RULES.has(i.rule)) })
+
 export function programmaticGrade(c, out) {
-    const n = out?.narrative ?? {}
+    const n = modelPart(out?.narrative ?? {})
     const items = n.items ?? []
-    const findings = out?.findings ?? []
+    const findings = (out?.findings ?? []).filter((f) => !CODE_RULES.has(f.rule))
     const fired = [...new Set(findings.map((f) => f.rule))]
     const chosen = items.map((i) => i.rule)
     const unknown = chosen.filter((r) => !fired.includes(r))

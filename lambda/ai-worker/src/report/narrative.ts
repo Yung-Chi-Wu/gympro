@@ -4,14 +4,15 @@ import { getClaudeClient } from '../claude'
 import { toDisplayWeight, type WeightUnit } from '../../../../lib/weight-unit'
 import { toDisplayDistance, type DistanceUnit } from '../../../../lib/distance-unit'
 import { unitLabel, VOLUME_UNITS, VOLUME_UNIT_IDS } from '../../../../lib/report/volume'
-import { fallbackNarrative, withLines, zhTermsLine } from '../../../../lib/report/report-text'
+import { CODE_RULES, fallbackNarrative, withLines, withPlanItems, zhTermsLine } from '../../../../lib/report/report-text'
 import type { CardioFacts, DayNote, Finding, FollowUp, LiftFacts, ReportFacts, ReportNarrative, RuleId, Watching } from './types'
 
 // The model's whole job in the report: one headline, and one plain-language action for each
 // rule code has already fired, covering every finding of that rule (all the muscles, all the
 // lifts), so no advice is dropped. Low muscles are the exception: code writes that action and lists
 // each muscle's ways to add sets under it (withLines), and the model adds only a sentence for a
-// note that bears on them. Every number it may use
+// note that bears on them. The next-session advice (CODE_RULES, plan.ts) is code's alone: the
+// model is told what it says, for the headline, and writes none of it. Every number it may use
 // is in the brief; it never sees raw sets, so it has nothing to recompute. Code decides the
 // order: by priority, a deload first.
 
@@ -22,12 +23,15 @@ const REQUEST_TIMEOUT_MS = 60_000
 /** Too little time left for a call to finish: stop, so the report is saved as failed instead of cut off */
 const MIN_CALL_MS = 15_000
 
+type ModelRule = Exclude<RuleId, 'goal_path' | 'next_session' | 'pain_hold'>
+const isModelRule = (r: RuleId): r is ModelRule => !CODE_RULES.has(r)
+
 /** What each rule's advice says, in the user's unit. The app shows the research behind it. */
-const advice = (unit: WeightUnit, period: string): Record<RuleId, string> => ({
+const advice = (unit: WeightUnit, period: string): Record<ModelRule, string> => ({
     deload: 'Plan one lighter week: the same exercises at about half of each lift\'s sets this period (listed above) and clearly lighter weights, then build back up. If a note mentions sleep or stress, suggest looking at it; don\'t claim it is the cause.',
     lift_regressed: 'Stay at holdAt (this period\'s weight; for a bodyweight lift, the same reps) instead of adding load, check recovery (sleep, food, stress) and technique, and aim to get back to previousBest before pushing on.',
     lift_stalled: `Double progression: keep the weight and add reps on every set until all sets reach the top of the rep range, then add the smallest jump (${unit === 'lb' ? '5 lb upper body, 10 lb lower body' : '2.5 kg upper body, 5 kg lower body'}).`,
-    low_volume: `It takes addSets more sets each ${period} to bring the muscle to 10 a week. Code writes this action: it tells the user to pick one way for each muscle and lists each muscle with its options (the exercises and sets in its data). Your text for low_volume is only for a note: if a note bears on a muscle or one of its options (pain, discomfort, missing equipment), one short sentence fitting the advice to it, naming the muscle, such as which option to prefer or a lighter start; otherwise an empty string. Add no exercise of your own unless a note rules out every option a muscle has.`,
+    low_volume: `It takes addSets more sets each ${period}, a step toward 10 a week (at most 2 a week at a time). Code writes this action: it tells the user to pick one way for each muscle and lists each muscle with its options (the exercises and sets in its data). Your text for low_volume is only for a note: if a note bears on a muscle or one of its options (pain, discomfort, missing equipment), one short sentence fitting the advice to it, naming the muscle, such as which option to prefer or a lighter start; otherwise an empty string. Add no exercise of your own unless a note rules out every option a muscle has.`,
     missed_sessions: 'Name the missed sessions and suggest a realistic way to fit those routines in, as planned, or plan around those days. Making them up is what brings lowGroups (muscles low only because of these sessions) back into range, so don\'t swap in other exercises. Never scold; if a note explains it, acknowledge that.',
     weight_trend: 'Body weight is moving against the goal: suggest a small daily calorie change (about 200-300 kcal) and steady weigh-ins, not a crash diet.',
     cardio_first: `On a lower-body day, do the leg lifts before the cardio (the cardio and lift in the data), or the cardio at another time; a 5-10 minute warm-up before lifting is fine. It is about leg strength: don't say cardio hurts muscle growth, and don't suggest doing more or less cardio.`,
@@ -87,8 +91,8 @@ export function optionNames(f: Finding, language: string): string[] {
         .filter((v): v is string => typeof v === 'string')
 }
 
-/** The fired rules, most important first (findings come sorted by priority). */
-const rulesOf = (findings: Finding[]): RuleId[] => [...new Set(findings.map((f) => f.rule))]
+/** The fired rules the model writes for, most important first (findings come sorted by priority). */
+const rulesOf = (findings: Finding[]): ModelRule[] => [...new Set(findings.map((f) => f.rule).filter(isModelRule))]
 
 /** Exactly one action per fired rule: the schema itself can't leave one out or add another. */
 function schemaFor(findings: Finding[]) {
@@ -123,6 +127,21 @@ function cardioLine(c: CardioFacts | undefined, zh: boolean, unit: string, days:
     })
     const what = c.minutes ? `${c.minutes} min${scaled} on ${c.days} ${c.days === 1 ? 'day' : 'days'}: ${each.join('; ')}.` : 'none.'
     return `Cardio this ${unit} (the app shows it as a fact; give no advice on how much cardio to do): ${what}${last}`
+}
+
+/**
+ * What code writes as next-session advice (plan.ts), for the brief: the model writes none of it,
+ * but a headline that knows a lift is held for pain, or which lifts the goal's plan is on, won't
+ * contradict it.
+ */
+function codeWrote(findings: Finding[], zh: boolean): string | null {
+    const named = (rule: RuleId) => findings.filter((f) => f.rule === rule).map((f) => String((zh && f.data.nameZh) || f.data.name))
+    const parts = [
+        named('pain_hold').length ? `holding ${named('pain_hold').join(', ')} this period at its weight, because the user said it hurt` : null,
+        named('goal_path').length ? `the next session for the goal's lifts (${named('goal_path').join(', ')}), with other ways to get there` : null,
+        named('next_session').length ? `the next session for ${named('next_session').join(', ')}: reach the top of the reps on every set, then add weight` : null,
+    ].filter(Boolean)
+    return parts.length ? `Code writes this advice in the app, with its numbers; don't write it in actions, and name it in the headline only if it matters most: ${parts.join('; ')}.` : null
 }
 
 export function buildPrompt(input: NarrativeInput): string {
@@ -218,16 +237,19 @@ export function buildPrompt(input: NarrativeInput): string {
             ...followUps.map(followUpLine))
     }
     const itemName = (f: Finding) => findingName(f, language)
-    lines.push(findings.length
+    const modelFindings = findings.filter((f) => isModelRule(f.rule))
+    lines.push(modelFindings.length
         ? `Rules that fired, most important first; each has one or more items:\n${rulesOf(findings).map((r) => {
             const fs = findings.filter((f) => f.rule === r)
             const advice = fs.some((f) => f.data.assisted) && ASSISTED_ADVICE[r] ? `${ADVICE[r]} ${ASSISTED_ADVICE[r]}` : ADVICE[r]
             return `- ${r} (priority ${Math.max(...fs.map((f) => f.priority))}). Advice: ${advice}\n${fs.map((f) => `    - ${itemName(f) ? `${itemName(f)}: ` : ''}data ${JSON.stringify(dataFor(f))}`).join('\n')}`
         }).join('\n')}`
         : 'No rules fired this period.')
+    const planned = codeWrote(findings, zh)
+    if (planned) lines.push(planned)
     if (watching.length) lines.push(`Watching, below threshold (do not advise on these): ${watching.map((x) => `${x.rule}${nameIn(x.rule, x.subject, x.data) ? ` (${nameIn(x.rule, x.subject, x.data)})` : ''}`).join(', ')}.`)
 
-    const lowFired = findings.some((f) => f.rule === 'low_volume')
+    const lowFired = modelFindings.some((f) => f.rule === 'low_volume')
     const languageRule = zh
         ? `Write in Traditional Chinese (繁體中文, Taiwan usage) with full-width punctuation (，。！？「」), and use the Chinese exercise and muscle names given above. ${zhTermsLine()}`
         : 'Write in English.'
@@ -236,7 +258,7 @@ export function buildPrompt(input: NarrativeInput): string {
 ${lines.join('\n')}
 
 1. headline: one sentence the user reads first, the most important thing about this ${unit}, consistent with the status. It may use a number from above. ${zh ? 'At most 40 characters.' : 'At most 25 words.'}
-2. actions: ${findings.length ? `one for each rule above. Each says exactly what to do next ${unit} about every item under its rule, naming each one as written above (every muscle, every lift), with the exercise, sets, weights or reps from the data; as short as covering every item allows. Don't repeat the reason; the app shows it. Fit every action to the user's notes: if one mentions pain or discomfort in a movement or joint, don't simply add sets or load there; suggest a pain-free alternative or a lighter range, and getting it checked if it persists.${lowFired ? ` low_volume is the exception: code writes its action and lists its muscles and options, so its text is only the note sentence its advice describes, or an empty string${zh ? ` (at most ${LOW_VOLUME_NOTE_MAX.zh} characters)` : ` (at most ${LOW_VOLUME_NOTE_MAX.en} words)`}.` : ''}` : 'leave it empty: nothing fired, so give no advice.'}
+2. actions: ${modelFindings.length ? `one for each rule above. Each says exactly what to do next ${unit} about every item under its rule, naming each one as written above (every muscle, every lift), with the exercise, sets, weights or reps from the data; as short as covering every item allows. Don't repeat the reason; the app shows it. Fit every action to the user's notes: if one mentions pain or discomfort in a movement or joint, don't simply add sets or load there; suggest a pain-free alternative or a lighter range, and getting it checked if it persists.${lowFired ? ` low_volume is the exception: code writes its action and lists its muscles and options, so its text is only the note sentence its advice describes, or an empty string${zh ? ` (at most ${LOW_VOLUME_NOTE_MAX.zh} characters)` : ` (at most ${LOW_VOLUME_NOTE_MAX.en} words)`}.` : ''}` : 'leave it empty: nothing fired, so give no advice.'}
 
 Use only the numbers above; never invent data. No myths, no diagnosis, no scolding. Plain text only: no Markdown, no lists inside a field. ${languageRule}`
 }
@@ -278,7 +300,7 @@ export function textProblems(n: ReportNarrative, input: NarrativeInput): string[
     }
     // Every other item named in its rule's action
     for (const f of input.findings) {
-        if (f.rule === 'low_volume') continue
+        if (f.rule === 'low_volume' || CODE_RULES.has(f.rule)) continue
         const action = (n.items.find((i) => i.rule === f.rule)?.action ?? '').toLowerCase()
         for (const name of [findingName(f, input.language)]) {
             if (name && !action.includes(name.toLowerCase())) problems.push(`the ${f.rule} action doesn't name ${name}`)
@@ -349,7 +371,8 @@ export async function generateNarrative(input: NarrativeInput, model: string = N
                 const narrative: ReportNarrative = { headline, items: rulesOf(input.findings).map((rule) => ({ rule, action: rule === 'low_volume' && !noted ? '' : actions[rule] })) }
                 // A low_volume text is empty without a note that bears on it
                 const problems = headline.trim() && narrative.items.every((i) => i.rule === 'low_volume' || i.action?.trim()) ? textProblems(narrative, input) : ['empty text']
-                if (!problems.length) return { narrative: withLines(narrative, input.findings, input.language, input.facts.period.days === 7 ? 'week' : 'cycle'), prompt, model: response.model, usage, attempts: attempt }
+                const period = input.facts.period.days === 7 ? 'week' : 'cycle'
+                if (!problems.length) return { narrative: withPlanItems(withLines(narrative, input.findings, input.language, period), input.findings, input.language, period, input.weightUnit), prompt, model: response.model, usage, attempts: attempt }
                 lastProblem = problems.join('; ')
                 feedback = lastProblem
             }
@@ -359,7 +382,7 @@ export async function generateNarrative(input: NarrativeInput, model: string = N
         // arrives. Its trace keeps why.
         if (answeredBy) {
             console.warn(JSON.stringify({ event: 'report_text_fallback', model: answeredBy, problem: lastProblem }))
-            return { narrative: fallbackNarrative(input.facts, input.findings, input.language), prompt, model: answeredBy, usage, attempts: MAX_ATTEMPTS, fallback: lastProblem }
+            return { narrative: fallbackNarrative(input.facts, input.findings, input.language, input.weightUnit), prompt, model: answeredBy, usage, attempts: MAX_ATTEMPTS, fallback: lastProblem }
         }
         throw new Error(`Claude returned no report: ${lastProblem}`)
     } catch (err) {

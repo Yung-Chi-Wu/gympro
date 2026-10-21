@@ -67,7 +67,12 @@ async function processMessage(record: SQSRecord, deadline: number): Promise<void
     const client = await getClaudeClient()
     const logged = new Set(inputs.sets.map((s) => s.exerciseId))
     const own = inputs.exercises.filter((e) => logged.has(e.id))
-    const texts: WeekText[] = [...inputs.notes.map((n) => ({ date: n.date, source: 'note' as const, text: n.note })), ...messages]
+    // The period's own note (how notes were written before day notes) is read as written on its last day
+    const texts: WeekText[] = [
+      ...inputs.notes.map((n) => ({ date: n.date, source: 'note' as const, text: n.note })),
+      ...(userNote?.trim() ? [{ date: periodEnd, source: 'note' as const, text: userNote }] : []),
+      ...messages,
+    ]
       .sort((a, b) => a.date.localeCompare(b.date))
     const readStarted = Date.now()
     const [goal, week] = await Promise.all([
@@ -75,6 +80,7 @@ async function processMessage(record: SQSRecord, deadline: number): Promise<void
       readWeek(client, texts, { own, deadline }).then((r) => ({ ...r, ms: Date.now() - readStarted })),
     ])
     inputs.goalRead = goal.read
+    inputs.library = library
     inputs.weekRead = week.read
     if (goal.call) {
       await recordTrace(supabase, {

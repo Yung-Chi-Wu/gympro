@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Free check of grade.mjs: for every scenario an ideal report text passes, and
-// broken ones fail the check they break. No model calls.
+// broken ones fail the check they break. The next-session items code writes are in every text,
+// as in a real report, and the grade leaves them out. No model calls.
 //   node lambda/ai-worker/evals/report-v3/check-grader.mjs
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
@@ -15,9 +16,14 @@ const { analyze, findingName, optionLines, optionNames } = createRequire(import.
 
 let failures = 0
 const check = (ok, msg) => { if (!ok) { failures++; console.log(`FAIL ${msg}`) } }
+const CODE_RULES = new Set(['goal_path', 'next_session', 'pain_hold'])
 
 for (const c of SCENARIOS) {
-    const { findings, facts } = analyze(inputsFor(c))
+    const { findings: all, facts } = analyze(inputsFor(c))
+    // The model's findings; code's are written by code, as their items below
+    const findings = all.filter((f) => !CODE_RULES.has(f.rule))
+    const codeItems = [...new Map(all.filter((f) => CODE_RULES.has(f.rule)).map((f) => [f.rule === 'next_session' ? 'next' : f.id,
+        f.rule === 'next_session' ? { rule: f.rule, action: 'code', lines: [] } : { findingId: f.id, action: 'code' }])).values()]
     const zh = c.language === 'zh-TW'
     // Ideal: one action per fired rule in priority order (a deload first), naming every item of it;
     // for low muscles a short lead, with code's lines naming each and both exercises to choose between
@@ -28,11 +34,11 @@ for (const c of SCENARIOS) {
     const ideal = {
         narrative: {
             headline: zh ? '這週整體穩定，照下面的重點調整就好。' : 'A steady week; the points below are what to adjust.',
-            items: rules.map((r) => (r === 'low_volume'
+            items: [...rules.map((r) => (r === 'low_volume'
                 ? { rule: r, action: zh ? '每個部位選一種方式補上組數。' : 'Pick one way for each muscle.', lines: optionLines(findings, c.language, facts.period.days === 7 ? 'week' : 'cycle') }
-                : { rule: r, action: `${named(r)}${zh ? '下週照這個方向調整。' : ' adjust this next week.'}` })),
+                : { rule: r, action: `${named(r)}${zh ? '下週照這個方向調整。' : ' adjust this next week.'}` })), ...codeItems],
         },
-        findings, status: facts.status, brief: '', names, options,
+        findings: all, status: facts.status, brief: '', names, options,
     }
     const g = programmaticGrade(c, ideal).grade
     check(overallPass(g) === 1, `${c.id}: the ideal text should pass, got ${JSON.stringify(g)}`)

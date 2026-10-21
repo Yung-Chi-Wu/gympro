@@ -1,10 +1,12 @@
-// What check-worker.mjs, check-audit.mjs, check-goal.mjs and check-context.mjs load, bundled by each into dist/worker.cjs
+// What check-worker.mjs, check-audit.mjs, check-goal.mjs, check-context.mjs and check-plan.mjs load, bundled by each into dist/worker.cjs
 export { isRunnable, parseRequest, saveReport, saveFailedStatus, saveInsufficientDataStatus } from '../../src/supabase'
 export { MAX_CYCLE_DAYS, periodDays } from '../../../../lib/periods'
 export { buildPrompt, generateNarrative, textProblems } from '../../src/report/narrative'
 export { analyze } from '../../src/report/analyze'
+export { prescribe, withPlan } from '../../src/report/plan'
+export { followUp } from '../../src/report/rules'
 export { fetchMemory, fetchMessages, fetchSchedule } from '../../src/report/fetch'
-export { fallbackNarrative, formatLabel, messageAt, ZH_TERMS } from '../../../../lib/report/report-text'
+export { fallbackNarrative, formatLabel, messageAt, planItems, withPlanItems, ZH_TERMS } from '../../../../lib/report/report-text'
 export { isCurrentRequest, isStalePending, shownStatus, STALE_PENDING_MS } from '../../../../lib/report/queue'
 export { deleteExpired, stoppedByUser } from '../../src/scheduler'
 export { conversationsToReview, lastTurnsThatFit, localDate, MAX_RESULT_CHARS, renderConversation, toolCallsOf, turnOf } from '../../src/audit/turns'

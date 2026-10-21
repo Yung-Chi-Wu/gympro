@@ -22,6 +22,8 @@ export type Source = {
     title: string
     journal: string
     doi: string
+    /** An organization's statement (ACSM), cited by its name alone, with no "et al." */
+    organization?: true
 }
 
 /**
@@ -36,13 +38,52 @@ const PELLAND: Source = { author: 'Pelland', year: 2026, title: 'The Resistance 
 /** Cited by the cardio rule and the cardio facts: concurrent training against lifting alone, and the order within a session */
 const HELD: Source = { author: 'Held', year: 2026, title: 'Maximizing Adaptations in Concurrent Training: An Umbrella Review of Meta-analyses', journal: 'Sports Medicine', doi: '10.1007/s40279-026-02401-y' }
 
-export const EVIDENCE: Record<RuleId, { sources: Source[]; ownThreshold: boolean }> = {
+// Next session (plan.ts), resolved through LibKey on 2026-10-21
+/** Trained lifters, 8 weeks: adding reps at a fixed load grew muscle and strength about as well as adding load */
+const PLOTKIN: Source = { author: 'Plotkin', year: 2022, title: 'Progressive overload without progressing load? The effects of load or repetition progression on muscular adaptations', journal: 'PeerJ', doi: '10.7717/peerj.14142' }
+/** Progression: add 2-10% when the current load can be done for one or two reps more than the set calls for */
+const ACSM_2009: Source = { author: 'ACSM', year: 2009, title: 'Progression Models in Resistance Training for Healthy Adults', journal: 'Medicine & Science in Sports & Exercise', doi: '10.1249/MSS.0b013e3181915670', organization: true }
+/** Network meta-analysis: for strength, heavier loads (above about 80% of 1RM) ranked best */
+const CURRIER_2023: Source = { author: 'Currier', year: 2023, title: 'Resistance training prescription for muscle strength and hypertrophy in healthy adults: a systematic review and Bayesian network meta-analysis', journal: 'British Journal of Sports Medicine', doi: '10.1136/bjsports-2023-106807' }
+/** Position stand: for strength, train each muscle group two or more days a week */
+const ACSM_2026: Source = { author: 'ACSM', year: 2026, title: 'American College of Sports Medicine Position Stand. Resistance Training Prescription for Muscle Function, Hypertrophy, and Physical Performance in Healthy Adults: An Overview of Reviews', journal: 'Medicine & Science in Sports & Exercise', doi: '10.1249/MSS.0000000000003897', organization: true }
+/** More sessions a week, more strength, mostly through the added volume */
+const GRGIC_2018: Source = { author: 'Grgic', year: 2018, title: 'Effect of Resistance Training Frequency on Gains in Muscular Strength: A Systematic Review and Meta-Analysis', journal: 'Sports Medicine', doi: '10.1007/s40279-018-0872-x' }
+/** College men: lat-pull 1RM about 75-80% of the pull-up 1RM (body plus added load); r = 0.78 */
+const JOHNSON_2009: Source = { author: 'Johnson', year: 2009, title: 'Relationship of Lat-Pull Repetitions and Pull-Ups to Maximal Lat-Pull and Pull-Up Strength in Men and Women', journal: 'Journal of Strength and Conditioning Research', doi: '10.1519/JSC.0b013e3181a2d7f5' }
+
+/**
+ * Each part of a next-session plan and its research (messages: reportV3.planResearch): the
+ * double progression every plan starts from, heavier sets for a strength goal, a second day of a
+ * lift trained once, and the pulldown as the way to a first pull-up.
+ */
+export const PLAN_EVIDENCE = {
+    progress: [PLOTKIN, ACSM_2009],
+    heavy: [CURRIER_2023],
+    frequency: [ACSM_2026, GRGIC_2018],
+    pullUp: [JOHNSON_2009],
+} satisfies Record<string, Source[]>
+export type PlanPart = keyof typeof PLAN_EVIDENCE
+
+/** safety: a rule that protects the user rather than follows a study; it has no paper, and its claim says so */
+export const EVIDENCE: Record<RuleId, { sources: Source[]; ownThreshold: boolean; safety?: true }> = {
     lift_stalled: {
-        sources: [
-            // Trained lifters, 8 weeks: adding reps at a fixed load grew muscle and strength about as well as adding load
-            { author: 'Plotkin', year: 2022, title: 'Progressive overload without progressing load? The effects of load or repetition progression on muscular adaptations', journal: 'PeerJ', doi: '10.7717/peerj.14142' },
-        ],
+        sources: [PLOTKIN],
         ownThreshold: true,
+    },
+    goal_path: {
+        sources: [PLOTKIN, ACSM_2009, CURRIER_2023, ACSM_2026, GRGIC_2018, JOHNSON_2009],
+        ownThreshold: false,
+    },
+    next_session: {
+        sources: [PLOTKIN, ACSM_2009],
+        ownThreshold: false,
+    },
+    // A safety rule, not a study's result: the claim says so
+    pain_hold: {
+        sources: [],
+        ownThreshold: false,
+        safety: true,
     },
     lift_regressed: {
         sources: [
@@ -130,11 +171,9 @@ export const GOAL_EVIDENCE: { e1rm: Source[]; pullUp: Source[]; bodyWeight: Sour
         // A 1RM is predicted best from a heavy set of a few reps; the linear equations shouldn't be used past 10
         { author: 'Reynolds', year: 2006, title: 'Prediction of One Repetition Maximum Strength From Multiple Repetition Maximum Testing and Anthropometry', journal: 'Journal of Strength and Conditioning Research', doi: '10.1519/R-15304.1' },
     ],
-    pullUp: [
-        // College men: lat-pull 1RM 0.93 x body mass against a pull-up 1RM (body plus added load) of 1.16 x; r = 0.78.
-        // The lat pull was about 75-80% of the pull-up. Where a first pull-up falls is GymPro's reading of that ratio, not a result of the study.
-        { author: 'Johnson', year: 2009, title: 'Relationship of Lat-Pull Repetitions and Pull-Ups to Maximal Lat-Pull and Pull-Up Strength in Men and Women', journal: 'Journal of Strength and Conditioning Research', doi: '10.1519/JSC.0b013e3181a2d7f5' },
-    ],
+    // College men: lat-pull 1RM 0.93 x body mass against a pull-up 1RM (body plus added load) of 1.16 x; r = 0.78.
+    // The lat pull was about 75-80% of the pull-up. Where a first pull-up falls is GymPro's reading of that ratio, not a result of the study.
+    pullUp: [JOHNSON_2009],
     bodyWeight: [
         // Elite athletes: losing about 0.7% of body weight a week kept and gained lean mass; 1.4% a week didn't
         { author: 'Garthe', year: 2011, title: 'Effect of Two Different Weight-Loss Rates on Body Composition and Strength and Power-Related Performance in Elite Athletes', journal: 'International Journal of Sport Nutrition and Exercise Metabolism', doi: '10.1123/ijsnem.21.2.97' },

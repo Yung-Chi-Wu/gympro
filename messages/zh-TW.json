@@ -436,6 +436,38 @@
             "lead": "每個部位選一種方式補上組數。",
             "leadOne": "選一種方式補上組數。"
         },
+        "plan": {
+            "lift": "{lift}：{weight} 做 {sets} 組 × {low}–{top} 下，每組都做到 {top} 下就換 {next}",
+            "liftNow": "{lift}：{weight} 做到 {low} 下了，下次換 {next}",
+            "reps": "{lift}：{sets} 組，每組做到 {top} 下（上次最少 {low} 下）",
+            "assist": "{lift}：輔助 {assist} 做 {sets} 組 × {low}–{top} 下，每組都做到 {top} 下就減一格輔助",
+            "stalled": "{lift}：停在 {weight} 已經 {n} {unit, select, week {週} other {輪}}，先降到 {drop} 做 {sets} 組 × {low}–{top} 下，再一步步加回去",
+            "notTrained": "{lift}：這{unit, select, week {週} other {輪}}沒練到，下次從上次的 {weight} × {low} 下開始",
+            "findWeight": "{lift}：還沒有紀錄，先找出能做 8 下的重量，做 3 組",
+            "viaPulldown": "{lift}：{via} {weight} 做 {sets} 組 × {low}–{top} 下，每組都做到 {top} 下就換 {next}{try}",
+            "tryAt": "；能做 {tryAt} × {tryReps} 下時，試一下{lift}",
+            "viaAssisted": "{lift}：{via}輔助 {assist} 做 {sets} 組 × {low}–{top} 下，每組都做到 {top} 下就減一格輔助",
+            "start": "{lift}：還沒有紀錄，先從{via}做 3 組 × 6–8 下開始",
+            "startNoVia": "{lift}：還沒有紀錄，先從離心{lift}開始，3 組 × 2–3 下",
+            "or": "或",
+            "heavy": "先做重的，{weight} 做 3 組 × 4–6 下，再做原本的組",
+            "secondDay": "一週多一天{lift}，{weight} 做 3 組 × 5 下",
+            "assisted": "{name}做 3 組 × 5–8 下，每組都做到 8 下就減一格輔助",
+            "pulldown": "{name}做 3 組 × 6–8 下，每組都做到 8 下就加重",
+            "negatives": "離心{lift}做 3 組 × 2–3 下，每下慢慢放 3–5 秒",
+            "nextLead": "想再進步的話：每組都做到次數上限，下次再加重",
+            "nextLeadGoal": "其他動作：每組都做到次數上限，下次再加重",
+            "lineLoad": "{weight} × {low}–{top} 下，每組都做到 {top} 下就換 {next}",
+            "lineLoadNow": "{weight} 做到 {low} 下了，下次換 {next}",
+            "lineReps": "每組做到 {top} 下（上次最少 {low} 下）",
+            "lineAssist": "輔助 {assist} × {low}–{top} 下，每組都做到 {top} 下就減一格輔助",
+            "hold": "{lift}：這{unit, select, week {週} other {輪}}先不加重，{weight} × {low} 下就好",
+            "holdReps": "{lift}：這{unit, select, week {週} other {輪}}先不加次數，{low} 下就好",
+            "holdAssist": "{lift}：這{unit, select, week {週} other {輪}}先不減輔助，輔助 {assist} × {low} 下就好",
+            "holdAlt": "換{alt}，用不痛的重量",
+            "stillHurts": "還痛的話",
+            "seeSomeone": "給醫師或物理治療師看，不要硬練"
+        },
         "advised": {
             "lift_stalled": "{lift}先加次數再加重",
             "lift_regressed": "{lift}先穩住重量",
@@ -443,7 +475,10 @@
             "missed_sessions": "練滿計畫的次數",
             "deload": "減量一{unit, select, week {週} other {輪}}",
             "weight_trend": "調整熱量",
-            "cardio_first": "腿日先練腿再做有氧"
+            "cardio_first": "腿日先練腿再做有氧",
+            "goal_path": "{lift}照計畫往目標練",
+            "next_session": "{lift}做滿次數再加重",
+            "pain_hold": "{lift}這{unit, select, week {週} other {輪}}先不加重"
         },
         "result": {
             "lift_stalled": {
@@ -481,6 +516,16 @@
                 "partial": "{n} 次腿日裡還有 {still} 次先做有氧",
                 "not_done": "還是先做有氧",
                 "noLegs": "這{unit, select, week {週} other {輪}}沒有練腿"
+            },
+            "goal_path": {
+                "done": "做到了（{now}）",
+                "partial": "有進步（{now}）",
+                "not_done": "還是 {now}"
+            },
+            "next_session": {
+                "done": "做到了（{now}）",
+                "partial": "有進步（{now}）",
+                "not_done": "還是 {now}"
             }
         },
         "nextTitle": "下{unit, select, week {週} other {輪}}重點",
@@ -498,16 +543,29 @@
             "missedLow": "{groups}因此低於 10 組",
             "weight_trend": "目標是{direction, select, gain {增肌} other {減脂}}，體重連續 {n} {unit, select, week {週} other {輪}}{direction, select, gain {下降} other {上升}}",
             "cardio_first": "{day}先做了 {minutes} 分鐘{cardio}，才開始{lift}",
-            "cardioFirstMore": "這{unit, select, week {週} other {輪}}共 {n} 次腿日是這樣（{dates}）"
+            "cardioFirstMore": "這{unit, select, week {週} other {輪}}共 {n} 次腿日是這樣（{dates}）",
+            "goal_path": "這{unit, select, week {週} other {輪}}最好的一組 {best}，估計 1RM {e1rm}，是目標的 {share}%",
+            "goalNoShare": "這{unit, select, week {週} other {輪}}最好的一組 {best}",
+            "goalPulldown": "{via}估計 1RM {e1rm}，門檻約 {checkpoint}（體重的 80%）",
+            "goalStart": "還沒有{lift}或下拉的紀錄",
+            "goalNotTrained": "這{unit, select, week {週} other {輪}}沒練到",
+            "goalOnce": "這{unit, select, week {週} other {輪}}只練了 1 天",
+            "goalInjury": "{text}（{date}），所以不列更重和多一天的練法",
+            "next_session": "最重的一組 {set}",
+            "pain_hold": "{date} {source, select, ronnie {跟 Ronnie 說} other {的筆記寫}}「{text}」",
+            "goalDislike": "{text}（{date}），所以不列這個練法"
         },
         "researchText": {
             "lift_stalled": "一項研究讓有一年以上訓練經驗的人練 8 週腿，發現重量不變、只加次數，肌肉和力量的進步跟加重量差不多。所以 GymPro 建議先加次數，每組都做滿再加重（雙重漸進）。",
             "lift_regressed": "短期的表現下滑可能只是疲勞，恢復後就會回升；長期持續下滑才是過度訓練的警訊。所以 GymPro 先建議維持重量、照顧恢復，不急著加重或停練。",
             "deload": "減量週的做法主要來自教練的經驗共識，對照研究很少；一項研究在課程中間固定停練一週，肌肉成長沒有差別，肌力進步反而比較少。所以 GymPro 不排固定的減量週，只在多個主要動作一起退步時，才建議練輕一點的一週，而不是完全停練。",
-            "low_volume": "規模最大的統合研究（67 篇研究）發現，每週約 4 組就測得到肌肉成長；組數越多長越多，但每一組的效益越來越小。10 組以內，每多約 6 組就多長一截（約 2%，研究測得到的最小差異）；超過 10 組，要多 8 組以上才換得到同樣的一截，而且越往上要越多。所以 GymPro 在 10 組以下提醒你加組，這是每一組換到最多成長的區段。",
+            "low_volume": "規模最大的統合研究（67 篇研究）發現，每週約 4 組就測得到肌肉成長；組數越多長越多，但每一組的效益越來越小。10 組以內，每多約 6 組就多長一截（約 2%，研究測得到的最小差異）；超過 10 組，要多 8 組以上才換得到同樣的一截，而且越往上要越多。所以 GymPro 在 10 組以下、跟你的目標有關時建議加組，這是每一組換到最多成長的區段；一次每週先加 1–2 組，是循序漸進的做法，不是研究定的數字。",
             "missed_sessions": "總組數相同時，一週練幾次對增肌影響很小，對肌力則有幫助；漏練真正少掉的是當週的組數。所以 GymPro 建議把沒練的課表找時間補上，而不是換成別的動作。",
             "weight_trend": "針對減脂備賽的建議是每週減 0.5–1% 體重，較能保住肌肉；增肌時適度的熱量盈餘有幫助，但多少才夠還沒有定論。所以 GymPro 建議小幅調整熱量，不建議激烈節食。",
-            "cardio_first": "兩篇統合分析發現，同一次訓練先重訓、再做有氧，下肢肌力進步比較多（1RM 多約 4 公斤），肌肉成長則沒有差別；較新的總覽研究看到同樣方向的趨勢，但差異不顯著。所以 GymPro 在腿日看到有氧排在腿部動作前面時，建議先練腿，有氧放到後面或別的時間。"
+            "cardio_first": "兩篇統合分析發現，同一次訓練先重訓、再做有氧，下肢肌力進步比較多（1RM 多約 4 公斤），肌肉成長則沒有差別；較新的總覽研究看到同樣方向的趨勢，但差異不顯著。所以 GymPro 在腿日看到有氧排在腿部動作前面時，建議先練腿，有氧放到後面或別的時間。",
+            "goal_path": "照你現在的練法先加次數，每組都做到上限再加最小的一格；其他練法各有研究支持，下面列出。",
+            "next_session": "一項研究發現重量不變、先加次數，肌肉和力量的進步跟加重量差不多；美國運動醫學會建議做得比要求多 1–2 下時，再加 2–10% 的重量。所以 GymPro 先加次數，每組都做到上限再加最小的一格。",
+            "pain_hold": "痛的部位先不加重；痛超過一週，給醫師或物理治療師看。這是安全原則，不是研究結論。"
         },
         "openFull": "看完整報告",
         "accordionHint": "點一列展開，一次只打開一個。",
@@ -570,10 +628,13 @@
             "lift_stalled": "同一個主要動作連續 3 {unit, select, week {週} other {輪}}，最佳重量和次數都沒變",
             "lift_regressed": "一個主要動作退步 5% 以上，或連續兩{unit, select, week {週} other {輪}}退步",
             "deload": "兩個以上主要動作同時退步 3% 以上，而且退步的比進步的多",
-            "low_volume": "胸、背、肩中束、肩後束、股四頭、腿後側、臀、二頭或三頭每週少於 10 組，而且不是因為這次漏練",
+            "low_volume": "胸、背、肩中束、肩後束、股四頭、腿後側、臀、二頭或三頭每週少於 10 組，而且不是因為這次漏練；沒寫目標時不建議，力量目標只看停住的目標動作主要練到的肌群",
             "missed_sessions": "訓練循環裡排了、但沒有練的日子",
             "weight_trend": "體重連續 4 {unit, select, week {週} other {輪}}往目標的反方向走",
-            "cardio_first": "同一次下肢訓練裡，第一個腿部動作之前做了 15 分鐘以上的有氧，5–10 分鐘的暖身不算（先後依每組記錄的時間）"
+            "cardio_first": "同一次下肢訓練裡，第一個腿部動作之前做了 15 分鐘以上的有氧，5–10 分鐘的暖身不算（先後依每組記錄的時間）",
+            "goal_path": "目標裡的動作：照你現在的練法，下次怎麼練，另外列研究支持的其他練法",
+            "next_session": "其他主要動作：每組都做到次數上限，下次再加重",
+            "pain_hold": "這{unit, select, week {週} other {輪}}說了痛的動作，或痛的關節負荷中等以上的動作"
         },
         "glossary": {
             "mainLifts": {
@@ -666,6 +727,20 @@
             "log": "紀錄",
             "logText": "{n} {unit, select, week {週} other {輪}}的組數、課表、體重、每日筆記、上一份週報",
             "fix": "記憶有錯，跟 Ronnie 說就好，例如「膝蓋好了」。這{unit, select, week {週} other {輪}}說的話只用在這份週報。"
-        }
+        },
+        "planResearch": {
+            "progress": "一項研究發現重量不變、先加次數，肌肉和力量的進步跟加重量差不多；美國運動醫學會建議做得比要求多 1–2 下時，再加 2–10% 的重量。所以 GymPro 先加次數，每組都做到上限再加最小的一格。",
+            "heavy": "一項網狀統合分析比較各種練法，想增加最大肌力，較重的重量（約 1RM 的 80% 以上）排名最好。所以力量目標多一個「先做重的」選項。",
+            "frequency": "美國運動醫學會建議，想增加肌力，每個肌群一週練 2 次以上；統合分析也發現練得越頻繁肌力越好，主要是因為總組數變多。所以一週只練一次的目標動作，多一個「一週多一天」的選項。",
+            "pullUp": "一項研究發現，男性滑輪下拉的最大重量大約是引體向上的 75–80%。所以 GymPro 用滑輪下拉估計離第一下引體還多遠；門檻（體重的 80%）是 GymPro 依這個比例推算的，不是研究直接給的數字。"
+        },
+        "sourceTag": {
+            "goal": "目標",
+            "log": "紀錄",
+            "memory": "Ronnie 記得",
+            "week": "這{unit, select, week {週} other {輪}}說的"
+        },
+        "nextMore": "還有 {n} 項在完整報告",
+        "planResearchAgain": "先加次數、做滿再加重，研究同上"
     }
 }

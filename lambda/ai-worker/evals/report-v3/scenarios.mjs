@@ -9,6 +9,7 @@
 // Window 0 is the reported period. `note` is the note for the whole period; `dayNotes` maps a
 // day of the period (its index in `plan`) to that day's note.
 
+import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 
 const LIBRARY = [
@@ -36,17 +37,20 @@ const LIBRARY = [
 // Each takes the reviewed muscles of its counterpart in the real library
 const ATTRIBUTES = createRequire(import.meta.url)('../../../../supabase/data/exercise-attributes.json')
 const LIBRARY_NAME = { 'Incline Dumbbell Press': 'Incline Dumbbell Bench Press', Dips: 'Triceps Dip' }
+// Equipment lives in the database; the search eval's copy of the library has it
+const EQUIPMENT = new Map(readFileSync(new URL('../../../../evals/search/library.csv', import.meta.url), 'utf8').trim().split('\n').slice(1).map((l) => l.split(',')).map((c) => [c[1], c[4] || null]))
 function musclesOf(name) {
-    const a = ATTRIBUTES.find((x) => x.name === (LIBRARY_NAME[name] ?? name))
+    const real = LIBRARY_NAME[name] ?? name
+    const a = ATTRIBUTES.find((x) => x.name === real)
     if (!a) throw new Error(`scenario exercise ${name} has no counterpart in exercise-attributes.json`)
-    return { primaryMuscles: a.primary, secondaryMuscles: a.secondary, logType: a.logType }
+    return { primaryMuscles: a.primary, secondaryMuscles: a.secondary, logType: a.logType, jointLoad: a.jointLoad, equipment: EQUIPMENT.get(real) ?? null }
 }
 // The rest of the library, untrained, as the report sees it: a low muscle's advice may suggest one of its staples
 const IN_SCENARIOS = new Set(LIBRARY.map(([, name]) => LIBRARY_NAME[name] ?? name))
 export const EXERCISES = [
     ...LIBRARY.map(([key, name, nameZh, muscleGroup]) => ({ id: `ex-${key}`, name, nameZh, muscleGroup, ...musclesOf(name) })),
     ...ATTRIBUTES.filter((a) => !IN_SCENARIOS.has(a.name))
-        .map((a) => ({ id: a.id, name: a.name, nameZh: a.nameZh, muscleGroup: a.muscleGroup, primaryMuscles: a.primary, secondaryMuscles: a.secondary, logType: a.logType })),
+        .map((a) => ({ id: a.id, name: a.name, nameZh: a.nameZh, muscleGroup: a.muscleGroup, primaryMuscles: a.primary, secondaryMuscles: a.secondary, logType: a.logType, jointLoad: a.jointLoad, equipment: EQUIPMENT.get(a.name) ?? null })),
 ]
 const CARDIO = new Set(EXERCISES.filter((e) => ['treadmill', 'cardio_level', 'rower', 'cardio_time'].includes(e.logType)).map((e) => e.id))
 
@@ -133,6 +137,12 @@ export function inputsFor(sc) {
         routineLeads: Object.values(sc.routines).map((r) => `ex-${r.find(([key]) => !CARDIO.has(`ex-${key}`))[0]}`),
         previousFindings: sc.previousFindings ?? null,
         notes: Object.entries(sc.dayNotes ?? {}).map(([i, note]) => ({ date: addDays(sc.periodStart, Number(i)), note })),
+        // The goal as read, Ronnie's notes and what was said this period, where a scenario gives them;
+        // a signal's day is its index in the plan, like a day note's
+        ...(sc.goalRead !== undefined ? { goalRead: sc.goalRead } : {}),
+        ...(sc.memory ? { memory: sc.memory } : {}),
+        ...(sc.signals ? { weekRead: { signals: sc.signals.map(({ day, ...x }) => ({ date: addDays(sc.periodStart, day), ...x })), texts: sc.signals.length, model: 'm' } } : {}),
+        weightUnit: sc.weightUnit ?? 'kg',
     }
 }
 
@@ -209,13 +219,13 @@ export const SCENARIOS = [
     },
     {
         id: 'first-report-zh',
-        why: '第一份報告：沒有之前的資料，狀態是「基準」，不能說停滯或退步。拉日一週只排一次：背 9 組（划船、下拉 6 組，加上側平舉順帶練到上斜方的半組）、肩後束 1.5 組（划船算半組）、二頭 6 組都偏低，訓練量規則照樣成立，而且三個肌群合成一條建議。',
+        why: '第一份報告：沒有之前的資料，狀態是「基準」，不能說停滯或退步。拉日一週只排一次，背、肩後束、二頭的組數都偏低，但沒寫目標：只想記錄的人不給加組建議（擁有者 10/20），只有程式寫的「做滿次數再加重」，用最常練的三個動作。',
         language: 'zh-TW', goal: null, note: null,
         periodStart: '2026-09-28', plan: ['push', 'pull', 'legs', null, 'push', null, 'legs'], cycle: false, routines: { ...PPL, pull: [['row', 3], ['pulldown', 3], ['curl', 3]] }, history: 0,
         expect: {
-            status: 'baseline', findings: ['low_volume:back', 'low_volume:rear_delts', 'low_volume:biceps'], records: [],
-            // Rear delts need 9 more: 18 sets of rows (half each) is no real option, so only the new exercise
-            options: { 'low_volume:rear_delts': { addTo: null, newExercise: 'Rear Delt Machine' }, 'low_volume:biceps': { addTo: 'ex-curl', addToSets: 4, newExercise: 'Dumbbell Curl' } },
+            status: 'baseline', findings: [], records: [],
+            plan: ['next_session:ex-bench', 'next_session:ex-squat', 'next_session:ex-row'],
+            planData: { 'next_session:ex-bench': { how: 'load', weightKg: 80, low: 8, top: 10, nextKg: 82.5 }, 'next_session:ex-squat': { weightKg: 100, nextKg: 105 } },
         },
     },
     {
@@ -231,8 +241,8 @@ export const SCENARIOS = [
         progress: { squat: ['100x5', '102.5x5', '105x5', '107.5x5', '110x5', '112.5x5'] },
         expect: {
             status: 'progressing', findings: ['low_volume:side_delts'], records: ['ex-squat'],
-            // 10 more overhead-press sets (half each) is no real option, so only the new exercise
-            options: { 'low_volume:side_delts': { addTo: null, newExercise: 'Lateral Raise' } },
+            // At most 2 more a week: 4 more overhead-press sets (half each), or the new exercise
+            options: { 'low_volume:side_delts': { addTo: 'ex-ohp', addToSets: 4, addToHalf: 1, newExercise: 'Lateral Raise' } },
         },
     },
     {
@@ -391,7 +401,7 @@ export const SCENARIOS = [
         dayNotes: { 1: '做臉拉的時候左肩有點緊，活動度不如右邊' },
         expect: {
             status: 'progressing', findings: ['low_volume:side_delts', 'low_volume:rear_delts', 'low_volume:hamstrings', 'low_volume:biceps'],
-            options: { 'low_volume:rear_delts': { addTo: 'ex-facepull', addToSets: 4, newExercise: 'Rear Delt Machine' } },
+            options: { 'low_volume:rear_delts': { addTo: 'ex-facepull', addToSets: 2, newExercise: 'Rear Delt Machine' } },
         },
     },
     {
@@ -415,19 +425,19 @@ export const SCENARIOS = [
         periodStart: '2026-09-28', plan: ['push', 'pull', 'legs', 'push', 'pull', null, null], cycle: true, routineNames: NAMES_EN, routines: PPL,
         expect: {
             status: 'progressing', findings: ['low_volume:quads', 'low_volume:hamstrings'],
-            // The user already does both hamstring staples, so the only option is more of what they do
-            options: { 'low_volume:quads': { addTo: 'ex-squat', addToSets: 3, newExercise: 'Leg Extension' }, 'low_volume:hamstrings': { addTo: 'ex-rdl', addToSets: 4, newExercise: null } },
+            // The user already does both hamstring staples, so the only option is more of what they do; 2 sets a week at most
+            options: { 'low_volume:quads': { addTo: 'ex-squat', addToSets: 2, newExercise: 'Leg Extension' }, 'low_volume:hamstrings': { addTo: 'ex-rdl', addToSets: 2, newExercise: null } },
         },
     },
     {
         id: 'biceps-from-pulls-zh',
-        why: '拉日沒有彎舉，二頭只靠划船和下拉順帶練到（各算半組），每週 7 組，差 3 組。建議要給兩種選擇讓使用者挑：在槓鈴划船多做 6 組（順帶練到的算半組，所以要加倍，而且要說明），或加一個新動作啞鈴彎舉 3 組。',
+        why: '拉日沒有彎舉，二頭只靠划船和下拉順帶練到（各算半組），每週 7 組，差 3 組；一週最多先加 2 組。建議要給兩種選擇讓使用者挑：在槓鈴划船多做 4 組（順帶練到的算半組，所以要加倍，而且要說明），或加一個新動作啞鈴彎舉 2 組。',
         language: 'zh-TW', goal: '增肌', note: null,
         periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH,
         routines: { ...PPL, pull: [['row', 4], ['pulldown', 3], ['facepull', 3]] },
         expect: {
             status: 'progressing', findings: ['low_volume:biceps'],
-            options: { 'low_volume:biceps': { addTo: 'ex-row', addToSets: 6, addToHalf: 1, newExercise: 'Dumbbell Curl', newExerciseSets: 3 } },
+            options: { 'low_volume:biceps': { addTo: 'ex-row', addToSets: 4, addToHalf: 1, newExercise: 'Dumbbell Curl', newExerciseSets: 2 } },
         },
     },
     {
@@ -444,13 +454,16 @@ export const SCENARIOS = [
     },
     {
         id: 'bench-pain-day-note-en',
-        why: "The bench press has been stuck at 82.5 kg x 8 for three weeks, so the stall rule fires and its advice is double progression (more reps, then more weight). But Thursday's note, on a push day that was trained, says the front of the right shoulder hurt on the bench press. The advice can't simply push reps and load on the bench: it has to fit the shoulder (a pain-free range or variation, a lighter load, getting it checked if it persists).",
+        why: "The bench press has been stuck at 82.5 kg x 8 for three weeks, which would fire the stall rule. But Thursday's note, on a push day that was trained, says the front of the right shoulder hurt on the bench press, and the period reader reads it as pain. So code holds the bench this week (no more weight, a lighter alternative, getting it checked if it persists) in place of the stall advice, and the model writes no bench action; the headline must not push the bench either.",
         language: 'en', goal: 'Build muscle', note: null,
         periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_EN, routines: PPL,
         progress: { bench: ['77.5x8', '80x8', '82.5x8', '82.5x8', '82.5x8', '82.5x8'] },
         dayNotes: { 3: 'Front of my right shoulder hurt on the bench press today, mostly at the bottom of each rep' },
+        // What the period reader (week.ts) reads in that note
+        signals: [{ day: 3, source: 'note', kind: 'pain', joint: 'shoulder', exerciseId: 'ex-bench', name: 'Barbell Bench Press', nameZh: '槓鈴臥推', text: 'Front of my right shoulder hurt on the bench press' }],
         expect: {
-            status: 'progressing', findings: ['lift_stalled:ex-bench'],
+            status: 'progressing', findings: [],
+            planData: { 'pain_hold:ex-bench': { joint: 'shoulder', weightKg: 82.5, low: 8, painSource: 'note' } },
             dayNotes: [{ date: '2026-10-01', routine: 'Push Day', trained: true }],
             brief: ['- 2026-10-01 (Push Day, trained): "Front of my right shoulder hurt on the bench press today, mostly at the bottom of each rep"'],
         },
@@ -552,6 +565,77 @@ export const SCENARIOS = [
             status: 'progressing', findings: [],
             followUps: { 'weight_trend:-': 'not_done', 'missed_sessions:-': 'not_done' },
             brief: ['- missed_sessions: not_done, no plan this week to count against', '- weight_trend: not_done, no weigh-in this week to tell'],
+        },
+    },
+    // ---------- A goal's plan (plan.ts) ----------
+    {
+        id: 'goal-strength-owner-zh',
+        why: '擁有者的目標：深蹲 160、臥推 70、自重引體。每個目標一項，第一個選項用他課表裡的動作：臥推照現在的次數加，另外給「先做重的」和「一週多一天」；深蹲一週只練一次，也給多一天；引體還做不到，從滑輪下拉往門檻（體重的 80%）走，能做 55 kg × 6 下時試引體，另外給輔助和離心。力量目標下，側平舉、二頭這些不建議加組；其他主要動作（側平舉、腿彎舉）各一行下次怎麼練；滑輪下拉已經在引體那項，不重複。',
+        language: 'zh-TW', goal: '希望可以增加整體力量，深蹲160公斤，臥推70公斤，自重引體', note: null,
+        periodStart: '2026-10-12', plan: ['chest', 'back', 'legs', null, null, null, null], cycle: false, history: 1,
+        routines: { chest: [['bench', 3], ['lateral', 3]], back: [['pulldown', 4], ['curl', 2]], legs: [['squat', 4], ['legcurl', 2]] },
+        progress: { bench: ['40x3', '42.5x8'], lateral: ['7x12', '7x12'], pulldown: ['50x6', '50x6'], curl: ['15x10', '15x10'], squat: ['65x8', '65x8'], legcurl: ['30x12', '30x12'] },
+        weights: [81.4, 81.7],
+        goalRead: {
+            text: '希望可以增加整體力量，深蹲160公斤，臥推70公斤，自重引體', kinds: ['strength'], unread: null, model: 'm',
+            targets: [
+                { kind: 'lift', text: '深蹲160公斤', exerciseId: 'ex-squat', name: 'Barbell Back Squat', nameZh: '深蹲', loadKg: 160, unit: 'kg' },
+                { kind: 'lift', text: '臥推70公斤', exerciseId: 'ex-bench', name: 'Barbell Bench Press', nameZh: '槓鈴臥推', loadKg: 70, unit: 'kg' },
+                { kind: 'lift', text: '自重引體', exerciseId: 'ex-pullup', name: 'Pull-up', nameZh: '引體向上', reps: 1 },
+            ],
+        },
+        expect: {
+            status: 'progressing', findings: [],
+            plan: ['goal_path:ex-squat', 'goal_path:ex-bench', 'goal_path:ex-pullup', 'next_session:ex-lateral', 'next_session:ex-legcurl'],
+            planData: {
+                'goal_path:ex-bench': { path: 'load', weightKg: 42.5, low: 8, top: 10, nextKg: 45, options: 'heavy,second_day', heavyKg: 45, secondKg: 40 },
+                'goal_path:ex-squat': { path: 'load', weightKg: 65, nextKg: 70, options: 'heavy,second_day', secondKg: 60 },
+                'goal_path:ex-pullup': { path: 'pulldown', viaId: 'ex-pulldown', weightKg: 50, low: 6, top: 8, nextKg: 52.5, tryAtKg: 55, options: 'assisted,negatives' },
+            },
+        },
+    },
+    {
+        id: 'goal-pain-and-notes-zh',
+        why: '同一個目標，加上他這週跟 Ronnie 說臥推時右手肘痛，和 Ronnie 記得的兩件事：左膝有舊傷、不想做輔助引體。臥推這週先不加重，排第一，給一個對手肘負擔低的胸部動作，和「還痛就給醫師看」；深蹲照常練，但不給更重的和多一天的選項；引體不列輔助引體。',
+        language: 'zh-TW', goal: '希望可以增加整體力量，深蹲160公斤，臥推70公斤，自重引體', note: null,
+        periodStart: '2026-10-12', plan: ['chest', 'back', 'legs', null, null, null, null], cycle: false, history: 1,
+        routines: { chest: [['bench', 3], ['lateral', 3]], back: [['pulldown', 4], ['curl', 2]], legs: [['squat', 4], ['legcurl', 2]] },
+        progress: { bench: ['40x3', '42.5x8'], lateral: ['7x12', '7x12'], pulldown: ['50x6', '50x6'], curl: ['15x10', '15x10'], squat: ['65x8', '65x8'], legcurl: ['30x12', '30x12'] },
+        weights: [81.4, 81.7],
+        goalRead: {
+            text: '希望可以增加整體力量，深蹲160公斤，臥推70公斤，自重引體', kinds: ['strength'], unread: null, model: 'm',
+            targets: [
+                { kind: 'lift', text: '深蹲160公斤', exerciseId: 'ex-squat', name: 'Barbell Back Squat', nameZh: '深蹲', loadKg: 160, unit: 'kg' },
+                { kind: 'lift', text: '臥推70公斤', exerciseId: 'ex-bench', name: 'Barbell Bench Press', nameZh: '槓鈴臥推', loadKg: 70, unit: 'kg' },
+                { kind: 'lift', text: '自重引體', exerciseId: 'ex-pullup', name: 'Pull-up', nameZh: '引體向上', reps: 1 },
+            ],
+        },
+        memory: [
+            { kind: 'injury', subject: 'knee', state: 'active', text: '左膝有舊傷', date: '2026-10-05' },
+            { kind: 'exercise', subject: 'ex-assisted', state: 'dislike', text: '不想做輔助引體', date: '2026-10-08' },
+        ],
+        signals: [{ day: 0, source: 'ronnie', kind: 'pain', joint: 'elbow', exerciseId: 'ex-bench', name: 'Barbell Bench Press', nameZh: '槓鈴臥推', text: '臥推的時候右手肘有點痛' }],
+        expect: {
+            status: 'progressing', findings: [],
+            plan: ['pain_hold:ex-bench', 'goal_path:ex-squat', 'goal_path:ex-pullup', 'next_session:ex-lateral', 'next_session:ex-legcurl'],
+            planData: {
+                'pain_hold:ex-bench': { joint: 'elbow', weightKg: 42.5, low: 8, painSource: 'ronnie' },
+                'goal_path:ex-squat': { options: '', injury: '左膝有舊傷' },
+                'goal_path:ex-pullup': { options: 'negatives' },
+            },
+        },
+    },
+    {
+        id: 'goal-bench-stalled-en',
+        why: 'A bench goal, and the bench has been stuck at 90 x 5 for five weeks: the plan takes 10% off and builds back up, in place of the stall rule. For a strength goal only the muscles of the stalled goal lift get more sets: chest, not the side delts, though both are low.',
+        language: 'en', goal: 'Bench 100 kg', note: null,
+        periodStart: '2026-09-28', plan: ['push', 'pull', 'legs', null, null, null, null], cycle: false,
+        routines: { push: [['bench', 3], ['lateral', 2]], pull: PPL.pull, legs: PPL.legs },
+        progress: { bench: ['90x5', '90x5', '90x5', '90x5', '90x5', '90x5'] },
+        goalRead: { text: 'Bench 100 kg', kinds: ['strength'], unread: null, model: 'm', targets: [{ kind: 'lift', text: 'Bench 100 kg', exerciseId: 'ex-bench', name: 'Barbell Bench Press', nameZh: '槓鈴臥推', loadKg: 100, unit: 'kg' }] },
+        expect: {
+            status: 'progressing', findings: ['low_volume:chest'],
+            planData: { 'goal_path:ex-bench': { path: 'stalled', weightKg: 90, dropKg: 80, flatWindows: 5 } },
         },
     },
 ]
