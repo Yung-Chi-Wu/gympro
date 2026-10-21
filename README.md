@@ -167,6 +167,7 @@ flowchart LR
 | Which model for reports? | Free-text reports: Haiku 4.5 23%, Sonnet 4.6 76% (66 runs each) | Sonnet 4.6. Then a redesign that moved the facts into code. |
 | Which embeddings? | Held-out hit@5: keywords 75%, Titan V2 70%, Cohere Embed v4 90% | Cohere Embed v4, gated with keywords |
 | Knowledge search: keywords, vectors or both? | Held-out hit@5: keywords 88%, both fused 96%, Cohere Embed v4 alone 100% (hit@1 76%, 80%, 88%) | Vectors alone, with keywords when Bedrock is unavailable |
+| Does a knowledge base make Ronnie better? | 29 knowledge questions, 3 runs each: judge 63/87 → 82/87, the right paper cited 0/63 → 60/63 (63/63 replayed after a fix for full-width brackets). The 8 questions from before the notes fell from 21/24 to 15/24 while Ronnie answered only from the notes, and came back to 20/24 once the prompt said the notes add to a coach's answer | Shipped ([#78](https://github.com/Yung-Chi-Wu/gympro/pull/78)) |
 | Embed the muscles too? | Held-out hit@1 55% → 70%, MRR 0.73 → 0.81 (hit@5 95% → 90%) | Shipped |
 | Ronnie called an exercise still to come "already done" | 5/8 → 8/8, with a code check instead of more prompt | The check is in code ([#62](https://github.com/Yung-Chi-Wu/gympro/pull/62)) |
 | Reports misread cardio sessions | 12/15 → 15/15 after rewriting how sessions reach the model | Shipped |

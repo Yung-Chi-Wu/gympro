@@ -112,6 +112,6 @@ export function overclaimFeedback(overclaims: KnowledgeVerdict['overclaims']): s
     return [
         'Before this reply is shown: these sentences present as research what the notes you were given do not support.',
         ...overclaims.map((o) => `- "${o.text}" (${why[o.problem]}${o.key ? `, ${o.key}` : ''})`),
-        'Rewrite the whole reply: keep what the notes found, each with its key; say anything else as your own coaching advice, without attributing it to research or giving it a study\'s number. Same language, style and length.',
+        'Rewrite the whole reply: keep what the notes found, each with its key in square brackets after the sentence, e.g. [K1], never in the sentence itself; say anything else as your own coaching advice, without attributing it to research or giving it a study\'s number. Same language, style and length.',
     ].join('\n')
 }

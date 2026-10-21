@@ -486,6 +486,19 @@ function note(kind, subject, state, text, updatedAt = '2026-10-01T02:00:00.000Z'
     const shown = withoutCitationNumbers(r.text)
     check(shown === '不用每組都力竭。組數越多越好但效益遞減，也見於。這句引用了沒給的。' && withoutCitationNumbers('Close to failure [1].\nRest 2 min [1, 2].') === 'Close to failure.\nRest 2 min.', `the chat shows the reply without the numbers: ${shown}`)
     check(renumber('see [K3] and [K9]', r.numbers) === 'see [2] and', `the stored history gets the same numbers: ${renumber('see [K3] and [K9]', r.numbers)}`)
+    // The brackets Chinese replies use, as evals v30 and v31 recorded them (stretch-before-zh rep0),
+    // which were shown as they were, with no sources
+    const stretch = [{ key: 'K1', note: note('warneke-2024-warm-up') }, { key: 'K2', note: note('warneke-2024-stretching') }, { key: 'K5', note: note('herbert-2011-stretching-soreness') }]
+    const wide = withSources('最大肌力會小幅下降，每次拉 60 秒以上時下降更明顯［K1］。伸展對減少痠痛也幾乎沒有幫助［K5］。要高劑量才有效［K2］。', stretch)
+    check(wide.text === '最大肌力會小幅下降，每次拉 60 秒以上時下降更明顯[1]。伸展對減少痠痛也幾乎沒有幫助[2]。要高劑量才有效[3]。' && wide.sources.length === 3, `full-width ［K1］ is a citation: ${wide.text}`)
+    const brackets = withSources('A (K1). B（K2）。C〔K5〕', stretch).text
+    check(brackets === 'A [1]. B[2]。C[3]', `and (K1), （K1） and 〔K1〕: ${brackets}`)
+    // A key in the sentence itself, as a rewrite wrote it (v31 cardio-order-zh rep1), reads as its paper
+    const order = [{ key: 'K1', note: note('murlasits-2018-order') }, { key: 'K2', note: note('eddens-2018-order') }]
+    const bare = withSources('下肢最大肌力進步比較多：K1 是多 3.96 公斤，K2 是多 6.91%。[K1][K2]', order)
+    check(bare.text === '下肢最大肌力進步比較多：Murlasits et al., 2018 是多 3.96 公斤，Eddens et al., 2018 是多 6.91%。[1][2]', `a key named in the sentence becomes its paper: ${bare.text}`)
+    const onlyBare = withSources('K2 found more, in a K9 study.', order)
+    check(onlyBare.text === 'Eddens et al., 2018 found more, in a K9 study.' && onlyBare.sources.map((s) => s.citation).join() === 'Eddens et al., 2018', `a paper named only that way is listed too, and a key no note had is left alone: ${onlyBare.text}`)
     const org = withSources('ACSM [K1]', [{ key: 'K1', note: note('acsm-2026-strength') }]).sources[0].citation
     check(org === 'ACSM, 2026', `an organization is cited without et al.: ${org}`)
     const history = [{ role: 'user', content: [{ type: 'tool_result', tool_use_id: 't', content: 'notes\n\n[K1] a\n\n[K4] b' }] }, { role: 'assistant', content: [{ type: 'text', text: 'x [K7]' }] }]

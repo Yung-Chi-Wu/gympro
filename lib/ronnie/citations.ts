@@ -17,8 +17,11 @@ export interface ReplySource {
     doi: string
 }
 
-// [K1], [K1, K2], [K1][K2], and the full-width 【K1】 the Chinese replies may use
-const MARKER = /[[【]\s*(K\d+(?:\s*[,，、]\s*K\d+)*)\s*[\]】]/g
+// [K1], [K1, K2], [K1][K2], and the brackets Chinese replies use: 【K1】, ［K1］ (in 7 of 174 runs of
+// evals v30 and v31, shown to the user as it was, with no sources), 〔K1〕, and (K1) or （K1）
+const MARKER = /[[【［〔(（]\s*(K\d+(?:\s*[,，、]\s*K\d+)*)\s*[\]】］〕)）]/g
+// A key written in the sentence itself ("K1 found 3.96 kg more"), as a rewrite did once (eval v31)
+const BARE_KEY = /\bK\d+\b/g
 
 export interface CitedReply {
     text: string
@@ -56,8 +59,19 @@ export function withSources(reply: string, cited: CitedNote[]): CitedReply {
         }
     }
     const numbers = new Map(order.map((c, i) => [c.key, i + 1]))
+    // A key given this turn, named in the sentence, reads as its paper, which is listed under the
+    // reply too. Any other K and number is left as it is
+    const text = renumber(reply, numbers).replace(BARE_KEY, (key) => {
+        const c = byKey.get(key)
+        if (!c) return key
+        if (!order.includes(c)) {
+            order.push(c)
+            numbers.set(c.key, order.length)
+        }
+        return citationOf(c.note.source)
+    })
     return {
-        text: renumber(reply, numbers),
+        text,
         sources: order.map((c, i) => ({ n: i + 1, citation: citationOf(c.note.source), title: c.note.source.title, journal: c.note.source.journal, doi: c.note.source.doi })),
         unknown: [...unknown],
         numbers,
