@@ -5,7 +5,8 @@
 // range when the step is over 10%); an assisted lift lowers the assist, a bodyweight one adds reps.
 // The goal's lifts get the routine's way first and the other ways after; a lift that hurt is held
 // with a lighter alternative; Ronnie's notes rule options out. The text reads as written, in
-// both languages, in priority order with the model's items, and is followed up next report.
+// both languages, in priority order with the model's items, and is followed up next report. The
+// brief says what the headline can't claim when a lift, or the lift a goal rests on, didn't go up.
 //   node lambda/ai-worker/evals/worker/check-plan.mjs
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
@@ -128,6 +129,22 @@ const braces = (items) => items.flatMap((i) => [i.action, ...(i.lines ?? []).fla
     check('the model has no action to write for the plan', Object.keys(schema?.properties?.actions?.properties ?? {}).length === 0, JSON.stringify(schema?.properties?.actions))
     check('the brief tells it what code wrote, so the headline agrees', /Code writes this advice in the app[^\n]*holding 槓鈴臥推[^\n]*深蹲, 引體向上/.test(calls[0]?.messages[0].content ?? ''), (calls[0]?.messages[0].content ?? '').split('\n').find((l) => l.startsWith('Code writes')))
     check('and the report has the plan\'s items', r.narrative.items.map((i) => i.findingId ?? i.rule).join() === 'pain_hold:ex-bench,goal_path:ex-squat,goal_path:ex-pullup,next_session', JSON.stringify(r.narrative.items.map((i) => i.findingId ?? i.rule)))
+}
+{
+    // What the headline can't claim: progress across the board with a lift not up, or the goal on
+    // track with the lift it rests on stuck, once code writes that lift's advice (v14)
+    const briefOf = (id) => {
+        const a = report(id)
+        return w.buildPrompt({ ...a, note: null, language: scenario(id).language, weightUnit: scenario(id).weightUnit ?? 'kg' }).split('\n')
+    }
+    const headlineOf = (id) => briefOf(id).find((l) => l.startsWith('1. headline'))
+    check('every lift up: nothing the headline can\'t claim', !/Not every|goal rests/.test(headlineOf('all-progress-en')), headlineOf('all-progress-en'))
+    check('one lift flat: not across the board, in Chinese too', /Not every main lift went up, so it doesn't say every, all or across the board \(全面\)\./.test(headlineOf('lb-user-zh')) && !/goal rests/.test(headlineOf('lb-user-zh')), headlineOf('lb-user-zh'))
+    check('a goal lift flat for 5 weeks: the goal isn\'t on track', headlineOf('goal-bench-stalled-en').includes('The goal rests on Barbell Bench Press (flat for 5 weeks), so it doesn\'t say the goal is on track or close'), headlineOf('goal-bench-stalled-en'))
+    check('the lift a pull-up goal is trained through counts too', headlineOf('assisted-stalled-en').includes('The goal rests on Assisted Pull-up (flat for 3 weeks)'), headlineOf('assisted-stalled-en'))
+    check('goal lifts flat for one week: no limit on the goal', !/goal rests/.test(headlineOf('goal-strength-owner-zh')), headlineOf('goal-strength-owner-zh'))
+    const code = briefOf('goal-bench-stalled-en').find((l) => l.startsWith('Code writes'))
+    check('the brief says the stalled goal lift starts lighter', code?.includes('Barbell Bench Press stalled, so its plan starts lighter and builds back up'), code)
 }
 
 // ---------- Next report ----------
