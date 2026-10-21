@@ -7,6 +7,8 @@
 // with a lighter alternative; Ronnie's notes rule options out. The text reads as written, in
 // both languages, in priority order with the model's items, and is followed up next report. The
 // brief says what the headline can't claim when a lift, or the lift a goal rests on, didn't go up.
+// A lighter week replaces the plan with each lift's lighter numbers; under 2 days a week the report
+// suggests 2; a plan the user is behind on two periods running shrinks and adds nothing.
 //   node lambda/ai-worker/evals/worker/check-plan.mjs
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
@@ -147,6 +149,76 @@ const braces = (items) => items.flatMap((i) => [i.action, ...(i.lines ?? []).fla
     check('the brief says the stalled goal lift starts lighter', code?.includes('Barbell Bench Press stalled, so its plan starts lighter and builds back up'), code)
 }
 
+// ---------- A lighter week, too few days, a plan that shrinks ----------
+
+{
+    // About 10% lighter on the nearest step and at least one step down, half the sets at the same reps
+    const bench = ex('b', 'Barbell Bench Press')
+    const rx = (weightKg, low, sets, how = 'load', assistKg = null) => ({ how, weightKg, low, top: low + 2, nextKg: null, assistKg, sets })
+    const d = w.deloadOf(rx(80, 8, 4), bench, 'kg')
+    check('80 kg x 8, 4 sets: 72.5 kg x 8, 2 sets', d.how === 'deload' && d.weightKg === 72.5 && d.low === 8 && d.sets === 2 && d.usualKg === 80 && d.usualSets === 4, JSON.stringify(d))
+    const squat = w.deloadOf(rx(115, 5, 3), ex('s', 'Barbell Back Squat', { muscleGroup: 'legs', primaryMuscles: ['quads', 'glutes'] }), 'kg')
+    check('a lower-body lift on its 5 kg step, and 3 sets halve to 2', squat.weightKg === 105 && squat.sets === 2, JSON.stringify(squat))
+    const lb = w.deloadOf(rx(102.06, 8, 3), bench, 'lb')
+    check('in lb: 225 lb to 205 lb, stored in kg', Math.abs(lb.weightKg - 92.99) < 0.01, JSON.stringify(lb))
+    const db = w.deloadOf(rx(10, 10, 3), ex('d', 'Dumbbell Curl', { equipment: 'dumbbell' }), 'kg')
+    check('a 10 kg dumbbell, where 10% is under half a step, still goes one step down: 8 kg', db.weightKg === 8, JSON.stringify(db))
+    const light = w.deloadOf(rx(2.5, 12, 1), bench, 'kg')
+    check('one step on the bar and one set: it stays, at one set', light.weightKg === 2.5 && light.sets === 1, JSON.stringify(light))
+    const assisted = w.deloadOf(rx(0, 6, 3, 'assist', 25), ex('a', 'Assisted Pull-up', { logType: 'assisted' }), 'kg')
+    check('an assisted lift keeps its assist, with half the sets', assisted.assisted === 1 && assisted.assistKg === 25 && assisted.sets === 2, JSON.stringify(assisted))
+    const reps = w.deloadOf(rx(0, 10, 4, 'reps'), ex('p', 'Push-up', { logType: 'bodyweight' }), 'kg')
+    check('a bodyweight lift keeps its reps, with half the sets', reps.bodyweight === 1 && reps.low === 10 && reps.sets === 2, JSON.stringify(reps))
+}
+{
+    // Tired and the squat down: the deload, with a line for every main lift and no plan to add weight
+    const a = report('tired-squat-drop-zh')
+    check('tired and a sharp drop: a lighter week, not the squat\'s regression', a.findings[0].id === 'deload:-' && !a.findings.some((f) => f.rule === 'lift_regressed' || f.rule === 'goal_path' || (f.rule === 'next_session' && f.data.how !== 'deload')), JSON.stringify(a.findings.map((f) => f.id)))
+    const n = w.withPlanItems({ headline: 'h', items: [{ rule: 'deload', action: '下週練輕一點，再回到原本的計畫。' }] }, a.findings, 'zh-TW', 'week', 'kg')
+    const lines = n.items[0]?.lines ?? []
+    check('the deload item has a line for each main lift', n.items.length === 1 && lines.length === 5, JSON.stringify(n.items))
+    check('reads as written in Chinese', lines.find((l) => l.label === '深蹲')?.text === '85 kg × 6 下，2 組（平常 92.5 kg、4 組）', JSON.stringify(lines))
+    const en = w.deloadLines(a.findings, 'en', 'week', 'lb')
+    check('and in English, in lb', en.find((l) => l.label === 'Barbell Back Squat')?.text === '187.4 lb × 6, 2 sets (usually 203.9 lb, 4 sets)', JSON.stringify(en))
+    check('nothing left in braces', !braces(n.items).length && !en.some((l) => /[{}]/.test(l.text)), JSON.stringify(braces(n.items)))
+    const fallback = w.fallbackNarrative(a.facts, a.findings, 'zh-TW', 'kg')
+    check('the fallback text keeps the lines', fallback.items.length === 1 && fallback.items[0].rule === 'deload' && fallback.items[0].lines?.length === 5, JSON.stringify(fallback.items))
+    const brief = w.buildPrompt({ ...a, note: null, language: 'zh-TW', weightUnit: 'kg' })
+    check('the brief tells the model code writes the numbers, and what they are', /- deload \(priority 100\)\. Advice: Plan one lighter week[^\n]*name no lift, weight or set count/.test(brief) && /under deload, a line for each main lift's lighter week: [^\n]*深蹲 85 kg x 6, 2 sets \(usually 92\.5 kg, 4 sets\)/.test(brief), brief.split('\n').filter((l) => /deload/.test(l)).join('\n'))
+    check('and what the user said', brief.includes('"tired":"最近工作壓力很大，睡不到 5 小時"'), brief.split('\n').find((l) => l.includes('    - data')))
+    // A lift that hurt this period is held, not in the lighter week
+    const pain = { date: '2026-09-29', source: 'ronnie', kind: 'pain', joint: 'elbow', exerciseId: 'ex-bench', name: 'Barbell Bench Press', nameZh: '槓鈴臥推', text: '臥推手肘痛' }
+    const inputs = inputsFor(scenario('tired-squat-drop-zh'))
+    const held = w.analyze({ ...inputs, weekRead: { ...inputs.weekRead, signals: [...inputs.weekRead.signals, pain] } })
+    check('a lift that hurt is held, and left out of the lighter week', held.findings.some((f) => f.id === 'pain_hold:ex-bench') && !held.findings.some((f) => f.id === 'next_session:ex-bench'), JSON.stringify(held.findings.map((f) => f.id)))
+}
+{
+    // One day a week: the guidelines' 2, written by code
+    const a = report('few-days-no-goal-en')
+    const items = w.planItems(a.findings, 'en', 'week', 'kg')
+    check('one day a week: an item for 2 days, after the next session', items.map((i) => i.rule ?? i.findingId).join() === 'next_session,few_days' && items[1].action === 'Strength train on 2 days a week, working the major muscle groups each time', JSON.stringify(items))
+    check('and in Chinese', w.planItems(a.findings, 'zh-TW', 'week', 'kg')[1]?.action === '每週排 2 天肌力訓練，每次都練到全身主要肌群')
+    const brief = w.buildPrompt({ ...a, note: null, language: 'en', weightUnit: 'kg' })
+    check('the brief says code writes it', /Code writes this advice[^\n]*strength training on 2 days a week, as health guidelines suggest for adults \(they trained on 1 this period\)/.test(brief), brief.split('\n').find((l) => l.startsWith('Code writes')))
+    check('ill this period: no line', !report('few-days-sick-zh').findings.some((f) => f.rule === 'few_days'))
+}
+{
+    // Under 3 in 4 sessions done: no option that adds a day
+    const a = report('goal-strength-owner-zh')
+    const shrink = { id: 'missed_sessions:-', rule: 'missed_sessions', subject: null, priority: 52, data: { done: 2, planned: 4, shrink: 1, suggest: 2 } }
+    const fired = a.findings.filter((f) => !['goal_path', 'next_session', 'pain_hold', 'few_days'].includes(f.rule))
+    const before = w.withPlan(fired, a.facts, inputsFor(scenario('goal-strength-owner-zh'))).find((f) => f.id === 'goal_path:ex-squat')
+    const after = w.withPlan([...fired, shrink], a.facts, inputsFor(scenario('goal-strength-owner-zh'))).find((f) => f.id === 'goal_path:ex-squat')
+    check('a squat trained once gets a second day, but not when the plan shrinks', String(before?.data.options).includes('second_day') && !String(after?.data.options).includes('second_day') && String(after?.data.options).includes('heavy'), `${before?.data.options} -> ${after?.data.options}`)
+    const brief = w.buildPrompt({ ...report('missed-half-shrink-en'), note: null, language: 'en', weightUnit: 'kg' })
+    check('the brief says to plan the sessions they fit in', brief.includes('shrink is 1: under 3 in 4 planned sessions were done, this week and the last, so instead of making the missed ones up, suggest planning the number of sessions in suggest each week'), brief.split('\n').find((l) => l.startsWith('- missed_sessions (priority')))
+    check('and nothing is added on top: no sets for the low muscles', !report('missed-half-shrink-en').findings.some((f) => f.rule === 'low_volume'))
+    const missed = (over) => report('missed-half-shrink-en', over).findings.find((f) => f.rule === 'missed_sessions')
+    check('one short period is no reason to shrink the plan', !missed({ previousFindings: null }).data.shrink && report('missed-half-shrink-en', { previousFindings: null }).findings.some((f) => f.rule === 'low_volume'))
+    const away = { signals: [{ date: '2026-09-30', source: 'ronnie', kind: 'away', text: '這週出差' }], texts: 1, model: 'm' }
+    check('nor a period the user said they were away', !missed({ weekRead: away }).data.shrink)
+}
+
 // ---------- Next report ----------
 
 {
@@ -159,6 +231,15 @@ const braces = (items) => items.flatMap((i) => [i.action, ...(i.lines ?? []).fla
     check('more reps at the same weight is partial', status({ weightKg: 42.5, reps: 10 }).status === 'partial')
     check('the same set is not done', status({ weightKg: 42.5, reps: 8 }).status === 'not_done')
     check('not trained says so', status(null).data.trained === 0)
+}
+{
+    const facts = (done) => ({ period: { days: 7 }, muscles: [], sessions: { done, planned: null }, totalSets: { now: 20 }, bodyWeight: { weighIns: 0 } })
+    const few = [{ id: 'few_days:-', rule: 'few_days', subject: null, priority: 51, data: { days: 1, perWeek: 1, target: 2 } }]
+    const status = (done) => w.followUp(few, facts(done), () => null)[0]
+    check('two days after one: done', status(2).status === 'done' && status(2).data.nowDays === 2)
+    check('one day again: not done', status(1).status === 'not_done')
+    const lighter = [{ id: 'next_session:ex-bench', rule: 'next_session', subject: 'ex-bench', priority: 55, data: { how: 'deload', weightKg: 72.5, low: 8, sets: 2 } }]
+    check('a lighter week\'s numbers aren\'t followed up: the deload\'s sets are', w.followUp(lighter, facts(3), () => null).length === 0)
 }
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed')

@@ -84,11 +84,17 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
     // A plan's set read the way its lift is logged: the assist, the reps alone, or weight x reps
     const planFlags = (d: Data) => ({ assisted: d.how === 'assist' ? 1 : 0, bodyweight: d.how === 'reps' ? 1 : 0 })
     const planSet = (d: Data) => setText(`${d.how === 'assist' ? d.assistKg : d.weightKg}x${d.low}`, planFlags(d))
-    /** Where each part of a plan's reason comes from, shown before it as a tag: the goal, the log, Ronnie's notes, what was said this period */
+    /** Where each part of a reason comes from, shown before it as a tag: the goal, the log, Ronnie's notes, what was said this period */
+    const tagged = (parts: [SourceTag, string][]): React.ReactNode => parts.map(([tag, text], i) => (
+        <span key={i}>{i > 0 && ' · '}<span className="mr-1 rounded bg-ink/5 px-1 text-[11px] font-bold text-ink/60 max-md:text-xs dark:bg-white/10 dark:text-white/60">{t(`sourceTag.${tag}`, { unit })}</span>{text}</span>
+    ))
+    const said = (d: Data, key: 'pain' | 'tired') =>
+        t('whyText.said', { date: shortDate(String(d[`${key}Date`])), source: String(d[`${key}Source`]), text: String(d[key === 'pain' ? 'painText' : 'tired']) })
     const planWhy = (f: Finding): React.ReactNode => {
         const d = f.data
         const parts: [SourceTag, string][] = []
-        if (f.rule === 'pain_hold') parts.push(['week', t('whyText.pain_hold', { date: shortDate(String(d.painDate)), source: String(d.painSource), text: String(d.painText) })])
+        if (f.rule === 'pain_hold') parts.push(['week', said(d, 'pain')])
+        if (f.rule === 'few_days') parts.push(['log', t('whyText.few_days', { n: Number(d.days), perWeek: Number(d.perWeek), unit })])
         if (f.rule === 'next_session') parts.push(['log', `${liftName(d)}${zh ? '：' : ': '}${t('whyText.next_session', { set: planSet(d) })}`])
         if (f.rule === 'goal_path') {
             if (d.path === 'pulldown') parts.push(['log', t('whyText.goalPulldown', { via: liftName({ name: String(d.viaName), nameZh: d.viaNameZh }), e1rm: weight(Number(d.proxyE1rmKg)), checkpoint: weight(Math.round(Number(d.checkpointKg))) })])
@@ -100,14 +106,12 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
             if (d.injury) parts.push(['memory', t('whyText.goalInjury', { text: String(d.injury), date: shortDate(String(d.injuryDate)) })])
             if (d.dislike) parts.push(['memory', t('whyText.goalDislike', { text: String(d.dislike), date: shortDate(String(d.dislikeDate)) })])
         }
-        return parts.map(([tag, text], i) => (
-            <span key={i}>{i > 0 && ' · '}<span className="mr-1 rounded bg-ink/5 px-1 text-[11px] font-bold text-ink/60 max-md:text-xs dark:bg-white/10 dark:text-white/60">{t(`sourceTag.${tag}`, { unit })}</span>{text}</span>
-        ))
+        return tagged(parts)
     }
     /** The research behind a plan: each part it uses, with its papers; holding a lift for pain is a safety rule with none */
-    const planParts = (f: Finding): PlanPart[] => (f.rule === 'pain_hold' ? [] : (f.rule === 'goal_path' ? String(f.data.research ?? 'progress').split(',').filter(Boolean) : ['progress']) as PlanPart[])
+    const planParts = (f: Finding): PlanPart[] => (f.rule === 'pain_hold' || f.rule === 'few_days' ? [] : (f.rule === 'goal_path' ? String(f.data.research ?? 'progress').split(',').filter(Boolean) : ['progress']) as PlanPart[])
     const planResearch = (f: Finding): [string, Source[], PlanPart | null][] => {
-        if (f.rule === 'pain_hold') return [[t('researchText.pain_hold'), [], null]]
+        if (f.rule === 'pain_hold' || f.rule === 'few_days') return [[t(`researchText.${f.rule}`), EVIDENCE[f.rule].sources, null]]
         return planParts(f).map((p) => [t(`planResearch.${p}`), PLAN_EVIDENCE[p], p])
     }
     const why = (f: Finding): React.ReactNode => {
@@ -116,15 +120,21 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
             case 'goal_path':
             case 'next_session':
             case 'pain_hold':
+            case 'few_days':
                 return planWhy(f)
             case 'lift_stalled': return t('whyText.lift_stalled', { lift: liftName(d), n: Number(d.flatWindows), unit, best: setText(d.best, d) })
             case 'lift_regressed': return t('whyText.lift_regressed', { lift: liftName(d), previous: setText(d.previousBest, d), best: setText(d.best, d) })
-            case 'deload': return t('whyText.deload', { lifts: String(zh ? d.liftsZh : d.lifts) })
+            // What the user said, when they said they were tired: the deload rests on it
+            case 'deload': {
+                const base = t(Number(d.count) === 1 ? 'whyText.deloadOne' : 'whyText.deload', { lifts: String(zh ? d.liftsZh : d.lifts) })
+                return d.tired ? tagged([['log', base], ['week', said(d, 'tired')]]) : base
+            }
             // Below the minimum effective dose it says so, which is a stronger reason than "under 10"
             case 'low_volume': return t('whyText.low_volume', { muscle: muscle(String(f.subject)), perWeek: Number(d.perWeek), level: Number(d.perWeek) < MIN_EFFECTIVE_WEEKLY_SETS ? 'below' : 'other' })
             case 'missed_sessions': {
                 const base = t('whyText.missed_sessions', { planned: Number(d.planned), done: Number(d.done), routines: routineList(d.routines) })
-                return d.lowGroups ? `${base}${zh ? '，' : '; '}${t('whyText.missedLow', { groups: muscles(String(d.lowGroups)) })}` : base
+                const more = [d.lowGroups && t('whyText.missedLow', { groups: muscles(String(d.lowGroups)) }), d.shrink && t('whyText.missedShrink', { unit })].filter(Boolean)
+                return [base, ...more].join(zh ? '，' : '; ')
             }
             case 'weight_trend': return t('whyText.weight_trend', { direction: String(d.direction), n: Number(d.periods), unit })
             case 'cardio_first': {
@@ -151,6 +161,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                 // No cycle any more, so nothing planned to count against
                 return d.noPlan ? t('result.missed_sessions.noPlan', { done: Number(d.nowDone), unit }) : t(`result.missed_sessions.${f.status}`, { done: Number(d.nowDone), planned: Number(d.nowPlanned), unit })
             case 'deload': return t(`result.deload.${f.status}`, { sets: Number(d.nowSets), unit })
+            case 'few_days': return t(`result.few_days.${f.status}`, { n: Number(d.nowDays), unit })
             case 'weight_trend':
                 return d.weighIns === 0 ? t('result.weight_trend.noWeighIn', { unit }) : t(`result.weight_trend.${f.status}`, { kg: bodyWeight(Number(d.nowKg)), unit: weightUnit })
             case 'cardio_first':
@@ -172,6 +183,8 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
     // Shown when there was cardio this period or the one before; reports saved before cardio was read have none
     const cardio = facts.cardio && (facts.cardio.minutes > 0 || !!facts.cardio.previousPerWeek) ? facts.cardio : null
     const liftWatches = watching.filter((w) => w.rule === 'lift_stalled')
+    // A lighter week's numbers are lines under the deload, which gives the reason for them
+    const basis = findings.filter((f) => f.data.how !== 'deload')
 
     return (
         <div className="space-y-5">
@@ -349,9 +362,9 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                                 <ContextDetail facts={facts} unit={unit} />
                             </Row>
                         )}
-                        {findings.length > 0 && (
-                            <Row {...row('basis')} title={t('section.basis')} take={String(findings.length)}>
-                                {findings.map((f) => (
+                        {basis.length > 0 && (
+                            <Row {...row('basis')} title={t('section.basis')} take={String(basis.length)}>
+                                {basis.map((f) => (
                                     <div key={f.id} className="space-y-1.5 rounded-lg border border-ink/10 p-3 text-[13px] max-md:rounded-none max-md:border-0 max-md:border-t max-md:px-0 max-md:first:border-t-0 max-md:first:pt-0 dark:border-white/10">
                                         <h4 className="text-sm font-semibold">{advised(f)}</h4>
                                         <dl className="grid grid-cols-[72px_1fr] gap-x-2.5 gap-y-1">

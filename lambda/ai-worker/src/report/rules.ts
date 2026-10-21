@@ -22,6 +22,14 @@ const WEIGHT_WINDOWS = 4
 export const CARDIO_BEFORE_LEGS_MIN = 15
 /** Sets a low muscle's advice adds at most each week: a step toward 10, not the whole gap at once (research brief, 2026-10-20) */
 export const MAX_ADD_SETS = 2
+/**
+ * Below this share of the planned sessions done two periods running, the plan shrinks to what the
+ * user fits in, and nothing is added: no sets, no extra day (research brief, 2026-10-20). GymPro's
+ * own threshold; one short period is a bad week, not a plan too big.
+ */
+export const ADHERENCE_MIN = 0.75
+/** Days a week of muscle-strengthening that health guidelines suggest for adults (WHO 2020) */
+export const MIN_DAYS_A_WEEK = 2
 
 // Safety first, then the lifts (the goal's before the others), then the plan, then volume (owner, 2026-10-20)
 const PRIORITY: Record<RuleId, number> = {
@@ -32,6 +40,7 @@ const PRIORITY: Record<RuleId, number> = {
     lift_stalled: 60,
     next_session: 55,
     missed_sessions: 52,
+    few_days: 51,
     low_volume: 50,
     weight_trend: 30,
     // Last: the order changes lower-body strength a little, and muscle growth not at all
@@ -55,6 +64,7 @@ const liftData = (l: LiftFacts) => ({
 })
 /** Compared by reps, assist or added weight, which move in whole steps: no percentage applies */
 const byPercent = (l: LiftFacts) => !l.bodyweight && !l.assisted && !l.added
+const round1 = (n: number) => Math.round(n * 10) / 10
 
 /**
  * Whether a low muscle's sets are advice. Without a goal they aren't: the user only logs, and the
@@ -71,22 +81,35 @@ function volumeAdvised(facts: ReportFacts, primaryUnitsOf?: (exerciseId: string)
     return (group) => stalled.has(group)
 }
 
-export function evaluateRules(facts: ReportFacts, primaryUnitsOf?: (exerciseId: string) => string[]): { findings: Finding[]; watching: Watching[] } {
+export function evaluateRules(facts: ReportFacts, primaryUnitsOf?: (exerciseId: string) => string[], previous?: Finding[] | null): { findings: Finding[]; watching: Watching[] } {
     const findings: Finding[] = []
     const watching: Watching[] = []
     const add = (rule: RuleId, subject: string | null, data: Finding['data'], bonus = 0) =>
         findings.push({ id: `${rule}:${subject ?? '-'}`, rule, subject, priority: PRIORITY[rule] + bonus, data })
 
+    // What the user said this period (week.ts), read only when the report read it
+    const signals = facts.context?.week.signals ?? []
+    const tired = signals.find((s) => s.kind === 'tired')
+    // Ill or away: a reason for training less this period
+    const excused = signals.some((s) => s.kind === 'sick' || s.kind === 'away')
+
     // Deload: several main lifts dropped at once and more went down than up, which points at
-    // fatigue rather than one lift
+    // fatigue rather than one lift. Or the user said they were tired and their lifts show it: two
+    // went down, or one dropped as far as a regression (Bell 2023: a deload when fatigue shows;
+    // Rogerson 2024: athletes deload for fatigue, and when performance stalls)
     const dropped = facts.lifts.filter((l) => byPercent(l) && l.trend === 'down' && (l.change ?? 0) <= DELOAD_DROP_PCT)
-    const deload = dropped.length >= 2 && facts.liftsSummary.down > facts.liftsSummary.up
+    const down = facts.lifts.filter((l) => l.trend === 'down')
+    const fromDrops = dropped.length >= 2 && facts.liftsSummary.down > facts.liftsSummary.up
+    const fromTired = !!tired && (down.length >= 2 || down.some((l) => byPercent(l) && (l.change ?? 0) <= REGRESSED_DROP_PCT))
+    const deload = fromDrops || fromTired
     if (deload) {
+        const named = fromDrops ? dropped : down
         add('deload', null, {
-            lifts: dropped.map((l) => l.name).join(', '),
-            liftsZh: dropped.map((l) => l.nameZh ?? l.name).join('、'),
-            count: dropped.length,
+            lifts: named.map((l) => l.name).join(', '),
+            liftsZh: named.map((l) => l.nameZh ?? l.name).join('、'),
+            count: named.length,
             totalSets: facts.totalSets.now,
+            ...(tired ? { tired: tired.text, tiredDate: tired.date, tiredSource: tired.source } : {}),
         })
     }
 
@@ -97,7 +120,7 @@ export function evaluateRules(facts: ReportFacts, primaryUnitsOf?: (exerciseId: 
             // The level before the drop began, which a follow-up checks the lift got back to
             const before = l.series.filter((v) => v != null).at(-(l.downWindows + 1)) ?? null
             add('lift_regressed', l.exerciseId, { ...liftData(l), downWindows: l.downWindows, previousValue: before }, bonus)
-        } else if (l.trend !== 'down' && l.flatWindows >= STALL_WINDOWS) {
+        } else if (l.trend !== 'down' && l.flatWindows >= STALL_WINDOWS && !deload) {
             add('lift_stalled', l.exerciseId, { ...liftData(l), flatWindows: l.flatWindows }, bonus)
         } else if (l.trend !== 'down' && l.flatWindows === STALL_WINDOWS - 1) {
             watching.push({ rule: 'lift_stalled', subject: l.exerciseId, data: { ...liftData(l), flatWindows: l.flatWindows } })
@@ -106,18 +129,28 @@ export function evaluateRules(facts: ReportFacts, primaryUnitsOf?: (exerciseId: 
 
     const { done, planned, days } = facts.sessions
     const missedSessions = planned != null && done < planned
+    // Under 3 in 4 planned sessions done, this period and the last, with no reason given: a plan of
+    // the sessions they fit in (at least the guidelines' 2 days a week), not making the missed ones
+    // up, and nothing added on top
+    const behind = (d: { done: number; planned: number | null }) => d.planned != null && d.planned > 0 && d.done / d.planned < ADHERENCE_MIN
+    const before = previous?.find((f) => f.rule === 'missed_sessions')
+    const behindBefore = !!before && behind({ done: Number(before.data.done), planned: Number(before.data.planned) })
+    const minSessions = Math.ceil((MIN_DAYS_A_WEEK * facts.period.days) / 7)
+    const suggest = Math.max(minSessions, done)
+    const shrink = missedSessions && behind({ done, planned }) && behindBefore && !excused && suggest < planned!
 
     // Low volume only for a muscle the user actually trains (this period, the one before, or in
-    // a planned session). One cause, one finding: a muscle the missed sessions would have brought
-    // into range, by their routines' target sets, is part of the missed-sessions finding, not a
-    // volume problem. Measured against the plan, so it holds in a first report too.
+    // a planned session), and never in a lighter week or a plan that shrinks: those add nothing.
+    // One cause, one finding: a muscle the missed sessions would have brought into range, by
+    // their routines' target sets, is part of the missed-sessions finding, not a volume problem.
+    // Measured against the plan, so it holds in a first report too.
     const lowFromMissing: string[] = []
     const advised = volumeAdvised(facts, primaryUnitsOf)
     for (const m of facts.muscles) {
         const trainsIt = m.sets > 0 || (m.previousPerWeek ?? 0) > 0 || (m.missedPerWeek ?? 0) > 0
         if (m.status !== 'low' || !trainsIt || !hasTarget(m.group)) continue
         if (missedSessions && m.perWeek + (m.missedPerWeek ?? 0) >= VOLUME_RANGE.low) lowFromMissing.push(m.group)
-        else if (advised(m.group)) {
+        else if (advised(m.group) && !shrink && !deload) {
             // Sets to add each period toward the weekly minimum, so the advice has an exact number: at most MAX_ADD_SETS a week
             const addSets = Math.min(Math.ceil((MAX_ADD_SETS * facts.period.days) / 7), Math.ceil((VOLUME_RANGE.low * facts.period.days) / 7 - m.sets))
             add('low_volume', m.group, { sets: m.sets, perWeek: m.perWeek, previousPerWeek: m.previousPerWeek, target: VOLUME_RANGE.low, addSets })
@@ -133,7 +166,15 @@ export function evaluateRules(facts: ReportFacts, primaryUnitsOf?: (exerciseId: 
             routines: missed.map((d) => d.routine).join(', '),
             dates: missed.map((d) => d.date).join(', '),
             lowGroups: lowFromMissing.join(', ') || null,
+            ...(shrink ? { shrink: 1, suggest } : {}),
         })
+    }
+
+    // Fewer training days than the guidelines' 2 a week (WHO 2020), with no plan they missed (that
+    // finding speaks to it) and no reason given this period (ill, away): written by code
+    const daysPerWeek = round1((done * 7) / facts.period.days)
+    if (daysPerWeek < MIN_DAYS_A_WEEK && !missedSessions && !excused) {
+        add('few_days', null, { days: done, perWeek: daysPerWeek, target: MIN_DAYS_A_WEEK })
     }
 
     // Body weight against the goal: gaining while cutting, or losing while bulking
@@ -175,8 +216,9 @@ export function evaluateRules(facts: ReportFacts, primaryUnitsOf?: (exerciseId: 
 export function followUp(previous: Finding[] | null, facts: ReportFacts, liftOf: (exerciseId: string) => LiftFacts | null): FollowUp[] {
     if (!previous?.length) return []
     // A volume finding from before the muscles were split (legs, shoulders) has nothing to compare
-    // with now; holding a lift for pain has nothing to check
-    return previous.filter((f) => (f.rule !== 'low_volume' || hasTarget(String(f.subject))) && f.rule !== 'pain_hold').map((f): FollowUp => {
+    // with now; holding a lift for pain has nothing to check, nor a deload week's numbers (the
+    // deload's own follow-up checks the sets)
+    return previous.filter((f) => (f.rule !== 'low_volume' || hasTarget(String(f.subject))) && f.rule !== 'pain_hold' && f.data.how !== 'deload').map((f): FollowUp => {
         const result = (status: FollowUpStatus, data: FollowUp['data'] = {}): FollowUp => ({
             id: f.id, rule: f.rule, subject: f.subject, status, data: { ...f.data, ...data },
         })
@@ -224,6 +266,11 @@ export function followUp(previous: Finding[] | null, facts: ReportFacts, liftOf:
                 if (!l || !l.best) return result('not_done', { trained: 0 })
                 const now = setText(l.best)
                 return result(planStatus(f.data, l.best), { now })
+            }
+            case 'few_days': {
+                const now = round1((facts.sessions.done * 7) / facts.period.days)
+                const before = Number(f.data.perWeek)
+                return result(now >= MIN_DAYS_A_WEEK ? 'done' : now > before ? 'partial' : 'not_done', { nowDays: facts.sessions.done, nowPerWeek: now })
             }
             case 'cardio_first': {
                 // Done when every lower-body session put the legs first; nothing to judge without one

@@ -158,6 +158,7 @@ const WEEK = ['push', 'pull', 'legs', 'push', 'legs', 'pull', null]
 // expect.brief: lines the brief must contain word for word (how the day notes reach the model)
 // expect.cardio: this period's cardio minutes, cardio days and lower-body sessions
 // expect.lifts: main lift id -> its trend and whether it is read as an assisted lift
+// expect.data: finding id -> fields its data must have (undefined: must not have)
 export const SCENARIOS = [
     {
         id: 'mockup-week-zh',
@@ -637,5 +638,69 @@ export const SCENARIOS = [
             status: 'progressing', findings: ['low_volume:chest'],
             planData: { 'goal_path:ex-bench': { path: 'stalled', weightKg: 90, dropKg: 80, flatWindows: 5 } },
         },
+    },
+    {
+        id: 'tired-squat-drop-zh',
+        why: '深蹲從 100x6 掉到 92.5x6（約 -7.5%），其他動作都在進步；單看紀錄只是深蹲退步。但這週跟 Ronnie 說「睡不到 5 小時」，週報讀成「很累」：累加上明顯退步，改建議減量一週。程式在減量底下列出每個主要動作輕一點的重量和一半的組數，不再寫「下次加重」；模型的減量建議不列動作和數字，可以提醒照顧睡眠，但不能說睡眠就是原因。',
+        language: 'zh-TW', goal: '增肌', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH, routines: PPL,
+        progress: { squat: ['90x6', '92.5x6', '95x6', '97.5x6', '100x6', '92.5x6'] },
+        signals: [{ day: 2, source: 'ronnie', kind: 'tired', text: '最近工作壓力很大，睡不到 5 小時' }],
+        expect: {
+            status: 'progressing', findings: ['deload:-'],
+            data: { 'deload:-': { lifts: 'Barbell Back Squat', tired: '最近工作壓力很大，睡不到 5 小時', tiredSource: 'ronnie' } },
+            planData: { 'next_session:ex-squat': { how: 'deload', weightKg: 85, usualKg: 92.5, sets: 2, usualSets: 4, low: 6 }, 'next_session:ex-bench': { how: 'deload', weightKg: 72.5, usualKg: 80 } },
+        },
+    },
+    {
+        id: 'tired-small-dip-en',
+        why: 'The user said they slept badly, and the bench slipped from 80x8 to 77.5x8 (about -3%) while the rest went up: tired, but one small dip is not a lighter week, and not a regression either. Nothing fires; code writes the next session for three lifts, and the headline may mention sleep without calling it the cause.',
+        language: 'en', goal: 'Build muscle', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_EN, routines: PPL,
+        progress: { bench: ['70x8', '72.5x8', '75x8', '77.5x8', '80x8', '77.5x8'] },
+        signals: [{ day: 1, source: 'note', kind: 'tired', text: 'slept badly' }],
+        dayNotes: { 1: 'slept badly, felt flat' },
+        expect: { status: 'progressing', findings: [] },
+    },
+    {
+        id: 'few-days-no-goal-en',
+        why: 'One full-body session a week, every week, no plan and no goal. Health guidelines (WHO 2020) suggest strength training on 2 or more days a week, so code adds a line for 2 days after the next session for the three lifts; nothing else fires, and no sets are added without a goal.',
+        language: 'en', goal: null, note: null,
+        periodStart: '2026-09-28', plan: ['full', null, null, null, null, null, null], cycle: false,
+        routines: { full: [['squat', 4], ['bench', 4], ['row', 4], ['ohp', 3]] },
+        expect: {
+            status: 'progressing', findings: [],
+            plan: ['next_session:ex-squat', 'next_session:ex-bench', 'next_session:ex-row', 'few_days:-'],
+            planData: { 'few_days:-': { days: 1, perWeek: 1, target: 2 } },
+        },
+    },
+    {
+        id: 'few-days-sick-zh',
+        why: '同樣一週只練一天，但這週筆記寫感冒發燒（週報讀成「生病」）：有理由，不提醒每週練 2 天，只有程式寫的下次怎麼練。',
+        language: 'zh-TW', goal: null, note: null,
+        periodStart: '2026-09-28', plan: ['full', null, null, null, null, null, null], cycle: false,
+        routines: { full: [['squat', 4], ['bench', 4], ['row', 4], ['ohp', 3]] },
+        dayNotes: { 3: '感冒發燒，這兩天先休息' },
+        signals: [{ day: 3, source: 'note', kind: 'sick', text: '感冒發燒' }],
+        expect: { status: 'progressing', findings: [], plan: ['next_session:ex-squat', 'next_session:ex-bench', 'next_session:ex-row'] },
+    },
+    {
+        id: 'missed-half-shrink-en',
+        why: 'The cycle plans 4 sessions and the user did 2 (Leg Day and the second Push Day skipped), as in the last report, with no reason given. Under 3 in 4 done two weeks running, so the plan shrinks: the advice is a plan of 2 sessions a week they can keep, with each routine\'s first lifts first, not making the missed ones up, and nothing is added: the low muscles get no extra sets.',
+        language: 'en', goal: 'Build muscle', note: null,
+        periodStart: '2026-09-28', plan: ['push', 'pull', 'legs', 'push', null, null, null], cycle: true, routineNames: NAMES_EN, routines: PPL, skip: [2, 3], skipEveryPeriod: true,
+        previousFindings: [{ id: 'missed_sessions:-', rule: 'missed_sessions', subject: null, priority: 52, data: { done: 2, planned: 4, missed: 2, routines: 'Leg Day, Push Day', dates: '2026-09-23, 2026-09-24', lowGroups: null } }],
+        expect: {
+            status: 'progressing', findings: ['missed_sessions:-'], followUps: { 'missed_sessions:-': 'not_done' },
+            data: { 'missed_sessions:-': { done: 2, planned: 4, shrink: 1, suggest: 2 } },
+        },
+    },
+    {
+        id: 'missed-one-of-two-zh',
+        why: '循環排 2 次，只練了 1 次（腿日沒練），沒寫目標：完成一半，但縮小到每週 2 次也不比原本少，所以不縮小，照原本建議把腿日找時間補上。',
+        language: 'zh-TW', goal: null, note: null,
+        periodStart: '2026-09-28', plan: ['push', null, null, 'legs', null, null, null], cycle: true, routineNames: NAMES_ZH,
+        routines: { push: [['bench', 4], ['ohp', 4], ['row', 4], ['pulldown', 3]], legs: PPL.legs }, skip: [3],
+        expect: { status: 'progressing', findings: ['missed_sessions:-'], data: { 'missed_sessions:-': { done: 1, planned: 2, shrink: undefined } } },
     },
 ]

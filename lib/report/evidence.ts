@@ -52,6 +52,14 @@ const GRGIC_2018: Source = { author: 'Grgic', year: 2018, title: 'Effect of Resi
 /** College men: lat-pull 1RM about 75-80% of the pull-up 1RM (body plus added load); r = 0.78 */
 const JOHNSON_2009: Source = { author: 'Johnson', year: 2009, title: 'Relationship of Lat-Pull Repetitions and Pull-Ups to Maximal Lat-Pull and Pull-Up Strength in Men and Women', journal: 'Journal of Strength and Conditioning Research', doi: '10.1519/JSC.0b013e3181a2d7f5' }
 
+/** WHO's guidelines: aerobic minutes a week, and muscle-strengthening on 2 or more days a week */
+const BULL_2020: Source = { author: 'Bull', year: 2020, title: 'World Health Organization 2020 guidelines on physical activity and sedentary behaviour', journal: 'British Journal of Sports Medicine', doi: '10.1136/bjsports-2020-102955' }
+// Resolved through LibKey on 2026-10-21
+/** 16 cohort studies: muscle-strengthening and a 10-17% lower risk of death, heart disease, cancer and diabetes; the most at about 30-60 minutes a week */
+const MOMMA_2022: Source = { author: 'Momma', year: 2022, title: 'Muscle-strengthening activities are associated with lower risk and mortality in major non-communicable diseases: a systematic review and meta-analysis of cohort studies', journal: 'British Journal of Sports Medicine', doi: '10.1136/bjsports-2021-105061' }
+/** 246 strength and physique athletes: a deload of about a week, mainly for fatigue, with fewer sets and lighter loads on the same days and exercises */
+const ROGERSON_2024: Source = { author: 'Rogerson', year: 2024, title: 'Deloading Practices in Strength and Physique Sports: A Cross-sectional Survey', journal: 'Sports Medicine - Open', doi: '10.1186/s40798-024-00691-y' }
+
 /**
  * Each part of a next-session plan and its research (messages: reportV3.planResearch): the
  * double progression every plan starts from, heavier sets for a strength goal, a second day of a
@@ -85,6 +93,11 @@ export const EVIDENCE: Record<RuleId, { sources: Source[]; ownThreshold: boolean
         ownThreshold: false,
         safety: true,
     },
+    // The 2 days are the guidelines'
+    few_days: {
+        sources: [BULL_2020, MOMMA_2022],
+        ownThreshold: false,
+    },
     lift_regressed: {
         sources: [
             // A short-term drop that recovery reverses is functional overreaching; prolonged maladaptation is the warning
@@ -98,6 +111,7 @@ export const EVIDENCE: Record<RuleId, { sources: Source[]; ownThreshold: boolean
             { author: 'Bell', year: 2023, title: 'Integrating Deloading into Strength and Physique Sports Training Programmes: An International Delphi Consensus Approach', journal: 'Sports Medicine - Open', doi: '10.1186/s40798-023-00633-0' },
             // A scheduled week off at the midpoint of 9 weeks: same muscle growth, smaller lower-body strength gains
             { author: 'Coleman', year: 2024, title: 'Gaining more from doing less? The effects of a one-week deload period during supervised resistance training on muscular adaptations', journal: 'PeerJ', doi: '10.7717/peerj.16777' },
+            ROGERSON_2024,
         ],
         ownThreshold: true,
     },
@@ -120,7 +134,8 @@ export const EVIDENCE: Record<RuleId, { sources: Source[]; ownThreshold: boolean
             // Frequency: negligible for growth, but strength rises with it (diminishing returns)
             PELLAND,
         ],
-        ownThreshold: false,
+        // Under 3 in 4 sessions done, a smaller plan: GymPro's threshold
+        ownThreshold: true,
     },
     weight_trend: {
         sources: [
@@ -158,7 +173,7 @@ export const CARDIO_EVIDENCE: { research: Source[]; who: Source[] } = {
     ],
     who: [
         // Adults: 150-300 minutes of moderate aerobic activity a week, or 75-150 vigorous, counting all of daily life
-        { author: 'Bull', year: 2020, title: 'World Health Organization 2020 guidelines on physical activity and sedentary behaviour', journal: 'British Journal of Sports Medicine', doi: '10.1136/bjsports-2020-102955' },
+        BULL_2020,
     ],
 }
 
