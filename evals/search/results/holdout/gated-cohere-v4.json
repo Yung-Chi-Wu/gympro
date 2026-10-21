@@ -126,7 +126,7 @@
         "Cable Lateral Raise / 繩索側平舉",
         "Machine Lateral Raise / 器械側平舉",
         "Landmine Lateral Raise / 地雷管側平舉",
-        "Barbell Front Raise / 槓鈴前平舉"
+        "Front Raise / 前平舉"
       ]
     },
     {
@@ -137,15 +137,16 @@
         "Decline Barbell Bench Press",
         "Dip",
         "Chest Dip Machine",
-        "High Cable Fly"
+        "High Cable Fly",
+        "Assisted Dip"
       ],
       "rank": 1,
       "top": [
         "Dip / 雙槓撐體",
         "Decline Barbell Bench Press / 下斜槓鈴臥推",
+        "Assisted Dip / 輔助雙槓撐體",
         "High Cable Fly / 高位繩索夾胸",
-        "Push-up / 伏地挺身",
-        "Chest Dip Machine / 胸部雙槓機"
+        "Push-up / 伏地挺身"
       ]
     },
     {
@@ -208,7 +209,8 @@
         "Hack Squat",
         "Pendulum Squat",
         "Good Morning",
-        "Romanian Deadlift"
+        "Romanian Deadlift",
+        "Belt Squat"
       ],
       "rank": 6,
       "top": [
@@ -263,9 +265,9 @@
       "top": [
         "Incline Barbell Bench Press / 上斜槓鈴臥推",
         "Incline Dumbbell Bench Press / 上斜啞鈴臥推",
+        "Incline Machine Chest Press / 上斜器械推胸",
         "Incline Dumbbell Curl / 上斜啞鈴彎舉",
-        "Decline Barbell Bench Press / 下斜槓鈴臥推",
-        "Barbell Bench Press / 槓鈴臥推"
+        "Decline Barbell Bench Press / 下斜槓鈴臥推"
       ]
     },
     {
