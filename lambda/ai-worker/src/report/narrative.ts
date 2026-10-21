@@ -43,8 +43,9 @@ const DELOAD_LINES_ADVICE = 'Plan one lighter week, then back to the usual plan 
  * missed_sessions' advice in place of its own when the user did under 3 in 4 of the planned sessions
  * two periods running (rules.ts ADHERENCE_MIN). Added after the usual advice, which says making the
  * sessions up brings the low muscles back, the model wrote both: plan 2 a week, and make them up (v17).
+ * Told the last report found the same, it said the same routines were missed again (v18, v19).
  */
-const shrinkAdvice = (period: string) => `Name the missed sessions. Under 3 in 4 planned sessions were done this ${period}, and the last report found the same (which sessions then isn't known: name none), so don't suggest making them up or doing them as planned: suggest planning the number of sessions in suggest each ${period}, a plan they can keep, with each routine's first lifts first, and add nothing on top. Don't say this brings any muscle back into range. Never scold; if a note explains it, acknowledge that.`
+const shrinkAdvice = (period: string) => `Name this ${period}'s missed sessions. Fewer than 3 in 4 planned sessions are getting done, so don't suggest making them up or doing them as planned: suggest planning the number of sessions in suggest each ${period}, a plan they can keep, with each routine's first lifts first, and add nothing on top. Don't say this brings any muscle back into range. Never scold; if a note explains it, acknowledge that.`
 
 /** Added to a lift rule's advice when one of its lifts is assisted, where less assist is the progress */
 const ASSISTED_ADVICE: Partial<Record<RuleId, string>> = {

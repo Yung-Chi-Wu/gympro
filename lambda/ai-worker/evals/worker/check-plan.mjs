@@ -216,7 +216,7 @@ const braces = (items) => items.flatMap((i) => [i.action, ...(i.lines ?? []).fla
     const brief = w.buildPrompt({ ...report('missed-half-shrink-en'), note: null, language: 'en', weightUnit: 'kg' })
     const advice = brief.split('\n').find((l) => l.startsWith('- missed_sessions (priority'))
     check('the brief says to plan the sessions they fit in, in place of making them up', advice?.includes("so don't suggest making them up or doing them as planned: suggest planning the number of sessions in suggest each week") && !advice.includes('Making them up is what brings'), advice)
-    check('without naming the last report\'s sessions, which it doesn\'t know', advice?.includes('the last report found the same (which sessions then isn\'t known: name none)'), advice)
+    check('this week\'s missed sessions, with nothing about which ones the last report had', advice?.startsWith("- missed_sessions (priority 52). Advice: Name this week's missed sessions. Fewer than 3 in 4 planned sessions are getting done") && !/last report/.test(advice), advice)
     const headline = brief.split('\n').find((l) => l.startsWith('1. headline'))
     check('and the headline doesn\'t push for the full plan', headline?.includes("The plan shrinks to 2 sessions a week, so the headline doesn't push for more sessions"), headline)
     check('and gives no low muscles to bring back', !/"lowGroups"/.test(brief.split('\n').find((l) => l.includes('    - data')) ?? ''), brief.split('\n').find((l) => l.includes('    - data')))
