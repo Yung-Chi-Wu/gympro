@@ -11,3 +11,6 @@ export { appendConversation, replaceConversation } from '../../lib/ronnie/conver
 export { asTypedMessage, EVENT_PREFIX } from '../../lib/ronnie/events'
 export { createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER, fixtureNotes, ROUTINES } from './fixture'
 export { correctionIn, flagForCancel, flagForClear, flagsForMessage, RIGHT_AFTER_MS } from '../../lib/ronnie/signals'
+export { nextKnowledgeKey, renumber, withSources } from '../../lib/ronnie/citations'
+export { KNOWLEDGE_NOTES, searchKnowledge } from '../../lib/ronnie/knowledge'
+export { KNOWLEDGE_CHECK_MODEL, RESEARCH_WORDS } from '../../lib/ronnie/knowledge-check'

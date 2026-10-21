@@ -47,6 +47,11 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
         },
     },
     {
+        name: 'search_knowledge',
+        description: "Search GymPro's research notes: about 150 papers, each with what it found, who was studied and how sure it is, on training (sets, failure, load, rest, frequency, range of motion, methods), cardio with lifting, nutrition and supplements, fat loss and diets, women, pregnancy, older adults, youth, health, pain and injury, and gym myths. For any general fitness question, search before answering, in the user's words.",
+        input_schema: { type: 'object', properties: { query: { type: 'string', description: 'The question, in the user\'s words' } }, required: ['query'] },
+    },
+    {
         name: 'get_workout_history',
         description: "The user's workouts in a date range: each day's exercises and sets.",
         input_schema: { type: 'object', properties: dateRange, required: ['date_from', 'date_to'] },

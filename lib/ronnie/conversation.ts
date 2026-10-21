@@ -4,6 +4,7 @@ import type { Database, Json } from '../types/database.types'
 import type { PlannedRoutine } from '../coach-g'
 import type { RoutineProposal } from './data'
 import { EVENT_PREFIX } from './events'
+import type { ReplySource } from './citations'
 
 // Ronnie's conversation is kept on the server, one per user per local day
 // (ronnie_conversations). messages is the full history the model gets back next
@@ -36,7 +37,8 @@ export interface PlanCard {
 export type DisplayItem =
     | { kind: 'user'; text: string }
     /** traceId: the reply's trace, which a signal or Report a mistake flags (lib/ronnie/signals.ts); at: when it was shown */
-    | { kind: 'assistant'; text: string; proposals?: ProposalCard[]; recommendations?: RecommendationCard[]; plans?: PlanCard[]; traceId?: string; at?: string }
+    /** sources: the papers the reply cites, as [1], [2] in its text; unsourced: it has general advice no note supports (citations.ts) */
+    | { kind: 'assistant'; text: string; proposals?: ProposalCard[]; recommendations?: RecommendationCard[]; plans?: PlanCard[]; traceId?: string; at?: string; sources?: ReplySource[]; unsourced?: boolean }
     /** planId: the plan card this event is about, so the card shows it saved */
     | { kind: 'event'; text: string; planId?: string }
 

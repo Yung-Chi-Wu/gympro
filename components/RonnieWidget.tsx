@@ -149,6 +149,8 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                 ...(data.proposals?.length ? { proposals: data.proposals } : {}),
                 ...(data.recommendations?.length ? { recommendations: data.recommendations } : {}),
                 ...(data.plans?.length ? { plans: data.plans } : {}),
+                ...(data.sources?.length ? { sources: data.sources } : {}),
+                ...(data.unsourced ? { unsourced: true } : {}),
             }])
             if (data.reloadDashboard) notifyDashboard()
         } catch (err: unknown) {
@@ -295,6 +297,33 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                 {i < arr.length - 1 && <br />}
             </span>
         ))
+    }
+
+    /**
+     * The papers a reply cites, under it, numbered as its sentences are, each linking to the paper;
+     * and the line for general advice no paper backs. Both written by code (lib/ronnie/citations.ts).
+     */
+    function renderSources(item: Extract<Item, { kind: 'assistant' }>) {
+        if (!item.sources?.length && !item.unsourced) return null
+        return (
+            <div className="mt-2 space-y-1 border-t border-ink/10 pt-1.5 text-[11px] leading-snug text-ink/60 max-md:text-xs dark:border-white/10 dark:text-white/60">
+                {!!item.sources?.length && (
+                    <>
+                        <p className="font-semibold">{zh ? '出處' : 'Sources'}</p>
+                        <ol className="space-y-0.5">
+                            {item.sources.map((src) => (
+                                <li key={src.n}>
+                                    [{src.n}]{' '}
+                                    <a href={`https://doi.org/${src.doi}`} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">{src.citation}</a>
+                                    {', '}{src.journal}
+                                </li>
+                            ))}
+                        </ol>
+                    </>
+                )}
+                {item.unsourced && <p>{zh ? '部分內容是一般建議，沒有附研究出處。' : 'Some of this is general advice, with no research source attached.'}</p>}
+            </div>
+        )
     }
 
     function statusLabel(status: ProposalStatus | undefined) {
@@ -492,6 +521,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                         <div className="max-w-[80%]">
                                             <div className="rounded-2xl rounded-tl-sm px-3 py-2 text-sm leading-relaxed bg-ink/5 dark:bg-white/8">
                                                 {renderContent(item.text)}
+                                                {renderSources(item)}
                                             </div>
                                             {item.proposals?.map(renderProposal)}
                                             {item.recommendations?.map(renderRecommendation)}

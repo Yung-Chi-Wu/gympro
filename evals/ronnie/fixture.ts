@@ -154,12 +154,13 @@ interface SetRow {
 
 /** A fresh copy of the fixture; one per eval case, shared across that case's turns. */
 /**
- * nearest: vector search over EXERCISES (entry.ts embeds with Bedrock and caches). Left
- * out, as in the offline checks, the search is keyword-only - as in production when
- * Bedrock is unavailable.
+ * nearest, nearestKnowledge: vector search over EXERCISES and the knowledge notes (entry.ts
+ * embeds with Bedrock and caches). Left out, as in the offline checks, search is keyword-only -
+ * as in production when Bedrock is unavailable.
  */
-export function createFixtureData({ nearest, memories: seed = [] }: {
+export function createFixtureData({ nearest, nearestKnowledge, memories: seed = [] }: {
     nearest?: RonnieData['nearestExercises']
+    nearestKnowledge?: RonnieData['nearestKnowledge']
     /** What Ronnie remembers before the conversation starts (a case's earlier days) */
     memories?: MemoryNote[]
 } = {}): {
@@ -230,6 +231,9 @@ export function createFixtureData({ nearest, memories: seed = [] }: {
         },
         async listExercises() {
             return EXERCISES
+        },
+        async nearestKnowledge(query) {
+            return nearestKnowledge ? nearestKnowledge(query) : null
         },
         async nearestExercises(query) {
             return nearest ? nearest(query) : null

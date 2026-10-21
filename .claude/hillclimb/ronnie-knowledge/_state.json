@@ -48,6 +48,11 @@
       "kind": "binary"
     },
     {
+      "id": "sourced",
+      "label": "出處正確",
+      "kind": "binary"
+    },
+    {
       "id": "judge_ok",
       "label": "評審通過",
       "kind": "binary"

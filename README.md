@@ -12,7 +12,7 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
 
 ## Highlights
 
-- **An agent with guardrails.** Ronnie is a Claude tool-use agent with 12 tools over the user's data.
+- **An agent with guardrails.** Ronnie is a Claude tool-use agent with 13 tools over the user's data and a knowledge base of 149 papers.
   - Reads are free. A change to today's workout that the user names is made at once. A change Ronnie picks, and any change to a routine, is shown as a card, and code applies it when the user taps it.
   - Code writes every line that states a fact: memory receipts, plan summaries, corrections.
   - A reply that contradicts today's log is caught before it's shown.
@@ -34,7 +34,7 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
 | | |
 |---|---|
 | **Log** | One set table for strength and cardio, with 8 log types: weight × reps, bodyweight plus added weight, assisted, timed, treadmill, machine level, rower, time only. Units are per exercise (kg or lb, km or mi). There is also a daily note and body weight. |
-| **Ronnie** | A chat coach. *"My elbow hurts, what instead of pushdowns?"*, *"What's left today?"*, *"Plan me a 4-day week."* It remembers injuries, likes and dislikes, equipment and schedule across conversations. |
+| **Ronnie** | A chat coach. *"My elbow hurts, what instead of pushdowns?"*, *"What's left today?"*, *"Plan me a 4-day week."*, *"Will creatine make my hair fall out?"* It remembers injuries, likes and dislikes, equipment and schedule across conversations, and answers fitness questions from research notes, with the papers listed under the reply. |
 | **Coach G** | The user answers a few questions and gets a week of routines built from a 155-exercise library, rated for muscles and joint load. |
 | **Weekly report** | Generated when the user's training period ends, in their time zone. It shows the status, the goal's progress, the key numbers and follow-up on last period's advice. Then it says what to do next session: for each lift the goal names, the way the user trains it now and other ways research supports; one line for each other main lift; and an action for each rule that fired. Each piece names its data, where that came from (the log, the goal, Ronnie's notes, what the user said) and the research behind it. |
 | **Layouts** | Separate phone and desktop layouts. On iPhone it installs to the home screen. |
@@ -81,12 +81,16 @@ flowchart LR
 
 | Tools | |
 |---|---|
-| Read | `get_today_workout`, `get_workout_history`, `get_training_summary`, `get_routine_exercises`, `search_exercises` |
+| Read | `get_today_workout`, `get_workout_history`, `get_training_summary`, `get_routine_exercises`, `search_exercises`, `search_knowledge` |
 | Change today | `add_exercise_today`, `remove_exercise_today`, `recommend_exercise` (a swap card) |
 | Change routines | `propose_routine_change`, `plan_routines` (a plan card, built by Coach G's planner) |
 | Memory | `remember`, `forget` |
 
 - **Who decides a change.** A change to today's workout that the user names, Ronnie makes at once. A change Ronnie picks, and any change to a routine, is shown as a card, and code applies it after the tap. Removing an exercise from a routine asks twice. The model never makes a permanent change itself; that is enforced by code, not by the prompt.
+- **Research notes.** [`lib/ronnie/knowledge-notes.json`](lib/ronnie/knowledge-notes.json) holds one note per paper, 149 in all. Each was written from the paper's abstract and checked against it, and each DOI was resolved through LibKey. Search ranks the notes by Cohere vectors in pgvector.
+  - **Citations:** Ronnie marks a sentence with a note's key. Code numbers the citations and lists the papers under the reply, so a source shown is always one Ronnie was given. A key it wasn't given is dropped.
+  - **Check:** before the reply is shown, Claude Haiku reads it against the notes. A finding presented as research that no note supports, or that goes past its note, is sent back once for a rewrite.
+  - **No note:** general advice that no note covers stays in the reply, with a line under it saying it has no research source.
 - **Memory.** The kinds the code acts on have fixed slots:
   - one injury per joint, active or resolved;
   - a like or dislike per exercise;
@@ -141,7 +145,7 @@ flowchart LR
 |---|---|---|
 | Ronnie, development | 37 conversations | Code checks on every run: the right tools, the right writes and nothing else, valid IDs, date ranges, language, no fallback. A judge (Claude Opus 5.5) with a rubric on 28 of them. |
 | Ronnie, held out | 5 | The same. Run only for acceptance. |
-| Ronnie, fitness knowledge | 8 | The judge |
+| Ronnie, fitness knowledge | 29 | Code checks on the sources under the reply (the right paper cited; none, plus the label, when no note covers it), plus the judge |
 | Ronnie, memory | 21, some across several conversations | Code checks on the saved notes, plus the judge |
 | Exercise search | 51 queries, plus 20 held out | hit@1, hit@5, MRR |
 | Knowledge search | 50 questions, plus 25 held out | hit@1, hit@5, MRR |
