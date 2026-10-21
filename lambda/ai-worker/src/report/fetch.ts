@@ -4,7 +4,7 @@ import { SUGGESTED_NAMES } from '../../../../lib/report/volume'
 import { isCardio, logTypeOf } from '../../../../lib/set-log'
 import { timeZoneOf } from '../../../../lib/time-zone'
 import { WINDOWS } from './facts'
-import type { ExerciseInfo, Finding, LoggedSet, ReportInputs, ScheduledDay } from './types'
+import type { ExerciseInfo, Finding, GoalRead, LoggedSet, ReportInputs, ScheduledDay } from './types'
 
 // Reads what the report needs from the database and turns it into ReportInputs.
 // Dates become the user's local dates: the period is defined in their time zone,
@@ -42,7 +42,11 @@ export async function fetchReportInputs(
     userId: string,
     periodStart: string,
     periodEnd: string
-): Promise<{ inputs: ReportInputs; language: string; weightUnit: 'kg' | 'lb'; distanceUnit: 'km' | 'mi' }> {
+): Promise<{
+    inputs: ReportInputs; language: string; weightUnit: 'kg' | 'lb'; distanceUnit: 'km' | 'mi'
+    /** For reading the goal (goal.ts): the library's exercises, and the read the previous report made */
+    library: ExerciseInfo[]; previousGoal: GoalRead | null
+}> {
     const days = daysBetween(periodStart, periodEnd) + 1
     const lookbackStart = addDays(periodStart, -(WINDOWS - 1) * days)
 
@@ -100,25 +104,42 @@ export async function fetchReportInputs(
 
     const schedule = await fetchSchedule(supabase, userId, periodStart, days)
     const plannedIds = (schedule ?? []).flatMap((d) => d.plan.map((p) => p.exerciseId))
-    const [exercises, weighIns, routineLeads, previousFindings, notes] = await Promise.all([
+    const [exercises, { weighIns, bodyFat }, routineLeads, previous, notes, library] = await Promise.all([
         fetchExercises(supabase, [...new Set([...sets.map((s) => s.exerciseId), ...plannedIds])]),
         fetchWeighIns(supabase, userId, utcFrom, utcTo, localDate, lookbackStart, periodEnd),
         fetchRoutineLeads(supabase, userId),
-        fetchPreviousFindings(supabase, userId, periodStart),
+        fetchPrevious(supabase, userId, periodStart),
         fetchDayNotes(supabase, userId, periodStart, periodEnd),
+        fetchLibrary(supabase),
     ])
 
     return {
-        inputs: { periodStart, periodEnd, sets, exercises, schedule, weighIns, goal: profile?.training_goal ?? null, routineLeads, previousFindings, notes },
+        inputs: { periodStart, periodEnd, sets, exercises, schedule, weighIns, bodyFat, goal: profile?.training_goal ?? null, routineLeads, previousFindings: previous.findings, notes },
         language: profile?.language ?? 'en',
         weightUnit: profile?.weight_unit === 'lb' ? 'lb' : 'kg',
         distanceUnit: profile?.distance_unit === 'mi' ? 'mi' : 'km',
+        library,
+        previousGoal: previous.goal,
     }
+}
+
+const EXERCISE_COLUMNS = 'id, name, name_zh_tw, muscle_group, primary_muscles, secondary_muscles, log_type'
+type ExerciseRow = { id: string; name: string; name_zh_tw: string | null; muscle_group: string; primary_muscles: string[] | null; secondary_muscles: string[] | null; log_type: string | null }
+const toExercise = (e: ExerciseRow): ExerciseInfo => ({
+    id: e.id, name: e.name, nameZh: e.name_zh_tw, muscleGroup: e.muscle_group,
+    primaryMuscles: e.primary_muscles ?? [], secondaryMuscles: e.secondary_muscles ?? [], logType: logTypeOf(e.log_type),
+})
+
+/** The library (no custom exercises), which a goal may name before the user logs it ("a first pull-up") */
+async function fetchLibrary(supabase: SupabaseClient): Promise<ExerciseInfo[]> {
+    const { data, error } = await supabase.from('exercises').select(EXERCISE_COLUMNS).not('is_custom', 'is', true).order('name')
+    if (error) throw new Error(`Failed to fetch the exercise library: ${error.message}`)
+    return ((data ?? []) as ExerciseRow[]).map(toExercise)
 }
 
 /** The exercises the user logged or planned, plus the library's staples a low muscle's advice may suggest. */
 async function fetchExercises(supabase: SupabaseClient, ids: string[]): Promise<ExerciseInfo[]> {
-    const columns = 'id, name, name_zh_tw, muscle_group, primary_muscles, secondary_muscles, log_type'
+    const columns = EXERCISE_COLUMNS
     const [used, staples] = await Promise.all([
         ids.length ? supabase.from('exercises').select(columns).in('id', ids) : { data: [], error: null },
         supabase.from('exercises').select(columns).in('name', SUGGESTED_NAMES).not('is_custom', 'is', true),
@@ -126,10 +147,7 @@ async function fetchExercises(supabase: SupabaseClient, ids: string[]): Promise<
     if (used.error) throw new Error(`Failed to fetch exercises: ${used.error.message}`)
     if (staples.error) throw new Error(`Failed to fetch suggested exercises: ${staples.error.message}`)
     const rows = [...(used.data ?? []), ...(staples.data ?? []).filter((e) => !ids.includes(e.id))]
-    return rows.map((e) => ({
-        id: e.id, name: e.name, nameZh: e.name_zh_tw, muscleGroup: e.muscle_group,
-        primaryMuscles: e.primary_muscles ?? [], secondaryMuscles: e.secondary_muscles ?? [], logType: logTypeOf(e.log_type),
-    }))
+    return (rows as ExerciseRow[]).map(toExercise)
 }
 
 /** The cycle's routine for each day of the period, or null without a cycle. */
@@ -172,18 +190,19 @@ export async function fetchSchedule(supabase: SupabaseClient, userId: string, pe
 async function fetchWeighIns(
     supabase: SupabaseClient, userId: string, utcFrom: string, utcTo: string,
     localDate: (iso: string) => string, from: string, to: string
-): Promise<ReportInputs['weighIns']> {
+): Promise<{ weighIns: ReportInputs['weighIns']; bodyFat: NonNullable<ReportInputs['bodyFat']> }> {
     const { data, error } = await supabase
         .from('body_metrics')
-        .select('recorded_at, weight_kg')
+        .select('recorded_at, weight_kg, body_fat_pct')
         .eq('user_id', userId)
-        .not('weight_kg', 'is', null)
         .gte('recorded_at', utcFrom)
         .lt('recorded_at', utcTo)
     if (error) throw new Error(`Failed to fetch body metrics: ${error.message}`)
-    return (data ?? [])
-        .map((m) => ({ date: localDate(m.recorded_at), weightKg: Number(m.weight_kg) }))
-        .filter((m) => m.date >= from && m.date <= to)
+    const rows = (data ?? []).map((m) => ({ ...m, date: localDate(m.recorded_at) })).filter((m) => m.date >= from && m.date <= to)
+    return {
+        weighIns: rows.filter((m) => m.weight_kg != null).map((m) => ({ date: m.date, weightKg: Number(m.weight_kg) })),
+        bodyFat: rows.filter((m) => m.body_fat_pct != null).map((m) => ({ date: m.date, pct: Number(m.body_fat_pct) })),
+    }
 }
 
 /** The first exercise of each routine that isn't cardio: a routine may open with a warm-up on the bike. */
@@ -213,8 +232,8 @@ async function fetchDayNotes(supabase: SupabaseClient, userId: string, periodSta
     return (data ?? []).map((n) => ({ date: n.note_date, note: n.note }))
 }
 
-/** The previous report's findings, if it was a version 3 report. */
-async function fetchPreviousFindings(supabase: SupabaseClient, userId: string, periodStart: string): Promise<Finding[] | null> {
+/** The previous report's findings, if it was a version 3 report, and the goal it read. */
+async function fetchPrevious(supabase: SupabaseClient, userId: string, periodStart: string): Promise<{ findings: Finding[] | null; goal: GoalRead | null }> {
     const { data, error } = await supabase
         .from('period_reports')
         .select('recommendation')
@@ -225,6 +244,6 @@ async function fetchPreviousFindings(supabase: SupabaseClient, userId: string, p
         .limit(1)
         .maybeSingle()
     if (error) throw new Error(`Failed to fetch the previous report: ${error.message}`)
-    const previous = data?.recommendation as { version?: number; findings?: Finding[] } | null
-    return previous?.version === 3 ? previous.findings ?? [] : null
+    const previous = data?.recommendation as { version?: number; findings?: Finding[]; facts?: { goal?: { read?: GoalRead | null } } } | null
+    return previous?.version === 3 ? { findings: previous.findings ?? [], goal: previous.facts?.goal?.read ?? null } : { findings: null, goal: null }
 }

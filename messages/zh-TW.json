@@ -597,6 +597,46 @@
                 "text": "主要動作進步的比退步的多是「進步中」，反過來是「退步中」，一樣多是「持平」。"
             }
         },
-        "insufficient": "這一期記錄的組數不到 10 組，所以沒有產生報告。"
+        "insufficient": "這一期記錄的組數不到 10 組，所以沒有產生報告。",
+        "goal": {
+            "title": "目標",
+            "estimated": "估計 1RM",
+            "none": "設定目標後，週報會顯示你離目標多遠。",
+            "notRead": "這次沒讀到目標，下一份報告會再讀",
+            "setGoal": "設定目標",
+            "edit": "改目標",
+            "more": "還有 {n} 個目標，在完整報告",
+            "via": "{name} · 看{proxy}",
+            "assistedVia": "{name} · 看輔助",
+            "assist": "輔助 {kg}",
+            "reps": "{n} / {target} 下",
+            "repsTarget": "{n} 下",
+            "noLog": "還沒有紀錄",
+            "notTrained": "這{unit, select, week {週} other {輪}}沒練",
+            "change": "{n} {unit, select, week {週} other {輪}} {change}",
+            "perWeek": "每週 {rate}%",
+            "bodyWeight": "體重",
+            "bodyFat": "體脂",
+            "focusHead": "重點部位",
+            "focusSets": "每週 {n} 組",
+            "nothingRead": "沒有讀到具體目標",
+            "kinds": {
+                "strength": "力量",
+                "muscle": "增肌",
+                "fat_loss": "減脂",
+                "physique": "體態",
+                "health": "健康",
+                "endurance": "耐力"
+            },
+            "detailTitle": "目標怎麼算",
+            "read": "讀到的目標：{targets}。",
+            "unread": "沒讀懂：「{text}」，可以換個寫法。",
+            "methodE1rm": "重量是估計 1RM：取 10 下以內最好的一組，用 Epley 公式換算。",
+            "methodTrend": "有 3 {unit, select, week {週} other {輪}}的紀錄才顯示變化，一兩次的起伏不算。",
+            "methodPullUp": "{name}還沒有紀錄，先看{proxy}：研究裡滑輪下拉的 1RM 大約是引體 1RM 的 75–80%，所以拉到體重的 80%（{kg}）時，大概就接近第一下。這是推算。",
+            "methodAssisted": "看輔助引體：拉起的重量是體重減掉輔助，輔助減到 0 就做到了。",
+            "methodWeight": "體重看每{unit, select, week {週} other {輪}}的平均。減重時，研究建議每週 0.5–1%。",
+            "methodFocus": "體態的重點部位，看每週的組數。"
+        }
     }
 }

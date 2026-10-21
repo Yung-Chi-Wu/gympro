@@ -98,6 +98,8 @@ jobs:
         run: node lambda/ai-worker/evals/worker/check-worker.mjs
       - name: The daily Ronnie review reads each ended day once and emails no quotes (offline)
         run: node lambda/ai-worker/evals/worker/check-audit.mjs
+      - name: The report reads the goal once per text and measures how far it is (offline)
+        run: node lambda/ai-worker/evals/worker/check-goal.mjs
       - name: Bundle
         run: npm run build
         working-directory: lambda/ai-worker

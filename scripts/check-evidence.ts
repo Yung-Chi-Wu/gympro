@@ -5,7 +5,7 @@
 
 import en from '../messages/en.json'
 import zh from '../messages/zh-TW.json'
-import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES } from '../lib/report/evidence'
+import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, GOAL_EVIDENCE } from '../lib/report/evidence'
 
 const DOI = /^10\.\d{4,9}\/\S+$/
 
@@ -36,7 +36,10 @@ async function main() {
             else dois.add(s.doi)
         }
     }
-    const cardio = Object.entries(CARDIO_EVIDENCE).map(([k, sources]) => [`cardio ${k}`, sources] as const)
+    const cardio = [
+        ...Object.entries(CARDIO_EVIDENCE).map(([k, sources]) => [`cardio ${k}`, sources] as const),
+        ...Object.entries(GOAL_EVIDENCE).map(([k, sources]) => [`goal ${k}`, sources] as const),
+    ]
     for (const [entry, sources] of cardio) if (!sources.length) problems.push(`${entry}: no source`)
     for (const [entry, sources] of [...Object.entries(GLOSSARY_SOURCES), ...cardio]) {
         for (const s of sources ?? []) {
