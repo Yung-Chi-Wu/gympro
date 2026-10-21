@@ -149,7 +149,9 @@ function codeWrote(findings: Finding[], zh: boolean): string | null {
 /**
  * What the headline can't claim when a main lift didn't go up. Told only "consistent with the
  * status", it called 4 up and 1 flat progress across the board, and a goal lift flat for 5 weeks on
- * track for the goal, once code wrote that lift's advice and no stall rule named it (v14).
+ * track for the goal, once code wrote that lift's advice and no stall rule named it (v14). Told
+ * only not to say on track, it still tied the stuck lift to the goal ("to keep the goal on track",
+ * "back to 100 kg" for a bench that never reached it, v15), so the goal stays out of the headline.
  */
 function headlineLimitsOf(facts: ReportFacts, findings: Finding[], zh: boolean): string {
     const goalIds = new Set(findings.filter((f) => f.rule === 'goal_path').flatMap((f) => [f.subject, f.data.viaId]))
@@ -159,7 +161,7 @@ function headlineLimitsOf(facts: ReportFacts, findings: Finding[], zh: boolean):
     const how = (l: LiftFacts) => (l.trend === 'down' ? 'down' : `flat for ${l.flatWindows} ${facts.period.days === 7 ? 'weeks' : 'cycles'}`)
     return [
         notUp.length ? ` Not every main lift went up, so it doesn't say every, all or across the board${zh ? ' (全面)' : ''}.` : '',
-        goalNotUp.length ? ` The goal rests on ${goalNotUp.map((l) => `${nameOf(l, zh)} (${how(l)})`).join(' and ')}, so it doesn't say the goal is on track or close; it may say what comes next for ${goalNotUp.length === 1 ? 'that lift' : 'those lifts'}.` : '',
+        goalNotUp.length ? ` The goal rests on ${goalNotUp.map((l) => `${nameOf(l, zh)} (${how(l)})`).join(' and ')}, so the headline leaves the goal out: it may say what comes next for ${goalNotUp.length === 1 ? 'that lift' : 'those lifts'}, not that this keeps the goal on track, nears it, or builds toward or back to the goal's number.` : '',
     ].join('')
 }
 

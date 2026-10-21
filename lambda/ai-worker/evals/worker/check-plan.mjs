@@ -140,7 +140,7 @@ const braces = (items) => items.flatMap((i) => [i.action, ...(i.lines ?? []).fla
     const headlineOf = (id) => briefOf(id).find((l) => l.startsWith('1. headline'))
     check('every lift up: nothing the headline can\'t claim', !/Not every|goal rests/.test(headlineOf('all-progress-en')), headlineOf('all-progress-en'))
     check('one lift flat: not across the board, in Chinese too', /Not every main lift went up, so it doesn't say every, all or across the board \(全面\)\./.test(headlineOf('lb-user-zh')) && !/goal rests/.test(headlineOf('lb-user-zh')), headlineOf('lb-user-zh'))
-    check('a goal lift flat for 5 weeks: the goal isn\'t on track', headlineOf('goal-bench-stalled-en').includes('The goal rests on Barbell Bench Press (flat for 5 weeks), so it doesn\'t say the goal is on track or close'), headlineOf('goal-bench-stalled-en'))
+    check('a goal lift flat for 5 weeks: the goal isn\'t on track', headlineOf('goal-bench-stalled-en').includes('The goal rests on Barbell Bench Press (flat for 5 weeks), so the headline leaves the goal out: it may say what comes next for that lift, not that'), headlineOf('goal-bench-stalled-en'))
     check('the lift a pull-up goal is trained through counts too', headlineOf('assisted-stalled-en').includes('The goal rests on Assisted Pull-up (flat for 3 weeks)'), headlineOf('assisted-stalled-en'))
     check('goal lifts flat for one week: no limit on the goal', !/goal rests/.test(headlineOf('goal-strength-owner-zh')), headlineOf('goal-strength-owner-zh'))
     const code = briefOf('goal-bench-stalled-en').find((l) => l.startsWith('Code writes'))
