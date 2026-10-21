@@ -39,8 +39,12 @@ const advice = (unit: WeightUnit, period: string): Record<ModelRule, string> => 
 
 /** The deload's advice when code lists each lift's numbers for the lighter week under it (plan.ts deloadOf) */
 const DELOAD_LINES_ADVICE = 'Plan one lighter week, then back to the usual plan the week after. Code lists each main lift\'s numbers for it under this action (about 10% lighter, half the sets), so name no lift, weight or set count. If a note, or tired in the data (the user\'s own words this period), mentions sleep, stress or tiredness, suggest looking after it; don\'t claim it is the cause.'
-/** Added to missed_sessions when the user did under 3 in 4 of the planned sessions (rules.ts ADHERENCE_MIN) */
-const shrinkAdvice = (period: string) => `shrink is 1: under 3 in 4 planned sessions were done, this ${period} and the last, so instead of making the missed ones up, suggest planning the number of sessions in suggest each ${period}, a plan they can keep, with each routine's first lifts first; add nothing on top.`
+/**
+ * missed_sessions' advice in place of its own when the user did under 3 in 4 of the planned sessions
+ * two periods running (rules.ts ADHERENCE_MIN). Added after the usual advice, which says making the
+ * sessions up brings the low muscles back, the model wrote both: plan 2 a week, and make them up (v17).
+ */
+const shrinkAdvice = (period: string) => `Name the missed sessions. Under 3 in 4 planned sessions were done, this ${period} and the last, so don't suggest making them up or doing them as planned: suggest planning the number of sessions in suggest each ${period}, a plan they can keep, with each routine's first lifts first, and add nothing on top. Don't say this brings any muscle back into range. Never scold; if a note explains it, acknowledge that.`
 
 /** Added to a lift rule's advice when one of its lifts is assisted, where less assist is the progress */
 const ASSISTED_ADVICE: Partial<Record<RuleId, string>> = {
@@ -189,7 +193,9 @@ export function buildPrompt(input: NarrativeInput): string {
     // perWeek is the same number as sets, and two names for one number read as two numbers.
     // A low muscle's options go in as phrases (optionsOf), not as their fields.
     const hidden = new Set(['previousValue', ...OPTION_FIELDS, ...(facts.period.days === 7 ? ['perWeek'] : [])])
-    const hiddenFor = (f: Finding) => (f.rule === 'cardio_first' ? new Set([...hidden, ...CARDIO_FIRST_FIELDS]) : hidden)
+    // A plan that shrinks doesn't bring the muscles its missed sessions left low back, so the model isn't told which
+    const hiddenFor = (f: Finding) => (f.rule === 'cardio_first' ? new Set([...hidden, ...CARDIO_FIRST_FIELDS])
+        : f.rule === 'missed_sessions' && f.data.shrink ? new Set([...hidden, 'lowGroups']) : hidden)
     // Muscles by name, in the user's language like exercise names
     const muscleName = (g: string) => unitLabel(g, language, (x) => x)
     // Spelled out so "4 more sets" can't be read as "4 sets in all"; a missing option is left out
@@ -277,8 +283,9 @@ export function buildPrompt(input: NarrativeInput): string {
     lines.push(modelFindings.length
         ? `Rules that fired, most important first; each has one or more items:\n${rulesOf(findings).map((r) => {
             const fs = findings.filter((f) => f.rule === r)
-            const own = r === 'deload' && lighterWeek.length ? DELOAD_LINES_ADVICE : ADVICE[r]
-            const extra = [fs.some((f) => f.data.assisted) && ASSISTED_ADVICE[r], r === 'missed_sessions' && fs.some((f) => f.data.shrink) && shrinkAdvice(unit)].filter(Boolean)
+            const own = r === 'deload' && lighterWeek.length ? DELOAD_LINES_ADVICE
+                : r === 'missed_sessions' && fs.some((f) => f.data.shrink) ? shrinkAdvice(unit) : ADVICE[r]
+            const extra = [fs.some((f) => f.data.assisted) && ASSISTED_ADVICE[r]].filter(Boolean)
             const advice = [own, ...extra].join(' ')
             return `- ${r} (priority ${Math.max(...fs.map((f) => f.priority))}). Advice: ${advice}\n${fs.map((f) => `    - ${itemName(f) ? `${itemName(f)}: ` : ''}data ${JSON.stringify(dataFor(f))}`).join('\n')}`
         }).join('\n')}`
@@ -337,6 +344,11 @@ export function textProblems(n: ReportNarrative, input: NarrativeInput): string[
         const noteMax = zh ? LOW_VOLUME_NOTE_MAX.zh : LOW_VOLUME_NOTE_MAX.en
         if (noteLength > noteMax) problems.push(`the low_volume text is ${noteLength} ${zh ? 'characters' : 'words'}; keep it to one sentence of at most ${noteMax}, only for a note: code lists the muscles and their options`)
     }
+    // A lighter week's lifts and numbers are code's lines under the deload: the action names none (v17: it listed five)
+    const deload = (n.items.find((i) => i.rule === 'deload')?.action ?? '').toLowerCase()
+    const lighter = input.findings.filter((f) => f.rule === 'next_session' && f.data.how === 'deload')
+    const listed = lighter.map((f) => String((zh && f.data.nameZh) || f.data.name)).filter((name) => deload.includes(name.toLowerCase()))
+    if (listed.length) problems.push(`the deload action names ${listed.join(', ')}; code lists each lift and its numbers under it, so name none`)
     // Every other item named in its rule's action
     for (const f of input.findings) {
         if (f.rule === 'low_volume' || CODE_RULES.has(f.rule)) continue

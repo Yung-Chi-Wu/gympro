@@ -186,6 +186,9 @@ const braces = (items) => items.flatMap((i) => [i.action, ...(i.lines ?? []).fla
     const brief = w.buildPrompt({ ...a, note: null, language: 'zh-TW', weightUnit: 'kg' })
     check('the brief tells the model code writes the numbers, and what they are', /- deload \(priority 100\)\. Advice: Plan one lighter week[^\n]*name no lift, weight or set count/.test(brief) && /under deload, a line for each main lift's lighter week: [^\n]*深蹲 85 kg x 6, 2 sets \(usually 92\.5 kg, 4 sets\)/.test(brief), brief.split('\n').filter((l) => /deload/.test(l)).join('\n'))
     check('and what the user said', brief.includes('"tired":"最近工作壓力很大，睡不到 5 小時"'), brief.split('\n').find((l) => l.includes('    - data')))
+    const naming = w.textProblems({ headline: '先減量。', items: [{ rule: 'deload', action: '槓鈴臥推和深蹲都練輕一點，下下週再回到原本的計畫。' }] }, { ...a, note: null, dayNotes: [], language: 'zh-TW', weightUnit: 'kg' })
+    const plain = w.textProblems({ headline: '先減量。', items: [{ rule: 'deload', action: '下週練輕一點，下下週再回到原本的計畫。' }] }, { ...a, note: null, dayNotes: [], language: 'zh-TW', weightUnit: 'kg' })
+    check('a deload action that lists the lifts is sent back; one that names none passes', naming.some((p) => p.includes('names 槓鈴臥推, 深蹲')) && !plain.length, JSON.stringify({ naming, plain }))
     // A lift that hurt this period is held, not in the lighter week
     const pain = { date: '2026-09-29', source: 'ronnie', kind: 'pain', joint: 'elbow', exerciseId: 'ex-bench', name: 'Barbell Bench Press', nameZh: '槓鈴臥推', text: '臥推手肘痛' }
     const inputs = inputsFor(scenario('tired-squat-drop-zh'))
@@ -211,7 +214,9 @@ const braces = (items) => items.flatMap((i) => [i.action, ...(i.lines ?? []).fla
     const after = w.withPlan([...fired, shrink], a.facts, inputsFor(scenario('goal-strength-owner-zh'))).find((f) => f.id === 'goal_path:ex-squat')
     check('a squat trained once gets a second day, but not when the plan shrinks', String(before?.data.options).includes('second_day') && !String(after?.data.options).includes('second_day') && String(after?.data.options).includes('heavy'), `${before?.data.options} -> ${after?.data.options}`)
     const brief = w.buildPrompt({ ...report('missed-half-shrink-en'), note: null, language: 'en', weightUnit: 'kg' })
-    check('the brief says to plan the sessions they fit in', brief.includes('shrink is 1: under 3 in 4 planned sessions were done, this week and the last, so instead of making the missed ones up, suggest planning the number of sessions in suggest each week'), brief.split('\n').find((l) => l.startsWith('- missed_sessions (priority')))
+    const advice = brief.split('\n').find((l) => l.startsWith('- missed_sessions (priority'))
+    check('the brief says to plan the sessions they fit in, in place of making them up', advice?.includes("so don't suggest making them up or doing them as planned: suggest planning the number of sessions in suggest each week") && !advice.includes('Making them up is what brings'), advice)
+    check('and gives no low muscles to bring back', !/"lowGroups"/.test(brief.split('\n').find((l) => l.includes('    - data')) ?? ''), brief.split('\n').find((l) => l.includes('    - data')))
     check('and nothing is added on top: no sets for the low muscles', !report('missed-half-shrink-en').findings.some((f) => f.rule === 'low_volume'))
     const missed = (over) => report('missed-half-shrink-en', over).findings.find((f) => f.rule === 'missed_sessions')
     check('one short period is no reason to shrink the plan', !missed({ previousFindings: null }).data.shrink && report('missed-half-shrink-en', { previousFindings: null }).findings.some((f) => f.rule === 'low_volume'))
