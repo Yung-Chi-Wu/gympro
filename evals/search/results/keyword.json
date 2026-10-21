@@ -1,10 +1,10 @@
 {
   "variant": "keyword",
   "summary": {
-    "n": 46,
-    "hit1": 0.6521739130434783,
-    "hit5": 0.6956521739130435,
-    "mrr": 0.6821256038647343
+    "n": 51,
+    "hit1": 0.6862745098039216,
+    "hit5": 0.7450980392156863,
+    "mrr": 0.720666044195456
   },
   "results": [
     {
@@ -19,8 +19,8 @@
         "Lat Pulldown / 滑輪下拉",
         "Close Grip Lat Pulldown / 窄握滑輪下拉",
         "Reverse Grip Lat Pulldown / 反握滑輪下拉",
-        "Straight-Arm Pulldown / 直臂下拉",
-        "Assisted Pull-up / 輔助引體向上"
+        "Single-Arm Lat Pulldown / 單臂滑輪下拉",
+        "Straight-Arm Pulldown / 直臂下拉"
       ]
     },
     {
@@ -35,6 +35,7 @@
         "Lat Pulldown / 滑輪下拉",
         "Close Grip Lat Pulldown / 窄握滑輪下拉",
         "Reverse Grip Lat Pulldown / 反握滑輪下拉",
+        "Single-Arm Lat Pulldown / 單臂滑輪下拉",
         "Straight-Arm Pulldown / 直臂下拉"
       ]
     },
@@ -196,7 +197,7 @@
         "Incline Dumbbell Curl / 上斜啞鈴彎舉",
         "Dumbbell Bench Press / 啞鈴臥推",
         "Incline Barbell Bench Press / 上斜槓鈴臥推",
-        "Dumbbell Shoulder Press / 啞鈴肩推"
+        "Incline Machine Chest Press / 上斜器械推胸"
       ]
     },
     {
@@ -226,15 +227,16 @@
         "Front Squat",
         "Goblet Squat",
         "Bodyweight Squat",
-        "Smith Machine Squat"
+        "Smith Machine Squat",
+        "Belt Squat"
       ],
       "rank": 1,
       "top": [
         "Barbell Back Squat / 槓鈴深蹲",
+        "Belt Squat / 腰帶深蹲",
         "Bodyweight Squat / 徒手深蹲",
         "Hack Squat / 哈克深蹲",
-        "Sissy Squat / 西西深蹲",
-        "Goblet Squat / 高腳杯深蹲"
+        "Sissy Squat / 西西深蹲"
       ]
     },
     {
@@ -265,8 +267,8 @@
         "Bulgarian Split Squat / 保加利亞分腿蹲",
         "Romanian Split Squat / 羅馬尼亞分腿蹲",
         "Barbell Back Squat / 槓鈴深蹲",
-        "Bodyweight Squat / 徒手深蹲",
-        "Front Squat / 前蹲舉"
+        "Belt Squat / 腰帶深蹲",
+        "Bodyweight Squat / 徒手深蹲"
       ]
     },
     {
@@ -389,10 +391,10 @@
       "rank": 1,
       "top": [
         "Pec Deck Fly / 蝴蝶機夾胸",
+        "Assisted Dip / 輔助雙槓撐體",
         "Barbell Bench Press / 槓鈴臥推",
         "Cable Fly / 繩索夾胸",
-        "Chest Dip Machine / 胸部雙槓機",
-        "Decline Barbell Bench Press / 下斜槓鈴臥推"
+        "Chest Dip Machine / 胸部雙槓機"
       ]
     },
     {
@@ -498,9 +500,9 @@
       "top": [
         "Goblet Squat / 高腳杯深蹲",
         "Barbell Back Squat / 槓鈴深蹲",
+        "Belt Squat / 腰帶深蹲",
         "Bodyweight Squat / 徒手深蹲",
-        "Hack Squat / 哈克深蹲",
-        "Sissy Squat / 西西深蹲"
+        "Hack Squat / 哈克深蹲"
       ]
     },
     {
@@ -511,15 +513,16 @@
         "Overhead Press",
         "Dumbbell Shoulder Press",
         "Machine Shoulder Press",
-        "Arnold Press"
+        "Arnold Press",
+        "Smith Machine Shoulder Press"
       ],
       "rank": 1,
       "top": [
         "Dumbbell Shoulder Press / 啞鈴肩推",
         "Machine Shoulder Press / 器械肩推",
         "Overhead Press / 槓鈴肩推",
-        "Arnold Press / 阿諾德推舉",
-        "Barbell Front Raise / 槓鈴前平舉"
+        "Smith Machine Shoulder Press / 史密斯機肩推",
+        "Arnold Press / 阿諾德推舉"
       ]
     },
     {
@@ -557,15 +560,16 @@
       "relevant": [
         "Incline Dumbbell Bench Press",
         "Incline Barbell Bench Press",
-        "Low Cable Fly"
+        "Low Cable Fly",
+        "Incline Machine Chest Press"
       ],
-      "rank": 10,
+      "rank": 0,
       "top": [
+        "Assisted Dip / 輔助雙槓撐體",
         "Barbell Bench Press / 槓鈴臥推",
         "Cable Fly / 繩索夾胸",
         "Chest Dip Machine / 胸部雙槓機",
-        "Decline Barbell Bench Press / 下斜槓鈴臥推",
-        "Dip / 雙槓撐體"
+        "Decline Barbell Bench Press / 下斜槓鈴臥推"
       ]
     },
     {
@@ -575,15 +579,16 @@
       "relevant": [
         "Incline Dumbbell Bench Press",
         "Incline Barbell Bench Press",
-        "Low Cable Fly"
+        "Low Cable Fly",
+        "Incline Machine Chest Press"
       ],
-      "rank": 0,
+      "rank": 2,
       "top": [
         "Chest Dip Machine / 胸部雙槓機",
+        "Incline Machine Chest Press / 上斜器械推胸",
         "Machine Chest Press / 器械推胸",
         "Chest Supported Row / 俯臥支撐划船",
-        "Barbell Bench Press / 槓鈴臥推",
-        "Cable Fly / 繩索夾胸"
+        "Assisted Dip / 輔助雙槓撐體"
       ]
     },
     {
@@ -658,7 +663,7 @@
         "Box Jump",
         "Nordic Hamstring Curl"
       ],
-      "rank": 6,
+      "rank": 7,
       "top": [
         "Deadlift / 硬舉",
         "Glute Ham Raise / 臀腿抬升（GHR）",
@@ -734,6 +739,87 @@
         "Donkey Kick / 驢踢腿",
         "Dumbbell Hip Thrust / 啞鈴臀推",
         "Frog Pump / 青蛙臀橋"
+      ]
+    },
+    {
+      "id": "exact-single-arm-machine-row-zh",
+      "kind": "exact",
+      "query": "單臂器械划船",
+      "relevant": [
+        "Single-Arm Machine Row"
+      ],
+      "rank": 1,
+      "top": [
+        "Single-Arm Machine Row / 單臂器械划船",
+        "Machine Row / 器械划船",
+        "Single-Arm Cable Row / 單臂繩索划船",
+        "Single-Arm Dumbbell Row / 單臂啞鈴划船",
+        "Barbell Row / 槓鈴划船"
+      ]
+    },
+    {
+      "id": "ronnie-single-arm-machine-row",
+      "kind": "cross-language",
+      "query": "單臂器械划船 single arm machine row",
+      "relevant": [
+        "Single-Arm Machine Row"
+      ],
+      "rank": 1,
+      "top": [
+        "Single-Arm Machine Row / 單臂器械划船",
+        "Machine Row / 器械划船",
+        "Single-Arm Cable Row / 單臂繩索划船",
+        "Single-Arm Dumbbell Row / 單臂啞鈴划船",
+        "Single-Arm Lat Pulldown / 單臂滑輪下拉"
+      ]
+    },
+    {
+      "id": "partial-single-arm-row-zh",
+      "kind": "partial",
+      "query": "單臂划船",
+      "relevant": [
+        "Single-Arm Dumbbell Row",
+        "Single-Arm Machine Row",
+        "Single-Arm Cable Row"
+      ],
+      "rank": 1,
+      "top": [
+        "Single-Arm Cable Row / 單臂繩索划船",
+        "Single-Arm Dumbbell Row / 單臂啞鈴划船",
+        "Single-Arm Machine Row / 單臂器械划船",
+        "Barbell Row / 槓鈴划船",
+        "Inverted Row / 反向划船"
+      ]
+    },
+    {
+      "id": "exact-belt-squat-en",
+      "kind": "exact",
+      "query": "belt squat",
+      "relevant": [
+        "Belt Squat"
+      ],
+      "rank": 1,
+      "top": [
+        "Belt Squat / 腰帶深蹲",
+        "Romanian Split Squat / 羅馬尼亞分腿蹲",
+        "Barbell Back Squat / 槓鈴深蹲",
+        "Bodyweight Squat / 徒手深蹲",
+        "Bulgarian Split Squat / 保加利亞分腿蹲"
+      ]
+    },
+    {
+      "id": "alias-assisted-dip-zh",
+      "kind": "alias",
+      "query": "輔助撐體",
+      "relevant": [
+        "Assisted Dip"
+      ],
+      "rank": 1,
+      "top": [
+        "Assisted Dip / 輔助雙槓撐體",
+        "Dip / 雙槓撐體",
+        "Assisted Pull-up / 輔助引體向上",
+        "Triceps Dip / 三頭雙槓撐體"
       ]
     }
   ]

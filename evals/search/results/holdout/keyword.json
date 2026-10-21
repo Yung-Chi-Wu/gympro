@@ -2,9 +2,9 @@
   "variant": "keyword",
   "summary": {
     "n": 20,
-    "hit1": 0.4,
+    "hit1": 0.45,
     "hit5": 0.75,
-    "mrr": 0.5391666666666667
+    "mrr": 0.585
   },
   "results": [
     {
@@ -128,15 +128,16 @@
         "Decline Barbell Bench Press",
         "Dip",
         "Chest Dip Machine",
-        "High Cable Fly"
+        "High Cable Fly",
+        "Assisted Dip"
       ],
-      "rank": 3,
+      "rank": 1,
       "top": [
+        "Assisted Dip / 輔助雙槓撐體",
         "Barbell Bench Press / 槓鈴臥推",
         "Cable Fly / 繩索夾胸",
         "Chest Dip Machine / 胸部雙槓機",
-        "Decline Barbell Bench Press / 下斜槓鈴臥推",
-        "Dip / 雙槓撐體"
+        "Decline Barbell Bench Press / 下斜槓鈴臥推"
       ]
     },
     {
@@ -193,15 +194,16 @@
         "Hack Squat",
         "Pendulum Squat",
         "Good Morning",
-        "Romanian Deadlift"
+        "Romanian Deadlift",
+        "Belt Squat"
       ],
-      "rank": 4,
+      "rank": 2,
       "top": [
         "Barbell Back Squat / 槓鈴深蹲",
+        "Belt Squat / 腰帶深蹲",
         "Bodyweight Squat / 徒手深蹲",
         "Goblet Squat / 高腳杯深蹲",
-        "Hack Squat / 哈克深蹲",
-        "Pendulum Squat / 鐘擺深蹲機"
+        "Hack Squat / 哈克深蹲"
       ]
     },
     {
@@ -248,9 +250,9 @@
       "top": [
         "Incline Barbell Bench Press / 上斜槓鈴臥推",
         "Incline Dumbbell Bench Press / 上斜啞鈴臥推",
+        "Incline Machine Chest Press / 上斜器械推胸",
         "Incline Dumbbell Curl / 上斜啞鈴彎舉",
-        "Barbell Bench Press / 槓鈴臥推",
-        "Decline Barbell Bench Press / 下斜槓鈴臥推"
+        "Barbell Bench Press / 槓鈴臥推"
       ]
     },
     {
@@ -301,8 +303,8 @@
         "Romanian Split Squat / 羅馬尼亞分腿蹲",
         "Bulgarian Split Squat / 保加利亞分腿蹲",
         "Barbell Back Squat / 槓鈴深蹲",
-        "Bodyweight Squat / 徒手深蹲",
-        "Front Squat / 前蹲舉"
+        "Belt Squat / 腰帶深蹲",
+        "Bodyweight Squat / 徒手深蹲"
       ]
     },
     {
@@ -346,8 +348,8 @@
         "Cable Curl / 繩索彎舉",
         "Cable Rope Curl / 繩索錘式彎舉",
         "Seated Cable Row / 坐姿繩索划船",
-        "Wide Grip Cable Row / 寬握繩索划船",
-        "Cable Fly / 繩索夾胸"
+        "Single-Arm Cable Row / 單臂繩索划船",
+        "Wide Grip Cable Row / 寬握繩索划船"
       ]
     },
     {
@@ -360,11 +362,11 @@
       ],
       "rank": 0,
       "top": [
+        "Assisted Dip / 輔助雙槓撐體",
         "Barbell Bench Press / 槓鈴臥推",
         "Cable Fly / 繩索夾胸",
         "Chest Dip Machine / 胸部雙槓機",
-        "Decline Barbell Bench Press / 下斜槓鈴臥推",
-        "Dip / 雙槓撐體"
+        "Decline Barbell Bench Press / 下斜槓鈴臥推"
       ]
     }
   ]
