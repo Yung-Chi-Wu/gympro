@@ -74,6 +74,14 @@ for (const r of rows) {
                 return `  [回覆檢查] 初稿說 ${c.claimed.join('、')} 已經做過；${c.fixed ? '重寫後改正了' : '加了更正'}\n    初稿：${short(c.draft)}`
             }
             if (m.role === 'memory') return `  [記憶] ${short(m.content)}`
+            if (m.role === 'knowledge') {
+                const k = JSON.parse(m.content)
+                const overclaims = [...(k.check?.first.overclaims ?? []), ...(k.check?.after?.overclaims ?? [])]
+                return [
+                    `  [出處] ${k.sources.map((s) => `[${s.n}] ${s.citation}`).join('；') || '沒有'}${k.unsourced ? '；標示一般建議' : ''}`,
+                    ...(k.check ? [`    檢查：${k.check.first.error ? `沒跑成（${k.check.first.error}）` : `general ${k.check.first.general}`}${k.check.retried ? '，退回重寫' : ''}${overclaims.length ? `，超出筆記：${overclaims.map((o) => short(o.text)).join('／')}` : ''}`] : []),
+                ].join('\n')
+            }
             const { input, result } = JSON.parse(m.content)
             return `  [工具 ${m.name}] ${JSON.stringify(input)}\n    → ${short(String(result).replace(/\n/g, ' ⏎ '))}`
         })

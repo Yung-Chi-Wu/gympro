@@ -234,6 +234,11 @@ export async function runRonnieTurn({
         // papers listed under it by code; a key no note had this turn is dropped
         const cited = withSources(proposed ? '' : stripMarkdown(textOf(content)), executor.knowledge)
         if (cited.unknown.length) knowledgeCheck = { ...(knowledgeCheck ?? { first: { overclaims: [], general: false }, retried: false, usage: [] }), unknownKeys: cited.unknown }
+        // A turn that searched the notes and cites none answers as general coaching, so it is labelled
+        // whatever the check says: given replies that called themselves "my own coaching advice", the
+        // check left all 6 such runs unlabelled (eval v30)
+        const searched = toolCalls.some((c) => c.name === 'search_knowledge')
+        const general = unsourced || (searched && !cited.sources.length && !!cited.text.trim())
         const answer = proposed ? codeLines : cited.text || codeLines
         // A note saved or forgotten is said in the code's words, first, as something done: the model
         // claimed to have remembered things it never saved (the memory baseline, 5 of 42 runs)
@@ -256,7 +261,7 @@ export async function runRonnieTurn({
             servedModel,
             ...(replyCheck ? { replyCheck } : {}),
             ...(cited.sources.length && !proposed ? { sources: cited.sources } : {}),
-            ...(unsourced && !proposed ? { unsourced: true } : {}),
+            ...(general && !proposed ? { unsourced: true } : {}),
             ...(knowledgeCheck ? { knowledgeCheck } : {}),
         }
     }

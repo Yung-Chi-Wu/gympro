@@ -567,6 +567,29 @@ function note(kind, subject, state, text, updatedAt = '2026-10-01T02:00:00.000Z'
     check(RESEARCH_WORDS.test('有研究說') && RESEARCH_WORDS.test('a 2023 meta-analysis') && !RESEARCH_WORDS.test('今天練腿'), 'research words are spotted in both languages')
 }
 
+// A turn that searched and cites nothing is labelled even when the check says it has no general
+// advice: the check passed "this is my own coaching advice, not research" unlabelled (eval v30)
+{
+    const { data } = createFixtureData()
+    const client = scripted([
+        toolUse(['search_knowledge', { query: 'lifting belt' }]),
+        reply('Our notes don\'t cover belts, so this is my own coaching advice: a belt can help on heavy squats.'),
+        { stop_reason: 'tool_use', model: KNOWLEDGE_CHECK_MODEL, usage, content: [{ type: 'tool_use', id: 'c', name: 'report_check', input: { overclaims: [], general: false } }] },
+    ])
+    const t = await turn(client, data, { language: 'en', messages: [{ role: 'user', content: 'Should I wear a lifting belt?' }], executor: executorFor(data, 'en') })
+    check(t.unsourced === true && !t.sources && !t.knowledgeCheck.first.general, `a searched turn with no citation is labelled whatever the check says: ${t.unsourced}`)
+    const failed = scripted([
+        toolUse(['search_knowledge', { query: '肌酸' }]),
+        reply('肌酸每天吃就好，不用特別挑時間。'),
+        () => { throw new Error('overloaded') },
+    ])
+    const f = await turn(failed, data, { messages: [{ role: 'user', content: '肌酸什麼時候吃' }] })
+    check(f.unsourced === true && /overloaded/.test(f.knowledgeCheck?.first.error ?? ''), `and when the check fails: ${f.unsourced}`)
+    const nothing = scripted([toolUse(['search_knowledge', { query: 'zzzz' }]), reply('舉重鞋不是必備，平底硬鞋也可以。')])
+    const n = await turn(nothing, data, { messages: [{ role: 'user', content: '要穿舉重鞋嗎' }] })
+    check(nothing.calls.length === 2 && n.unsourced === true && !n.knowledgeCheck, `and when the search found no note, with no check call: ${n.unsourced}`)
+}
+
 // A key the model made up, with no search this turn, is dropped and reported
 {
     const { data } = createFixtureData()

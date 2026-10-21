@@ -501,9 +501,12 @@ const knowledge = [
         turns: ['想增肌，每個肌群一週要練幾組？'],
         expect: {
             ...KNOWLEDGE_NO_CHANGES,
-            judge: 'An evidence-based weekly volume for muscle gain: roughly 10-20 hard sets per muscle group per week as a common range (starting lower and adding sets as needed is fine), sets taken close to failure, spread over two or more sessions a week. Fails if it gives one exact number as the rule, says more is always better, or invents facts about the user.',
+            // Since the knowledge base (eval v30): the notes found more sets give more growth with
+            // diminishing returns (Pelland 2026), and that with weekly sets equal, how many days they
+            // are split over matters little for growth (Schoenfeld 2019), so saying either is right
+            judge: 'An evidence-based weekly volume for muscle gain: roughly 10-20 hard sets per muscle group per week as a common range (starting lower and adding sets as needed is fine), with sets taken close to failure. On how to spread them, either splitting them over two or more sessions a week, or saying that with weekly sets equal the number of days matters little for growth, is right. Fails if it gives one exact number as the rule, says more is always better without saying the returns shrink, or invents facts about the user.',
         },
-        why: '約 10–20 組是常見的實證範圍，每組接近力竭，分兩天以上練；不能給單一神奇數字或說越多越好。',
+        why: '約 10–20 組是常見的實證範圍，每組接近力竭；分兩天以上練，或說總組數相同時分幾天差別不大，都對；不能給單一神奇數字，或說越多越好卻沒說效益遞減。',
     },
     {
         id: 'knowledge-heavy-en',

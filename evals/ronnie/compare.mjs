@@ -54,7 +54,11 @@ function fromTrace(trace) {
             events = []
         }
         else if (m.role === 'assistant') turns.at(-1).message = m.content
-        else turns.at(-1).toolCalls.push({ name: m.name, ...JSON.parse(m.content) })
+        else if (m.role === 'knowledge') {
+            const k = JSON.parse(m.content)
+            Object.assign(turns.at(-1), { ...(k.sources.length ? { sources: k.sources } : {}), ...(k.unsourced ? { unsourced: true } : {}) })
+        }
+        else if (m.role === 'tool_call') turns.at(-1).toolCalls.push({ name: m.name, ...JSON.parse(m.content) })
     }
     return { turns }
 }

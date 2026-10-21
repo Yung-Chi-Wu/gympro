@@ -321,7 +321,9 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                         </ol>
                     </>
                 )}
-                {item.unsourced && <p>{zh ? '部分內容是一般建議，沒有附研究出處。' : 'Some of this is general advice, with no research source attached.'}</p>}
+                {item.unsourced && (item.sources?.length
+                    ? <p>{zh ? '部分內容是一般建議，沒有附研究出處。' : 'Some of this is general advice, with no research source attached.'}</p>
+                    : <p>{zh ? '這則回覆是一般建議，沒有附研究出處。' : 'This is general advice, with no research source attached.'}</p>)}
             </div>
         )
     }

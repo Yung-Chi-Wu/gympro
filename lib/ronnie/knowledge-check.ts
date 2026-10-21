@@ -11,7 +11,8 @@ import type { CitedNote } from './executor'
 //   general     general fitness knowledge in the reply that no note supports. The owner chose to
 //               have Ronnie answer it anyway, with a line under the reply saying it has no research
 //               source (2026-10-21), so it is labelled, not removed.
-// A check that fails or times out passes the reply as it is, unlabelled; the trace records it.
+// A check that fails or times out passes the reply as it is, unlabelled; the trace records it. A
+// reply that searched the notes and cites none is labelled by code either way (agent.ts).
 
 export const KNOWLEDGE_CHECK_MODEL = 'claude-haiku-4-5-20251001'
 const TIMEOUT_MS = 12_000

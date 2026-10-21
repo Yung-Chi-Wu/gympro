@@ -50,6 +50,12 @@ function rebuild(trace, c) {
             memories = JSON.parse(m.content)
             turns.at(-1).memoryChanged = true
         }
+        else if (m.role === 'reply_check') turns.at(-1).replyCheck = JSON.parse(m.content)
+        // The sources and the label as the chat showed them, and the check's verdicts
+        else if (m.role === 'knowledge') {
+            const k = JSON.parse(m.content)
+            Object.assign(turns.at(-1), { ...(k.sources.length ? { sources: k.sources } : {}), ...(k.unsourced ? { unsourced: true } : {}), ...(k.check ? { knowledgeCheck: k.check } : {}) })
+        }
         else {
             const { input, result } = JSON.parse(m.content)
             turns.at(-1).toolCalls.push({ name: m.name, input, result })
@@ -74,8 +80,15 @@ let changed = 0
 const out = []
 for (const r of rows) {
     const c = cases.get(r.prompt_id)
-    const conv = rebuild(JSON.parse(readFileSync(join(vdir, 'traces', `${r.prompt_id}_rep${r.rep}.json`), 'utf8')), c)
+    const trace = JSON.parse(readFileSync(join(vdir, 'traces', `${r.prompt_id}_rep${r.rep}.json`), 'utf8'))
+    const conv = rebuild(trace, c)
     const { grade, explanation } = programmaticGrade(c, conv, EXERCISES)
+    // A trace without the sources (before v31, or a reply with none to show) keeps the grade the run gave
+    if (!trace.some((m) => m.role === 'knowledge')) {
+        grade.sourced = r.grade.sourced ?? null
+        if (r.explanation?.sourced) explanation.sourced = r.explanation.sourced
+        else delete explanation.sourced
+    }
     grade.judge_ok = r.grade.judge_ok
     if (r.explanation?.judge_ok) explanation.judge_ok = r.explanation.judge_ok
     if (rejudge.has(r.prompt_id)) {

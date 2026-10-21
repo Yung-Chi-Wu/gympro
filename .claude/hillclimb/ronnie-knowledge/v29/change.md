@@ -1,0 +1,5 @@
+Baseline without the knowledge base, for #78: RONNIE_KNOWLEDGE=off (no search_knowledge tool, principle 1 as it was before), code 7be6b89, claude-sonnet-5-5, 3 reps on the 29 knowledge cases: the 8 from before and 21 added with the knowledge base.
+Results: pass 21/87, judge 63/87 (the 8 earlier cases 21/24, the 21 new 42/63), sourced 0/63 (no tool to cite with), right_tools 30/87 (the new cases expect a search). Mean 6.2 s, 1.6 API calls.
+- The 21 new rubrics were written from the notes, so a baseline that names no paper fails some of them for leaving out a finding rather than for being wrong (creatine-hair, keto, steps, running-knees, deep-squat). Those scores overstate the gap.
+- It was wrong where the notes correct a common answer: protein-meal said growth from one meal tops out at 20-40 g (Trommelen 2023 found 100 g gave a larger, longer response than 25 g), women-bulky said women gain muscle more slowly (relative gains are similar), and false-premise gave "twice a week" as the rule with nothing on weekly volume.
+- It cited "my coaching experience" as evidence in creatine, period and running-knees.
