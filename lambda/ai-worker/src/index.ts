@@ -3,6 +3,8 @@ import { getSupabaseClient, isRunnable, parseRequest, saveFailedStatus, saveInsu
 import { analyze } from './report/analyze'
 import { fetchReportInputs } from './report/fetch'
 import { generateNarrative, NARRATIVE_MODEL } from './report/narrative'
+import { GOAL_READER_MODEL, readGoal } from './report/goal'
+import { getClaudeClient } from './claude'
 import { errorText, recordTrace, usageOfError } from '../../../lib/ai/trace'
 import { periodDays } from '../../../lib/periods'
 import type { ReportV3 } from './report/types'
@@ -46,7 +48,21 @@ async function processMessage(record: SQSRecord, deadline: number): Promise<void
   }
 
   try {
-    const { inputs, language, weightUnit, distanceUnit } = await fetchReportInputs(supabase, userId, periodStart, periodEnd)
+    const { inputs, language, weightUnit, distanceUnit, library, previousGoal } = await fetchReportInputs(supabase, userId, periodStart, periodEnd)
+
+    // The goal, read once per text (report/goal.ts); a goal that can't be read leaves the report without it
+    const goalStarted = Date.now()
+    const logged = new Set(inputs.sets.map((s) => s.exerciseId))
+    const { read: goalRead, call: goalCall } = await readGoal(await getClaudeClient(), inputs.goal, {
+      previous: previousGoal, own: inputs.exercises.filter((e) => logged.has(e.id)), library, weightUnit, deadline,
+    })
+    inputs.goalRead = goalRead
+    if (goalCall) {
+      await recordTrace(supabase, {
+        userId, feature: 'report', model: GOAL_READER_MODEL, servedModel: goalCall.model, status: goalCall.error ? 'error' : 'ok', error: goalCall.error,
+        latencyMs: Date.now() - goalStarted, usage: [goalCall.usage], input: { goal: inputs.goal, prompt: goalCall.prompt }, output: goalCall.error ? undefined : { read: goalRead },
+      })
+    }
 
     // Code decides every number and which rules fire; the model writes the headline and advice
     const analysis = analyze(inputs)

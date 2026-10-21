@@ -597,6 +597,46 @@
                 "text": "More main lifts up than down is progressing; the reverse is slipping; equal is holding steady."
             }
         },
-        "insufficient": "Fewer than 10 sets were logged this period, so there's no report for it."
+        "insufficient": "Fewer than 10 sets were logged this period, so there's no report for it.",
+        "goal": {
+            "title": "Goal",
+            "estimated": "estimated 1RM",
+            "none": "Set a goal and the report shows how far you are from it.",
+            "notRead": "Your goal couldn't be read this time; the next report tries again",
+            "setGoal": "Set a goal",
+            "edit": "Edit goal",
+            "more": "{n} more in the full report",
+            "via": "{name} · via {proxy}",
+            "assistedVia": "{name} · via assisted",
+            "assist": "{kg} assist",
+            "reps": "{n} / {target} reps",
+            "repsTarget": "{n, plural, one {# rep} other {# reps}}",
+            "noLog": "Not logged yet",
+            "notTrained": "Not trained this {unit, select, week {week} other {cycle}}",
+            "change": "{change} in {n} {unit, select, week {wk} other {cycles}}",
+            "perWeek": "{rate}% a week",
+            "bodyWeight": "Body weight",
+            "bodyFat": "Body fat",
+            "focusHead": "Focus",
+            "focusSets": "{n} sets a week",
+            "nothingRead": "no specific target",
+            "kinds": {
+                "strength": "strength",
+                "muscle": "muscle gain",
+                "fat_loss": "fat loss",
+                "physique": "physique",
+                "health": "health",
+                "endurance": "endurance"
+            },
+            "detailTitle": "How the goal is tracked",
+            "read": "Goal as read: {targets}.",
+            "unread": "Not understood: \"{text}\". Try wording it another way.",
+            "methodE1rm": "Weights are an estimated 1RM: the best set of 10 reps or fewer, by the Epley formula.",
+            "methodTrend": "A change shows after 3 {unit, select, week {weeks} other {cycles}} of logs; one or two sessions are noise.",
+            "methodPullUp": "No {name} logged yet, so it follows the {proxy}: in a study, a lat pulldown 1RM was about 75-80% of a pull-up 1RM, so pulling 80% of your body weight ({kg}) likely puts a first one close. This is an estimate.",
+            "methodAssisted": "Assisted pull-ups: you lift your body weight minus the assist; at no assist, you've done it.",
+            "methodWeight": "Body weight is each {unit, select, week {week} other {cycle}}'s average. When losing weight, studies suggest 0.5-1% a week.",
+            "methodFocus": "Focus areas are tracked by their weekly sets."
+        }
     }
 }

@@ -121,6 +121,28 @@ export const CARDIO_EVIDENCE: { research: Source[]; who: Source[] } = {
     ],
 }
 
+/**
+ * The research behind the goal section (reportV3.goal), which measures how far a goal is and
+ * gives no advice. Resolved through LibKey on 2026-10-20.
+ */
+export const GOAL_EVIDENCE: { e1rm: Source[]; pullUp: Source[]; bodyWeight: Source[] } = {
+    e1rm: [
+        // A 1RM is predicted best from a heavy set of a few reps; the linear equations shouldn't be used past 10
+        { author: 'Reynolds', year: 2006, title: 'Prediction of One Repetition Maximum Strength From Multiple Repetition Maximum Testing and Anthropometry', journal: 'Journal of Strength and Conditioning Research', doi: '10.1519/R-15304.1' },
+    ],
+    pullUp: [
+        // College men: lat-pull 1RM 0.93 x body mass against a pull-up 1RM (body plus added load) of 1.16 x; r = 0.78.
+        // The lat pull was about 75-80% of the pull-up. Where a first pull-up falls is GymPro's reading of that ratio, not a result of the study.
+        { author: 'Johnson', year: 2009, title: 'Relationship of Lat-Pull Repetitions and Pull-Ups to Maximal Lat-Pull and Pull-Up Strength in Men and Women', journal: 'Journal of Strength and Conditioning Research', doi: '10.1519/JSC.0b013e3181a2d7f5' },
+    ],
+    bodyWeight: [
+        // Elite athletes: losing about 0.7% of body weight a week kept and gained lean mass; 1.4% a week didn't
+        { author: 'Garthe', year: 2011, title: 'Effect of Two Different Weight-Loss Rates on Body Composition and Strength and Power-Related Performance in Elite Athletes', journal: 'International Journal of Sport Nutrition and Exercise Metabolism', doi: '10.1123/ijsnem.21.2.97' },
+        // A review's range: 0.5-1% of body weight a week
+        { author: 'Helms', year: 2014, title: 'Evidence-based recommendations for natural bodybuilding contest preparation: nutrition and supplementation', journal: 'Journal of the International Society of Sports Nutrition', doi: '10.1186/1550-2783-11-20' },
+    ],
+}
+
 /** The research behind a glossary entry: counting a secondary muscle's set as half fit the studies best of the methods compared */
 export const GLOSSARY_SOURCES: Partial<Record<string, Source[]>> = {
     weeklySets: [PELLAND],

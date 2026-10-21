@@ -7,8 +7,8 @@ import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { unitLabel } from '@/lib/report/volume'
 import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
 import { toDisplayDistance, type DistanceUnit } from '@/lib/distance-unit'
-import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, MIN_EFFECTIVE_WEEKLY_SETS, type Source } from '@/lib/report/evidence'
-import type { BestSet, CardioFacts, DayFacts, Finding, FollowUp, LiftFacts, ReportV3 } from '@/lib/report/types'
+import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, GOAL_EVIDENCE, MIN_EFFECTIVE_WEEKLY_SETS, type Source } from '@/lib/report/evidence'
+import type { BestSet, CardioFacts, DayFacts, Finding, FollowUp, LiftFacts, ReportFacts, ReportV3 } from '@/lib/report/types'
 import { BodyMap } from './BodyMap'
 import { Sparkline } from './Sparkline'
 
@@ -141,6 +141,8 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                 <p className="text-[15px] leading-relaxed">{narrative.headline}</p>
             </div>
 
+            <GoalSection goal={facts.goal} unit={unit} zh={zh} weightUnit={weightUnit} summary={summary} muscle={muscle} />
+
             {/* Four numbers, each against last period */}
             <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-ink/10 max-md:rounded-none max-md:border-x-0 max-md:[&>div:nth-child(2n+1)]:pl-0 dark:border-white/10 [&>div:nth-child(2n)]:border-l [&>div:nth-child(n+3)]:border-t [&>div]:border-ink/10 dark:[&>div]:border-white/10">
                 <Kpi label={t('kpi.sessions')} value={facts.sessions.planned != null ? <>{facts.sessions.done}<small className="text-base font-medium text-ink/40 dark:text-white/40"> / {facts.sessions.planned}</small></> : facts.sessions.done}
@@ -213,6 +215,14 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                 )}
             </section>
 
+            {/* No goal: one small line last, so a user who only logs isn't asked for one first thing every week */}
+            {facts.goal.read === null && (
+                <p className="text-[13px] text-ink/50 dark:text-white/50">
+                    {t('goal.none')}{' '}
+                    <Link href="/settings" className="font-semibold text-ink underline underline-offset-2 dark:text-white">{t('goal.setGoal')}</Link>
+                </p>
+            )}
+
             {/* A right arrow: it goes somewhere else, it doesn't open here */}
             {summary && fullHref && (
                 <Link href={fullHref}
@@ -225,6 +235,11 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                 <div className="space-y-2">
                     <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('accordionHint')}</p>
                     <div className="divide-y divide-ink/10 rounded-xl border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
+                        {facts.goal.read?.model && (
+                            <Row {...row('goal')} title={t('goal.detailTitle')} take={null}>
+                                <GoalDetail goal={facts.goal} unit={unit} zh={zh} weightUnit={weightUnit} muscle={muscle} />
+                            </Row>
+                        )}
                         <Row {...row('muscles')} title={t('section.muscles')} take={lowGroups.length ? t('section.musclesLow', { groups: lowGroups.map(muscle).join(zh ? '、' : ', ') }) : t('section.musclesOk')} tone={lowGroups.length ? 'warn' : 'good'}>
                             <BodyMap muscles={facts.muscles} frontLabel={t('front')} backLabel={t('back')} />
                             <Legend items={[['bg-emerald-500/80', t('legend.ok')], ['bg-amber-500/85', t('legend.low')], ['bg-sky-500/80', t('legend.high')], ['bg-ink/25 dark:bg-white/25', t('legend.none')]]} />
@@ -296,6 +311,150 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                     </div>
                 </div>
             )}
+        </div>
+    )
+}
+
+type GoalSectionProps = {
+    goal: ReportFacts['goal']
+    unit: 'week' | 'cycle'
+    zh: boolean
+    weightUnit: WeightUnit
+    muscle: (g: string) => string
+}
+
+/** Shared by the goal rows and their detail: names, weights in the goal's own unit */
+function useGoalText({ goal, zh, weightUnit, muscle }: GoalSectionProps) {
+    const t = useTranslations('reportV3.goal')
+    const read = goal.read ?? null
+    // One unit for the goal: the one it wrote its numbers in, else the user's
+    const u: WeightUnit = read?.targets.find((x) => x.unit)?.unit ?? weightUnit
+    const num = (kg: number) => String(toDisplayWeight(kg, u))
+    const name = (x: { name?: string; nameZh?: string | null }) => String((zh && x.nameZh) || x.name || '')
+    const sep = zh ? '、' : ', '
+    const focusLabel = (units: string[] | undefined) => (units ?? []).map(muscle).join(sep)
+    return { t, read, u, num, name, sep, focusLabel }
+}
+
+/**
+ * The goal, first in the report: one row per target, its value against the target and, where
+ * a number has one, a bar (report.facts.goal). Two lines a row and at most three rows, as fitness
+ * apps put goals at a glance (2026-10-20); how each is measured, the sources and the goal as read
+ * are in the full report's closed "How the goal is tracked" row (GoalDetail). Reports saved before
+ * goals were read show nothing here.
+ */
+function GoalSection(props: GoalSectionProps & { summary: boolean }) {
+    const { goal, unit, summary } = props
+    const { t, read, u, num, name, focusLabel } = useGoalText(props)
+    // Without a goal, the line asking for one is under the advice
+    if (!read) return null
+    if (!read.model) {
+        return (
+            <p className="text-sm text-ink/60 max-md:text-[15px] dark:text-white/60">
+                <b className="font-bold text-ink dark:text-white">{t('title')}</b>{' · '}{t('notRead')}
+            </p>
+        )
+    }
+
+    const rows = (goal.progress ?? []).map((p) => {
+        const tg = p.target
+        const key = `${tg.kind}:${tg.exerciseId ?? tg.text}`
+        const change = p.change != null ? t('change', { n: p.changeWindows ?? 0, unit, change: `${p.change > 0 ? '+' : ''}${num(p.change)} ${u}` }) : null
+        if (tg.kind === 'lift' && tg.loadKg == null && tg.reps != null) {
+            if (p.bestReps != null) return { key, label: name(tg), value: t('reps', { n: p.bestReps, target: tg.reps }), bar: Math.min(1, p.bestReps / tg.reps), delta: null }
+            if (p.assisted) return { key, label: t('assistedVia', { name: name(tg) }), value: t('assist', { kg: `${num(p.assisted.assistKg)} ${u}` }), bar: p.assisted.bodyWeightShare, delta: null }
+            if (p.proxy) {
+                return {
+                    key, label: t('via', { name: name(tg), proxy: name(p.proxy) }),
+                    // The checkpoint is an estimate, shown whole
+                    value: p.proxy.checkpointKg ? `${num(p.proxy.e1rmKg)} / ${Math.round(toDisplayWeight(p.proxy.checkpointKg, u))} ${u}` : `${num(p.proxy.e1rmKg)} ${u}`,
+                    bar: p.proxy.checkpointKg ? Math.min(1, p.proxy.e1rmKg / p.proxy.checkpointKg) : null, delta: null,
+                }
+            }
+            return { key, label: name(tg), value: t('noLog'), bar: null, delta: null }
+        }
+        if (tg.kind === 'lift') {
+            const now = p.e1rmKg != null ? num(p.e1rmKg) : '—'
+            return {
+                key, label: name(tg),
+                value: tg.loadKg != null ? `${now} / ${num(tg.loadKg)}${tg.reps && tg.reps > 1 ? ` × ${tg.reps}` : ''} ${u}` : `${now} ${u}`,
+                bar: p.share ?? null, delta: p.days === 0 ? t('notTrained', { unit }) : change,
+            }
+        }
+        if (tg.kind === 'body_weight') {
+            return { key, label: t('bodyWeight'), value: `${p.latestKg != null ? num(p.latestKg) : '—'} → ${num(tg.weightKg ?? 0)} ${u}`, bar: null, delta: p.ratePerWeek != null ? t('perWeek', { rate: `${p.ratePerWeek > 0 ? '+' : ''}${p.ratePerWeek}` }) : null }
+        }
+        if (tg.kind === 'body_fat') {
+            return { key, label: t('bodyFat'), value: `${p.latestPct != null ? `${p.latestPct}%` : '—'} → ${tg.bodyFatPct}%`, bar: null, delta: p.change != null ? t('change', { n: p.changeWindows ?? 0, unit, change: `${p.change > 0 ? '+' : ''}${p.change}%` }) : null }
+        }
+        const one = p.muscles?.length === 1
+        return { key, label: one ? focusLabel(tg.units) : t('focusHead'), value: one ? t('focusSets', { n: p.muscles![0].perWeek }) : (p.muscles ?? []).map((m) => `${props.muscle(m.group)} ${m.perWeek}`).join(' · '), bar: null, delta: null }
+    })
+    const shown = summary ? rows.slice(0, 3) : rows
+    const hasEstimate = (goal.progress ?? []).some((p) => p.target.kind === 'lift')
+
+    return (
+        <section className="space-y-2">
+            <SectionTitle title={t('title')} count={hasEstimate ? t('estimated') : null} />
+            {shown.length === 0 && <p className="text-sm text-ink/60 max-md:text-[15px] dark:text-white/60">{read.kinds.length ? read.kinds.map((k) => t(`kinds.${k}`)).join(' · ') : t('nothingRead')}</p>}
+            <ul className="space-y-2.5">
+                {shown.map((r) => (
+                    <li key={r.key} className="space-y-1">
+                        <div className="flex items-baseline justify-between gap-3 text-sm max-md:text-[15px]">
+                            <span className="min-w-0 truncate font-semibold">{r.label}</span>
+                            {/* Numbers in the mono face; a value in words stays in the text face */}
+                            <span className={`whitespace-nowrap tabular-nums ${/[一-鿿]/.test(r.value) ? '' : 'font-mono text-[13px] max-md:text-sm'}`}>{r.value}</span>
+                        </div>
+                        {(r.bar != null || r.delta) && (
+                            <div className="flex items-center gap-3">
+                                {r.bar != null ? (
+                                    <div className="h-1 flex-1 overflow-hidden rounded-full bg-ink/10 dark:bg-white/10" role="presentation">
+                                        <div className="h-full rounded-full bg-emerald-600 dark:bg-emerald-400" style={{ width: `${Math.round(Math.min(1, r.bar) * 100)}%` }} />
+                                    </div>
+                                ) : <div className="flex-1" />}
+                                {r.delta && <span className="whitespace-nowrap text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{r.delta}</span>}
+                            </div>
+                        )}
+                    </li>
+                ))}
+            </ul>
+            {rows.length > shown.length && <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('more', { n: rows.length - shown.length })}</p>}
+        </section>
+    )
+}
+
+/** The goal's closed row in the full report: the goal as read, how each kind of target is measured, the sources, and where to change it */
+function GoalDetail(props: GoalSectionProps) {
+    const { goal, unit } = props
+    const { t, read, u, num, name, sep, focusLabel } = useGoalText(props)
+    if (!read?.model) return null
+    const progress = goal.progress ?? []
+    const readText = [
+        ...read.kinds.map((k) => t(`kinds.${k}`)),
+        ...read.targets.map((tg) => tg.kind === 'lift'
+            ? `${name(tg)}${tg.loadKg != null ? ` ${num(tg.loadKg)} ${u}${tg.reps && tg.reps > 1 ? ` × ${tg.reps}` : ''}` : tg.reps ? ` ${t('repsTarget', { n: tg.reps })}` : ''}`
+            : tg.kind === 'body_weight' ? `${t('bodyWeight')} ${num(tg.weightKg ?? 0)} ${u}`
+            : tg.kind === 'body_fat' ? `${t('bodyFat')} ${tg.bodyFatPct}%`
+            : focusLabel(tg.units)),
+    ].join(sep)
+    const proxy = progress.find((p) => p.proxy?.checkpointKg)
+    const items: [string, Source[] | null][] = [
+        ...(progress.some((p) => p.target.kind === 'lift' && (p.e1rmKg != null || p.proxy)) ? [[t('methodE1rm'), GOAL_EVIDENCE.e1rm] as [string, Source[]]] : []),
+        ...(progress.some((p) => p.series) ? [[t('methodTrend', { unit }), null] as [string, null]] : []),
+        ...(proxy ? [[t('methodPullUp', { name: name(proxy.target), proxy: name(proxy.proxy!), kg: `${num(proxy.proxy!.checkpointKg!)} ${u}` }), GOAL_EVIDENCE.pullUp] as [string, Source[]]] : []),
+        ...(progress.some((p) => p.assisted) ? [[t('methodAssisted'), null] as [string, null]] : []),
+        ...(progress.some((p) => p.target.kind === 'body_weight') ? [[t('methodWeight', { unit }), GOAL_EVIDENCE.bodyWeight] as [string, Source[]]] : []),
+        ...(progress.some((p) => p.target.kind === 'focus') ? [[t('methodFocus'), null] as [string, null]] : []),
+    ]
+    return (
+        <div className="space-y-2 text-[13px] text-ink/70 dark:text-white/70">
+            <p>
+                {t('read', { targets: readText || t('nothingRead') })}{read.unread && <> {t('unread', { text: read.unread })}</>}{' '}
+                <Link href="/settings" className="font-semibold text-ink underline underline-offset-2 dark:text-white">{t('edit')}</Link>
+            </p>
+            <ul className="list-disc space-y-1 pl-4">
+                {items.map(([text, sources]) => <li key={text}>{text}{sources && <Sources sources={sources} />}</li>)}
+            </ul>
         </div>
     )
 }

@@ -64,6 +64,10 @@ export interface ReportInputs {
     previousFindings: Finding[] | null
     /** The user's notes on single days of the period (at most one a day), oldest first */
     notes: { date: string; note: string }[]
+    /** The goal as read (goal.ts), or null without a goal; absent where the goal isn't read (older evals) */
+    goalRead?: GoalRead | null
+    /** The goal's body-fat target needs weigh-ins with a body fat */
+    bodyFat?: { date: string; pct: number }[]
 }
 
 export interface BestSet {
@@ -206,9 +210,88 @@ export interface ReportFacts {
     }
     status: ReportStatus
     liftsSummary: { up: number; flat: number; down: number }
-    goal: { text: string | null; direction: 'gain' | 'lose' | null }
+    goal: {
+        text: string | null
+        direction: 'gain' | 'lose' | null
+        /** The goal as read (goal.ts); absent in reports saved before goals were read, null without a goal */
+        read?: GoalRead | null
+        /** How far each target is, from the logged sets and weigh-ins */
+        progress?: GoalProgress[]
+    }
     /** Absent in reports saved before cardio was read */
     cardio?: CardioFacts
+}
+
+// ---------- The goal ----------
+
+/** What a goal is about; one goal can be several ("bench 70 kg and lose some fat") */
+export type GoalKind = 'strength' | 'muscle' | 'fat_loss' | 'physique' | 'health' | 'endurance'
+
+/** One thing the goal names, in the units the report computes in (kg) */
+export interface GoalTarget {
+    kind: 'lift' | 'body_weight' | 'body_fat' | 'focus'
+    /** The goal's own words for it, as written */
+    text: string
+    /** lift: the exercise, from the user's or the library's */
+    exerciseId?: string
+    name?: string
+    nameZh?: string | null
+    /** lift: the load to reach, an estimated one-rep max; absent for a reps goal */
+    loadKg?: number
+    /** lift: the reps to reach; without a load, at body weight (a first pull-up is 1) */
+    reps?: number
+    /** body_weight */
+    weightKg?: number
+    /** body_fat: percent */
+    bodyFatPct?: number
+    /** lift, body_weight: the unit the goal wrote its number in (or the user's), which the report shows it in */
+    unit?: 'kg' | 'lb'
+    /** focus: the volume units a physique goal names (wider shoulders: side delts) */
+    units?: string[]
+}
+
+export interface GoalRead {
+    /** The text read: the next report reuses this read while the text is the same */
+    text: string
+    kinds: GoalKind[]
+    targets: GoalTarget[]
+    /** The part no target came from, as written; null when every part was read */
+    unread: string | null
+    /** The model that read it; null when it couldn't be read, and the next report tries again */
+    model: string | null
+}
+
+export interface GoalProgress {
+    target: GoalTarget
+    /** lift with a load: the estimated one-rep max now, from sets of 10 reps or fewer */
+    e1rmKg?: number | null
+    /** e1rmKg against loadKg; weightKg's progress has no share (it can go either way) */
+    share?: number | null
+    /** One value per window, oldest first: the estimated 1RM (lift) or the average weigh-in (body_weight) */
+    series?: (number | null)[]
+    /** Change from the first window with a value to now, once at least 3 windows have one; null before */
+    change?: number | null
+    /** Windows the change spans */
+    changeWindows?: number | null
+    /** lift: days it was trained this period */
+    days?: number
+    /** lift with reps: the most reps in a set this period, at body weight */
+    bestReps?: number | null
+    /** A first pull-up the user can't do yet: the pulldown they train, against body weight */
+    proxy?: {
+        exerciseId: string; name: string; nameZh: string | null; e1rmKg: number; bodyWeightShare: number | null
+        /** The pulldown 1RM a first pull-up likely comes with (PULL_UP_PULLDOWN_SHARE of body weight); null without a weigh-in */
+        checkpointKg: number | null
+    } | null
+    /** The assisted version they train: the least assist, and how much of their weight they lift with it */
+    assisted?: { exerciseId: string; name: string; nameZh: string | null; assistKg: number; reps: number; bodyWeightShare: number | null } | null
+    /** body_weight, body_fat: the latest weigh-in */
+    latestKg?: number | null
+    latestPct?: number | null
+    /** body_weight: percent of body weight per week across the series, once 3 windows have weigh-ins */
+    ratePerWeek?: number | null
+    /** focus: weekly sets of each unit */
+    muscles?: { group: string; perWeek: number }[]
 }
 
 export type RuleId = 'deload' | 'lift_regressed' | 'lift_stalled' | 'low_volume' | 'missed_sessions' | 'weight_trend' | 'cardio_first'

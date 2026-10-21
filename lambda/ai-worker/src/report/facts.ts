@@ -2,7 +2,7 @@ import { addDays, daysBetween } from '../../../../lib/periods'
 import { hasTarget, setWeights, VOLUME_UNIT_IDS } from '../../../../lib/report/volume'
 import { isCardio } from '../../../../lib/set-log'
 import type { LogType } from '../../../../lib/exercise-attributes'
-import type { BestSet, CardioFacts, ExerciseInfo, LiftFacts, LoggedSet, MuscleFacts, RecordFacts, ReportFacts, ReportInputs, ReportStatus } from './types'
+import type { BestSet, CardioFacts, ExerciseInfo, GoalProgress, GoalTarget, LiftFacts, LoggedSet, MuscleFacts, RecordFacts, ReportFacts, ReportInputs, ReportStatus } from './types'
 
 // Every number in the report, computed from the logged sets. Pure: the same inputs
 // give the same facts, so the rules and the eval can rely on them.
@@ -153,7 +153,9 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
         .filter((e): e is ExerciseInfo => !!e && !NOT_LIFTS.has(e.muscleGroup) && STRENGTH_LOG_TYPES.has(e.logType))
         .filter((e) => liftMeasure(e, current).sets.length > 0)
     const userExercises = trainedExercises(inputs)
+    const targeted = new Set((inputs.goalRead?.targets ?? []).flatMap((t) => (t.exerciseId ? [t.exerciseId] : [])))
     const allLifts = trainedNow.map((e) => liftFacts(e, inputs.sets, windowOf, inputs.goal, userExercises))
+        .map((l) => (targeted.has(l.exerciseId) ? { ...l, goalLift: true } : l))
     // Main lifts: the goal's lifts and each routine's first exercise, then the most sets over the
     // last 4 periods (so one missed session doesn't drop a lift), then the most weight moved
     const leads = new Set(inputs.routineLeads)
@@ -192,6 +194,7 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
         : liftsSummary.up > liftsSummary.down ? 'progressing'
         : 'stalling'
 
+    const bodyWeight = bodyWeightFacts(inputs.weighIns, windowOf)
     return {
         period: { start: periodStart, end: periodEnd, days },
         sessions,
@@ -199,12 +202,125 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
         muscles,
         lifts,
         records,
-        bodyWeight: bodyWeightFacts(inputs.weighIns, windowOf),
+        bodyWeight,
         status,
         liftsSummary,
-        goal: { text: inputs.goal, direction: goalDirection },
+        goal: {
+            text: inputs.goal,
+            direction: goalDirection,
+            // Only where the goal was read: an eval or a report saved before has neither
+            ...(inputs.goalRead !== undefined ? {
+                read: inputs.goalRead,
+                progress: (inputs.goalRead?.targets ?? []).map((t) => goalProgressOf(t, inputs, windowOf, muscles, bodyWeight)),
+            } : {}),
+        },
         cardio: cardioFacts(inputs, windowOf, hasHistory),
     }
+}
+
+// ---------- How far the goal is ----------
+
+/** A goal lift's estimated one-rep max comes from sets of this many reps or fewer: past 10 the estimates drift apart (Reynolds 2006) */
+export const GOAL_MAX_REPS = 10
+/** A goal's change is shown once this many windows have a value: one or two sessions are noise */
+export const GOAL_TREND_POINTS = 3
+/**
+ * A pulldown 1RM this share of body weight likely comes with a first pull-up: in Johnson 2009 the
+ * lat pull's 1RM was about 75-80% of the pull-up's, and a first pull-up is a pull-up 1RM of about
+ * body weight. The top of that range, so the report doesn't call it close too early. GymPro's
+ * reading of the study, which the report calls an estimate.
+ */
+export const PULL_UP_PULLDOWN_SHARE = 0.8
+const PULL_UP = /pull-?up|chin-?up/i
+const PULLDOWN = /pulldown|pull-down/i
+const round2 = (n: number) => Math.round(n * 100) / 100
+
+/** A series' change from its first value to its last, once enough windows have one */
+function seriesChange(series: (number | null)[]): { change: number | null; changeWindows: number | null } {
+    const at = series.map((v, i) => (v == null ? -1 : i)).filter((i) => i >= 0)
+    if (at.length < GOAL_TREND_POINTS) return { change: null, changeWindows: null }
+    return { change: round1(series[at.at(-1)!]! - series[at[0]]!), changeWindows: at.at(-1)! - at[0] }
+}
+
+/** The best estimated 1RM in each window, oldest first, from the lift's sets of GOAL_MAX_REPS or fewer */
+function e1rmSeries(sets: LoggedSet[], exerciseId: string, windowOf: (date: string) => number): (number | null)[] {
+    const own = sets.filter((s) => s.exerciseId === exerciseId && s.weightKg > 0 && s.reps >= 1 && s.reps <= GOAL_MAX_REPS)
+    return Array.from({ length: WINDOWS }, (_, k) => {
+        const inK = own.filter((s) => windowOf(s.date) === k)
+        return inK.length ? round1(Math.max(...inK.map(e1rm))) : null
+    }).reverse()
+}
+const latestOf = (series: (number | null)[]) => [...series].reverse().find((v) => v != null) ?? null
+
+export function goalProgressOf(target: GoalTarget, inputs: ReportInputs, windowOf: (date: string) => number, muscles: MuscleFacts[], bodyWeight: ReportFacts['bodyWeight']): GoalProgress {
+    const bw = bodyWeight.latestKg
+    const share = (kg: number | null) => (kg != null && bw ? round2(kg / bw) : null)
+    if (target.kind === 'lift' && target.exerciseId) {
+        const id = target.exerciseId
+        const now = inputs.sets.filter((s) => s.exerciseId === id && windowOf(s.date) === 0)
+        const days = new Set(now.map((s) => s.date)).size
+        // A reps goal at body weight (a first pull-up, 10 pull-ups): reps, and what leads to it
+        if (target.loadKg == null && target.reps != null) {
+            const bodyweightReps = now.filter((s) => s.weightKg === 0 && s.assistKg == null).map((s) => s.reps)
+            const byId = new Map(inputs.exercises.map((e) => [e.id, e]))
+            const logged = [...new Set(inputs.sets.map((s) => s.exerciseId))].map((x) => byId.get(x)).filter((e): e is ExerciseInfo => !!e && e.id !== id)
+            const base = String(target.name ?? '').toLowerCase().replace(/s$/, '')
+            // The assisted version of the same exercise: the least assist in the latest window with any
+            const assistedEx = logged.find((e) => e.logType === 'assisted' && base && e.name.toLowerCase().includes(base))
+            let assisted: GoalProgress['assisted'] = null
+            if (assistedEx) {
+                const own = inputs.sets.filter((s) => s.exerciseId === assistedEx.id && s.assistKg != null && windowOf(s.date) >= 0)
+                const latest = own.length ? Math.min(...own.map((s) => windowOf(s.date))) : null
+                const inLatest = own.filter((s) => windowOf(s.date) === latest)
+                if (inLatest.length) {
+                    const best = inLatest.reduce((a, b) => (b.assistKg! < a.assistKg! || (b.assistKg === a.assistKg && b.reps > a.reps) ? b : a))
+                    assisted = { exerciseId: assistedEx.id, name: assistedEx.name, nameZh: assistedEx.nameZh, assistKg: best.assistKg!, reps: best.reps, bodyWeightShare: bw ? round2((bw - best.assistKg!) / bw) : null }
+                }
+            }
+            // A first pull-up: the pulldown trained most, against body weight (Johnson 2009)
+            let proxy: GoalProgress['proxy'] = null
+            if (PULL_UP.test(String(target.name))) {
+                const pulldowns = logged.filter((e) => PULLDOWN.test(e.name) && e.logType === 'weight_reps')
+                    .map((e) => ({ e, series: e1rmSeries(inputs.sets, e.id, windowOf), n: inputs.sets.filter((s) => s.exerciseId === e.id && windowOf(s.date) >= 0).length }))
+                    .filter((x) => latestOf(x.series) != null)
+                    .sort((a, b) => b.n - a.n)
+                const top = pulldowns[0]
+                if (top) {
+                    proxy = {
+                        exerciseId: top.e.id, name: top.e.name, nameZh: top.e.nameZh, e1rmKg: latestOf(top.series)!, bodyWeightShare: share(latestOf(top.series)),
+                        checkpointKg: bw ? round1(bw * PULL_UP_PULLDOWN_SHARE) : null,
+                    }
+                }
+            }
+            return { target, days, bestReps: bodyweightReps.length ? Math.max(...bodyweightReps) : null, assisted, proxy }
+        }
+        // A load goal, or a lift named with no number: its estimated 1RM, then how far the load is.
+        // A load for reps (60 kg x 10) is measured as the 1RM it takes.
+        const series = e1rmSeries(inputs.sets, id, windowOf)
+        const e1rmKg = latestOf(series)
+        const goalKg = target.loadKg ? (target.reps && target.reps > 1 ? e1rm({ weightKg: target.loadKg, reps: target.reps }) : target.loadKg) : null
+        return { target, days, e1rmKg, share: goalKg && e1rmKg != null ? round2(e1rmKg / goalKg) : null, series, ...seriesChange(series) }
+    }
+    if (target.kind === 'body_weight') {
+        const { change, changeWindows } = seriesChange(bodyWeight.series)
+        const first = bodyWeight.series.find((v) => v != null)
+        const weeks = changeWindows != null ? (changeWindows * (daysBetween(inputs.periodStart, inputs.periodEnd) + 1)) / 7 : null
+        return {
+            target, latestKg: bw, series: bodyWeight.series, change, changeWindows,
+            ratePerWeek: change != null && first && weeks ? round2((change / first) * 100 / weeks) : null,
+        }
+    }
+    if (target.kind === 'body_fat') {
+        const entries = inputs.bodyFat ?? []
+        const series = Array.from({ length: WINDOWS }, (_, k) => {
+            const inK = entries.filter((x) => windowOf(x.date) === k).map((x) => x.pct)
+            return inK.length ? round1(inK.reduce((a, b) => a + b, 0) / inK.length) : null
+        }).reverse()
+        const latest = [...entries].filter((x) => windowOf(x.date) >= 0).sort((a, b) => a.date.localeCompare(b.date)).at(-1)
+        return { target, latestPct: latest?.pct ?? null, series, ...seriesChange(series) }
+    }
+    // focus: the weekly sets of each unit the goal names
+    return { target, muscles: (target.units ?? []).map((group) => ({ group, perWeek: muscles.find((m) => m.group === group)?.perWeek ?? 0 })) }
 }
 
 /**

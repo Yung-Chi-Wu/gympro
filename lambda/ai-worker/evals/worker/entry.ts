@@ -1,4 +1,4 @@
-// What check-worker.mjs and check-audit.mjs load, bundled by each into dist/worker.cjs
+// What check-worker.mjs, check-audit.mjs and check-goal.mjs load, bundled by each into dist/worker.cjs
 export { isRunnable, parseRequest, saveReport, saveFailedStatus, saveInsufficientDataStatus } from '../../src/supabase'
 export { MAX_CYCLE_DAYS, periodDays } from '../../../../lib/periods'
 export { buildPrompt, generateNarrative, textProblems } from '../../src/report/narrative'
@@ -12,3 +12,6 @@ export { AUDIT_MODEL, AUDIT_SYSTEM, buildAuditPrompt, MAX_SUMMARY_CHARS, reviewC
 export { digestOf } from '../../src/audit/digest'
 export { KEEP_BACK_MS, LOOKBACK_DAYS, MAX_DAYS_PER_RUN, MAX_RUN_COST_USD, runAudit } from '../../src/audit/run'
 export { EVENT_PREFIX } from '../../../../lib/ronnie/events'
+export { checkedRead, exerciseKeys, GOAL_READER_MODEL, readGoal } from '../../src/report/goal'
+export { computeFacts, GOAL_MAX_REPS, GOAL_TREND_POINTS } from '../../src/report/facts'
+export { getClaudeClient } from '../../src/claude'
