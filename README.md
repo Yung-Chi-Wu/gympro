@@ -116,7 +116,9 @@ flowchart LR
 
 [`lambda/ai-worker/src/report`](lambda/ai-worker/src/report) runs these steps:
 
-1. **Goal:** Claude Haiku 4.5 reads the goal the user wrote in their own words into targets: a lift's load or reps, a body weight, a body fat, or the body parts a physique goal names. Code keeps only what checks out, such as an exercise from the library and a number in range, and converts it to kg. Each text is read once, and the report shows what was read.
+1. **Goal and messages:** Claude Haiku 4.5 reads the goal the user wrote in their own words into targets: a lift's load or reps, a body weight, a body fat, or the body parts a physique goal names. Code keeps only what checks out, such as an exercise from the library and a number in range, and converts it to kg. Each text is read once, and the report shows what was read.
+   - Haiku also reads what the user said during the period, in day notes and in their own messages to Ronnie, into a few signals: pain and where, soreness, tiredness, illness, time away. Code keeps a signal only when its words are in the text it came from.
+   - The report lists these signals, with Ronnie's memory notes, so the user sees what it went on.
 2. **Facts:** the numbers are computed in code. That covers sets per muscle, with half sets for secondary muscles, estimated 1RM trends, missed sessions, body weight, cardio minutes, and how far each goal target is.
 3. **Rules:** a rule table fires on those facts, for example deload, regression, stall, low volume, missed sessions, weight trend, and cardio before legs. For low volume, code also picks the exercises to add the sets with.
 4. **Words:** Claude Sonnet 4.6 phrases only the rules that fired. Low-volume advice is the exception: code writes it, a line per muscle with its options, and the model adds one sentence only when the user's note bears on them.
@@ -136,6 +138,7 @@ flowchart LR
 | Exercise search | 46 queries, plus 20 held out | hit@1, hit@5, MRR |
 | Weekly report | 32 scenarios | Rule checks, a grader and the judge |
 | Report goal reader | 20 goal texts, run by hand | Code checks on each read |
+| Report period reader | 16 sets of notes and messages, run by hand | Code checks on each read |
 
 **How it runs:**
 - A fixture user with fixed data stands in for the database ([`evals/ronnie/fixture.ts`](evals/ronnie/fixture.ts)). No real user data is used.
@@ -165,7 +168,7 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
 - Types, lint and the production build, for the app and the Lambda.
 - Ronnie's tools, turn loop and grader, offline.
 - **Replays of recorded conversations** ([`evals/ronnie/replays`](evals/ronnie/replays)). The recorded model output is fed through the current code, so a fixed mistake can't come back.
-- The report's rules, goal reading, grader and queue behavior, offline.
+- The report's rules, goal and message reading, grader and queue behavior, offline.
 - The daily review's grouping by local day, its flags and its email, offline.
 - Research citations resolve, by DOI.
 - Day boundaries are right in every time zone.

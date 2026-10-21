@@ -215,8 +215,13 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
             } : {}),
         },
         cardio: cardioFacts(inputs, windowOf, hasHistory),
+        // Only where the period was read: an eval or a report saved before has neither
+        ...(inputs.weekRead !== undefined ? { context: { memory: (inputs.memory ?? []).slice(-MAX_CONTEXT_NOTES), week: inputs.weekRead } } : {}),
     }
 }
+
+/** Ronnie's notes kept with a report, the latest: a user has a few, and only abuse reaches Ronnie's cap of 200 */
+const MAX_CONTEXT_NOTES = 100
 
 // ---------- How far the goal is ----------
 

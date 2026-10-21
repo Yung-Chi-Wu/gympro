@@ -100,6 +100,8 @@ jobs:
         run: node lambda/ai-worker/evals/worker/check-audit.mjs
       - name: The report reads the goal once per text and measures how far it is (offline)
         run: node lambda/ai-worker/evals/worker/check-goal.mjs
+      - name: The report keeps only what the user said, and reads only their own lines to Ronnie (offline)
+        run: node lambda/ai-worker/evals/worker/check-context.mjs
       - name: Bundle
         run: npm run build
         working-directory: lambda/ai-worker

@@ -1,9 +1,9 @@
-// What check-worker.mjs, check-audit.mjs and check-goal.mjs load, bundled by each into dist/worker.cjs
+// What check-worker.mjs, check-audit.mjs, check-goal.mjs and check-context.mjs load, bundled by each into dist/worker.cjs
 export { isRunnable, parseRequest, saveReport, saveFailedStatus, saveInsufficientDataStatus } from '../../src/supabase'
 export { MAX_CYCLE_DAYS, periodDays } from '../../../../lib/periods'
 export { buildPrompt, generateNarrative, textProblems } from '../../src/report/narrative'
 export { analyze } from '../../src/report/analyze'
-export { fetchSchedule } from '../../src/report/fetch'
+export { fetchMemory, fetchMessages, fetchSchedule } from '../../src/report/fetch'
 export { fallbackNarrative, formatLabel, messageAt, ZH_TERMS } from '../../../../lib/report/report-text'
 export { isCurrentRequest, isStalePending, shownStatus, STALE_PENDING_MS } from '../../../../lib/report/queue'
 export { deleteExpired, stoppedByUser } from '../../src/scheduler'
@@ -13,5 +13,6 @@ export { digestOf } from '../../src/audit/digest'
 export { KEEP_BACK_MS, LOOKBACK_DAYS, MAX_DAYS_PER_RUN, MAX_RUN_COST_USD, runAudit } from '../../src/audit/run'
 export { EVENT_PREFIX } from '../../../../lib/ronnie/events'
 export { checkedRead, exerciseKeys, GOAL_READER_MODEL, readGoal } from '../../src/report/goal'
+export { checkedSignals, readWeek, WEEK_READER_MODEL, weekKeys } from '../../src/report/week'
 export { computeFacts, GOAL_MAX_REPS, GOAL_TREND_POINTS } from '../../src/report/facts'
 export { getClaudeClient } from '../../src/claude'

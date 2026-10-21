@@ -637,6 +637,31 @@
             "methodAssisted": "Assisted pull-ups: you lift your body weight minus the assist; at no assist, you've done it.",
             "methodWeight": "Body weight is each {unit, select, week {week} other {cycle}}'s average. When losing weight, studies suggest 0.5-1% a week.",
             "methodFocus": "Focus areas are tracked by their weekly sets."
+        },
+        "context": {
+            "title": "What this report went on",
+            "goal": "Goal",
+            "noGoal": "No goal set",
+            "memory": "Ronnie remembers",
+            "noMemory": "Ronnie hasn't noted anything yet",
+            "resolved": "better now",
+            "week": "Said this {unit, select, week {week} other {cycle}}",
+            "weekNone": "Read {n, plural, one {# text} other {# texts}}: no pain, soreness, tiredness, illness or time away",
+            "weekEmpty": "No day notes or chats with Ronnie this {unit, select, week {week} other {cycle}}",
+            "weekFailed": "What you said this {unit, select, week {week} other {cycle}} couldn't be read this time",
+            "kinds": {
+                "pain": "Pain",
+                "sore": "Sore",
+                "tired": "Tired",
+                "sick": "Sick",
+                "away": "Away or busy"
+            },
+            "painAt": "{joint} pain",
+            "sourceNote": "day note",
+            "sourceRonnie": "told Ronnie",
+            "log": "Log",
+            "logText": "{n} {unit, select, week {weeks} other {cycles}} of sets, the plan, body weight, day notes and the last report",
+            "fix": "If a note is wrong, tell Ronnie, for example \"my knee is better\". What you said this {unit, select, week {week} other {cycle}} is used for this report only."
         }
     }
 }
