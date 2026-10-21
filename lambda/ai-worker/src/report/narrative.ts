@@ -135,13 +135,34 @@ function cardioLine(c: CardioFacts | undefined, zh: boolean, unit: string, days:
  * contradict it.
  */
 function codeWrote(findings: Finding[], zh: boolean): string | null {
-    const named = (rule: RuleId) => findings.filter((f) => f.rule === rule).map((f) => String((zh && f.data.nameZh) || f.data.name))
+    const nameIn = (f: Finding) => String((zh && f.data.nameZh) || f.data.name)
+    const named = (rule: RuleId) => findings.filter((f) => f.rule === rule).map(nameIn)
+    const restarted = findings.filter((f) => f.rule === 'goal_path' && f.data.path === 'stalled').map(nameIn)
     const parts = [
         named('pain_hold').length ? `holding ${named('pain_hold').join(', ')} this period at its weight, because the user said it hurt` : null,
-        named('goal_path').length ? `the next session for the goal's lifts (${named('goal_path').join(', ')}), with other ways to get there` : null,
+        named('goal_path').length ? `the next session for the goal's lifts (${named('goal_path').join(', ')}), with other ways to get there${restarted.length ? `; ${restarted.join(', ')} stalled, so its plan starts lighter and builds back up` : ''}` : null,
         named('next_session').length ? `the next session for ${named('next_session').join(', ')}: reach the top of the reps on every set, then add weight` : null,
     ].filter(Boolean)
     return parts.length ? `Code writes this advice in the app, with its numbers; don't write it in actions, and name it in the headline only if it matters most: ${parts.join('; ')}.` : null
+}
+
+/**
+ * What the headline can't claim when a main lift didn't go up. Told only "consistent with the
+ * status", it called 4 up and 1 flat progress across the board, and a goal lift flat for 5 weeks on
+ * track for the goal, once code wrote that lift's advice and no stall rule named it (v14). Told
+ * only not to say on track, it still tied the stuck lift to the goal ("to keep the goal on track",
+ * "back to 100 kg" for a bench that never reached it, v15), so the goal stays out of the headline.
+ */
+function headlineLimitsOf(facts: ReportFacts, findings: Finding[], zh: boolean): string {
+    const goalIds = new Set(findings.filter((f) => f.rule === 'goal_path').flatMap((f) => [f.subject, f.data.viaId]))
+    const notUp = facts.lifts.filter((l) => l.trend === 'flat' || l.trend === 'down')
+    // One flat week is ordinary; two without a new best is a goal lift not moving
+    const goalNotUp = notUp.filter((l) => (l.goalLift || goalIds.has(l.exerciseId)) && (l.trend === 'down' || l.flatWindows >= 2))
+    const how = (l: LiftFacts) => (l.trend === 'down' ? 'down' : `flat for ${l.flatWindows} ${facts.period.days === 7 ? 'weeks' : 'cycles'}`)
+    return [
+        notUp.length ? ` Not every main lift went up, so it doesn't say every, all or across the board${zh ? ' (全面)' : ''}.` : '',
+        goalNotUp.length ? ` The goal rests on ${goalNotUp.map((l) => `${nameOf(l, zh)} (${how(l)})`).join(' and ')}, so the headline leaves the goal out: it may say what comes next for ${goalNotUp.length === 1 ? 'that lift' : 'those lifts'}, not that this keeps the goal on track, nears it, or builds toward or back to the goal's number.` : '',
+    ].join('')
 }
 
 export function buildPrompt(input: NarrativeInput): string {
@@ -247,6 +268,7 @@ export function buildPrompt(input: NarrativeInput): string {
         : 'No rules fired this period.')
     const planned = codeWrote(findings, zh)
     if (planned) lines.push(planned)
+    const headlineLimits = headlineLimitsOf(facts, findings, zh)
     if (watching.length) lines.push(`Watching, below threshold (do not advise on these): ${watching.map((x) => `${x.rule}${nameIn(x.rule, x.subject, x.data) ? ` (${nameIn(x.rule, x.subject, x.data)})` : ''}`).join(', ')}.`)
 
     const lowFired = modelFindings.some((f) => f.rule === 'low_volume')
@@ -257,7 +279,7 @@ export function buildPrompt(input: NarrativeInput): string {
 
 ${lines.join('\n')}
 
-1. headline: one sentence the user reads first, the most important thing about this ${unit}, consistent with the status. It may use a number from above. ${zh ? 'At most 40 characters.' : 'At most 25 words.'}
+1. headline: one sentence the user reads first, the most important thing about this ${unit}, consistent with the status. It may use a number from above. ${zh ? 'At most 40 characters.' : 'At most 25 words.'}${headlineLimits}
 2. actions: ${modelFindings.length ? `one for each rule above. Each says exactly what to do next ${unit} about every item under its rule, naming each one as written above (every muscle, every lift), with the exercise, sets, weights or reps from the data; as short as covering every item allows. Don't repeat the reason; the app shows it. Fit every action to the user's notes: if one mentions pain or discomfort in a movement or joint, don't simply add sets or load there; suggest a pain-free alternative or a lighter range, and getting it checked if it persists.${lowFired ? ` low_volume is the exception: code writes its action and lists its muscles and options, so its text is only the note sentence its advice describes, or an empty string${zh ? ` (at most ${LOW_VOLUME_NOTE_MAX.zh} characters)` : ` (at most ${LOW_VOLUME_NOTE_MAX.en} words)`}.` : ''}` : 'leave it empty: nothing fired, so give no advice.'}
 
 Use only the numbers above; never invent data. No myths, no diagnosis, no scolding. Plain text only: no Markdown, no lists inside a field. ${languageRule}`
