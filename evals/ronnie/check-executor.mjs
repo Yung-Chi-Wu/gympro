@@ -96,5 +96,18 @@ const executorFor = (data, weightUnit = 'kg') => createRonnieExecutor({
     check(!/cardio \d+ sets/.test(summary), 'cardio is not a muscle group with sets')
 }
 
+// How a set is logged, in the search results where it isn't obvious (lib/set-log.ts logNoteOf):
+// one side's numbers for a one-side exercise, one dumbbell's weight, nothing for a barbell
+{
+    const executor = executorFor(createFixtureData().data)
+    const lineOf = async (query, name) => String(await executor.executeTool('search_exercises', { query })).split('\n').find((l) => l.includes(name)) ?? ''
+    const row = await lineOf('單臂啞鈴划船', '單臂啞鈴划船')
+    const press = await lineOf('上斜啞鈴臥推', '上斜啞鈴臥推')
+    const bench = await lineOf('槓鈴臥推', '槓鈴臥推')
+    check(row.includes('one side at a time') && !row.includes('one dumbbell'), `a one-side exercise is logged one side at a time (${row})`)
+    check(press.includes('weight logged is one dumbbell'), `a dumbbell exercise is logged by one dumbbell's weight (${press})`)
+    check(bench && !/one side|one dumbbell/.test(bench), `a barbell exercise has no note (${bench})`)
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nRonnie tools behave as expected')
 process.exit(failures ? 1 : 0)

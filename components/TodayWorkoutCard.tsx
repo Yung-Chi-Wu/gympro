@@ -11,7 +11,7 @@ import { reportClientError } from '@/lib/report-client-error'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
-import { fieldValue, fitsLogType, isValidField, isWeightField, LOG_FIELDS, logTypeOf, toSetRow, toStoredSet, unitsOfSet, withField, type FieldKey, type SetValues, type Units } from '@/lib/set-log'
+import { fieldValue, fitsLogType, isValidField, isWeightField, LOG_FIELDS, logNoteOf, logTypeOf, toSetRow, toStoredSet, unitsOfSet, withField, type FieldKey, type SetValues, type Units } from '@/lib/set-log'
 import type { ExerciseOption } from './log-types'
 import { dayIsOver, DayOverError, exerciseLogUnits, lastSessionSets, loadTodayWorkout, startTodayWorkout, type TodayExercise } from '@/lib/today-workout'
 import { cellText, compactSet, fieldLabel, SummaryLine } from './set-format'
@@ -351,6 +351,7 @@ export function TodayWorkoutCard({
                     name: language === 'zh-TW' && exercise.name_zh_tw ? exercise.name_zh_tw : exercise.name,
                     muscleGroup: exercise.muscle_group,
                     logType: logTypeOf(exercise.log_type),
+                    logNote: logNoteOf(exercise),
                     logUnit: logUnits.get(exercise.id) ?? null,
                     previous: previous.get(exercise.id) ?? [],
                     // Added just for today: the routine has no target for it
@@ -565,6 +566,14 @@ function ExerciseBlock({ exercise, isOpen, onToggle, language, units, onUnitChan
 
             {/* Folded away, not unmounted, so a set being typed waits for the exercise to open again */}
             <div className={isOpen ? 'contents' : 'hidden'}>
+                    {/* Said in words where the sets are typed: one side, or one dumbbell (lib/set-log.ts logNoteOf) */}
+                    {exercise.logNote && (
+                        <p className="-mt-1 text-[13px] text-muted">
+                            {exercise.logNote === 'per_side'
+                                ? ts('note.perSide', { what: exercise.logType === 'duration' ? 'seconds' : exercise.logType === 'bodyweight' ? 'reps' : 'weight' })
+                                : ts('note.oneDumbbell')}
+                        </p>
+                    )}
                     {/* Typed values are in the units shown, so switching units starts the row over */}
                     <SetTable
                         key={`${units.weight}-${units.distance}`}

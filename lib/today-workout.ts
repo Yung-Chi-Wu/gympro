@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from './types/database.types'
 import type { LogType } from './exercise-attributes'
 import type { WeightUnit } from './weight-unit'
-import { logTypeOf, setValuesOf, type SetValues } from './set-log'
+import { logNoteOf, logTypeOf, setValuesOf, type LogNote, type SetValues } from './set-log'
 
 // Today's workout as the dashboard shows it: the workout started today with its sets,
 // or, before there is one, today's routine as the plan. The page renders it and the
@@ -20,6 +20,8 @@ export interface TodayExercise {
     name: string
     muscleGroup: string
     logType: LogType
+    /** What its sets hold when that isn't obvious: one side's numbers, or one dumbbell's weight */
+    logNote: LogNote | null
     /** The kg/lb this exercise is logged in, as the user last chose it; null for the reading unit (user_profiles.weight_unit) */
     logUnit: WeightUnit | null
     plannedRowId: string | null
@@ -35,13 +37,13 @@ export interface Target {
     reps: number | null
 }
 
-type ExerciseInfo = { name: string; name_zh_tw: string | null; muscle_group: string; log_type: string | null } | null
+type ExerciseInfo = { name: string; name_zh_tw: string | null; muscle_group: string; log_type: string | null; per_side: boolean | null; equipment: string | null } | null
 type PlannedRow = { id: string; exercise_id: string; exercises: ExerciseInfo }
 type RoutineRow = { exercise_id: string; target_sets: number | null; target_reps: number | null; exercises: ExerciseInfo }
 type SetRow = Parameters<typeof setValuesOf>[0] & { id: string; exercise_id: string; set_number: number; created_at: string }
 type PreviousRow = Parameters<typeof setValuesOf>[0] & { workout_id: string; exercise_id: string; set_number: number; workouts: { performed_at: string } }
 
-const EXERCISE_COLUMNS = 'name, name_zh_tw, muscle_group, log_type'
+const EXERCISE_COLUMNS = 'name, name_zh_tw, muscle_group, log_type, per_side, equipment'
 const TARGET_COLUMNS = 'exercise_id, target_sets, target_reps'
 const targetOf = (re: { target_sets: number | null; target_reps: number | null } | undefined): Target | null =>
     re?.target_sets ? { sets: re.target_sets, reps: re.target_reps } : null
@@ -157,6 +159,7 @@ export async function loadTodayWorkout(
         name: nameOf(e),
         muscleGroup: e?.muscle_group ?? 'other',
         logType: logTypeOf(e?.log_type),
+        logNote: logNoteOf(e),
         logUnit: null,
         plannedRowId,
         loggedSets,

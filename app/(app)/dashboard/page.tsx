@@ -40,7 +40,7 @@ export default async function DashboardPage() {
       .maybeSingle(),
     supabase
       .from('exercises')
-      .select('id, name, name_zh_tw, muscle_group, equipment, log_type')
+      .select('id, name, name_zh_tw, muscle_group, equipment, log_type, per_side')
       .order('name'),
   ])
 
