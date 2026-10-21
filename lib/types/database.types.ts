@@ -187,6 +187,27 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_notes: {
+        Row: {
+          embedding: string | null
+          embedding_text: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          embedding?: string | null
+          embedding_text?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          embedding?: string | null
+          embedding_text?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       period_notes: {
         Row: {
           note: string
@@ -646,6 +667,16 @@ export type Database = {
           p_count?: number
           p_embedding: string
           p_muscle_group?: string
+        }
+        Returns: {
+          id: string
+          similarity: number
+        }[]
+      }
+      match_knowledge: {
+        Args: {
+          p_count?: number
+          p_embedding: string
         }
         Returns: {
           id: string

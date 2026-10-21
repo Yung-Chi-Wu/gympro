@@ -1,0 +1,660 @@
+{
+  "variant": "vector",
+  "summary": {
+    "hit1": 0.94,
+    "hit5": 1,
+    "mrr": 0.97
+  },
+  "results": [
+    {
+      "id": "volume-zh",
+      "kind": "direct",
+      "query": "增肌一個肌群一週要練幾組？",
+      "rank": 1,
+      "top5": [
+        "schoenfeld-2017-volume",
+        "baz-valle-2022-volume",
+        "pelland-2026-volume",
+        "schoenfeld-2019-frequency",
+        "iversen-2021-time-efficient"
+      ]
+    },
+    {
+      "id": "volume-en",
+      "kind": "direct",
+      "query": "how many sets per week to build muscle",
+      "rank": 1,
+      "top5": [
+        "schoenfeld-2017-volume",
+        "baz-valle-2022-volume",
+        "pelland-2026-volume",
+        "schoenfeld-2019-frequency",
+        "acsm-2026-strength"
+      ]
+    },
+    {
+      "id": "failure-zh",
+      "kind": "direct",
+      "query": "每組都要做到力竭嗎",
+      "rank": 1,
+      "top5": [
+        "robinson-2024-failure",
+        "refalo-2023-failure",
+        "pelland-2026-volume",
+        "iversen-2021-time-efficient",
+        "schoenfeld-2017-load"
+      ]
+    },
+    {
+      "id": "rir-zh",
+      "kind": "colloquial",
+      "query": "我覺得還能做兩下就停，這樣準嗎",
+      "rank": 1,
+      "top5": [
+        "halperin-2022-rir-accuracy",
+        "robinson-2024-failure",
+        "ogasawara-2013-detraining",
+        "rogerson-2024-deload",
+        "coleman-2024-deload"
+      ]
+    },
+    {
+      "id": "rest-zh",
+      "kind": "direct",
+      "query": "組間要休息多久",
+      "rank": 1,
+      "top5": [
+        "singer-2024-rest",
+        "robineau-2016-recovery-between-sessions",
+        "ogasawara-2013-detraining",
+        "iversen-2021-time-efficient",
+        "davies-2021-cluster-sets"
+      ]
+    },
+    {
+      "id": "frequency-zh",
+      "kind": "direct",
+      "query": "同一個部位一週練一次還是兩次比較好",
+      "rank": 1,
+      "top5": [
+        "schoenfeld-2019-frequency",
+        "grgic-2018-frequency",
+        "pelland-2026-volume",
+        "schoenfeld-2017-volume",
+        "baz-valle-2022-volume"
+      ]
+    },
+    {
+      "id": "light-heavy-zh",
+      "kind": "direct",
+      "query": "輕重量做很多下也能長肌肉嗎",
+      "rank": 1,
+      "top5": [
+        "schoenfeld-2017-load",
+        "lopez-2021-load",
+        "acsm-2026-strength",
+        "currier-2023-load",
+        "pelland-2026-volume"
+      ]
+    },
+    {
+      "id": "strength-load-en",
+      "kind": "direct",
+      "query": "what load is best for getting stronger",
+      "rank": 1,
+      "top5": [
+        "currier-2023-load",
+        "schoenfeld-2017-load",
+        "lopez-2021-load",
+        "acsm-2009-progression",
+        "acsm-2026-strength"
+      ]
+    },
+    {
+      "id": "rom-zh",
+      "kind": "direct",
+      "query": "半程和全程哪個好",
+      "rank": 1,
+      "top5": [
+        "pallares-2021-range-of-motion",
+        "kassiano-2023-long-length",
+        "ramos-campo-2024-split-full-body",
+        "coleman-2024-deload",
+        "varovic-2025-long-length"
+      ]
+    },
+    {
+      "id": "lengthened-en",
+      "kind": "direct",
+      "query": "are lengthened partials better for hypertrophy",
+      "rank": 1,
+      "top5": [
+        "kassiano-2023-long-length",
+        "pallares-2021-range-of-motion",
+        "varovic-2025-long-length",
+        "moesgaard-2022-periodization",
+        "zhang-2025-supersets"
+      ]
+    },
+    {
+      "id": "tempo-zh",
+      "kind": "direct",
+      "query": "動作要做慢一點才會長肌肉嗎",
+      "rank": 1,
+      "top5": [
+        "enes-2025-tempo",
+        "kassiano-2023-long-length",
+        "damas-2018-doms",
+        "schoenfeld-2017-load",
+        "pelland-2026-volume"
+      ]
+    },
+    {
+      "id": "split-zh",
+      "kind": "direct",
+      "query": "分部位練還是全身練比較好",
+      "rank": 1,
+      "top5": [
+        "ramos-campo-2024-split-full-body",
+        "kassiano-2025-unilateral-bilateral",
+        "o-donoghue-2021-body-composition",
+        "pallares-2021-range-of-motion",
+        "brobakken-2023-spot-reduction"
+      ]
+    },
+    {
+      "id": "machines-zh",
+      "kind": "direct",
+      "query": "器械跟自由重量哪個比較好",
+      "rank": 1,
+      "top5": [
+        "haugen-2023-machines-free-weights",
+        "eddens-2018-order",
+        "morze-2021-body-composition",
+        "murlasits-2018-order",
+        "ashtary-larky-2022-keto"
+      ]
+    },
+    {
+      "id": "supersets-zh",
+      "kind": "direct",
+      "query": "時間不夠可以做超級組嗎",
+      "rank": 1,
+      "top5": [
+        "iversen-2021-time-efficient",
+        "zhang-2025-supersets",
+        "pelland-2026-volume",
+        "tsartsapakis-2026-advanced-set-methods",
+        "davies-2021-cluster-sets"
+      ]
+    },
+    {
+      "id": "dropsets-en",
+      "kind": "direct",
+      "query": "do drop sets build more muscle",
+      "rank": 1,
+      "top5": [
+        "havers-2026-drop-sets",
+        "tsartsapakis-2026-advanced-set-methods",
+        "pelland-2026-volume",
+        "zhang-2025-supersets",
+        "iversen-2021-time-efficient"
+      ]
+    },
+    {
+      "id": "mind-muscle-zh",
+      "kind": "colloquial",
+      "query": "練的時候要專心感受肌肉嗎",
+      "rank": 1,
+      "top5": [
+        "schoenfeld-2018-mind-muscle",
+        "damas-2018-doms",
+        "kassiano-2025-unilateral-bilateral",
+        "ogasawara-2013-detraining",
+        "havers-2026-drop-sets"
+      ]
+    },
+    {
+      "id": "deload-zh",
+      "kind": "direct",
+      "query": "減量週要怎麼做",
+      "rank": 1,
+      "top5": [
+        "rogerson-2024-deload",
+        "bell-2023-deload",
+        "helms-2014-contest-prep",
+        "coleman-2024-deload",
+        "peos-2021-diet-breaks"
+      ]
+    },
+    {
+      "id": "break-zh",
+      "kind": "colloquial",
+      "query": "出國兩週沒練會不會全部白練",
+      "rank": 1,
+      "top5": [
+        "ogasawara-2013-detraining",
+        "coleman-2024-deload",
+        "rahmati-2022-muscle-memory",
+        "pelland-2026-volume",
+        "vispute-2011-spot-reduction"
+      ]
+    },
+    {
+      "id": "newbie-zh",
+      "kind": "colloquial",
+      "query": "新手一年大概可以進步多少",
+      "rank": 1,
+      "top5": [
+        "latella-2024-rate-of-gains",
+        "acsm-2009-progression",
+        "ogasawara-2013-detraining",
+        "plotkin-2022-progression",
+        "rantila-2025-individual-response"
+      ]
+    },
+    {
+      "id": "stretch-before-zh",
+      "kind": "direct",
+      "query": "重訓前可以拉筋嗎",
+      "rank": 1,
+      "top5": [
+        "warneke-2024-warm-up",
+        "herbert-2011-stretching-soreness",
+        "wilson-2025-warm-up",
+        "warneke-2024-stretching",
+        "eddens-2018-order"
+      ]
+    },
+    {
+      "id": "cardio-gains-zh",
+      "kind": "myth",
+      "query": "做有氧會不會掉肌肉",
+      "rank": 2,
+      "top5": [
+        "deller-2026-fat-loss-muscle-preservation",
+        "wilson-2012-interference-overview",
+        "held-2026-interference-overview",
+        "willis-2012-body-composition",
+        "schumann-2022-interference-strength-hypertrophy-power"
+      ]
+    },
+    {
+      "id": "cardio-order-zh",
+      "kind": "direct",
+      "query": "有氧要在重訓前還是後做",
+      "rank": 1,
+      "top5": [
+        "murlasits-2018-order",
+        "eddens-2018-order",
+        "held-2026-interference-overview",
+        "schoenfeld-2014-fasted-cardio",
+        "robineau-2016-recovery-between-sessions"
+      ]
+    },
+    {
+      "id": "cardio-gap-en",
+      "kind": "direct",
+      "query": "how many hours between cardio and lifting",
+      "rank": 1,
+      "top5": [
+        "robineau-2016-recovery-between-sessions",
+        "eddens-2018-order",
+        "schoenfeld-2014-fasted-cardio",
+        "held-2026-interference-overview",
+        "murlasits-2018-order"
+      ]
+    },
+    {
+      "id": "run-or-bike-zh",
+      "kind": "direct",
+      "query": "跑步跟騎腳踏車哪個比較不影響增肌",
+      "rank": 1,
+      "top5": [
+        "wilson-2012-interference-overview",
+        "lundberg-2022-interference-hypertrophy-fiber",
+        "sabag-2018-modality-hiit",
+        "held-2026-interference-overview",
+        "monserda-vilaro-2023-modality-hiit-vs-continuous"
+      ]
+    },
+    {
+      "id": "runner-weights-zh",
+      "kind": "direct",
+      "query": "跑馬拉松的人需要練重量嗎",
+      "rank": 1,
+      "top5": [
+        "llanos-lagos-2024-endurance-athletes-running-economy",
+        "llanos-lagos-2024-endurance-athletes-running-performance",
+        "brobakken-2023-spot-reduction",
+        "johnson-2009-pull-up",
+        "llanos-lagos-2026-endurance-athletes-cycling"
+      ]
+    },
+    {
+      "id": "protein-amount-zh",
+      "kind": "direct",
+      "query": "一天要吃多少蛋白質",
+      "rank": 1,
+      "top5": [
+        "morton-2018-protein-daily",
+        "nunes-2022-protein-daily-older-adults",
+        "trommelen-2023-protein-meal",
+        "hudson-2020-protein-energy-restriction",
+        "helms-2014-contest-prep"
+      ]
+    },
+    {
+      "id": "protein-meal-zh",
+      "kind": "myth",
+      "query": "一餐蛋白質超過30克會浪費嗎",
+      "rank": 1,
+      "top5": [
+        "trommelen-2023-protein-meal",
+        "hudson-2020-protein-energy-restriction",
+        "morton-2018-protein-daily",
+        "nunes-2022-protein-daily-older-adults",
+        "devries-2018-protein-kidney"
+      ]
+    },
+    {
+      "id": "window-zh",
+      "kind": "myth",
+      "query": "練完要馬上喝蛋白嗎",
+      "rank": 1,
+      "top5": [
+        "schoenfeld-2013-protein-timing",
+        "trommelen-2023-protein-meal",
+        "lakicevic-2019-alcohol",
+        "morton-2018-protein-daily",
+        "henselmans-2022-carbs-performance"
+      ]
+    },
+    {
+      "id": "plant-protein-zh",
+      "kind": "direct",
+      "query": "吃素靠植物蛋白可以增肌嗎",
+      "rank": 1,
+      "top5": [
+        "reid-mccann-2025-protein-plant-vs-animal",
+        "morton-2018-protein-daily",
+        "nunes-2022-protein-daily-older-adults",
+        "hudson-2020-protein-energy-restriction",
+        "slater-2019-surplus"
+      ]
+    },
+    {
+      "id": "creatine-safe-zh",
+      "kind": "direct",
+      "query": "肌酸安全嗎",
+      "rank": 1,
+      "top5": [
+        "kreider-2017-creatine",
+        "tsiaras-2026-creatine-kidney",
+        "lak-2025-creatine-hair",
+        "trexler-2015-beta-alanine",
+        "xu-2024-creatine-cognition"
+      ]
+    },
+    {
+      "id": "creatine-hair-zh",
+      "kind": "myth",
+      "query": "吃肌酸會掉頭髮嗎",
+      "rank": 1,
+      "top5": [
+        "lak-2025-creatine-hair",
+        "tsiaras-2026-creatine-kidney",
+        "kreider-2017-creatine",
+        "xu-2024-creatine-cognition",
+        "delpino-2022-creatine-lean-mass"
+      ]
+    },
+    {
+      "id": "creatine-women-en",
+      "kind": "direct",
+      "query": "does creatine work for women",
+      "rank": 1,
+      "top5": [
+        "delpino-2022-creatine-lean-mass",
+        "wang-2024-creatine-strength",
+        "xu-2024-creatine-cognition",
+        "lak-2025-creatine-hair",
+        "yao-2026-creatine-older-adults"
+      ]
+    },
+    {
+      "id": "caffeine-zh",
+      "kind": "direct",
+      "query": "練前喝咖啡有用嗎",
+      "rank": 1,
+      "top5": [
+        "guest-2021-caffeine",
+        "grgic-2018-caffeine-strength",
+        "henselmans-2022-carbs-performance",
+        "wilson-2025-warm-up",
+        "lakicevic-2019-alcohol"
+      ]
+    },
+    {
+      "id": "sleep-zh",
+      "kind": "colloquial",
+      "query": "昨天只睡五小時今天還要練嗎",
+      "rank": 1,
+      "top5": [
+        "craven-2022-sleep",
+        "robineau-2016-recovery-between-sessions",
+        "iversen-2021-time-efficient",
+        "kovacevic-2018-sleep-quality",
+        "meeusen-2013-overtraining"
+      ]
+    },
+    {
+      "id": "ice-bath-zh",
+      "kind": "direct",
+      "query": "練完泡冰水可以幫助恢復嗎",
+      "rank": 1,
+      "top5": [
+        "pinero-2024-cold-water",
+        "dupuy-2018-recovery-methods",
+        "wilson-2025-warm-up",
+        "damas-2018-doms",
+        "lakicevic-2019-alcohol"
+      ]
+    },
+    {
+      "id": "ibuprofen-en",
+      "kind": "direct",
+      "query": "does taking ibuprofen hurt muscle growth",
+      "rank": 1,
+      "top5": [
+        "lilja-2018-nsaids",
+        "mallinson-2025-nsaids",
+        "damas-2018-doms",
+        "colenso-semple-2023-menstrual-cycle",
+        "pinero-2024-cold-water"
+      ]
+    },
+    {
+      "id": "deficit-zh",
+      "kind": "direct",
+      "query": "減脂期還能長肌肉嗎",
+      "rank": 2,
+      "top5": [
+        "deller-2026-fat-loss-muscle-preservation",
+        "murphy-2022-energy-deficit",
+        "ashtary-larky-2022-keto",
+        "willis-2012-body-composition",
+        "peos-2021-diet-breaks"
+      ]
+    },
+    {
+      "id": "fasted-zh",
+      "kind": "myth",
+      "query": "早上空腹有氧比較燃脂嗎",
+      "rank": 1,
+      "top5": [
+        "schoenfeld-2014-fasted-cardio",
+        "vieira-2016-fasted-cardio",
+        "steele-2021-hiit-fat-loss",
+        "morze-2021-body-composition",
+        "wewege-2017-hiit-fat-loss"
+      ]
+    },
+    {
+      "id": "if-zh",
+      "kind": "direct",
+      "query": "168斷食會掉肌肉嗎",
+      "rank": 2,
+      "top5": [
+        "peos-2021-diet-breaks",
+        "ali-2026-intermittent-fasting",
+        "hudson-2020-protein-energy-restriction",
+        "semnani-azad-2025-intermittent-fasting",
+        "deller-2026-fat-loss-muscle-preservation"
+      ]
+    },
+    {
+      "id": "keto-en",
+      "kind": "direct",
+      "query": "is keto good for lifters",
+      "rank": 1,
+      "top5": [
+        "koerich-2023-keto",
+        "ashtary-larky-2022-keto",
+        "helms-2014-contest-prep",
+        "keogh-2017-lifting-injury-rates",
+        "peos-2021-diet-breaks"
+      ]
+    },
+    {
+      "id": "hiit-fat-zh",
+      "kind": "direct",
+      "query": "HIIT 跟慢跑哪個減脂比較快",
+      "rank": 1,
+      "top5": [
+        "wewege-2017-hiit-fat-loss",
+        "steele-2021-hiit-fat-loss",
+        "schoenfeld-2014-fasted-cardio",
+        "brobakken-2023-spot-reduction",
+        "monserda-vilaro-2023-modality-hiit-vs-continuous"
+      ]
+    },
+    {
+      "id": "steps-zh",
+      "kind": "direct",
+      "query": "一天要走一萬步嗎",
+      "rank": 1,
+      "top5": [
+        "ding-2025-steps",
+        "paluch-2022-steps",
+        "bull-2020-who-guidelines",
+        "ekelund-2016-sitting-time",
+        "garber-2011-guidelines"
+      ]
+    },
+    {
+      "id": "kidney-zh",
+      "kind": "myth",
+      "query": "吃高蛋白會傷腎嗎",
+      "rank": 1,
+      "top5": [
+        "devries-2018-protein-kidney",
+        "teixeira-silva-2026-protein-kidney",
+        "tsiaras-2026-creatine-kidney",
+        "wycherley-2012-protein-energy-restriction",
+        "hudson-2020-protein-energy-restriction"
+      ]
+    },
+    {
+      "id": "spot-zh",
+      "kind": "myth",
+      "query": "一直練腹肌可以瘦肚子嗎",
+      "rank": 1,
+      "top5": [
+        "vispute-2011-spot-reduction",
+        "brobakken-2023-spot-reduction",
+        "o-donoghue-2021-body-composition",
+        "morze-2021-body-composition",
+        "ashtary-larky-2022-keto"
+      ]
+    },
+    {
+      "id": "squat-knee-zh",
+      "kind": "myth",
+      "query": "深蹲蹲太低會傷膝蓋嗎",
+      "rank": 1,
+      "top5": [
+        "hartmann-2013-deep-squat-knees",
+        "burfield-2023-running-knees",
+        "alentorn-geli-2017-running-knees",
+        "lawford-2024-knee-osteoarthritis",
+        "keogh-2017-lifting-injury-rates"
+      ]
+    },
+    {
+      "id": "doms-zh",
+      "kind": "myth",
+      "query": "練完不痠是不是沒效",
+      "rank": 1,
+      "top5": [
+        "damas-2018-doms",
+        "herbert-2011-stretching-soreness",
+        "refalo-2023-failure",
+        "vispute-2011-spot-reduction",
+        "havers-2026-drop-sets"
+      ]
+    },
+    {
+      "id": "women-bulky-zh",
+      "kind": "myth",
+      "query": "女生練重量會變很壯嗎",
+      "rank": 1,
+      "top5": [
+        "roberts-2020-sex-differences",
+        "refalo-2025-sex-differences",
+        "delpino-2022-creatine-lean-mass",
+        "latella-2024-rate-of-gains",
+        "malina-2006-youth"
+      ]
+    },
+    {
+      "id": "period-zh",
+      "kind": "direct",
+      "query": "生理期可以練腿嗎",
+      "rank": 1,
+      "top5": [
+        "colenso-semple-2023-menstrual-cycle",
+        "mcnulty-2020-menstrual-cycle",
+        "eddens-2018-order",
+        "prevett-2025-pregnancy",
+        "ogasawara-2013-detraining"
+      ]
+    },
+    {
+      "id": "back-pain-zh",
+      "kind": "direct",
+      "query": "下背痛還能重訓嗎",
+      "rank": 1,
+      "top5": [
+        "hayden-2021-low-back-pain",
+        "acsm-2009-progression",
+        "gordon-2018-depression",
+        "keogh-2017-lifting-injury-rates",
+        "zhang-2026-shoulder-pain"
+      ]
+    },
+    {
+      "id": "bp-en",
+      "kind": "direct",
+      "query": "can lifting lower blood pressure",
+      "rank": 1,
+      "top5": [
+        "edwards-2023-blood-pressure",
+        "keogh-2017-lifting-injury-rates",
+        "gordon-2018-depression",
+        "prevett-2025-pregnancy",
+        "bell-2023-deload"
+      ]
+    }
+  ]
+}
