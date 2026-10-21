@@ -88,9 +88,9 @@ flowchart LR
 
 - **Who decides a change.** A change to today's workout that the user names, Ronnie makes at once. A change Ronnie picks, and any change to a routine, is shown as a card, and code applies it after the tap. Removing an exercise from a routine asks twice. The model never makes a permanent change itself; that is enforced by code, not by the prompt.
 - **Research notes.** [`lib/ronnie/knowledge-notes.json`](lib/ronnie/knowledge-notes.json) holds one note per paper, 149 in all. Each was written from the paper's abstract and checked against it, and each DOI was resolved through LibKey. Search ranks the notes by Cohere vectors in pgvector.
-  - **Citations:** Ronnie marks a sentence with a note's key. Code numbers the citations and lists the papers under the reply, so a source shown is always one Ronnie was given. A key it wasn't given is dropped.
+  - **Citations:** Ronnie marks a sentence with a note's key. Code turns the keys into the papers listed under the reply, so a source shown is always one Ronnie was given. A key it wasn't given is dropped. The chat shows the list as one line ("See 3 sources") that opens it, with no number after each tip.
   - **Check:** before the reply is shown, Claude Haiku reads it against the notes. A finding presented as research that no note supports, or that goes past its note, is sent back once for a rewrite.
-  - **No note:** general advice that no note covers stays in the reply, with a line under it saying it has no research source.
+  - **No note:** general advice that no note covers stays in the reply, with a line under it saying it has no research source. Code adds that line to any reply that searched the notes and cites none.
 - **Memory.** The kinds the code acts on have fixed slots:
   - one injury per joint, active or resolved;
   - a like or dislike per exercise;

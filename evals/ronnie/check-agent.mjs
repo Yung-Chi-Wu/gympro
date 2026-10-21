@@ -16,7 +16,7 @@ const root = join(here, '..', '..')
 execFileSync(join(root, 'lambda/ai-worker/node_modules/.bin/esbuild'), ['evals/ronnie/check-entry.ts', '--bundle', '--platform=node', '--target=node20', '--format=cjs', '--outfile=evals/ronnie/dist/check.cjs', '--log-level=warning'], { cwd: root, stdio: 'inherit' })
 const {
     runRonnieTurn, stripMarkdown, createRonnieExecutor, MAX_INCLUDE, createSupabaseRonnieData,
-    appendConversation, replaceConversation, asTypedMessage, EVENT_PREFIX,
+    appendConversation, replaceConversation, withoutCitationNumbers, asTypedMessage, EVENT_PREFIX,
     createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER,
     buildSystemPrompt, fixtureNotes, memoryLines, MAX_NOTES, MAX_EXERCISE_NOTES_SHOWN, MAX_OTHER_NOTES,
     correctionIn, flagForCancel, flagForClear, flagsForMessage, RIGHT_AFTER_MS,
@@ -483,6 +483,8 @@ function note(kind, subject, state, text, updatedAt = '2026-10-01T02:00:00.000Z'
     check(r.text === '不用每組都力竭 [1]。組數越多越好但效益遞減[2]，也見於 [1, 2]。這句引用了沒給的。', `markers renumbered in order, full-width too, the unknown one dropped: ${r.text}`)
     check(r.sources.map((s) => s.citation).join('; ') === 'Refalo et al., 2023; Pelland et al., 2026' && r.sources[0].doi === note('refalo-2023-failure').source.doi, `the sources list each cited paper once, numbered: ${JSON.stringify(r.sources.map((s) => s.citation))}`)
     check(JSON.stringify(r.unknown) === '["K9"]', 'the unknown key is reported')
+    const shown = withoutCitationNumbers(r.text)
+    check(shown === '不用每組都力竭。組數越多越好但效益遞減，也見於。這句引用了沒給的。' && withoutCitationNumbers('Close to failure [1].\nRest 2 min [1, 2].') === 'Close to failure.\nRest 2 min.', `the chat shows the reply without the numbers: ${shown}`)
     check(renumber('see [K3] and [K9]', r.numbers) === 'see [2] and', `the stored history gets the same numbers: ${renumber('see [K3] and [K9]', r.numbers)}`)
     const org = withSources('ACSM [K1]', [{ key: 'K1', note: note('acsm-2026-strength') }]).sources[0].citation
     check(org === 'ACSM, 2026', `an organization is cited without et al.: ${org}`)

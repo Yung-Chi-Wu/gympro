@@ -42,6 +42,14 @@ export type DisplayItem =
     /** planId: the plan card this event is about, so the card shows it saved */
     | { kind: 'event'; text: string; planId?: string }
 
+/**
+ * A reply as the chat shows it: without the [1], [2] that citations.ts numbers its sentences with.
+ * The sources are one line under it instead (RonnieWidget); a number after every tip was clutter.
+ */
+export function withoutCitationNumbers(text: string): string {
+    return text.replace(/ ?\[\d+(?:, \d+)*\]/g, '')
+}
+
 export interface Conversation {
     messages: Anthropic.MessageParam[]
     display: DisplayItem[]
