@@ -77,7 +77,7 @@ const attributesOf = (name: string) => {
     const equipment = Object.entries(plannerEquipment as Record<string, string>).find(([n]) => n.toLowerCase() === real)?.[1] ?? null
     return {
         primary_muscles: a.primary, secondary_muscles: a.secondary, joint_load: a.jointLoad as Record<string, string>, log_type: logTypeOf(a.logType),
-        equipment, stability_demand: a.stability,
+        per_side: a.perSide === true, equipment, stability_demand: a.stability,
     }
 }
 

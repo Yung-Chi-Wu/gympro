@@ -124,6 +124,10 @@
             "metres": "公尺"
         },
         "bodyweight": "自重",
+        "note": {
+            "perSide": "單邊動作：記一邊的{what, select, reps {次數} seconds {秒數} other {次數和重量}}，左右都做完算 1 組",
+            "oneDumbbell": "重量記一顆啞鈴"
+        },
         "summary": {
             "target": "目標 <b>{sets}</b> 組",
             "targetReps": "目標 <b>{sets}</b> 組 × <b>{reps}</b> 下",

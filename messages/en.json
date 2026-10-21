@@ -124,6 +124,10 @@
             "metres": "Metres"
         },
         "bodyweight": "BW",
+        "note": {
+            "perSide": "One side at a time: log one side's {what, select, reps {reps} seconds {time} other {reps and weight}}; both sides done count as one set",
+            "oneDumbbell": "Log the weight of one dumbbell"
+        },
         "summary": {
             "target": "target <b>{sets}</b> {sets, plural, one {set} other {sets}}",
             "targetReps": "target <b>{sets}</b> × <b>{reps}</b>",

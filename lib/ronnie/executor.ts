@@ -19,7 +19,7 @@ import { localDateStr, localDateToUtcRange } from './time'
 import { formatWeight, toDisplayWeight, type WeightUnit } from '../weight-unit'
 import { toDisplayDistance, type DistanceUnit } from '../distance-unit'
 import type { LogType } from '../exercise-attributes'
-import { e1rm, fieldValue, fitsLogType, isCardio, type SetValues } from '../set-log'
+import { e1rm, fieldValue, fitsLogType, isCardio, logNoteOf, type LogNote, type SetValues } from '../set-log'
 
 // Ronnie's tools. Results are for the model, so they are in English whatever the
 // user's language; exercise names follow the user's language (Ronnie quotes them),
@@ -109,17 +109,26 @@ function matchByName<T extends Named>(planned: T[], query: string | undefined): 
     return found.filter((pe, i) => found.findIndex((x) => x.exercise_id === pe.exercise_id) === i)
 }
 
+/** How a set of it is logged, when that isn't obvious: what the app's logging screen says too */
+const LOG_NOTE_TEXT: Record<LogNote, string> = {
+    per_side: "logged one side at a time: one side's numbers, both sides done count as one set",
+    one_dumbbell: 'weight logged is one dumbbell',
+}
+
 /**
- * A search result's detail: its group, the muscles it mainly trains, and any joint it loads more
- * than lightly, marked when the user's notes have that joint injured.
+ * A search result's detail: its group, the muscles it mainly trains, any joint it loads more
+ * than lightly (marked when the user's notes have that joint injured), and how a set is logged
+ * when that isn't obvious.
  */
 function describe(e: LibraryExercise, injured: Set<string | null> = new Set()): string {
     const loads = Object.entries(e.joint_load ?? {}).filter(([, level]) => level !== 'low')
         .map(([joint, level]) => `${joint.replace('_', ' ')} ${level}${injured.has(joint) ? ' (injured, in your notes)' : ''}`)
+    const note = logNoteOf(e)
     return [
         e.muscle_group,
         e.primary_muscles.length ? `trains ${e.primary_muscles.join(', ').replace(/_/g, ' ')}` : '',
         loads.length ? `joint load: ${loads.join(', ')}` : e.joint_load ? 'low joint load' : '',
+        note ? LOG_NOTE_TEXT[note] : '',
     ].filter(Boolean).join('; ')
 }
 

@@ -63,6 +63,18 @@ export function logTypeOf(value: string | null | undefined): LogType {
 
 export const isCardio = (logType: LogType) => CARDIO_LOG_TYPES.includes(logType)
 
+/**
+ * What to log when it isn't obvious, shown beside the sets: an exercise done one side at a time
+ * (exercises.per_side) is one side's numbers, both sides done counting as one set; one done with
+ * dumbbells is the weight of one. The report counts sets and estimates a 1RM this way, so left and
+ * right logged as two sets, or two dumbbells added up, would double them (owner, 2026-10-21).
+ */
+export type LogNote = 'per_side' | 'one_dumbbell'
+export function logNoteOf(e: { per_side?: boolean | null; equipment?: string | null } | null | undefined): LogNote | null {
+    if (e?.per_side) return 'per_side'
+    return e?.equipment === 'dumbbell' ? 'one_dumbbell' : null
+}
+
 type SetRow = {
     reps: number
     weight_kg: number

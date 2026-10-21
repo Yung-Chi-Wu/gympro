@@ -6,6 +6,8 @@ export interface ExerciseOption {
     equipment: string | null
     /** How its sets are logged (lib/set-log.ts); weight x reps when missing */
     log_type?: string | null
+    /** Done one side at a time (lib/set-log.ts logNoteOf) */
+    per_side?: boolean | null
 }
 
 export interface LoggedSet {

@@ -144,6 +144,7 @@ export type Database = {
           muscle_group: string
           name: string
           name_zh_tw: string | null
+          per_side: boolean
           primary_muscles: string[]
           secondary_muscles: string[]
           stability_demand: string | null
@@ -161,6 +162,7 @@ export type Database = {
           muscle_group: string
           name: string
           name_zh_tw?: string | null
+          per_side?: boolean
           primary_muscles?: string[]
           secondary_muscles?: string[]
           stability_demand?: string | null
@@ -178,6 +180,7 @@ export type Database = {
           muscle_group?: string
           name?: string
           name_zh_tw?: string | null
+          per_side?: boolean
           primary_muscles?: string[]
           secondary_muscles?: string[]
           stability_demand?: string | null
