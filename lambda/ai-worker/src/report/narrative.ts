@@ -44,7 +44,7 @@ const DELOAD_LINES_ADVICE = 'Plan one lighter week, then back to the usual plan 
  * two periods running (rules.ts ADHERENCE_MIN). Added after the usual advice, which says making the
  * sessions up brings the low muscles back, the model wrote both: plan 2 a week, and make them up (v17).
  */
-const shrinkAdvice = (period: string) => `Name the missed sessions. Under 3 in 4 planned sessions were done, this ${period} and the last, so don't suggest making them up or doing them as planned: suggest planning the number of sessions in suggest each ${period}, a plan they can keep, with each routine's first lifts first, and add nothing on top. Don't say this brings any muscle back into range. Never scold; if a note explains it, acknowledge that.`
+const shrinkAdvice = (period: string) => `Name the missed sessions. Under 3 in 4 planned sessions were done this ${period}, and the last report found the same (which sessions then isn't known: name none), so don't suggest making them up or doing them as planned: suggest planning the number of sessions in suggest each ${period}, a plan they can keep, with each routine's first lifts first, and add nothing on top. Don't say this brings any muscle back into range. Never scold; if a note explains it, acknowledge that.`
 
 /** Added to a lift rule's advice when one of its lifts is assisted, where less assist is the progress */
 const ASSISTED_ADVICE: Partial<Record<RuleId, string>> = {
@@ -164,8 +164,10 @@ function codeWrote(findings: Finding[], zh: boolean, lighterWeek: string[]): str
  * track for the goal, once code wrote that lift's advice and no stall rule named it (v14). Told
  * only not to say on track, it still tied the stuck lift to the goal ("to keep the goal on track",
  * "back to 100 kg" for a bench that never reached it, v15), so the goal stays out of the headline.
+ * A plan that shrinks isn't one to get back to.
  */
 function headlineLimitsOf(facts: ReportFacts, findings: Finding[], zh: boolean): string {
+    const shrink = findings.find((f) => f.rule === 'missed_sessions' && f.data.shrink)
     const goalIds = new Set(findings.filter((f) => f.rule === 'goal_path').flatMap((f) => [f.subject, f.data.viaId]))
     const notUp = facts.lifts.filter((l) => l.trend === 'flat' || l.trend === 'down')
     // One flat week is ordinary; two without a new best is a goal lift not moving
@@ -174,6 +176,8 @@ function headlineLimitsOf(facts: ReportFacts, findings: Finding[], zh: boolean):
     return [
         notUp.length ? ` Not every main lift went up, so it doesn't say every, all or across the board${zh ? ' (全面)' : ''}.` : '',
         goalNotUp.length ? ` The goal rests on ${goalNotUp.map((l) => `${nameOf(l, zh)} (${how(l)})`).join(' and ')}, so the headline leaves the goal out: it may say what comes next for ${goalNotUp.length === 1 ? 'that lift' : 'those lifts'}, not that this keeps the goal on track, nears it, or builds toward or back to the goal's number.` : '',
+        // v18: "now the priority is getting back to 4 sessions", over advice to plan 2
+        shrink ? ` The plan shrinks to ${shrink.data.suggest} sessions a ${facts.period.days === 7 ? 'week' : 'cycle'}, so the headline doesn't push for more sessions, the full plan or more consistency.` : '',
     ].join('')
 }
 
