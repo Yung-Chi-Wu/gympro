@@ -211,7 +211,8 @@ const client = (answers, delayMs = 0) => {
 // Low muscles: code writes the lead and a line per muscle with both options; the model adds only
 // a sentence for a note, empty without one, held to its length
 {
-    const sc = SCENARIOS.find((x) => x.id === 'first-report-zh')
+    // With a goal: without one the report gives no volume advice
+    const sc = { ...SCENARIOS.find((x) => x.id === 'first-report-zh'), goal: '增肌' }
     const a = w.analyze(inputsFor(sc))
     const zhInput = { ...a, note: null, language: 'zh-TW', weightUnit: 'kg' }
     const lows = a.findings.filter((f) => f.rule === 'low_volume')
@@ -225,7 +226,7 @@ const client = (answers, delayMs = 0) => {
     const named = lows.every((f) => lines.some((l) => [f.data.addToZh, f.data.newExerciseZh].filter(Boolean).every((x) => l.text.includes(x))))
     check('no note: the action is code\'s lead, with a line per low muscle naming its options', plain.calls === 1 && plain.item?.action === '每個部位選一種方式補上組數。' && lines.length === lows.length && named,
         JSON.stringify(plain.r.narrative ?? plain.r))
-    check('a line reads as the app writes it', lines.some((l) => l.label === '二頭' && l.text === '槓鈴彎舉每週多做 4 組，或新增啞鈴彎舉，每週 4 組'), JSON.stringify(lines))
+    check('a line reads as the app writes it', lines.some((l) => l.label === '二頭' && l.text === '槓鈴彎舉每週多做 2 組，或新增啞鈴彎舉，每週 2 組'), JSON.stringify(lines))
     const unnoted = await run('沒有備註，照程式列出的選項擇一即可。')
     check('without a note, a low_volume sentence is dropped: the action is the lead alone', unnoted.item?.action === '每個部位選一種方式補上組數。', JSON.stringify(unnoted.item))
     const withNote = { ...zhInput, dayNotes: [{ date: a.facts.period.start, note: '做臉拉左肩有點緊', routine: null, trained: true }] }

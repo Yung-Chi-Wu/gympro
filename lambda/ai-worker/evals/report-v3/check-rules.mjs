@@ -2,7 +2,9 @@
 // Free check of the v3 report's code half: each scenario runs through analyze() and
 // must produce exactly the expected findings, status, follow-ups, watched items,
 // records, day notes, cardio and main lifts, and the brief must carry the day notes as
-// expected. Cardio is never a main lift or a working set. No model calls.
+// expected. Cardio is never a main lift or a working set. The next-session advice code writes
+// (plan.ts) is checked apart: expect.plan lists it where a scenario pins it, and every plan
+// must make sense (a bigger weight next, a range that goes up, at most 3 other lifts). No model calls.
 //   node lambda/ai-worker/evals/report-v3/check-rules.mjs [--show id]
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
@@ -14,6 +16,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const worker = join(here, '..', '..')
 execFileSync(join(worker, 'node_modules/.bin/esbuild'), ['evals/report-v3/entry.ts', '--bundle', '--platform=node', '--format=cjs', '--outfile=evals/report-v3/dist/report.cjs', '--log-level=warning'], { cwd: worker, stdio: 'inherit' })
 const { analyze, buildPrompt } = createRequire(import.meta.url)(join(here, 'dist', 'report.cjs'))
+const CODE_RULES = new Set(['goal_path', 'next_session', 'pain_hold'])
 
 const show = process.argv.includes('--show') ? process.argv[process.argv.indexOf('--show') + 1] : null
 const CARDIO_TYPES = ['treadmill', 'cardio_level', 'rower', 'cardio_time']
@@ -22,8 +25,25 @@ let failed = 0
 for (const sc of SCENARIOS) {
     const r = analyze(inputsFor(sc))
     const problems = []
-    const ids = r.findings.map((f) => f.id)
+    const ids = r.findings.filter((f) => !CODE_RULES.has(f.rule)).map((f) => f.id)
     if (JSON.stringify(ids) !== JSON.stringify(sc.expect.findings)) problems.push(`findings ${JSON.stringify(ids)}, expected ${JSON.stringify(sc.expect.findings)}`)
+    const plan = r.findings.filter((f) => CODE_RULES.has(f.rule))
+    if (sc.expect.plan && JSON.stringify(plan.map((f) => f.id)) !== JSON.stringify(sc.expect.plan)) problems.push(`plan ${JSON.stringify(plan.map((f) => f.id))}, expected ${JSON.stringify(sc.expect.plan)}`)
+    for (const [id, want] of Object.entries(sc.expect.planData ?? {})) {
+        const f = plan.find((x) => x.id === id)
+        if (!f) problems.push(`no plan ${id}`)
+        else for (const [k, v] of Object.entries(want)) if (f.data[k] !== v) problems.push(`${id}: ${k} ${JSON.stringify(f.data[k])}, expected ${JSON.stringify(v)}`)
+    }
+    // Every plan makes sense: the next weight is heavier, the range goes up, the other lifts are main lifts no rule speaks to
+    const next = plan.filter((f) => f.rule === 'next_session')
+    if (next.length > 3) problems.push(`${next.length} other lifts planned, at most 3`)
+    const spoken = new Set(r.findings.filter((f) => f.rule === 'lift_stalled' || f.rule === 'lift_regressed').map((f) => f.subject))
+    for (const f of plan) {
+        const d = f.data
+        if ((d.how === 'load' || d.how === 'load_now') && !(d.nextKg > d.weightKg)) problems.push(`${f.id}: next ${d.nextKg} kg is not above ${d.weightKg} kg`)
+        if (d.low != null && d.top != null && !(d.top > d.low || d.how === 'load_now')) problems.push(`${f.id}: range ${d.low}-${d.top}`)
+        if (f.rule === 'next_session' && (!r.facts.lifts.some((l) => l.exerciseId === f.subject) || spoken.has(f.subject))) problems.push(`${f.id}: not a main lift no rule speaks to`)
+    }
     if (r.facts.status !== sc.expect.status) problems.push(`status ${r.facts.status}, expected ${sc.expect.status}`)
     const watched = r.watching.map((w) => `${w.rule}:${w.subject ?? '-'}`)
     for (const w of sc.expect.watching ?? []) if (!watched.includes(w)) problems.push(`not watching ${w} (watching ${JSON.stringify(watched)})`)
@@ -50,11 +70,13 @@ for (const sc of SCENARIOS) {
         else for (const [k, v] of Object.entries(want)) if (l[k] !== v) problems.push(`${id}: ${k} ${JSON.stringify(l[k])}, expected ${JSON.stringify(v)}`)
     }
 
-    // The sets a low-volume finding says to add are the fewest that reach 10 a week
+    // The sets a low-volume finding says to add are the fewest that reach 10 a week, but at most 2 a week
     const perWeek = (sets) => (sets * 7) / r.facts.period.days
+    const cap = Math.ceil((2 * r.facts.period.days) / 7)
     for (const f of r.findings.filter((x) => x.rule === 'low_volume')) {
         const { sets, addSets } = f.data
-        if (!(perWeek(sets + addSets) >= 10 && perWeek(sets + addSets - 1) < 10)) problems.push(`${f.id}: addSets ${addSets} with ${sets} sets in ${r.facts.period.days} days`)
+        const fewest = perWeek(sets + addSets) >= 10 && perWeek(sets + addSets - 1) < 10
+        if (!(addSets === cap ? perWeek(sets + addSets - 1) < 10 : fewest && addSets < cap)) problems.push(`${f.id}: addSets ${addSets} with ${sets} sets in ${r.facts.period.days} days`)
     }
 
     // Options: an exercise the user does that trains the muscle, and a staple they don't do yet

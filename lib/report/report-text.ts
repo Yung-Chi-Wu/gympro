@@ -1,7 +1,10 @@
 import en from '../../messages/en.json'
 import zh from '../../messages/zh-TW.json'
+import { toDisplayWeight, type WeightUnit } from '../weight-unit'
 import { unitLabel } from './volume'
-import type { Finding, NarrativeLine, ReportFacts, ReportNarrative, RuleId } from './types'
+import { CODE_RULES, type Finding, type NarrativeItem, type NarrativeLine, type ReportFacts, type ReportNarrative, type RuleId } from './types'
+
+export { CODE_RULES }
 
 // The report's text in the app's own words (messages/*.json), for the report worker: the
 // Chinese terms the model must use, the lines code writes under an action, and the text the
@@ -102,15 +105,15 @@ export function withLines(narrative: ReportNarrative, findings: Finding[], langu
  * rule's short advice with every item named; a low muscle's options are its lines. Plain, but
  * always right, so a report whose text failed its checks twice still arrives instead of failing.
  */
-export function fallbackNarrative(facts: ReportFacts, findings: Finding[], language: string): ReportNarrative {
+export function fallbackNarrative(facts: ReportFacts, findings: Finding[], language: string, weightUnit: WeightUnit = 'kg'): ReportNarrative {
     const isZh = language === 'zh-TW'
     const t = labelIn(language)
     const unit = facts.period.days === 7 ? 'week' : 'cycle'
-    const rules = [...new Set(findings.map((f) => f.rule))] as RuleId[]
+    const rules = [...new Set(findings.map((f) => f.rule))].filter((r) => !CODE_RULES.has(r)) as RuleId[]
     const nameOf = (f: Finding) => String((isZh && f.data.nameZh) || f.data.name || '')
     const muscleOf = (f: Finding) => (f.subject ? unitLabel(f.subject, language, (x) => x) : '')
     const end = isZh ? '。' : '.'
-    return withLines({
+    const own = withLines({
         headline: `${t(`statusHint.${facts.status}`, { unit })}${end}`,
         items: rules.map((rule) => {
             if (rule === 'low_volume') return { rule, action: '' }
@@ -118,4 +121,103 @@ export function fallbackNarrative(facts: ReportFacts, findings: Finding[], langu
             return { rule, action: `${[...new Set(each)].join(isZh ? '；' : '; ')}${end}` }
         }),
     }, findings, language, unit)
+    return withPlanItems(own, findings, language, unit, weightUnit)
+}
+
+/**
+ * The next-session items, written from their findings' numbers: one item for each goal lift
+ * and each lift held for pain (by finding), and one for the other main lifts with a line each.
+ * Weights are in the unit the user logs in.
+ */
+export function planItems(findings: Finding[], language: string, unit: 'week' | 'cycle', weightUnit: WeightUnit): NarrativeItem[] {
+    const isZh = language === 'zh-TW'
+    const t = labelIn(language)
+    const plan = (key: string, values: Record<string, unknown>) => t(`plan.${key}`, Object.fromEntries(Object.entries(values).map(([k, v]) => [k, String(v ?? '')])))
+    const w = (kg: unknown) => `${toDisplayWeight(Number(kg), weightUnit)} ${weightUnit}`
+    const name = (d: Finding['data'], prefix = '') => String((isZh && d[prefix ? `${prefix}NameZh` : 'nameZh']) || d[prefix ? `${prefix}Name` : 'name'] || '')
+    const or = t('plan.or', {})
+    const numbers = (d: Finding['data']) => ({ lift: name(d), weight: w(d.weightKg), next: w(d.nextKg), low: d.low, top: d.top, sets: d.sets, assist: w(d.assistKg), unit })
+
+    const goal = (f: Finding): NarrativeItem => {
+        const d = f.data
+        const n = numbers(d)
+        const via = name(d, 'via')
+        const lead = (() => {
+            switch (d.path) {
+                case 'pulldown': return plan('viaPulldown', { ...n, via, try: d.tryAtKg != null ? plan('tryAt', { tryAt: w(d.tryAtKg), tryReps: d.tryReps, lift: name(d) }) : '' })
+                case 'assisted': return plan('viaAssisted', { ...n, via })
+                case 'start': return via ? plan('start', { lift: name(d), via }) : plan('startNoVia', { lift: name(d) })
+                case 'stalled': return plan('stalled', { ...n, drop: w(d.dropKg), n: d.flatWindows })
+                case 'not_trained': return plan('notTrained', n)
+                case 'find_weight': return plan('findWeight', n)
+                default: return liftLead(String(d.how), n)
+            }
+        })()
+        const options = String(d.options ?? '').split(',').filter(Boolean).map((o): NarrativeLine => {
+            switch (o) {
+                case 'heavy': return { label: or, text: plan('heavy', { weight: w(d.heavyKg) }) }
+                case 'second_day': return { label: or, text: plan('secondDay', { lift: name(d), weight: w(d.secondKg) }) }
+                case 'assisted': return { label: or, text: plan('assisted', { name: name(d, 'assisted') }) }
+                case 'pulldown': return { label: or, text: plan('pulldown', { name: name(d, 'pulldown') }) }
+                default: return { label: or, text: plan('negatives', { lift: name(d) }) }
+            }
+        })
+        return { findingId: f.id, action: lead, ...(options.length ? { lines: options } : {}) }
+    }
+    const liftLead = (how: string, n: ReturnType<typeof numbers>) =>
+        plan(how === 'load_now' ? 'liftNow' : how === 'reps' ? 'reps' : how === 'assist' ? 'assist' : 'lift', n)
+    const hold = (f: Finding): NarrativeItem => {
+        const d = f.data
+        const n = numbers(d)
+        const lead = plan(d.how === 'reps' ? 'holdReps' : d.how === 'assist' ? 'holdAssist' : 'hold', n)
+        return {
+            findingId: f.id, action: lead,
+            lines: [
+                ...(d.altName ? [{ label: or, text: plan('holdAlt', { alt: name(d, 'alt') }) }] : []),
+                { label: t('plan.stillHurts', {}), text: t('plan.seeSomeone', {}) },
+            ],
+        }
+    }
+    const next = findings.filter((f) => f.rule === 'next_session')
+    const nextItem = (): NarrativeItem => ({
+        rule: 'next_session',
+        action: t(findings.some((f) => f.rule === 'goal_path') ? 'plan.nextLeadGoal' : 'plan.nextLead', {}),
+        lines: next.map((f) => {
+            const n = numbers(f.data)
+            const key = f.data.how === 'load_now' ? 'lineLoadNow' : f.data.how === 'reps' ? 'lineReps' : f.data.how === 'assist' ? 'lineAssist' : 'lineLoad'
+            return { label: name(f.data), text: plan(key, n) }
+        }),
+    })
+    const items: NarrativeItem[] = []
+    for (const f of findings) {
+        if (f.rule === 'goal_path') items.push(goal(f))
+        else if (f.rule === 'pain_hold') items.push(hold(f))
+        else if (f.rule === 'next_session' && f === next[0]) items.push(nextItem())
+    }
+    return items
+}
+
+/**
+ * Every item in the order of the findings (by priority): the model's actions for its rules, and
+ * the code's next-session items where their findings fall.
+ */
+export function withPlanItems(narrative: ReportNarrative, findings: Finding[], language: string, unit: 'week' | 'cycle', weightUnit: WeightUnit): ReportNarrative {
+    const code = planItems(findings, language, unit, weightUnit)
+    const items: NarrativeItem[] = []
+    const seen = new Set<string>()
+    for (const f of findings) {
+        if (CODE_RULES.has(f.rule)) {
+            const item = code.find((i) => (i.findingId ? i.findingId === f.id : i.rule === f.rule))
+            const key = item?.findingId ?? item?.rule
+            if (item && key && !seen.has(key)) {
+                seen.add(key)
+                items.push(item)
+            }
+        } else if (!seen.has(f.rule)) {
+            seen.add(f.rule)
+            const own = narrative.items.find((i) => i.rule === f.rule)
+            if (own) items.push(own)
+        }
+    }
+    return { ...narrative, items }
 }

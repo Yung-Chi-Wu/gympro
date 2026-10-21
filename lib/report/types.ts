@@ -16,6 +16,10 @@ export interface ExerciseInfo {
     secondaryMuscles: string[]
     /** How its sets are logged (lib/set-log.ts): a cardio set keeps its time outside reps and weight */
     logType: LogType
+    /** Joint -> low/medium/high (lib/exercise-attributes.ts); null for a custom exercise; absent in evals that don't give it */
+    jointLoad?: Record<string, string> | null
+    /** barbell, dumbbell, machine, cable...: what sets the size of a weight step (plan.ts) */
+    equipment?: string | null
 }
 
 /**
@@ -72,6 +76,10 @@ export interface ReportInputs {
     /** Ronnie's notes, and what the user said this period as read (week.ts); absent where they aren't read (evals) */
     memory?: ContextNote[]
     weekRead?: WeekRead
+    /** The unit the user logs in, which sets the weight steps the advice names (plan.ts); kg when absent */
+    weightUnit?: 'kg' | 'lb'
+    /** The built-in exercises, for an alternative the plan may suggest; the exercises above when absent */
+    library?: ExerciseInfo[]
 }
 
 export interface BestSet {
@@ -345,6 +353,11 @@ export interface ContextNote {
 }
 
 export type RuleId = 'deload' | 'lift_regressed' | 'lift_stalled' | 'low_volume' | 'missed_sessions' | 'weight_trend' | 'cardio_first'
+    // Written by code, action and lines (plan.ts): next session for a goal's lift, for the other main lifts, and holding a lift that hurt
+    | 'goal_path' | 'next_session' | 'pain_hold'
+
+/** The rules whose action and lines code writes in full (lambda/ai-worker/src/report/plan.ts): the model writes none of them */
+export const CODE_RULES: ReadonlySet<RuleId> = new Set<RuleId>(['goal_path', 'next_session', 'pain_hold'])
 
 type Data = Record<string, number | string | null>
 

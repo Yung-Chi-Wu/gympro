@@ -17,12 +17,12 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
   - Code writes every line that states a fact: memory receipts, plan summaries, corrections.
   - A reply that contradicts today's log is caught before it's shown.
 - **Evals decide what ships.**
-  - 71 scripted conversations against a fixture user, plus 71 search queries and 32 report scenarios.
+  - 71 scripted conversations against a fixture user, plus 71 search queries and 36 report scenarios.
   - Graded by code checks and an LLM judge.
   - Every run is recorded in the repo, and the model for each feature was chosen by eval.
   - Mistakes found in evals are replayed in CI on every pull request, at no cost.
 - **Facts in code, words from the model.**
-  - The weekly report's numbers and advice come from a rule table in code, backed by 18 cited papers whose DOIs are checked in CI. The model only phrases what fired.
+  - The weekly report's numbers and advice come from a rule table in code, backed by 22 cited papers whose DOIs are checked in CI. Code writes what to do next session on each lift; the model only phrases the rest.
   - Coach G's plan is built by code; a small model only reads the user's free text.
 - **Production infrastructure in Terraform.**
   - Vercel and Supabase, with AWS for the report pipeline: SQS, Lambda and EventBridge Scheduler.
@@ -36,7 +36,7 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
 | **Log** | One set table for strength and cardio, with 8 log types: weight × reps, bodyweight plus added weight, assisted, timed, treadmill, machine level, rower, time only. Units are per exercise (kg or lb, km or mi). There is also a daily note and body weight. |
 | **Ronnie** | A chat coach. *"My elbow hurts, what instead of pushdowns?"*, *"What's left today?"*, *"Plan me a 4-day week."* It remembers injuries, likes and dislikes, equipment and schedule across conversations. |
 | **Coach G** | The user answers a few questions and gets a week of routines built from a 155-exercise library, rated for muscles and joint load. |
-| **Weekly report** | Generated when the user's training period ends, in their time zone. It shows the status, the key numbers, follow-up on last period's advice, and an action for each rule that fired. Each action names its data and the research behind it. |
+| **Weekly report** | Generated when the user's training period ends, in their time zone. It shows the status, the goal's progress, the key numbers and follow-up on last period's advice. Then it says what to do next session: for each lift the goal names, the way the user trains it now and other ways research supports; one line for each other main lift; and an action for each rule that fired. Each piece names its data, where that came from (the log, the goal, Ronnie's notes, what the user said) and the research behind it. |
 | **Layouts** | Separate phone and desktop layouts. On iPhone it installs to the home screen. |
 
 <p>
@@ -120,12 +120,16 @@ flowchart LR
    - Haiku also reads what the user said during the period, in day notes and in their own messages to Ronnie, into a few signals: pain and where, soreness, tiredness, illness, time away. Code keeps a signal only when its words are in the text it came from.
    - The report lists these signals, with Ronnie's memory notes, so the user sees what it went on.
 2. **Facts:** the numbers are computed in code. That covers sets per muscle, with half sets for secondary muscles, estimated 1RM trends, missed sessions, body weight, cardio minutes, and how far each goal target is.
-3. **Rules:** a rule table fires on those facts, for example deload, regression, stall, low volume, missed sessions, weight trend, and cardio before legs. For low volume, code also picks the exercises to add the sets with.
-4. **Words:** Claude Sonnet 4.6 phrases only the rules that fired. Low-volume advice is the exception: code writes it, a line per muscle with its options, and the model adds one sentence only when the user's note bears on them.
+3. **Rules:** a rule table fires on those facts, for example deload, regression, stall, low volume, missed sessions, weight trend, and cardio before legs. For low volume, code also picks the exercises to add the sets with: at most 2 more sets a week, none without a goal, and for a strength goal only for the muscles of a stalled goal lift.
+4. **Next session:** code works out each main lift's next session from the user's own sets. It keeps the heaviest weight and adds reps up to two more, then the smallest step for the equipment in the user's unit (double progression).
+   - **The goal's lifts:** each lift the goal names gets that plan first, then the other ways research supports. A strength goal gets heavier sets, and a lift trained once a week a second day. A first pull-up goes through the pulldown or the assisted pull-up the user already does.
+   - **What the user said:** a lift that hurt this period is held at its weight, with a lighter alternative. An injury in Ronnie's notes rules out the heavier options, and an exercise the user doesn't want is never suggested.
+   - **Text:** code writes all of it, in both languages.
+5. **Words:** Claude Sonnet 4.6 phrases only the rules that fired. Low-volume advice is the exception: code writes it, a line per muscle with its options, and the model adds one sentence only when the user's note bears on them.
    - Code checks the text before it's saved: Traditional, not Simplified, characters; punctuation; no Markdown; the user's weight unit; headline length; and that each action names every finding of its rule.
    - A failure is retried with the specific error.
    - After two failures, a code template is used.
-5. **Research:** each rule's research line comes from a table of 18 papers in [`lib/report/evidence.ts`](lib/report/evidence.ts), not from the model.
+6. **Research:** each rule's research line comes from a table of 22 papers in [`lib/report/evidence.ts`](lib/report/evidence.ts), not from the model.
 
 ## Evaluation
 
@@ -136,7 +140,7 @@ flowchart LR
 | Ronnie, fitness knowledge | 8 | The judge |
 | Ronnie, memory | 21, some across several conversations | Code checks on the saved notes, plus the judge |
 | Exercise search | 51 queries, plus 20 held out | hit@1, hit@5, MRR |
-| Weekly report | 32 scenarios | Rule checks, a grader and the judge |
+| Weekly report | 36 scenarios | Rule checks, a grader and the judge |
 | Report goal reader | 20 goal texts, run by hand | Code checks on each read |
 | Report period reader | 16 sets of notes and messages, run by hand | Code checks on each read |
 
@@ -169,7 +173,7 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
 - Types, lint and the production build, for the app and the Lambda.
 - Ronnie's tools, turn loop and grader, offline.
 - **Replays of recorded conversations** ([`evals/ronnie/replays`](evals/ronnie/replays)). The recorded model output is fed through the current code, so a fixed mistake can't come back.
-- The report's rules, goal and message reading, grader and queue behavior, offline.
+- The report's rules, goal and message reading, next-session advice, grader and queue behavior, offline.
 - The daily review's grouping by local day, its flags and its email, offline.
 - Research citations resolve, by DOI.
 - Day boundaries are right in every time zone.

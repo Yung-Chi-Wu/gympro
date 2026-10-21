@@ -8,8 +8,8 @@ import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { unitLabel } from '@/lib/report/volume'
 import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
 import { toDisplayDistance, type DistanceUnit } from '@/lib/distance-unit'
-import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, GOAL_EVIDENCE, MIN_EFFECTIVE_WEEKLY_SETS, type Source } from '@/lib/report/evidence'
-import type { BestSet, CardioFacts, ContextNote, DayFacts, Finding, FollowUp, LiftFacts, ReportFacts, ReportV3, WeekSignal } from '@/lib/report/types'
+import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, GOAL_EVIDENCE, MIN_EFFECTIVE_WEEKLY_SETS, PLAN_EVIDENCE, type PlanPart, type Source } from '@/lib/report/evidence'
+import { CODE_RULES, type BestSet, type CardioFacts, type ContextNote, type DayFacts, type Finding, type FollowUp, type LiftFacts, type ReportFacts, type ReportV3, type WeekSignal } from '@/lib/report/types'
 import { BodyMap } from './BodyMap'
 import { Sparkline } from './Sparkline'
 
@@ -27,6 +27,10 @@ import { Sparkline } from './Sparkline'
 // classes do that; from md the report looks as it did.
 
 type Data = Finding['data']
+/** Items the summary shows; the full report shows all */
+const SUMMARY_ITEMS = 3
+/** Where a plan's reason comes from (reportV3.sourceTag) */
+type SourceTag = 'goal' | 'log' | 'memory' | 'week'
 
 const STATUS_COLOR: Record<ReportV3['facts']['status'], string> = {
     progressing: 'text-emerald-700 dark:text-emerald-400',
@@ -77,9 +81,42 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
     const routineList = (s: unknown) => String(s ?? '').split(', ').join(zh ? '、' : ', ')
 
     const advised = (f: Finding | FollowUp) => t(`advised.${f.rule}`, { lift: liftName(f.data), muscle: muscle(String(f.subject ?? '')), unit })
-    const why = (f: Finding) => {
+    // A plan's set read the way its lift is logged: the assist, the reps alone, or weight x reps
+    const planFlags = (d: Data) => ({ assisted: d.how === 'assist' ? 1 : 0, bodyweight: d.how === 'reps' ? 1 : 0 })
+    const planSet = (d: Data) => setText(`${d.how === 'assist' ? d.assistKg : d.weightKg}x${d.low}`, planFlags(d))
+    /** Where each part of a plan's reason comes from, shown before it as a tag: the goal, the log, Ronnie's notes, what was said this period */
+    const planWhy = (f: Finding): React.ReactNode => {
+        const d = f.data
+        const parts: [SourceTag, string][] = []
+        if (f.rule === 'pain_hold') parts.push(['week', t('whyText.pain_hold', { date: shortDate(String(d.painDate)), source: String(d.painSource), text: String(d.painText) })])
+        if (f.rule === 'next_session') parts.push(['log', `${liftName(d)}${zh ? '：' : ': '}${t('whyText.next_session', { set: planSet(d) })}`])
+        if (f.rule === 'goal_path') {
+            if (d.path === 'pulldown') parts.push(['log', t('whyText.goalPulldown', { via: liftName({ name: String(d.viaName), nameZh: d.viaNameZh }), e1rm: weight(Number(d.proxyE1rmKg)), checkpoint: weight(Math.round(Number(d.checkpointKg))) })])
+            else if (d.path === 'start') parts.push(['log', t('whyText.goalStart', { lift: liftName(d) })])
+            else if (d.path === 'not_trained' || d.path === 'find_weight') parts.push(['log', t('whyText.goalNotTrained', { unit })])
+            else if (d.share != null && d.e1rmKg != null) parts.push(['goal', t('whyText.goal_path', { unit, best: planSet(d), e1rm: weight(Number(d.e1rmKg)), share: Math.round(Number(d.share) * 100) })])
+            else parts.push(['log', t('whyText.goalNoShare', { unit, best: planSet(d) })])
+            if (String(d.options ?? '').includes('second_day')) parts.push(['log', t('whyText.goalOnce', { unit })])
+            if (d.injury) parts.push(['memory', t('whyText.goalInjury', { text: String(d.injury), date: shortDate(String(d.injuryDate)) })])
+            if (d.dislike) parts.push(['memory', t('whyText.goalDislike', { text: String(d.dislike), date: shortDate(String(d.dislikeDate)) })])
+        }
+        return parts.map(([tag, text], i) => (
+            <span key={i}>{i > 0 && ' · '}<span className="mr-1 rounded bg-ink/5 px-1 text-[11px] font-bold text-ink/60 max-md:text-xs dark:bg-white/10 dark:text-white/60">{t(`sourceTag.${tag}`, { unit })}</span>{text}</span>
+        ))
+    }
+    /** The research behind a plan: each part it uses, with its papers; holding a lift for pain is a safety rule with none */
+    const planParts = (f: Finding): PlanPart[] => (f.rule === 'pain_hold' ? [] : (f.rule === 'goal_path' ? String(f.data.research ?? 'progress').split(',').filter(Boolean) : ['progress']) as PlanPart[])
+    const planResearch = (f: Finding): [string, Source[], PlanPart | null][] => {
+        if (f.rule === 'pain_hold') return [[t('researchText.pain_hold'), [], null]]
+        return planParts(f).map((p) => [t(`planResearch.${p}`), PLAN_EVIDENCE[p], p])
+    }
+    const why = (f: Finding): React.ReactNode => {
         const d = f.data
         switch (f.rule) {
+            case 'goal_path':
+            case 'next_session':
+            case 'pain_hold':
+                return planWhy(f)
             case 'lift_stalled': return t('whyText.lift_stalled', { lift: liftName(d), n: Number(d.flatWindows), unit, best: setText(d.best, d) })
             case 'lift_regressed': return t('whyText.lift_regressed', { lift: liftName(d), previous: setText(d.previousBest, d), best: setText(d.best, d) })
             case 'deload': return t('whyText.deload', { lifts: String(zh ? d.liftsZh : d.lifts) })
@@ -105,6 +142,10 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
             case 'lift_stalled':
             case 'lift_regressed':
                 return d.trained === 0 ? t('result.notTrained', { unit }) : t(`result.${f.rule}.${f.status}`, { now: setText(d.now, d) })
+            case 'goal_path':
+            case 'next_session':
+            case 'pain_hold':
+                return d.trained === 0 ? t('result.notTrained', { unit }) : t(`result.${f.rule === 'pain_hold' ? 'next_session' : f.rule}.${f.status}`, { now: setText(d.now, planFlags(d)) })
             case 'low_volume': return t(`result.low_volume.${f.status}`, { n: Number(d.nowPerWeek) })
             case 'missed_sessions':
                 // No cycle any more, so nothing planned to count against
@@ -121,6 +162,10 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
     const items = narrative.items
         .map((i) => ({ ...i, findings: findings.filter((f) => (i.rule ? f.rule === i.rule : f.id === i.findingId)) }))
         .filter((i) => i.findings.length)
+    // The summary shows the first 3, the most important (owner, 2026-10-20); the rest are in the full report
+    const shownItems = summary ? items.slice(0, SUMMARY_ITEMS) : items
+    /** Whether an earlier item already showed this research part in full */
+    const researchSeen = (index: number, part: PlanPart | null) => !!part && shownItems.slice(0, index).some((x) => CODE_RULES.has(x.findings[0].rule) && planParts(x.findings[0]).includes(part))
     const missed = facts.sessions.planned != null ? facts.sessions.planned - facts.sessions.done : 0
     const lowGroups = facts.muscles.filter((m) => m.status === 'low').map((m) => m.group)
     const weightWatch = watching.find((w) => w.rule === 'weight_trend')
@@ -182,7 +227,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                     <ol className={summary
                         ? 'divide-y divide-ink/10 dark:divide-white/10'
                         : 'space-y-2.5 max-md:space-y-0 max-md:divide-y max-md:divide-ink/10 max-md:dark:divide-white/10'}>
-                        {items.map((item, i) => (
+                        {shownItems.map((item, i) => (
                             <li key={item.rule ?? item.findingId} className={summary
                                 ? 'py-2.5 first:pt-0 last:pb-0'
                                 : 'space-y-2 rounded-xl border border-ink/10 p-3.5 max-md:rounded-none max-md:border-0 max-md:px-0 max-md:py-3 dark:border-white/10'}>
@@ -193,8 +238,9 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                                 {/* Written by code, one per finding: a low muscle and its options */}
                                 {!!item.lines?.length && (
                                     <ul className="mt-1.5 space-y-1 pl-[34px] text-sm leading-relaxed">
-                                        {item.lines.map((line) => (
-                                            <li key={line.label}>
+                                        {item.lines.map((line, i) => (
+                                            // A plan's options all start with "or": the label is no key
+                                            <li key={i}>
                                                 {/* In the report's language, which may not be the app's now */}
                                                 <span className="font-semibold">{line.label}</span>{/[一-鿿]/.test(line.label) ? '：' : ': '}{line.text}
                                             </li>
@@ -204,15 +250,28 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                                 {/* The reasons and research are in the full report */}
                                 {!summary && (
                                     <dl className="space-y-1 pl-[34px] text-[13px] text-ink/70 dark:text-white/70">
-                                        {item.findings.map((f) => <Reason key={f.id} tag={t('why')} tone="data">{why(f)}</Reason>)}
-                                        <Reason tag={t('research')} tone="study">
-                                            {t(`researchText.${item.findings[0].rule}`)}<Sources sources={EVIDENCE[item.findings[0].rule].sources} />
-                                        </Reason>
+                                        {/* The other lifts' reasons are one line, as their advice is one item */}
+                                        {item.findings[0].rule === 'next_session'
+                                            ? <Reason tag={t('why')} tone="data">{item.findings.map((f, j) => <span key={f.id}>{j > 0 && ' · '}{why(f)}</span>)}</Reason>
+                                            : item.findings.map((f) => <Reason key={f.id} tag={t('why')} tone="data">{why(f)}</Reason>)}
+                                        {CODE_RULES.has(item.findings[0].rule)
+                                            ? planResearch(item.findings[0]).map(([text, sources, part]) => (
+                                                // The same research again further down is one short line, not the paragraph
+                                                <Reason key={text} tag={t('research')} tone="study">{researchSeen(i, part) ? t('planResearchAgain') : text}<Sources sources={sources} /></Reason>
+                                            ))
+                                            : (
+                                                <Reason tag={t('research')} tone="study">
+                                                    {t(`researchText.${item.findings[0].rule}`)}<Sources sources={EVIDENCE[item.findings[0].rule].sources} />
+                                                </Reason>
+                                            )}
                                     </dl>
                                 )}
                             </li>
                         ))}
                     </ol>
+                )}
+                {summary && items.length > shownItems.length && (
+                    <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('nextMore', { n: items.length - shownItems.length })}</p>
                 )}
             </section>
 
@@ -591,6 +650,7 @@ function Reason({ tag, tone, children }: { tag: string; tone: 'data' | 'study'; 
 
 /** Papers, each linking to its DOI. They come from code (lib/report/evidence), never from the model. */
 function Sources({ sources }: { sources: Source[] }) {
+    if (!sources.length) return null
     return (
         <span className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">
             {' · '}
@@ -598,7 +658,7 @@ function Sources({ sources }: { sources: Source[] }) {
                 <span key={s.doi}>
                     {i > 0 && '; '}
                     <a href={`https://doi.org/${s.doi}`} target="_blank" rel="noopener noreferrer" title={`${s.title}. ${s.journal}`}
-                        className="underline decoration-dotted underline-offset-2 hover:text-ink dark:hover:text-white">{s.author} et al., {s.year}</a>
+                        className="underline decoration-dotted underline-offset-2 hover:text-ink dark:hover:text-white">{s.author}{s.organization ? '' : ' et al.'}, {s.year}</a>
                 </span>
             ))}
         </span>

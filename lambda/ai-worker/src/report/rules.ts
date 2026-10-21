@@ -20,13 +20,19 @@ const STALL_WINDOWS = 3
 const WEIGHT_WINDOWS = 4
 /** Cardio minutes before the first leg set that make it more than a warm-up (5-10 minutes is one) */
 export const CARDIO_BEFORE_LEGS_MIN = 15
+/** Sets a low muscle's advice adds at most each week: a step toward 10, not the whole gap at once (research brief, 2026-10-20) */
+export const MAX_ADD_SETS = 2
 
+// Safety first, then the lifts (the goal's before the others), then the plan, then volume (owner, 2026-10-20)
 const PRIORITY: Record<RuleId, number> = {
     deload: 100,
+    pain_hold: 90,
     lift_regressed: 70,
+    goal_path: 65,
     lift_stalled: 60,
+    next_session: 55,
+    missed_sessions: 52,
     low_volume: 50,
-    missed_sessions: 40,
     weight_trend: 30,
     // Last: the order changes lower-body strength a little, and muscle growth not at all
     cardio_first: 25,
@@ -50,7 +56,22 @@ const liftData = (l: LiftFacts) => ({
 /** Compared by reps, assist or added weight, which move in whole steps: no percentage applies */
 const byPercent = (l: LiftFacts) => !l.bodyweight && !l.assisted && !l.added
 
-export function evaluateRules(facts: ReportFacts): { findings: Finding[]; watching: Watching[] } {
+/**
+ * Whether a low muscle's sets are advice. Without a goal they aren't: the user only logs, and the
+ * muscles row still shows them (owner, 2026-10-20). For a strength goal only a muscle a stalled
+ * goal lift mainly trains, since its sets are what may move that lift. Any other goal, or one not
+ * read, keeps the advice. primaryUnitsOf gives the units an exercise mainly trains.
+ */
+function volumeAdvised(facts: ReportFacts, primaryUnitsOf?: (exerciseId: string) => string[]): (group: string) => boolean {
+    if (!facts.goal.text?.trim()) return () => false
+    const kinds = facts.goal.read?.model ? facts.goal.read.kinds : []
+    const strengthOnly = kinds.includes('strength') && !kinds.includes('muscle') && !kinds.includes('physique')
+    if (!strengthOnly) return () => true
+    const stalled = new Set(facts.lifts.filter((l) => l.goalLift && l.flatWindows >= STALL_WINDOWS).flatMap((l) => primaryUnitsOf?.(l.exerciseId) ?? []))
+    return (group) => stalled.has(group)
+}
+
+export function evaluateRules(facts: ReportFacts, primaryUnitsOf?: (exerciseId: string) => string[]): { findings: Finding[]; watching: Watching[] } {
     const findings: Finding[] = []
     const watching: Watching[] = []
     const add = (rule: RuleId, subject: string | null, data: Finding['data'], bonus = 0) =>
@@ -91,13 +112,14 @@ export function evaluateRules(facts: ReportFacts): { findings: Finding[]; watchi
     // into range, by their routines' target sets, is part of the missed-sessions finding, not a
     // volume problem. Measured against the plan, so it holds in a first report too.
     const lowFromMissing: string[] = []
+    const advised = volumeAdvised(facts, primaryUnitsOf)
     for (const m of facts.muscles) {
         const trainsIt = m.sets > 0 || (m.previousPerWeek ?? 0) > 0 || (m.missedPerWeek ?? 0) > 0
         if (m.status !== 'low' || !trainsIt || !hasTarget(m.group)) continue
         if (missedSessions && m.perWeek + (m.missedPerWeek ?? 0) >= VOLUME_RANGE.low) lowFromMissing.push(m.group)
-        else {
-            // Sets to add each period to reach the weekly minimum, so the advice has an exact number
-            const addSets = Math.ceil((VOLUME_RANGE.low * facts.period.days) / 7 - m.sets)
+        else if (advised(m.group)) {
+            // Sets to add each period toward the weekly minimum, so the advice has an exact number: at most MAX_ADD_SETS a week
+            const addSets = Math.min(Math.ceil((MAX_ADD_SETS * facts.period.days) / 7), Math.ceil((VOLUME_RANGE.low * facts.period.days) / 7 - m.sets))
             add('low_volume', m.group, { sets: m.sets, perWeek: m.perWeek, previousPerWeek: m.previousPerWeek, target: VOLUME_RANGE.low, addSets })
         }
     }
@@ -152,8 +174,9 @@ export function evaluateRules(facts: ReportFacts): { findings: Finding[]; watchi
  */
 export function followUp(previous: Finding[] | null, facts: ReportFacts, liftOf: (exerciseId: string) => LiftFacts | null): FollowUp[] {
     if (!previous?.length) return []
-    // A volume finding from before the muscles were split (legs, shoulders) has nothing to compare with now
-    return previous.filter((f) => f.rule !== 'low_volume' || hasTarget(String(f.subject))).map((f) => {
+    // A volume finding from before the muscles were split (legs, shoulders) has nothing to compare
+    // with now; holding a lift for pain has nothing to check
+    return previous.filter((f) => (f.rule !== 'low_volume' || hasTarget(String(f.subject))) && f.rule !== 'pain_hold').map((f): FollowUp => {
         const result = (status: FollowUpStatus, data: FollowUp['data'] = {}): FollowUp => ({
             id: f.id, rule: f.rule, subject: f.subject, status, data: { ...f.data, ...data },
         })
@@ -192,6 +215,16 @@ export function followUp(previous: Finding[] | null, facts: ReportFacts, liftOf:
                 const stillAgainst = f.data.direction === 'gain' ? t < 0 : t > 0
                 return result(stillAgainst ? 'not_done' : 'done', { nowKg: facts.bodyWeight.latestKg })
             }
+            case 'goal_path':
+            case 'next_session':
+            case 'pain_hold': {
+                // The lift the plan went through (a pulldown toward a first pull-up), against the plan's numbers
+                const id = typeof f.data.viaId === 'string' ? f.data.viaId : f.subject
+                const l = id ? liftOf(id) : null
+                if (!l || !l.best) return result('not_done', { trained: 0 })
+                const now = setText(l.best)
+                return result(planStatus(f.data, l.best), { now })
+            }
             case 'cardio_first': {
                 // Done when every lower-body session put the legs first; nothing to judge without one
                 const legs = facts.cardio?.legSessions ?? []
@@ -201,4 +234,22 @@ export function followUp(previous: Finding[] | null, facts: ReportFacts, liftOf:
             }
         }
     })
+}
+
+/**
+ * A plan followed up against this period's best set: done when it reached the plan's next step
+ * (the next weight, the top reps, less assist), partial when it moved toward it.
+ */
+function planStatus(d: Finding['data'], best: BestSet): FollowUpStatus {
+    const low = Number(d.low)
+    switch (d.how) {
+        case 'assist': return best.assistKg != null && best.assistKg < Number(d.assistKg) ? 'done' : best.reps > low ? 'partial' : 'not_done'
+        case 'reps': return best.reps >= Number(d.top) ? 'done' : best.reps > low ? 'partial' : 'not_done'
+        case 'load':
+        case 'load_now':
+            return d.nextKg != null && best.weightKg >= Number(d.nextKg) ? 'done'
+                : best.weightKg > Number(d.weightKg) || (best.weightKg === Number(d.weightKg) && best.reps > low) ? 'partial' : 'not_done'
+        // Not trained then, or where to start: trained now is done
+        default: return 'done'
+    }
 }
