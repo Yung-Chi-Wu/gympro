@@ -3,8 +3,9 @@ import { CARDIO_LOG_TYPES, JOINTS, LEVELS, LOG_TYPE_IDS, MUSCLE_IDS, MUSCLES, ty
 
 // The built-in exercises' attributes (muscles, stability demand, joint load, how sets are
 // logged) live in supabase/data/exercise-attributes.json, reviewed by hand. This checks
-// that file against the vocabularies and the library, and with --migration <path> writes
-// the SQL that applies it (one DO block, for the SQL Editor):
+// that file against the vocabularies and the library (evals/search/library.csv), and with
+// --migration <path> writes the SQL that applies it (one DO block, for the SQL Editor). An
+// exercise added to both files is inserted, so the library grows through this script too:
 //   npm run exercise-attributes [-- --migration supabase/migrations/<name>.sql]
 
 interface Row {
@@ -55,16 +56,19 @@ console.log(`${rows.length} exercises: every muscle in the vocabulary, every lib
 const at = process.argv.indexOf('--migration')
 if (at > 0) {
     const path = process.argv[at + 1]
-    writeFileSync(path, migration(rows, new Map(library.map(([id, , nameZh, group]) => [id, { nameZh, group }]))))
+    writeFileSync(path, migration(rows, new Map(library.map(([id, , nameZh, group, equipment]) => [id, { nameZh, group, equipment }]))))
     console.log(`Wrote ${path}`)
 }
 
 /** The SQL. Names and categories are only written where the data changes them. */
-function migration(rows: Row[], current: Map<string, { nameZh: string; group: string }>): string {
+function migration(rows: Row[], current: Map<string, { nameZh: string; group: string; equipment: string }>): string {
     const quote = (s: string) => `'${s.replace(/'/g, "''")}'`
     const array = (a: string[]) => `${quote(`{${a.join(',')}}`)}::text[]`
     const values = rows.map((r) =>
         `        -- ${r.name}\n        (${quote(r.id)}, ${array(r.primary)}, ${array(r.secondary)}, ${quote(r.stability)}, ${quote(JSON.stringify(r.jointLoad))}::jsonb, ${quote(r.logType)})`
+    ).join(',\n')
+    const inserts = rows.map((r) =>
+        `        (${quote(r.id)}, ${quote(r.name)}, ${quote(r.nameZh)}, ${quote(r.muscleGroup)}, ${quote(current.get(r.id)!.equipment)}, false)`
     ).join(',\n')
     const renames = rows.flatMap((r) => {
         const now = current.get(r.id)!
@@ -104,6 +108,17 @@ begin
     alter table exercises add constraint exercises_stability_demand_known check (stability_demand in ('low', 'medium', 'high'));
     alter table exercises drop constraint if exists exercises_log_type_known;
     alter table exercises add constraint exercises_log_type_known check (log_type in (${LOG_TYPE_IDS.map(quote).join(', ')}));
+
+    -- Built-in exercises the database doesn't have yet; one it has is left as it is
+    insert into exercises (id, name, name_zh_tw, muscle_group, equipment, is_custom)
+    values
+${inserts}
+    on conflict (id) do nothing;
+    select count(*) into v_missing from exercises
+    where id = any (array[${rows.map((r) => quote(r.id)).join(', ')}]::uuid[]);
+    if v_missing <> ${rows.length} then
+        raise exception 'the library has % of its ${rows.length} exercises after adding the new ones', v_missing;
+    end if;
 
     update exercises e
     set primary_muscles = v.primary_muscles,

@@ -13,7 +13,7 @@
   { "id": "partial-lateral-raises", "kind": "partial", "query": "lateral raises", "relevant": ["Lateral Raise", "Cable Lateral Raise", "Machine Lateral Raise"] },
   { "id": "partial-word-order", "kind": "partial", "query": "incline dumbbell press", "relevant": ["Incline Dumbbell Bench Press"] },
   { "id": "partial-bench-zh", "kind": "partial", "query": "臥推", "relevant": ["Barbell Bench Press", "Dumbbell Bench Press", "Smith Machine Bench Press"] },
-  { "id": "partial-squat-zh", "kind": "partial", "query": "深蹲", "relevant": ["Barbell Back Squat", "Front Squat", "Goblet Squat", "Bodyweight Squat", "Smith Machine Squat"] },
+  { "id": "partial-squat-zh", "kind": "partial", "query": "深蹲", "relevant": ["Barbell Back Squat", "Front Squat", "Goblet Squat", "Bodyweight Squat", "Smith Machine Squat", "Belt Squat"] },
   { "id": "partial-pull-up-space", "kind": "partial", "query": "pull up", "relevant": ["Pull-up"] },
   { "id": "partial-bulgarian", "kind": "partial", "query": "bulgarian squat", "relevant": ["Bulgarian Split Squat"] },
 
@@ -36,12 +36,12 @@
   { "id": "cross-barbell-row", "kind": "cross-language", "query": "槓鈴 row", "relevant": ["Barbell Row"] },
   { "id": "cross-dumbbell-bench", "kind": "cross-language", "query": "dumbbell 臥推", "relevant": ["Dumbbell Bench Press"] },
   { "id": "cross-goblet", "kind": "cross-language", "query": "goblet 深蹲", "relevant": ["Goblet Squat"] },
-  { "id": "cross-shoulder-press-zh", "kind": "cross-language", "query": "肩推", "relevant": ["Overhead Press", "Dumbbell Shoulder Press", "Machine Shoulder Press", "Arnold Press"] },
+  { "id": "cross-shoulder-press-zh", "kind": "cross-language", "query": "肩推", "relevant": ["Overhead Press", "Dumbbell Shoulder Press", "Machine Shoulder Press", "Arnold Press", "Smith Machine Shoulder Press"] },
   { "id": "cross-leg-press-zh", "kind": "cross-language", "query": "腿推", "relevant": ["Leg Press"] },
   { "id": "partial-front-squat-zh", "kind": "partial", "query": "前蹲", "relevant": ["Front Squat"] },
 
-  { "id": "desc-upper-chest-zh", "kind": "descriptive", "query": "練上胸的動作", "relevant": ["Incline Dumbbell Bench Press", "Incline Barbell Bench Press", "Low Cable Fly"] },
-  { "id": "desc-upper-chest-en", "kind": "descriptive", "query": "upper chest exercise", "relevant": ["Incline Dumbbell Bench Press", "Incline Barbell Bench Press", "Low Cable Fly"] },
+  { "id": "desc-upper-chest-zh", "kind": "descriptive", "query": "練上胸的動作", "relevant": ["Incline Dumbbell Bench Press", "Incline Barbell Bench Press", "Low Cable Fly", "Incline Machine Chest Press"] },
+  { "id": "desc-upper-chest-en", "kind": "descriptive", "query": "upper chest exercise", "relevant": ["Incline Dumbbell Bench Press", "Incline Barbell Bench Press", "Low Cable Fly", "Incline Machine Chest Press"] },
   { "id": "desc-rear-delts-zh", "kind": "descriptive", "query": "後三角", "relevant": ["Rear Delt Fly", "Cable Rear Delt Fly", "Rear Delt Machine", "Face Pull"] },
   { "id": "desc-hamstrings", "kind": "descriptive", "query": "hamstrings", "relevant": ["Romanian Deadlift", "Leg Curl", "Nordic Hamstring Curl", "Stiff Leg Deadlift", "Good Morning", "Glute Ham Raise"] },
   { "id": "desc-lats-zh", "kind": "descriptive", "query": "練背闊肌", "relevant": ["Lat Pulldown", "Pull-up", "Chin-up", "Straight-Arm Pulldown", "Close Grip Lat Pulldown", "Reverse Grip Lat Pulldown", "Assisted Pull-up"] },
@@ -49,5 +49,10 @@
   { "id": "desc-bodyweight-back", "kind": "descriptive", "query": "bodyweight back exercise", "relevant": ["Pull-up", "Chin-up", "Inverted Row", "Back Extension"] },
   { "id": "desc-cardio-machine", "kind": "descriptive", "query": "有氧器材", "relevant": ["Treadmill", "Elliptical", "Stationary Bike", "Rowing Machine", "Stair Climber"] },
   { "id": "desc-anti-rotation", "kind": "descriptive", "query": "core anti-rotation", "relevant": ["Pallof Press"] },
-  { "id": "desc-glute-isolation", "kind": "descriptive", "query": "臀部孤立訓練", "relevant": ["Cable Glute Kickback", "Hip Abduction Machine", "Donkey Kick", "Glute Bridge", "Frog Pump"] }
+  { "id": "desc-glute-isolation", "kind": "descriptive", "query": "臀部孤立訓練", "relevant": ["Cable Glute Kickback", "Hip Abduction Machine", "Donkey Kick", "Glute Bridge", "Frog Pump"] },
+  { "id": "exact-single-arm-machine-row-zh", "kind": "exact", "query": "單臂器械划船", "relevant": ["Single-Arm Machine Row"] },
+  { "id": "ronnie-single-arm-machine-row", "kind": "cross-language", "query": "單臂器械划船 single arm machine row", "relevant": ["Single-Arm Machine Row"] },
+  { "id": "partial-single-arm-row-zh", "kind": "partial", "query": "單臂划船", "relevant": ["Single-Arm Dumbbell Row", "Single-Arm Machine Row", "Single-Arm Cable Row"] },
+  { "id": "exact-belt-squat-en", "kind": "exact", "query": "belt squat", "relevant": ["Belt Squat"] },
+  { "id": "alias-assisted-dip-zh", "kind": "alias", "query": "輔助撐體", "relevant": ["Assisted Dip"] }
 ]

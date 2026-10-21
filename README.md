@@ -17,7 +17,7 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
   - Code writes every line that states a fact: memory receipts, plan summaries, corrections.
   - A reply that contradicts today's log is caught before it's shown.
 - **Evals decide what ships.**
-  - 71 scripted conversations against a fixture user, plus 66 search queries and 32 report scenarios.
+  - 71 scripted conversations against a fixture user, plus 71 search queries and 32 report scenarios.
   - Graded by code checks and an LLM judge.
   - Every run is recorded in the repo, and the model for each feature was chosen by eval.
   - Mistakes found in evals are replayed in CI on every pull request, at no cost.
@@ -35,7 +35,7 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
 |---|---|
 | **Log** | One set table for strength and cardio, with 8 log types: weight × reps, bodyweight plus added weight, assisted, timed, treadmill, machine level, rower, time only. Units are per exercise (kg or lb, km or mi). There is also a daily note and body weight. |
 | **Ronnie** | A chat coach. *"My elbow hurts, what instead of pushdowns?"*, *"What's left today?"*, *"Plan me a 4-day week."* It remembers injuries, likes and dislikes, equipment and schedule across conversations. |
-| **Coach G** | The user answers a few questions and gets a week of routines built from a 148-exercise library, rated for muscles and joint load. |
+| **Coach G** | The user answers a few questions and gets a week of routines built from a 155-exercise library, rated for muscles and joint load. |
 | **Weekly report** | Generated when the user's training period ends, in their time zone. It shows the status, the key numbers, follow-up on last period's advice, and an action for each rule that fired. Each action names its data and the research behind it. |
 | **Layouts** | Separate phone and desktop layouts. On iPhone it installs to the home screen. |
 
@@ -135,7 +135,7 @@ flowchart LR
 | Ronnie, held out | 5 | The same. Run only for acceptance. |
 | Ronnie, fitness knowledge | 8 | The judge |
 | Ronnie, memory | 21, some across several conversations | Code checks on the saved notes, plus the judge |
-| Exercise search | 46 queries, plus 20 held out | hit@1, hit@5, MRR |
+| Exercise search | 51 queries, plus 20 held out | hit@1, hit@5, MRR |
 | Weekly report | 32 scenarios | Rule checks, a grader and the judge |
 | Report goal reader | 20 goal texts, run by hand | Code checks on each read |
 | Report period reader | 16 sets of notes and messages, run by hand | Code checks on each read |
