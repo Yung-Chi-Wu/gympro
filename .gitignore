@@ -69,3 +69,4 @@ evals/ronnie/.cache/
 
 # Git worktrees made by Claude Code agents, each a checkout of another branch
 .claude/worktrees/
+evals/knowledge/.cache/

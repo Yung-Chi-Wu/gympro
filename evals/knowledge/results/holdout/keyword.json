@@ -1,0 +1,316 @@
+{
+  "variant": "keyword",
+  "summary": {
+    "hit1": 0.76,
+    "hit5": 0.88,
+    "mrr": 0.8079999999999999
+  },
+  "results": [
+    {
+      "id": "h-rest-days-zh",
+      "kind": "colloquial",
+      "query": "每天都練同一個部位可以嗎",
+      "rank": null,
+      "top5": [
+        "ramos-campo-2024-split-full-body",
+        "schumann-2022-interference-strength-hypertrophy-power",
+        "rantila-2025-individual-response",
+        "varovic-2025-long-length",
+        "eddens-2018-order"
+      ]
+    },
+    {
+      "id": "h-plateau-zh",
+      "kind": "colloquial",
+      "query": "臥推卡關好幾週了怎麼辦",
+      "rank": null,
+      "top5": [
+        "ogasawara-2013-detraining"
+      ]
+    },
+    {
+      "id": "h-pre-workout-en",
+      "kind": "direct",
+      "query": "how much caffeine should I take before training",
+      "rank": 2,
+      "top5": [
+        "grgic-2018-caffeine-strength",
+        "guest-2021-caffeine",
+        "bull-2020-who-guidelines",
+        "morton-2018-protein-daily",
+        "murlasits-2018-order"
+      ]
+    },
+    {
+      "id": "h-older-zh",
+      "kind": "direct",
+      "query": "我媽六十幾歲可以開始練重量嗎",
+      "rank": null,
+      "top5": [
+        "eddens-2018-order",
+        "morze-2021-body-composition",
+        "willis-2012-body-composition",
+        "refalo-2025-sex-differences",
+        "roberts-2020-sex-differences"
+      ]
+    },
+    {
+      "id": "h-pregnant-zh",
+      "kind": "direct",
+      "query": "懷孕可以繼續重訓嗎",
+      "rank": 1,
+      "top5": [
+        "prevett-2025-pregnancy",
+        "keogh-2017-lifting-injury-rates",
+        "mottola-2018-pregnancy"
+      ]
+    },
+    {
+      "id": "h-kids-zh",
+      "kind": "myth",
+      "query": "小孩練重量會長不高嗎",
+      "rank": 1,
+      "top5": [
+        "malina-2006-youth",
+        "murphy-2022-energy-deficit",
+        "eddens-2018-order",
+        "morze-2021-body-composition",
+        "willis-2012-body-composition"
+      ]
+    },
+    {
+      "id": "h-shoulder-zh",
+      "kind": "direct",
+      "query": "肩膀痛要怎麼練",
+      "rank": 1,
+      "top5": [
+        "tena-portilla-2026-shoulder-pain",
+        "zhang-2026-shoulder-pain"
+      ]
+    },
+    {
+      "id": "h-knee-oa-zh",
+      "kind": "direct",
+      "query": "膝蓋退化還能運動嗎",
+      "rank": 1,
+      "top5": [
+        "lawford-2024-knee-osteoarthritis",
+        "hartmann-2013-deep-squat-knees",
+        "alentorn-geli-2017-running-knees",
+        "burfield-2023-running-knees",
+        "lauersen-2014-injury-prevention"
+      ]
+    },
+    {
+      "id": "h-running-knee-en",
+      "kind": "myth",
+      "query": "will running ruin my knees",
+      "rank": 1,
+      "top5": [
+        "alentorn-geli-2017-running-knees",
+        "burfield-2023-running-knees",
+        "hartmann-2013-deep-squat-knees",
+        "lawford-2024-knee-osteoarthritis",
+        "llanos-lagos-2024-endurance-athletes-running-economy"
+      ]
+    },
+    {
+      "id": "h-depression-zh",
+      "kind": "direct",
+      "query": "重訓對憂鬱有幫助嗎",
+      "rank": 1,
+      "top5": [
+        "gordon-2018-depression",
+        "henselmans-2022-carbs-performance",
+        "kassiano-2022-exercise-variation",
+        "keogh-2017-lifting-injury-rates"
+      ]
+    },
+    {
+      "id": "h-carbs-zh",
+      "kind": "direct",
+      "query": "練前要吃澱粉嗎",
+      "rank": 2,
+      "top5": [
+        "warneke-2024-warm-up",
+        "henselmans-2022-carbs-performance",
+        "wilson-2025-warm-up"
+      ]
+    },
+    {
+      "id": "h-meals-zh",
+      "kind": "myth",
+      "query": "少量多餐比較好嗎",
+      "rank": 1,
+      "top5": [
+        "schoenfeld-2015-meal-frequency",
+        "peos-2021-diet-breaks",
+        "helms-2023-energy-surplus",
+        "willis-2012-body-composition",
+        "baz-valle-2022-volume"
+      ]
+    },
+    {
+      "id": "h-cheat-zh",
+      "kind": "direct",
+      "query": "減脂中間可以休息一週吃回來嗎",
+      "rank": 5,
+      "top5": [
+        "ogasawara-2013-detraining",
+        "bell-2023-deload",
+        "coleman-2024-deload",
+        "rogerson-2024-deload",
+        "poon-2025-diet-breaks"
+      ]
+    },
+    {
+      "id": "h-bulk-zh",
+      "kind": "direct",
+      "query": "增肌期要多吃多少熱量",
+      "rank": 1,
+      "top5": [
+        "slater-2019-surplus",
+        "helms-2023-energy-surplus",
+        "murphy-2022-energy-deficit",
+        "trommelen-2023-protein-meal",
+        "morton-2018-protein-daily"
+      ]
+    },
+    {
+      "id": "h-cut-rate-en",
+      "kind": "direct",
+      "query": "how fast should I lose weight without losing muscle",
+      "rank": 1,
+      "top5": [
+        "garthe-2011-weight-loss-rate",
+        "helms-2014-contest-prep",
+        "bull-2020-who-guidelines",
+        "haugen-2023-machines-free-weights",
+        "morton-2018-protein-daily"
+      ]
+    },
+    {
+      "id": "h-collagen-zh",
+      "kind": "direct",
+      "query": "膠原蛋白對增肌有用嗎",
+      "rank": 1,
+      "top5": [
+        "bischof-2024-collagen",
+        "slater-2019-surplus",
+        "devries-2018-protein-kidney",
+        "hudson-2020-protein-energy-restriction",
+        "morton-2018-protein-daily"
+      ]
+    },
+    {
+      "id": "h-bfr-zh",
+      "kind": "direct",
+      "query": "綁帶加壓訓練有效嗎",
+      "rank": 1,
+      "top5": [
+        "oborn-2025-blood-flow-restriction",
+        "dupuy-2018-recovery-methods",
+        "edwards-2023-blood-pressure",
+        "fragala-2019-older-adults",
+        "o-donoghue-2021-body-composition"
+      ]
+    },
+    {
+      "id": "h-unilateral-zh",
+      "kind": "direct",
+      "query": "單邊訓練比較好嗎",
+      "rank": 1,
+      "top5": [
+        "kassiano-2025-unilateral-bilateral",
+        "oborn-2025-blood-flow-restriction",
+        "peos-2021-diet-breaks",
+        "baz-valle-2022-volume",
+        "schoenfeld-2017-volume"
+      ]
+    },
+    {
+      "id": "h-genetics-zh",
+      "kind": "colloquial",
+      "query": "我是不是天生練不大",
+      "rank": 1,
+      "top5": [
+        "rantila-2025-individual-response",
+        "varovic-2025-long-length"
+      ]
+    },
+    {
+      "id": "h-who-zh",
+      "kind": "direct",
+      "query": "一週運動多少才健康",
+      "rank": 1,
+      "top5": [
+        "bull-2020-who-guidelines",
+        "garber-2011-guidelines",
+        "lauersen-2014-injury-prevention",
+        "devries-2018-protein-kidney",
+        "gordon-2017-anxiety"
+      ]
+    },
+    {
+      "id": "h-concurrent-fat-zh",
+      "kind": "direct",
+      "query": "想減脂該做有氧還是重訓",
+      "rank": 1,
+      "top5": [
+        "morze-2021-body-composition",
+        "willis-2012-body-composition",
+        "o-donoghue-2021-body-composition",
+        "eddens-2018-order",
+        "schoenfeld-2014-fasted-cardio"
+      ]
+    },
+    {
+      "id": "h-tendon-zh",
+      "kind": "direct",
+      "query": "跟腱炎要休息還是繼續練",
+      "rank": 1,
+      "top5": [
+        "challoumas-2023-tendinopathy",
+        "poon-2025-diet-breaks",
+        "singer-2024-rest",
+        "bell-2023-deload",
+        "byrne-2018-diet-breaks"
+      ]
+    },
+    {
+      "id": "h-alcohol-en",
+      "kind": "direct",
+      "query": "does drinking beer after the gym kill gains",
+      "rank": 1,
+      "top5": [
+        "lakicevic-2019-alcohol",
+        "latella-2024-rate-of-gains",
+        "eddens-2018-order",
+        "damas-2018-doms",
+        "murlasits-2018-order"
+      ]
+    },
+    {
+      "id": "h-1rm-zh",
+      "kind": "direct",
+      "query": "怎麼估自己的最大重量",
+      "rank": 1,
+      "top5": [
+        "reynolds-2006-e1rm",
+        "schoenfeld-2017-load",
+        "halperin-2022-rir-accuracy",
+        "llanos-lagos-2024-endurance-athletes-running-performance",
+        "llanos-lagos-2026-endurance-athletes-cycling"
+      ]
+    },
+    {
+      "id": "h-pullup-zh",
+      "kind": "colloquial",
+      "query": "一下引體向上都拉不起來怎麼練",
+      "rank": 1,
+      "top5": [
+        "johnson-2009-pull-up"
+      ]
+    }
+  ]
+}

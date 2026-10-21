@@ -47,6 +47,10 @@ jobs:
         run: npm run lint
       - name: Research citations resolve
         run: npm run check:evidence
+      - name: Ronnie's knowledge notes are complete, their DOIs resolve, and keyword search finds them
+        run: |
+          npm run check:knowledge
+          npm run eval:knowledge -- keyword --min-hit5 0.9
       - name: Day boundaries in every time zone
         run: npm run check:time-zone
       - name: What a user types has the same limits in the app and the tables
