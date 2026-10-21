@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { JOINT_LABELS, type Joint } from '@/lib/exercise-attributes'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { unitLabel } from '@/lib/report/volume'
 import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
 import { toDisplayDistance, type DistanceUnit } from '@/lib/distance-unit'
 import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, GOAL_EVIDENCE, MIN_EFFECTIVE_WEEKLY_SETS, type Source } from '@/lib/report/evidence'
-import type { BestSet, CardioFacts, DayFacts, Finding, FollowUp, LiftFacts, ReportFacts, ReportV3 } from '@/lib/report/types'
+import type { BestSet, CardioFacts, ContextNote, DayFacts, Finding, FollowUp, LiftFacts, ReportFacts, ReportV3, WeekSignal } from '@/lib/report/types'
 import { BodyMap } from './BodyMap'
 import { Sparkline } from './Sparkline'
 
@@ -284,6 +285,11 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                             )}
                             {weightWatch && <WatchNote label={`${t('section.watching')}${zh ? '：' : ': '}`}>{t('weightWatch', { direction: String(weightWatch.data.direction), n: Number(weightWatch.data.periods), needed: Number(weightWatch.data.needed), unit })}</WatchNote>}
                         </Row>
+                        {facts.context && (
+                            <Row {...row('context')} title={t('context.title')} take={null}>
+                                <ContextDetail facts={facts} unit={unit} />
+                            </Row>
+                        )}
                         {findings.length > 0 && (
                             <Row {...row('basis')} title={t('section.basis')} take={String(findings.length)}>
                                 {findings.map((f) => (
@@ -455,6 +461,69 @@ function GoalDetail(props: GoalSectionProps) {
             <ul className="list-disc space-y-1 pl-4">
                 {items.map(([text, sources]) => <li key={text}>{text}{sources && <Sources sources={sources} />}</li>)}
             </ul>
+        </div>
+    )
+}
+
+/** Ronnie's notes in the order they matter to training: active injuries first, healed ones last */
+function noteOrder(n: ContextNote) {
+    if (n.kind === 'injury') return n.state === 'active' ? 0 : 6
+    if (n.kind === 'exercise') return n.state === 'dislike' ? 3 : 4
+    return { equipment: 1, schedule: 2, other: 5 }[n.kind]
+}
+
+/**
+ * The full report's closed row of what it went on besides the log's numbers: the goal, Ronnie's
+ * notes and what the user said this period (report.facts.context), so a wrong read is seen and
+ * told to Ronnie. Shown only in reports that read them.
+ */
+function ContextDetail({ facts, unit }: { facts: ReportFacts; unit: 'week' | 'cycle' }) {
+    const t = useTranslations('reportV3.context')
+    // All labels here are the app's, so the joints and quotes follow its language, not the report's
+    const zh = useLocale() === 'zh-TW'
+    if (!facts.context) return null
+    const { memory, week } = facts.context
+    const notes = [...memory].sort((a, b) => noteOrder(a) - noteOrder(b))
+    const joint = (j: string) => JOINT_LABELS[j as Joint]?.[zh ? 'zh' : 'en'] ?? j
+    const said = (s: WeekSignal) => (s.kind === 'pain' && s.joint ? t('painAt', { joint: joint(s.joint) }) : t(`kinds.${s.kind}`))
+    const quote = (text: string) => (zh ? `「${text}」` : `"${text}"`)
+    const dim = 'text-ink/45 dark:text-white/45'
+    const head = 'font-semibold text-ink dark:text-white'
+    return (
+        <div className="space-y-3 text-[13px] text-ink/70 dark:text-white/70">
+            <dl className="grid grid-cols-[88px_1fr] gap-x-2.5 gap-y-2.5">
+                <dt className={head}>{t('goal')}</dt>
+                <dd>{facts.goal.text ?? t('noGoal')}</dd>
+                <dt className={head}>{t('memory')}</dt>
+                <dd>
+                    {notes.length ? (
+                        <ul className="space-y-0.5">
+                            {notes.map((n) => (
+                                <li key={`${n.kind}:${n.subject ?? ''}`}>
+                                    {n.text}
+                                    <span className={dim}>{n.kind === 'injury' && n.state === 'resolved' ? ` · ${t('resolved')}` : ''} · {shortDate(n.date)}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : t('noMemory')}
+                </dd>
+                <dt className={head}>{t('week', { unit })}</dt>
+                <dd>
+                    {week.failed ? t('weekFailed', { unit }) : week.signals.length ? (
+                        <ul className="space-y-0.5">
+                            {week.signals.map((s) => (
+                                <li key={`${s.date}:${s.kind}:${s.joint ?? s.exerciseId ?? ''}`}>
+                                    <span className={head}>{shortDate(s.date)} {said(s)}</span>{zh ? '：' : ': '}{quote(s.text)}
+                                    <span className={dim}> · {s.source === 'note' ? t('sourceNote') : t('sourceRonnie')}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : week.texts ? t('weekNone', { n: week.texts }) : t('weekEmpty', { unit })}
+                </dd>
+                <dt className={head}>{t('log')}</dt>
+                <dd>{t('logText', { n: facts.bodyWeight.series.length, unit })}</dd>
+            </dl>
+            <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('fix', { unit })}</p>
         </div>
     )
 }

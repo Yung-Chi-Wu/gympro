@@ -2,9 +2,11 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { addDays, daysBetween } from '../../../../lib/periods'
 import { SUGGESTED_NAMES } from '../../../../lib/report/volume'
 import { isCardio, logTypeOf } from '../../../../lib/set-log'
+import { isMemoryKind } from '../../../../lib/ronnie/memory'
 import { timeZoneOf } from '../../../../lib/time-zone'
 import { WINDOWS } from './facts'
-import type { ExerciseInfo, Finding, GoalRead, LoggedSet, ReportInputs, ScheduledDay } from './types'
+import type { ContextNote, ExerciseInfo, Finding, GoalRead, LoggedSet, ReportInputs, ScheduledDay } from './types'
+import type { WeekText } from './week'
 
 // Reads what the report needs from the database and turns it into ReportInputs.
 // Dates become the user's local dates: the period is defined in their time zone,
@@ -46,6 +48,8 @@ export async function fetchReportInputs(
     inputs: ReportInputs; language: string; weightUnit: 'kg' | 'lb'; distanceUnit: 'km' | 'mi'
     /** For reading the goal (goal.ts): the library's exercises, and the read the previous report made */
     library: ExerciseInfo[]; previousGoal: GoalRead | null
+    /** For reading the period (week.ts): what the user typed to Ronnie in it. Not part of the inputs, so no message is saved with the report */
+    messages: WeekText[]
 }> {
     const days = daysBetween(periodStart, periodEnd) + 1
     const lookbackStart = addDays(periodStart, -(WINDOWS - 1) * days)
@@ -104,22 +108,25 @@ export async function fetchReportInputs(
 
     const schedule = await fetchSchedule(supabase, userId, periodStart, days)
     const plannedIds = (schedule ?? []).flatMap((d) => d.plan.map((p) => p.exerciseId))
-    const [exercises, { weighIns, bodyFat }, routineLeads, previous, notes, library] = await Promise.all([
+    const [exercises, { weighIns, bodyFat }, routineLeads, previous, notes, library, memory, messages] = await Promise.all([
         fetchExercises(supabase, [...new Set([...sets.map((s) => s.exerciseId), ...plannedIds])]),
         fetchWeighIns(supabase, userId, utcFrom, utcTo, localDate, lookbackStart, periodEnd),
         fetchRoutineLeads(supabase, userId),
         fetchPrevious(supabase, userId, periodStart),
         fetchDayNotes(supabase, userId, periodStart, periodEnd),
         fetchLibrary(supabase),
+        fetchMemory(supabase, userId, localDate),
+        fetchMessages(supabase, userId, periodStart, periodEnd),
     ])
 
     return {
-        inputs: { periodStart, periodEnd, sets, exercises, schedule, weighIns, bodyFat, goal: profile?.training_goal ?? null, routineLeads, previousFindings: previous.findings, notes },
+        inputs: { periodStart, periodEnd, sets, exercises, schedule, weighIns, bodyFat, goal: profile?.training_goal ?? null, routineLeads, previousFindings: previous.findings, notes, memory },
         language: profile?.language ?? 'en',
         weightUnit: profile?.weight_unit === 'lb' ? 'lb' : 'kg',
         distanceUnit: profile?.distance_unit === 'mi' ? 'mi' : 'km',
         library,
         previousGoal: previous.goal,
+        messages,
     }
 }
 
@@ -230,6 +237,37 @@ async function fetchDayNotes(supabase: SupabaseClient, userId: string, periodSta
         .order('note_date')
     if (error) throw new Error(`Failed to fetch day notes: ${error.message}`)
     return (data ?? []).map((n) => ({ date: n.note_date, note: n.note }))
+}
+
+/** Ronnie's notes (lib/ronnie/memory.ts), resolved injuries included: what the user told Ronnie to keep */
+export async function fetchMemory(supabase: SupabaseClient, userId: string, localDate: (iso: string) => string): Promise<ContextNote[]> {
+    const { data, error } = await supabase
+        .from('ronnie_memories')
+        .select('kind, subject, state, note, updated_at')
+        .eq('user_id', userId)
+        .order('updated_at')
+    if (error) throw new Error(`Failed to fetch Ronnie's notes: ${error.message}`)
+    return (data ?? []).flatMap((r) => isMemoryKind(r.kind)
+        ? [{ kind: r.kind, subject: r.subject, state: r.state, text: r.note, date: localDate(r.updated_at) }]
+        : [])
+}
+
+/**
+ * What the user typed to Ronnie on each day of the period: the chat's own lines, not Ronnie's
+ * replies or the app's events. A day the user cleared has none. Already a local date, as Ronnie saves it.
+ */
+export async function fetchMessages(supabase: SupabaseClient, userId: string, periodStart: string, periodEnd: string): Promise<WeekText[]> {
+    const { data, error } = await supabase
+        .from('ronnie_conversations')
+        .select('conversation_date, display')
+        .eq('user_id', userId)
+        .gte('conversation_date', periodStart)
+        .lte('conversation_date', periodEnd)
+        .order('conversation_date')
+    if (error) throw new Error(`Failed to fetch Ronnie's conversations: ${error.message}`)
+    return (data ?? []).flatMap((c) => (Array.isArray(c.display) ? c.display as { kind?: unknown; text?: unknown }[] : [])
+        .filter((d) => d.kind === 'user' && typeof d.text === 'string' && d.text.trim())
+        .map((d) => ({ date: c.conversation_date, source: 'ronnie' as const, text: String(d.text) })))
 }
 
 /** The previous report's findings, if it was a version 3 report, and the goal it read. */

@@ -637,6 +637,31 @@
             "methodAssisted": "看輔助引體：拉起的重量是體重減掉輔助，輔助減到 0 就做到了。",
             "methodWeight": "體重看每{unit, select, week {週} other {輪}}的平均。減重時，研究建議每週 0.5–1%。",
             "methodFocus": "體態的重點部位，看每週的組數。"
+        },
+        "context": {
+            "title": "週報參考了這些",
+            "goal": "目標",
+            "noGoal": "沒寫目標",
+            "memory": "Ronnie 記得",
+            "noMemory": "Ronnie 還沒記下什麼",
+            "resolved": "已好",
+            "week": "這{unit, select, week {週} other {輪}}說的",
+            "weekNone": "讀了 {n} 則，沒有提到痛、痠、累、生病或沒空",
+            "weekEmpty": "這{unit, select, week {週} other {輪}}沒有每日筆記，也沒有跟 Ronnie 的對話",
+            "weekFailed": "這次沒讀到這{unit, select, week {週} other {輪}}說的話",
+            "kinds": {
+                "pain": "痛",
+                "sore": "痠",
+                "tired": "累",
+                "sick": "生病",
+                "away": "沒空或外出"
+            },
+            "painAt": "{joint}痛",
+            "sourceNote": "每日筆記",
+            "sourceRonnie": "跟 Ronnie 說",
+            "log": "紀錄",
+            "logText": "{n} {unit, select, week {週} other {輪}}的組數、課表、體重、每日筆記、上一份週報",
+            "fix": "記憶有錯，跟 Ronnie 說就好，例如「膝蓋好了」。這{unit, select, week {週} other {輪}}說的話只用在這份週報。"
         }
     }
 }

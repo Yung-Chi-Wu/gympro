@@ -4,6 +4,7 @@ import { analyze } from './report/analyze'
 import { fetchReportInputs } from './report/fetch'
 import { generateNarrative, NARRATIVE_MODEL } from './report/narrative'
 import { GOAL_READER_MODEL, readGoal } from './report/goal'
+import { readWeek, WEEK_READER_MODEL, type WeekText } from './report/week'
 import { getClaudeClient } from './claude'
 import { errorText, recordTrace, usageOfError } from '../../../lib/ai/trace'
 import { periodDays } from '../../../lib/periods'
@@ -48,26 +49,11 @@ async function processMessage(record: SQSRecord, deadline: number): Promise<void
   }
 
   try {
-    const { inputs, language, weightUnit, distanceUnit, library, previousGoal } = await fetchReportInputs(supabase, userId, periodStart, periodEnd)
+    const { inputs, language, weightUnit, distanceUnit, library, previousGoal, messages } = await fetchReportInputs(supabase, userId, periodStart, periodEnd)
 
-    // The goal, read once per text (report/goal.ts); a goal that can't be read leaves the report without it
-    const goalStarted = Date.now()
-    const logged = new Set(inputs.sets.map((s) => s.exerciseId))
-    const { read: goalRead, call: goalCall } = await readGoal(await getClaudeClient(), inputs.goal, {
-      previous: previousGoal, own: inputs.exercises.filter((e) => logged.has(e.id)), library, weightUnit, deadline,
-    })
-    inputs.goalRead = goalRead
-    if (goalCall) {
-      await recordTrace(supabase, {
-        userId, feature: 'report', model: GOAL_READER_MODEL, servedModel: goalCall.model, status: goalCall.error ? 'error' : 'ok', error: goalCall.error,
-        latencyMs: Date.now() - goalStarted, usage: [goalCall.usage], input: { goal: inputs.goal, prompt: goalCall.prompt }, output: goalCall.error ? undefined : { read: goalRead },
-      })
-    }
-
-    // Code decides every number and which rules fire; the model writes the headline and advice
-    const analysis = analyze(inputs)
-    // Working sets: a week of treadmill sets alone has nothing for a strength report to compare
-    const totalSets = analysis.facts.totalSets.now
+    // Working sets: a week of treadmill sets alone has nothing for a strength report to compare.
+    // Counted before anything is read, so a report that isn't written pays for no read.
+    const totalSets = analyze(inputs).facts.totalSets.now
     if (totalSets < MINIMUM_SETS_FOR_ANALYSIS) {
       console.log(
         `Skipping AI analysis for user ${userId}: only ${totalSets} sets logged (minimum ${MINIMUM_SETS_FOR_ANALYSIS})`
@@ -75,6 +61,36 @@ async function processMessage(record: SQSRecord, deadline: number): Promise<void
       await saveInsufficientDataStatus(supabase, request, totalSets, MINIMUM_SETS_FOR_ANALYSIS)
       return
     }
+
+    // Read side by side: the goal, once per text (report/goal.ts), and what the user said this
+    // period, in day notes and to Ronnie (report/week.ts). Either can fail and leave the report without it.
+    const client = await getClaudeClient()
+    const logged = new Set(inputs.sets.map((s) => s.exerciseId))
+    const own = inputs.exercises.filter((e) => logged.has(e.id))
+    const texts: WeekText[] = [...inputs.notes.map((n) => ({ date: n.date, source: 'note' as const, text: n.note })), ...messages]
+      .sort((a, b) => a.date.localeCompare(b.date))
+    const readStarted = Date.now()
+    const [goal, week] = await Promise.all([
+      readGoal(client, inputs.goal, { previous: previousGoal, own, library, weightUnit, deadline }).then((r) => ({ ...r, ms: Date.now() - readStarted })),
+      readWeek(client, texts, { own, deadline }).then((r) => ({ ...r, ms: Date.now() - readStarted })),
+    ])
+    inputs.goalRead = goal.read
+    inputs.weekRead = week.read
+    if (goal.call) {
+      await recordTrace(supabase, {
+        userId, feature: 'report', model: GOAL_READER_MODEL, servedModel: goal.call.model, status: goal.call.error ? 'error' : 'ok', error: goal.call.error,
+        latencyMs: goal.ms, usage: [goal.call.usage], input: { goal: inputs.goal, prompt: goal.call.prompt }, output: goal.call.error ? undefined : { read: goal.read },
+      })
+    }
+    if (week.call) {
+      await recordTrace(supabase, {
+        userId, feature: 'report', model: WEEK_READER_MODEL, servedModel: week.call.model, status: week.call.error ? 'error' : 'ok', error: week.call.error,
+        latencyMs: week.ms, usage: [week.call.usage], input: { periodStart, periodEnd, prompt: week.call.prompt }, output: week.call.error ? undefined : { read: week.read },
+      })
+    }
+
+    // Code decides every number and which rules fire; the model writes the headline and advice
+    const analysis = analyze(inputs)
 
     const started = Date.now()
     // The day notes go in as their own field, lined up with each day's plan, not only inside the brief

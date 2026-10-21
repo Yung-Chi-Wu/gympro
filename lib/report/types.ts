@@ -4,6 +4,7 @@
 // them in plain language (narrative.ts). The saved report is ReportV3.
 
 import type { LogType } from '../exercise-attributes'
+import type { MemoryKind } from '../ronnie/memory'
 
 export interface ExerciseInfo {
     id: string
@@ -68,6 +69,9 @@ export interface ReportInputs {
     goalRead?: GoalRead | null
     /** The goal's body-fat target needs weigh-ins with a body fat */
     bodyFat?: { date: string; pct: number }[]
+    /** Ronnie's notes, and what the user said this period as read (week.ts); absent where they aren't read (evals) */
+    memory?: ContextNote[]
+    weekRead?: WeekRead
 }
 
 export interface BestSet {
@@ -220,6 +224,11 @@ export interface ReportFacts {
     }
     /** Absent in reports saved before cardio was read */
     cardio?: CardioFacts
+    /**
+     * Besides the log and the goal: Ronnie's notes and what the user said this period. Listed in
+     * the full report so the user sees what it went on. Absent in reports saved before these were read.
+     */
+    context?: { memory: ContextNote[]; week: WeekRead }
 }
 
 // ---------- The goal ----------
@@ -292,6 +301,47 @@ export interface GoalProgress {
     ratePerWeek?: number | null
     /** focus: weekly sets of each unit */
     muscles?: { group: string; perWeek: number }[]
+}
+
+// ---------- What else the report read ----------
+
+/** What the user said during the period that bears on training (week.ts) */
+export const WEEK_SIGNAL_KINDS = ['pain', 'sore', 'tired', 'sick', 'away'] as const
+export type WeekSignalKind = (typeof WEEK_SIGNAL_KINDS)[number]
+
+export interface WeekSignal {
+    /** The day it was written, a local date in the period */
+    date: string
+    /** A day note, or a message the user typed to Ronnie */
+    source: 'note' | 'ronnie'
+    kind: WeekSignalKind
+    /** pain: where, one of JOINTS (lib/exercise-attributes.ts), when the words say */
+    joint?: string
+    /** The exercise it was about, one the user logs, when the words say */
+    exerciseId?: string
+    name?: string
+    nameZh?: string | null
+    /** The user's own words, found in that day's text */
+    text: string
+}
+
+export interface WeekRead {
+    signals: WeekSignal[]
+    /** The user's texts read: day notes and messages to Ronnie */
+    texts: number
+    /** The model that read them; null when there was nothing to read or the read failed */
+    model: string | null
+    failed?: boolean
+}
+
+/** One of Ronnie's notes (lib/ronnie/memory.ts) as it stood when the report was made */
+export interface ContextNote {
+    kind: MemoryKind
+    subject: string | null
+    state: string
+    text: string
+    /** The local date it was last set */
+    date: string
 }
 
 export type RuleId = 'deload' | 'lift_regressed' | 'lift_stalled' | 'low_volume' | 'missed_sessions' | 'weight_trend' | 'cardio_first'
