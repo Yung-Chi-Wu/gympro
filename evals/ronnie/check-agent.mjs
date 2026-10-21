@@ -16,10 +16,11 @@ const root = join(here, '..', '..')
 execFileSync(join(root, 'lambda/ai-worker/node_modules/.bin/esbuild'), ['evals/ronnie/check-entry.ts', '--bundle', '--platform=node', '--target=node20', '--format=cjs', '--outfile=evals/ronnie/dist/check.cjs', '--log-level=warning'], { cwd: root, stdio: 'inherit' })
 const {
     runRonnieTurn, stripMarkdown, createRonnieExecutor, MAX_INCLUDE, createSupabaseRonnieData,
-    appendConversation, replaceConversation, asTypedMessage, EVENT_PREFIX,
+    appendConversation, replaceConversation, withoutCitationNumbers, asTypedMessage, EVENT_PREFIX,
     createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER,
     buildSystemPrompt, fixtureNotes, memoryLines, MAX_NOTES, MAX_EXERCISE_NOTES_SHOWN, MAX_OTHER_NOTES,
     correctionIn, flagForCancel, flagForClear, flagsForMessage, RIGHT_AFTER_MS,
+    nextKnowledgeKey, renumber, withSources, KNOWLEDGE_NOTES, searchKnowledge, KNOWLEDGE_CHECK_MODEL, RESEARCH_WORDS,
 } = createRequire(import.meta.url)(join(here, 'dist', 'check.cjs'))
 
 let failures = 0
@@ -470,6 +471,146 @@ function note(kind, subject, state, text, updatedAt = '2026-10-01T02:00:00.000Z'
     const shown = memoryLines(many, () => 'X', 'Asia/Taipei')
     check(shown.length === MAX_EXERCISE_NOTES_SHOWN + 1 && /and 5 older exercise preferences/.test(shown.at(-1)) && !shown.some((l) => l.endsWith(': like 0')), `at most ${MAX_EXERCISE_NOTES_SHOWN} preferences, the oldest left out and counted: ${shown.at(-1)}`)
     check(memoryLines([note('exercise', 'gone', 'dislike', 'x')], () => null, 'Asia/Taipei').length === 0, 'a note on an exercise the user can no longer see is left out')
+}
+
+// ---------- the knowledge base: search, citations and their check ----------
+
+// Citations become numbers in the order they appear; a key no note had is dropped
+{
+    const note = (id) => KNOWLEDGE_NOTES.find((n) => n.id === id)
+    const cited = [{ key: 'K3', note: note('pelland-2026-volume') }, { key: 'K4', note: note('refalo-2023-failure') }]
+    const r = withSources('不用每組都力竭 [K4]。組數越多越好但效益遞減【K3】，也見於 [K4, K3]。這句引用了沒給的 [K9] 。', cited)
+    check(r.text === '不用每組都力竭 [1]。組數越多越好但效益遞減[2]，也見於 [1, 2]。這句引用了沒給的。', `markers renumbered in order, full-width too, the unknown one dropped: ${r.text}`)
+    check(r.sources.map((s) => s.citation).join('; ') === 'Refalo et al., 2023; Pelland et al., 2026' && r.sources[0].doi === note('refalo-2023-failure').source.doi, `the sources list each cited paper once, numbered: ${JSON.stringify(r.sources.map((s) => s.citation))}`)
+    check(JSON.stringify(r.unknown) === '["K9"]', 'the unknown key is reported')
+    const shown = withoutCitationNumbers(r.text)
+    check(shown === '不用每組都力竭。組數越多越好但效益遞減，也見於。這句引用了沒給的。' && withoutCitationNumbers('Close to failure [1].\nRest 2 min [1, 2].') === 'Close to failure.\nRest 2 min.', `the chat shows the reply without the numbers: ${shown}`)
+    check(renumber('see [K3] and [K9]', r.numbers) === 'see [2] and', `the stored history gets the same numbers: ${renumber('see [K3] and [K9]', r.numbers)}`)
+    // The brackets Chinese replies use, as evals v30 and v31 recorded them (stretch-before-zh rep0),
+    // which were shown as they were, with no sources
+    const stretch = [{ key: 'K1', note: note('warneke-2024-warm-up') }, { key: 'K2', note: note('warneke-2024-stretching') }, { key: 'K5', note: note('herbert-2011-stretching-soreness') }]
+    const wide = withSources('最大肌力會小幅下降，每次拉 60 秒以上時下降更明顯［K1］。伸展對減少痠痛也幾乎沒有幫助［K5］。要高劑量才有效［K2］。', stretch)
+    check(wide.text === '最大肌力會小幅下降，每次拉 60 秒以上時下降更明顯[1]。伸展對減少痠痛也幾乎沒有幫助[2]。要高劑量才有效[3]。' && wide.sources.length === 3, `full-width ［K1］ is a citation: ${wide.text}`)
+    const brackets = withSources('A (K1). B（K2）。C〔K5〕', stretch).text
+    check(brackets === 'A [1]. B[2]。C[3]', `and (K1), （K1） and 〔K1〕: ${brackets}`)
+    // A key in the sentence itself, as a rewrite wrote it (v31 cardio-order-zh rep1), reads as its paper
+    const order = [{ key: 'K1', note: note('murlasits-2018-order') }, { key: 'K2', note: note('eddens-2018-order') }]
+    const bare = withSources('下肢最大肌力進步比較多：K1 是多 3.96 公斤，K2 是多 6.91%。[K1][K2]', order)
+    check(bare.text === '下肢最大肌力進步比較多：Murlasits et al., 2018 是多 3.96 公斤，Eddens et al., 2018 是多 6.91%。[1][2]', `a key named in the sentence becomes its paper: ${bare.text}`)
+    const onlyBare = withSources('K2 found more, in a K9 study.', order)
+    check(onlyBare.text === 'Eddens et al., 2018 found more, in a K9 study.' && onlyBare.sources.map((s) => s.citation).join() === 'Eddens et al., 2018', `a paper named only that way is listed too, and a key no note had is left alone: ${onlyBare.text}`)
+    const org = withSources('ACSM [K1]', [{ key: 'K1', note: note('acsm-2026-strength') }]).sources[0].citation
+    check(org === 'ACSM, 2026', `an organization is cited without et al.: ${org}`)
+    const history = [{ role: 'user', content: [{ type: 'tool_result', tool_use_id: 't', content: 'notes\n\n[K1] a\n\n[K4] b' }] }, { role: 'assistant', content: [{ type: 'text', text: 'x [K7]' }] }]
+    check(nextKnowledgeKey(history) === 5 && nextKnowledgeKey([]) === 1, 'keys continue past the ones earlier search results gave (not the reply\'s)')
+}
+
+// search_knowledge: notes with keys, the same note keeps its key, keys start where the turn says; keywords without vectors
+{
+    const { data } = createFixtureData()
+    const executor = createRonnieExecutor({ data, language: 'zh-TW', timeZone: FIXTURE_TIME_ZONE, todayRoutineName: null, now: () => FIXTURE_NOW, knowledgeKeyStart: 6 })
+    const first = await executor.executeTool('search_knowledge', { query: '吃肌酸會掉頭髮嗎' })
+    check(/^GymPro's research notes/.test(first) && first.includes('[K6] Lak et al., 2025') && first.includes('中文重點'), `the notes come with keys from 6, the hair trial first, with the Chinese line: ${first.split('\n').slice(2, 3)}`)
+    check(first.includes('cite nothing else') && first.includes('a small single trial'), 'it says to cite only these, and carries each note\'s caveat')
+    const again = await executor.executeTool('search_knowledge', { query: '肌酸 頭髮 DHT' })
+    check(again.includes('[K6] Lak et al., 2025') && new Set(executor.knowledge.map((k) => k.note.id)).size === executor.knowledge.length, 'a note found again keeps its key, and is kept once')
+    const none = await executor.executeTool('search_knowledge', { query: 'zzzz' })
+    check(/^No notes match/.test(none), `no match says to answer as general coaching: ${none}`)
+    check(searchKnowledge('creatine hair', ['lak-2025-creatine-hair', 'not-a-note', 'kreider-2017-creatine'], 5).map((n) => n.id).join() === 'lak-2025-creatine-hair,kreider-2017-creatine', 'vectors decide when there are any, and an unknown id is skipped')
+}
+
+// The reply cites [K1]: code numbers it and lists the paper; the check passes it; the history keeps the number
+{
+    const { data } = createFixtureData()
+    const checks = []
+    const verdict = (input) => ({ stop_reason: 'tool_use', model: KNOWLEDGE_CHECK_MODEL, usage, content: [{ type: 'tool_use', id: 'c', name: 'report_check', input }] })
+    const client = scripted([
+        toolUse(['search_knowledge', { query: '每組都要做到力竭嗎' }]),
+        (params) => {
+            const notes = params.messages.at(-1).content[0].content
+            const key = /\[(K\d+)\] Refalo/.exec(notes)?.[1]
+            return reply(`不用每組都練到力竭，接近力竭就夠了 [${key}]。另外記得熱身。`)
+        },
+        (params) => {
+            checks.push(params)
+            return verdict({ overclaims: [], general: true })
+        },
+    ])
+    const t = await turn(client, data, { messages: [{ role: 'user', content: '每組都要做到力竭嗎' }] })
+    check(t.message === '不用每組都練到力竭，接近力竭就夠了 [1]。另外記得熱身。' && t.sources?.[0].citation === 'Refalo et al., 2023', `the reply carries [1] and Refalo under it: ${t.message} / ${JSON.stringify(t.sources)}`)
+    check(checks[0]?.params?.model === undefined && checks[0]?.model === KNOWLEDGE_CHECK_MODEL && /<question>\n每組都要做到力竭嗎/.test(checks[0].messages[0].content) && /\[K1\] Refalo 2023/.test(checks[0].messages[0].content), 'the check reads the question, the notes given, with their keys, on Haiku')
+    check(t.unsourced === true && !t.knowledgeCheck.retried, 'general advice no note backs is labelled, not sent back')
+    check(t.usage.length === 2 && t.knowledgeCheck.usage.length === 1, 'the check\'s usage is kept apart from Ronnie\'s')
+    check(t.messages.at(-1).content.at(-1).text.includes('[1]') && !t.messages.at(-1).content.at(-1).text.includes('[K'), 'the stored reply has the number, not the key')
+}
+
+// Research the notes don't support goes back once; the rewrite is checked again and shown
+{
+    const { data } = createFixtureData()
+    const verdict = (input) => ({ stop_reason: 'tool_use', model: KNOWLEDGE_CHECK_MODEL, usage, content: [{ type: 'tool_use', id: 'c', name: 'report_check', input }] })
+    let feedback = ''
+    const client = scripted([
+        toolUse(['search_knowledge', { query: 'protein per meal' }]),
+        reply('Research shows your body can only absorb 30 g of protein per meal [K1].'),
+        verdict({ overclaims: [{ text: 'Research shows your body can only absorb 30 g of protein per meal [K1].', problem: 'contradicts_note', key: 'K1' }], general: false }),
+        (params) => {
+            feedback = params.messages.at(-1).content
+            check(params.tool_choice?.type === 'none', 'the rewrite runs without tools')
+            return reply('A 100 g dose gave a larger, longer response than 25 g in young men [K1].')
+        },
+        verdict({ overclaims: [], general: false }),
+    ])
+    const t = await turn(client, data, { language: 'en', messages: [{ role: 'user', content: 'how much protein can I absorb per meal' }], executor: executorFor(data, 'en') })
+    check(/contradicts|says otherwise/.test(feedback) && feedback.includes('30 g'), `the feedback quotes the sentence and why: ${feedback.split('\n')[1]}`)
+    check(t.message.startsWith('A 100 g dose') && t.message.includes('[1]') && t.knowledgeCheck.retried && t.knowledgeCheck.after?.overclaims.length === 0 && !t.unsourced, `the rewrite is shown, checked again: ${t.message}`)
+    check(t.knowledgeCheck.draft.startsWith('Research shows'), 'the trace keeps the first draft')
+}
+
+// A check that fails passes the reply as it is, unlabelled; a reply with no research and no search isn't checked
+{
+    const { data } = createFixtureData()
+    const client = scripted([
+        toolUse(['search_knowledge', { query: '冰浴' }]),
+        reply('練完泡冰水可能讓肌肉長得少一點 [K1]。'),
+        () => { throw new Error('overloaded') },
+    ])
+    const t = await turn(client, data, { messages: [{ role: 'user', content: '練完可以泡冰水嗎' }] })
+    check(t.message.includes('[1]') && !t.unsourced && /overloaded/.test(t.knowledgeCheck.first.error ?? ''), `a failed check passes the reply, unlabelled, and says why: ${t.knowledgeCheck.first.error}`)
+    const quiet = scripted([reply('今天練腿，先做深蹲。')])
+    const q = await turn(quiet, data)
+    check(quiet.calls.length === 1 && !q.knowledgeCheck && !q.sources, 'a reply with no search and no research words makes no check call')
+    check(RESEARCH_WORDS.test('有研究說') && RESEARCH_WORDS.test('a 2023 meta-analysis') && !RESEARCH_WORDS.test('今天練腿'), 'research words are spotted in both languages')
+}
+
+// A turn that searched and cites nothing is labelled even when the check says it has no general
+// advice: the check passed "this is my own coaching advice, not research" unlabelled (eval v30)
+{
+    const { data } = createFixtureData()
+    const client = scripted([
+        toolUse(['search_knowledge', { query: 'lifting belt' }]),
+        reply('Our notes don\'t cover belts, so this is my own coaching advice: a belt can help on heavy squats.'),
+        { stop_reason: 'tool_use', model: KNOWLEDGE_CHECK_MODEL, usage, content: [{ type: 'tool_use', id: 'c', name: 'report_check', input: { overclaims: [], general: false } }] },
+    ])
+    const t = await turn(client, data, { language: 'en', messages: [{ role: 'user', content: 'Should I wear a lifting belt?' }], executor: executorFor(data, 'en') })
+    check(t.unsourced === true && !t.sources && !t.knowledgeCheck.first.general, `a searched turn with no citation is labelled whatever the check says: ${t.unsourced}`)
+    const failed = scripted([
+        toolUse(['search_knowledge', { query: '肌酸' }]),
+        reply('肌酸每天吃就好，不用特別挑時間。'),
+        () => { throw new Error('overloaded') },
+    ])
+    const f = await turn(failed, data, { messages: [{ role: 'user', content: '肌酸什麼時候吃' }] })
+    check(f.unsourced === true && /overloaded/.test(f.knowledgeCheck?.first.error ?? ''), `and when the check fails: ${f.unsourced}`)
+    const nothing = scripted([toolUse(['search_knowledge', { query: 'zzzz' }]), reply('舉重鞋不是必備，平底硬鞋也可以。')])
+    const n = await turn(nothing, data, { messages: [{ role: 'user', content: '要穿舉重鞋嗎' }] })
+    check(nothing.calls.length === 2 && n.unsourced === true && !n.knowledgeCheck, `and when the search found no note, with no check call: ${n.unsourced}`)
+}
+
+// A key the model made up, with no search this turn, is dropped and reported
+{
+    const { data } = createFixtureData()
+    const client = scripted([reply('Studies show squats are great [K2].'), { stop_reason: 'tool_use', model: KNOWLEDGE_CHECK_MODEL, usage, content: [{ type: 'tool_use', id: 'c', name: 'report_check', input: { overclaims: [], general: true } }] }])
+    const t = await turn(client, data, { language: 'en', executor: executorFor(data, 'en') })
+    check(t.message === 'Studies show squats are great.' && !t.sources && JSON.stringify(t.knowledgeCheck.unknownKeys) === '["K2"]' && t.unsourced, `the made-up key is dropped, reported, and the advice labelled: ${t.message}`)
 }
 
 // ---------- the Supabase data layer, against a stand-in client ----------

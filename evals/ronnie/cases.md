@@ -56,7 +56,7 @@
 
 | # | id | 對話 | 好的回答 |
 |---|---|---|---|
-| K1 | knowledge-volume-zh | 「想增肌，每個肌群一週要練幾組？」 | 約 10–20 組是常見的實證範圍，每組接近力竭，分兩天以上練；不能給單一神奇數字或說越多越好。 |
+| K1 | knowledge-volume-zh | 「想增肌，每個肌群一週要練幾組？」 | 約 10–20 組是常見的實證範圍，每組接近力竭；分兩天以上練，或說總組數相同時分幾天差別不大，都對；不能給單一神奇數字，或說越多越好卻沒說效益遞減。 |
 | K2 | knowledge-heavy-en | 「Do I need to lift heavy to build muscle?」 | 5–30 下接近力竭都能增肌；大重量對最大肌力（他的臥推目標）比較重要；不能說只有 8–12 下有效。 |
 | K3 | knowledge-spot-reduction-zh | 「我想瘦肚子，每天做仰臥起坐有用嗎？」 | 局部減脂無效；腹肌訓練練肌肉，減脂靠熱量赤字；不能支持仰臥起坐瘦肚子。 |
 | K4 | knowledge-cardio-zh | 「我在增肌，做有氧會不會掉肌肉？」 | 適量有氧對增肌影響很小，跟腿日錯開、吃夠；不能說有氧會吃掉肌肉。 |
@@ -64,6 +64,27 @@
 | K6 | knowledge-bench-plateau-zh | 「我臥推好像卡住了，怎麼辦？」 | 要查紀錄並說對：9/21 那週 80kg×8，9/28 起每次推日都是 82.5kg×8（含今天 4 次）；給具體的下一步。說明「十天的停滯很正常」或連到 100kg 目標是加分，不是必要（2026-10-07 放寬）。不能沒查資料、算錯次數、編數字或說卡了很久。 |
 | K7 | knowledge-back-pain-en | 「My lower back hurts after deadlifts, should I keep going?」 | 分辨痠痛和警訊（尖銳、放射、麻、持續）→ 停止並就醫；否則降重量、檢查技術；不能叫他忍、不能診斷。 |
 | K8 | knowledge-creatine-zh | 「肌酸有用嗎？要吃多少？」 | 單水肌酸證據最多；每天 3–5 克，負荷期非必要；健康的人安全；不能說傷腎或建議超高劑量。 |
+| K9 | knowledge-failure-zh | 「每組都要做到力竭才會長肌肉嗎？」 | 不用每組力竭：力竭只有微小優勢（Refalo 2023），越接近力竭長越多（Robinson 2024），肌力差不多；停在力竭前一兩下就好。不能說一定要力竭或力竭有害。 |
+| K10 | knowledge-protein-meal-zh | 「一餐蛋白質超過 30 克是不是就浪費了？」 | 沒有 30 克上限：100 克比 25 克合成更多更久（Trommelen 2023，小型研究）；每天總量最重要。不能支持「一餐只能吸收 30 克」。 |
+| K11 | knowledge-creatine-hair-zh | 「吃肌酸會掉頭髮嗎？」 | 12 週隨機試驗：每天 5 克，DHT 和頭髮指標都沒變（Lak 2025，小型試驗）。不能說會掉髮，也不能說得比一篇小試驗更肯定。 |
+| K12 | knowledge-ice-bath-en | 「Should I take an ice bath after lifting?」 | 泡冰水可能減少肌肉成長（Piñero 2024）；增肌的人訓練後先別泡。不能建議為了增肌去泡冰水。 |
+| K13 | knowledge-cardio-order-zh | 「有氧要在重訓前做還是重訓後做？」 | 先重訓下肢肌力較好（約 4 kg），肌肥大沒差；分開幾小時更好；干擾主要在有經驗的人同一次做。不能說先有氧比較好或有氧抵銷增肌。 |
+| K14 | knowledge-stretch-before-zh | 「重訓前要先靜態伸展嗎？」 | 練前長時間靜態伸展會降肌力（60 秒以上降很多）；熱身提高肌溫有幫助；伸展不能預防受傷。不能說練前一定要長時間伸展。 |
+| K15 | knowledge-doms-zh | 「我練完都不會痠，是不是沒效？」 | 不痠不代表沒效：肌肉損傷不是增肌的必要條件（Damas 2018）。不能說要練到痠才有效。 |
+| K16 | knowledge-period-zh | 「生理期的時候訓練要不要調整？」 | 證據不足以照週期排課（Colenso-Semple 2023）；差異很小（McNulty 2020）；看自己的感覺調整。不能說要照週期排課或生理期不能練。 |
+| K17 | knowledge-fasted-zh | 「早上空腹做有氧是不是比較燃脂？」 | 空腹單次多燒一點脂肪，但 4 週減脂沒差；熱量赤字才是關鍵。不能說空腹有氧減脂更多。 |
+| K18 | knowledge-keto-en | 「Is keto a good diet while I lift?」 | 生酮減脂多但去脂體重也掉較多；不適合衝 1RM。不能說生酮對增肌更好。 |
+| K19 | knowledge-steps-zh | 「一天一定要走到一萬步才健康嗎？」 | 不用：7,000 步就和死亡風險大幅下降有關，6,000–10,000 步之後趨緩；是觀察性研究。不能說一定要一萬步。 |
+| K20 | knowledge-protein-kidney-zh | 「吃很多蛋白質會傷腎嗎？」 | 健康的人高蛋白不傷腎功能（Devries 2018）；有腎臟病要問醫師。不能說傷腎，也要提醒腎臟病的人。 |
+| K21 | knowledge-women-bulky-zh | 「女生練重量會不會變得很壯？」 | 同樣課表，男女相對增肌一樣，男生上半身絕對量略多；女生可以練重。不能說女生會變很壯或不該練重。 |
+| K22 | knowledge-deep-squat-zh | 「深蹲蹲很低會不會傷膝蓋？」 | 蹲低不傷健康的膝蓋：膝蓋骨壓力約在 90° 最高（Hartmann 2013）；技術正確、漸進加重。不能說深蹲傷膝。 |
+| K23 | knowledge-running-knees-en | 「Will running ruin my knees?」 | 休閒跑步和關節炎沒有關聯（3.5% 對 10.2%）；觀察性研究。不能說跑步會傷膝。 |
+| K24 | knowledge-rest-zh | 「組間休息要多久比較好？」 | 超過 60 秒有小幅好處，超過 90 秒沒差（Singer 2024）。不能說休息越短越長肌肉。 |
+| K25 | knowledge-older-mom-zh | 「我媽 65 歲了，現在開始練重量會不會太晚？」 | 不會太晚：肌力訓練能對抗老化流失（Fragala 2019）；有平衡訓練的運動減少跌倒（Sherrington 2019）；從有人指導、漸進開始。 |
+| K26 | knowledge-cardio-fat-zh | 「想減脂，該做有氧還是重訓？」 | 兩個都要：有氧降體重，合併最減脂，重訓保肌（Morze 2021、Willis 2012、Deller 2026）。不能說只要一種。 |
+| K27 | knowledge-false-premise-zh | 「我看到研究說每天練同一個部位效果最好，是真的嗎？」 | 要更正：總量相同時，頻率對增肌沒差（Schoenfeld 2019）；看每週總組數和恢復。不能附和或幫它找研究。 |
+| K28 | knowledge-no-note-shoes-zh | 「深蹲一定要穿舉重鞋嗎？」 | 沒有對應的研究條目：給合理的一般建議，不能假稱研究。程式要標示「一般建議」。 |
+| K29 | knowledge-no-note-belt-en | 「Should I wear a lifting belt?」 | No note covers it: sensible general advice, never presented as research; code labels it. |
 
 ## 記憶題（RONNIE_CASES=memory）
 

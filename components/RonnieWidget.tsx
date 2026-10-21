@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslations } from 'next-intl'
-import { MAX_MESSAGE_CHARS, type DisplayItem, type PlanCard, type ProposalCard, type ProposalStatus, type RecommendationCard } from '@/lib/ronnie/conversation'
+import { MAX_MESSAGE_CHARS, withoutCitationNumbers, type DisplayItem, type PlanCard, type ProposalCard, type ProposalStatus, type RecommendationCard } from '@/lib/ronnie/conversation'
 import { describeProposal } from '@/lib/ronnie/events'
 import { reportClientError, responseError } from '@/lib/report-client-error'
 import { isSubmitEnter, useKeyboardOpen, useVisibleViewport, type VisibleViewport } from '@/lib/keyboard'
@@ -85,6 +85,8 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     // The plan card whose routines are open in Coach G's editor, and the cards saved since the window loaded
     const [openPlan, setOpenPlan] = useState<PlanCard | null>(null)
     const [savedHere, setSavedHere] = useState<Set<string>>(new Set())
+    // Replies whose source list is open, by their place in the chat
+    const [openSources, setOpenSources] = useState<Set<number>>(() => new Set())
     const abortRef = useRef<AbortController | null>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
@@ -149,6 +151,8 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                 ...(data.proposals?.length ? { proposals: data.proposals } : {}),
                 ...(data.recommendations?.length ? { recommendations: data.recommendations } : {}),
                 ...(data.plans?.length ? { plans: data.plans } : {}),
+                ...(data.sources?.length ? { sources: data.sources } : {}),
+                ...(data.unsourced ? { unsourced: true } : {}),
             }])
             if (data.reloadDashboard) notifyDashboard()
         } catch (err: unknown) {
@@ -295,6 +299,48 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                 {i < arr.length - 1 && <br />}
             </span>
         ))
+    }
+
+    /**
+     * The papers a reply cites, under it, each linking to the paper; and the line for general advice
+     * no paper backs. Both written by code (lib/ronnie/citations.ts). The list is one line until
+     * opened, and the reply's [1] markers aren't shown: a reply with many tips carried a number after
+     * each and a long list under it, which the owner found cluttered (2026-10-21). The stored reply
+     * keeps them, so Ronnie still reads which sentence came from which paper.
+     */
+    function renderSources(item: Extract<Item, { kind: 'assistant' }>, i: number) {
+        if (!item.sources?.length && !item.unsourced) return null
+        const open = openSources.has(i)
+        const n = item.sources?.length ?? 0
+        return (
+            <div className="mt-2 space-y-1 border-t border-ink/10 pt-1.5 text-[11px] leading-snug text-ink/60 max-md:text-xs dark:border-white/10 dark:text-white/60">
+                {n > 0 && (
+                    <>
+                        <button type="button" aria-expanded={open} className="underline underline-offset-2"
+                            onClick={() => setOpenSources((prev) => {
+                                const next = new Set(prev)
+                                if (!next.delete(i)) next.add(i)
+                                return next
+                            })}>
+                            {open ? (zh ? '收起出處' : 'Hide sources') : (zh ? `查看 ${n} 篇出處` : `See ${n} source${n > 1 ? 's' : ''}`)}
+                        </button>
+                        {open && (
+                            <ul className="space-y-0.5">
+                                {item.sources!.map((src) => (
+                                    <li key={src.n}>
+                                        <a href={`https://doi.org/${src.doi}`} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">{src.citation}</a>
+                                        {', '}{src.journal}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </>
+                )}
+                {item.unsourced && (item.sources?.length
+                    ? <p>{zh ? '部分內容是一般建議，沒有附研究出處。' : 'Some of this is general advice, with no research source attached.'}</p>
+                    : <p>{zh ? '這則回覆是一般建議，沒有附研究出處。' : 'This is general advice, with no research source attached.'}</p>)}
+            </div>
+        )
     }
 
     function statusLabel(status: ProposalStatus | undefined) {
@@ -491,7 +537,8 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                         {avatar}
                                         <div className="max-w-[80%]">
                                             <div className="rounded-2xl rounded-tl-sm px-3 py-2 text-sm leading-relaxed bg-ink/5 dark:bg-white/8">
-                                                {renderContent(item.text)}
+                                                {renderContent(item.sources?.length ? withoutCitationNumbers(item.text) : item.text)}
+                                                {renderSources(item, i)}
                                             </div>
                                             {item.proposals?.map(renderProposal)}
                                             {item.recommendations?.map(renderRecommendation)}

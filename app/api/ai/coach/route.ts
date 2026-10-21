@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { buildSystemPrompt } from '@/lib/ronnie/prompt'
 import { createRonnieExecutor } from '@/lib/ronnie/executor'
 import { RONNIE_MODEL, runRonnieTurn } from '@/lib/ronnie/agent'
+import { nextKnowledgeKey } from '@/lib/ronnie/citations'
 import { loadRonnieContext, loadUserToday } from '@/lib/ronnie/context'
 import {
     MAX_MESSAGE_CHARS,
@@ -91,6 +92,8 @@ export async function POST(request: Request) {
         data: ctx.data, language, timeZone: ctx.timeZone, todayRoutineName: ctx.todayRoutineName,
         weightUnit: ctx.userContext.weightUnit === 'lb' ? 'lb' : 'kg',
         distanceUnit: ctx.distanceUnit,
+        // Past the keys earlier search results today gave, which the model may still see
+        knowledgeKeyStart: nextKnowledgeKey(conv.messages),
     })
     const sent = [...conv.messages, { role: 'user' as const, content: message }]
     // The trace keeps what Ronnie was given: the system prompt with the user's context, and today's conversation so far
@@ -114,6 +117,8 @@ export async function POST(request: Request) {
             ...(proposals.length ? { proposals } : {}),
             ...(recommendations.length ? { recommendations } : {}),
             ...(plans.length ? { plans } : {}),
+            ...(turn.sources?.length ? { sources: turn.sources } : {}),
+            ...(turn.unsourced ? { unsourced: true } : {}),
         }
         // Only what this turn added: the user's message and everything after it
         const error = await appendConversation(admin, user.id, ctx.today, {
@@ -128,12 +133,21 @@ export async function POST(request: Request) {
             ...(turn.interrupted ? { status: 'error' as const, error: `${turn.interrupted.reason}: ${turn.interrupted.error}` } : { status: 'ok' as const }),
             latencyMs: Date.now() - started, usage: turn.usage, input: traceInput,
             // What the turn added after the user's message: tool calls, their results, the reply
-            output: { reply: turn.message, messages: turn.messages.slice(sent.length), proposals, recommendations, plans, reloadDashboard: turn.reloadDashboard, ...(turn.replyCheck ? { replyCheck: turn.replyCheck } : {}) },
-            // The reply check fired: what was claimed, the first draft, and whether the retry fixed it
-            flags: turn.replyCheck ? [{ kind: 'reply_check' as const, detail: turn.replyCheck }] : [],
+            output: {
+                reply: turn.message, messages: turn.messages.slice(sent.length), proposals, recommendations, plans, reloadDashboard: turn.reloadDashboard,
+                ...(turn.replyCheck ? { replyCheck: turn.replyCheck } : {}),
+                ...(turn.sources?.length ? { sources: turn.sources } : {}),
+                ...(turn.unsourced ? { unsourced: true } : {}),
+                ...(turn.knowledgeCheck ? { knowledgeCheck: turn.knowledgeCheck } : {}),
+            },
+            // A check fired: what the first draft claimed (done exercises, research the notes don't
+            // support, a source key no note had), the draft, and whether the retry fixed it
+            flags: turn.replyCheck || turn.knowledgeCheck?.retried || turn.knowledgeCheck?.unknownKeys?.length
+                ? [{ kind: 'reply_check' as const, detail: { ...(turn.replyCheck ?? {}), ...(turn.knowledgeCheck?.retried || turn.knowledgeCheck?.unknownKeys?.length ? { knowledge: turn.knowledgeCheck } : {}) } }]
+                : [],
         })
 
-        return NextResponse.json({ message: turn.message, reloadDashboard: turn.reloadDashboard, proposals, recommendations, plans, traceId, at: reply.at })
+        return NextResponse.json({ message: turn.message, reloadDashboard: turn.reloadDashboard, proposals, recommendations, plans, sources: turn.sources ?? [], unsourced: !!turn.unsourced, traceId, at: reply.at })
     } catch (err) {
         // The text only: the error carries the turn's tool calls, which hold the user's own data
         console.error('Ronnie error:', errorText(err))

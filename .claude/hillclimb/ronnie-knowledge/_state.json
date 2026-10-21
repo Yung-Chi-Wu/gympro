@@ -48,6 +48,11 @@
       "kind": "binary"
     },
     {
+      "id": "sourced",
+      "label": "出處正確",
+      "kind": "binary"
+    },
+    {
       "id": "judge_ok",
       "label": "評審通過",
       "kind": "binary"
@@ -105,5 +110,5 @@
     "evals/ronnie/cases-holdout.json",
     "evals/ronnie/cases-knowledge.json"
   ],
-  "harness_sha": "c6d486fc4a7858b211e1f30c4452e24f5c52f3927055c067ffd5415971525613"
+  "harness_sha": "53c932619a8d7eda5d873eb49d57362f4ef8fada5a81e4ca2741ac94c3de7024"
 }

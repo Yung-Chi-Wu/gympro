@@ -80,6 +80,12 @@ export interface RonnieData {
      * so the search falls back to keywords instead of failing the turn.
      */
     nearestExercises(query: string): Promise<string[] | null>
+    /**
+     * IDs of the knowledge notes nearest in meaning to the question, closest first (match_knowledge;
+     * the notes are lib/ronnie/knowledge-notes.json). Null when vectors aren't available, so
+     * search_knowledge falls back to keywords.
+     */
+    nearestKnowledge(query: string): Promise<string[] | null>
     getWorkoutsBetween(startIso: string, endIso: string): Promise<
         { id: string; performed_at: string; workout_planned_exercises: PlannedExercise[] | null }[]
     >
@@ -214,6 +220,20 @@ export function createSupabaseRonnieData(
             } catch (err) {
                 if (onSearchError) onSearchError(err)
                 else console.warn('Ronnie vector search unavailable, using keywords:', err)
+                return null
+            }
+        },
+
+        async nearestKnowledge(query) {
+            if (!embedQuery) return null
+            try {
+                const embedding = await embedQuery(query)
+                const { data, error } = await supabase.rpc('match_knowledge', { p_embedding: JSON.stringify(embedding), p_count: 10 })
+                if (error) throw error
+                return (data ?? []).map((row) => row.id)
+            } catch (err) {
+                if (onSearchError) onSearchError(err)
+                else console.warn('Ronnie knowledge search unavailable, using keywords:', err)
                 return null
             }
         },

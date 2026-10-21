@@ -188,6 +188,11 @@ async function runCase(c, ctx) {
       { role: 'assistant', content: t.message },
       // The reply check fired: what the draft claimed, the draft, and whether the retry fixed it
       ...(t.replyCheck ? [{ role: 'reply_check', content: JSON.stringify(t.replyCheck) }] : []),
+      // What the chat shows under the reply (the sources, the general-advice label) and the knowledge
+      // check's verdicts, which v30's traces lacked: why a label didn't show couldn't be told from them
+      ...(t.sources || t.unsourced || t.knowledgeCheck
+        ? [{ role: 'knowledge', content: JSON.stringify({ sources: t.sources ?? [], unsourced: !!t.unsourced, ...(t.knowledgeCheck ? { check: { ...t.knowledgeCheck, usage: undefined } } : {}) }) }]
+        : []),
       // The notes after a turn that changed them, so regrade.mjs can grade memory from the trace
       ...(t.memoryChanged ? [{ role: 'memory', content: JSON.stringify(t.memoryAfter) }] : []),
     ]),

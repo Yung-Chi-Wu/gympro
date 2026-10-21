@@ -2,7 +2,11 @@
 // exercise list) so check-grader.mjs can exercise them offline. A metric that
 // doesn't apply to the case is null and stays out of the means.
 
+import { readFileSync } from 'node:fs'
+
 const FALLBACKS = ['抱歉，請再問一次。', 'Sorry, please try again.']
+// Each knowledge note's DOI, to tell which notes a reply's sources are (lib/ronnie/knowledge-notes.json)
+const NOTE_DOI = new Map(JSON.parse(readFileSync(new URL('../../lib/ronnie/knowledge-notes.json', import.meta.url), 'utf8')).map((n) => [n.id, n.source.doi.toLowerCase()]))
 const SIMPLIFIED_ONLY = /[这们训练进动议还时对说体发让点从过关应经]/g
 const OP_ZH = { add_today: '加入今天', remove_today: '從今天移除', delete_from_routines: '從所有課表永久刪除' }
 
@@ -211,6 +215,22 @@ export function programmaticGrade(c, out, exercises) {
     const fellBack = out.turns.filter((t) => !t.message.trim() || FALLBACKS.includes(t.message.trim()))
     grade.no_fallback = fellBack.length ? 0 : 1
     explanation.no_fallback = fellBack.length ? `有 ${fellBack.length} 句回覆是空的，或是「抱歉，請再問一次」（迴圈用完）` : '每句都有正常回覆'
+
+    // The knowledge base: the sources code listed under the last reply (citations.ts) include a note
+    // that answers the question; or, where no note does, none are listed and the reply is labelled
+    // general advice; and no key the reply used was one it wasn't given
+    if (exp.cites_any || exp.cites_none || exp.unsourced != null) {
+        const last = out.turns.at(-1) ?? {}
+        const dois = new Set((last.sources ?? []).map((src) => String(src.doi).toLowerCase()))
+        const problems = []
+        if (exp.cites_any && !exp.cites_any.some((id) => dois.has(NOTE_DOI.get(id)))) problems.push(`沒有引用 ${exp.cites_any.join('、')} 任何一篇`)
+        if (exp.cites_none && dois.size) problems.push(`沒有相關研究卻附了 ${dois.size} 個出處`)
+        if (exp.unsourced === true && !last.unsourced) problems.push('沒有標示「一般建議」')
+        const unknown = out.turns.flatMap((t) => t.knowledgeCheck?.unknownKeys ?? [])
+        if (unknown.length) problems.push(`引用了沒查到的條目 ${unknown.join('、')}（已被程式拿掉）`)
+        grade.sourced = problems.length ? 0 : 1
+        explanation.sourced = problems.join('；') || (dois.size ? `附了 ${dois.size} 個出處，包含該引用的研究` : '沒有附出處，並標示為一般建議')
+    } else grade.sourced = null
 
     grade.language_correct = out.turns.every((t) => languageCorrect(t.message, c.language)) ? 1 : 0
     explanation.language_correct = grade.language_correct ? `回覆語言符合 ${c.language}` : `有回覆不是 ${c.language}（中文回覆也要用全形標點）`

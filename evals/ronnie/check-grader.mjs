@@ -270,5 +270,32 @@ for (const c of memoryCases) {
     }
 }
 
-console.log(failures ? `\n${failures} grader check(s) failed` : `\nGrader behaves as expected (${cases.length} oracle cases, ${memoryCases.length} memory cases + negative controls)`)
+// Knowledge: the sources under the reply include a note that answers it; where none does, none and the label
+const knowledgeCases = JSON.parse(readFileSync(join(here, 'cases-knowledge.json'), 'utf8'))
+const notesFile = JSON.parse(readFileSync(join(here, '..', '..', 'lib', 'ronnie', 'knowledge-notes.json'), 'utf8'))
+const doiOf = (noteId) => notesFile.find((n) => n.id === noteId).source.doi
+{
+    const knowledgeTurn = (extra) => ({ turns: [{ user: 'q', message: '回覆 [1]。', toolCalls: [{ name: 'search_knowledge', input: { query: 'q' }, result: '' }], writes: [], ...extra }] })
+    const cited = knowledgeCases.filter((c) => c.expect.cites_any)
+    for (const c of cited) {
+        const good = knowledgeTurn({ sources: [{ n: 1, citation: 'x', journal: 'j', doi: doiOf(c.expect.cites_any[0]) }] })
+        check(programmaticGrade(c, good, EXERCISES).grade.sourced === 1, `${c.id}: citing ${c.expect.cites_any[0]} passes sourced`)
+        const other = knowledgeTurn({ sources: [{ n: 1, citation: 'x', journal: 'j', doi: doiOf(c.expect.cites_any.includes('lak-2025-creatine-hair') ? 'pelland-2026-volume' : 'lak-2025-creatine-hair') }] })
+        check(programmaticGrade(c, other, EXERCISES).grade.sourced === 0, `${c.id}: citing an unrelated note fails sourced`)
+        check(programmaticGrade(c, knowledgeTurn({}), EXERCISES).grade.sourced === 0, `${c.id}: no sources fails sourced`)
+    }
+    const c = cited[0]
+    const madeUp = knowledgeTurn({ sources: [{ n: 1, citation: 'x', journal: 'j', doi: doiOf(c.expect.cites_any[0]) }], knowledgeCheck: { unknownKeys: ['K9'] } })
+    check(programmaticGrade(c, madeUp, EXERCISES).grade.sourced === 0, 'a key the reply was not given fails sourced')
+    for (const c of knowledgeCases.filter((x) => x.expect.cites_none)) {
+        check(programmaticGrade(c, knowledgeTurn({ unsourced: true }), EXERCISES).grade.sourced === 1, `${c.id}: no sources and the label passes`)
+        check(programmaticGrade(c, knowledgeTurn({}), EXERCISES).grade.sourced === 0, `${c.id}: no label fails`)
+        check(programmaticGrade(c, knowledgeTurn({ unsourced: true, sources: [{ n: 1, citation: 'x', journal: 'j', doi: doiOf('pelland-2026-volume') }] }), EXERCISES).grade.sourced === 0, `${c.id}: a source for what no note covers fails`)
+    }
+    const old = knowledgeCases.find((x) => x.id === 'knowledge-volume-zh')
+    check(programmaticGrade(old, knowledgeTurn({}), EXERCISES).grade.sourced === null, 'a case that asks nothing of the sources leaves sourced out')
+    check(cited.length === 19 && cited.every((x) => x.expect.tools_required?.includes('search_knowledge') && x.expect.cites_any.every((id) => doiOf(id))), `every new knowledge case asks for a search and names notes that exist (${cited.length})`)
+}
+
+console.log(failures ? `\n${failures} grader check(s) failed` : `\nGrader behaves as expected (${cases.length} oracle cases, ${memoryCases.length} memory cases, ${knowledgeCases.length} knowledge cases + negative controls)`)
 process.exit(failures ? 1 : 0)

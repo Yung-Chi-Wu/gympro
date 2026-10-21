@@ -2,6 +2,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { buildSystemPrompt } from '../../lib/ronnie/prompt'
 import { createRonnieExecutor } from '../../lib/ronnie/executor'
 import { runRonnieTurn, RONNIE_MODEL, type RonnieTurn } from '../../lib/ronnie/agent'
+import { RONNIE_TOOLS } from '../../lib/ronnie/tools'
+import { nextKnowledgeKey } from '../../lib/ronnie/citations'
 import { getSecret } from '../../lambda/ai-worker/src/secrets'
 import { createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER, fixtureNotes, ROUTINES, type FixtureWrite } from './fixture'
 import type { RoutineProposal } from '../../lib/ronnie/data'
@@ -9,6 +11,7 @@ import type { MemoryNote } from '../../lib/ronnie/memory'
 import { eventForModel } from '../../lib/ronnie/events'
 import { dot, SEARCH_EMBEDDING_MODEL } from '../../lib/embeddings'
 import { exerciseDocument } from '../../lib/ronnie/search'
+import { KNOWLEDGE_NOTES, knowledgeDocument } from '../../lib/ronnie/knowledge'
 import { cachedEmbedder } from '../shared/embedding-cache'
 import { join } from 'node:path'
 
@@ -46,6 +49,28 @@ function fixtureNearest() {
             .sort((a, b) => b.score - a.score)
             .slice(0, 50)
             .map((x) => x.id)
+    }
+}
+
+/**
+ * RONNIE_KNOWLEDGE=off measures Ronnie without the knowledge base, as before it (2026-10-21): no
+ * search_knowledge, and principle 1 as it was. The baseline the knowledge base is judged against.
+ */
+const KNOWLEDGE_OFF = process.env.RONNIE_KNOWLEDGE === 'off'
+const TOOLS = KNOWLEDGE_OFF ? RONNIE_TOOLS.filter((t) => t.name !== 'search_knowledge') : RONNIE_TOOLS
+const BEFORE_KNOWLEDGE = "1. General fitness questions are answered from knowledge. A question about the user's own training (a plateau, progress, fatigue, whether to add weight) is answered from their data: look it up first."
+const promptFor = (prompt: string) => (KNOWLEDGE_OFF ? prompt.replace(/^1\. A general fitness question.*$/m, BEFORE_KNOWLEDGE) : prompt)
+
+/** The same over the knowledge notes, as match_knowledge ranks them in production */
+let knowledgeVectors: Promise<number[][]> | null = null
+function fixtureNearestKnowledge() {
+    embedTexts ??= cachedEmbedder(join(process.cwd(), 'evals', 'ronnie', '.cache'), SEARCH_EMBEDDING_MODEL)
+    const embedder = embedTexts
+    return async (query: string) => {
+        knowledgeVectors ??= embedder(KNOWLEDGE_NOTES.map(knowledgeDocument), 'document')
+        const docs = await knowledgeVectors
+        const [q] = await embedder([query], 'query')
+        return KNOWLEDGE_NOTES.map((n, i) => ({ id: n.id, score: dot(q, docs[i]) })).sort((a, b) => b.score - a.score).slice(0, 10).map((x) => x.id)
     }
 }
 
@@ -111,11 +136,12 @@ export async function runConversation({
     const anthropic = injectedClient ?? await getClient()
     const { data, writes, proposals, applyProposal, memories } = createFixtureData({
         nearest: vectors ? fixtureNearest() : undefined,
+        nearestKnowledge: vectors ? fixtureNearestKnowledge() : undefined,
         memories: memory.map((m) => memoryNote(m)),
     })
     const memoriesBefore = memories.map((n) => ({ ...n }))
     // As the coach route does it: each request's prompt lists the notes as they are then
-    const systemNow = () => buildSystemPrompt(language, { ...FIXTURE_USER, notes: fixtureNotes(memories, language) })
+    const systemNow = () => promptFor(buildSystemPrompt(language, { ...FIXTURE_USER, notes: fixtureNotes(memories, language) }))
     let system = systemNow()
     const results: ConversationResult['turns'] = []
 
@@ -142,11 +168,12 @@ export async function runConversation({
                 todayRoutineName: FIXTURE_USER.todayRoutineName,
                 weightUnit: FIXTURE_USER.weightUnit === 'lb' ? 'lb' : 'kg',
                 now: () => FIXTURE_NOW,
+                knowledgeKeyStart: nextKnowledgeKey(messages),
             })
             const writesBefore = writes.length
             const notesBefore = JSON.stringify(memories)
             system = systemNow()
-            const turn = await runRonnieTurn({ client: anthropic, system, messages, executor, language, model })
+            const turn = await runRonnieTurn({ client: anthropic, system, messages, executor, language, model, tools: TOOLS })
             messages = turn.messages
             const memoryChanged = JSON.stringify(memories) !== notesBefore
             results.push({

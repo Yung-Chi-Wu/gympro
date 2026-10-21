@@ -11,6 +11,7 @@ import { namesOf, type LoggedToday } from './reply-check'
 import { VOLUME_UNIT_IDS } from '../report/volume'
 import { describeProposal } from './events'
 import { gatedSearch, latinTokens, searchLibrary } from './search'
+import { citationOf, searchKnowledge, type KnowledgeNote } from './knowledge'
 import {
     INJURY_SITES, MAX_NOTE_CHARS, MAX_NOTES, MAX_OTHER_NOTES, MEMORY_STATES, isActiveInjury, isDislike, isInjurySite, isMemoryKind,
     memoryReceipt, noteIdOf, sameSlot, type MemoryKind, type MemoryNote,
@@ -36,6 +37,8 @@ export interface RonnieExecutorContext {
     /** Likewise km or mi, for treadmill speed and distance */
     distanceUnit?: DistanceUnit
     now?: () => Date
+    /** The first knowledge key this turn gives (citations.ts nextKnowledgeKey), past the ones earlier turns gave */
+    knowledgeKeyStart?: number
 }
 
 export interface RonnieExecutor {
@@ -60,6 +63,16 @@ export interface RonnieExecutor {
     readonly remembered: string[]
     /** Today's exercises with every name each goes by and whether it has sets, to check a reply against (reply-check.ts) */
     todayLog(): Promise<LoggedToday[]>
+    /**
+     * The knowledge notes search_knowledge gave the model this turn, with the key each was given
+     * (K1, K2...): the only notes a reply may cite, and what code writes the sources from (citations.ts).
+     */
+    readonly knowledge: CitedNote[]
+}
+
+export interface CitedNote {
+    key: string
+    note: KnowledgeNote
 }
 
 // Results show the first 8 characters of an exercise ID (the model mis-copied full UUIDs);
@@ -132,6 +145,17 @@ function describe(e: LibraryExercise, injured: Set<string | null> = new Set()): 
     ].filter(Boolean).join('; ')
 }
 
+/** A note as search_knowledge gives it: its key and source, what it found, and how far to trust it */
+function noteText(key: string, n: KnowledgeNote, zh: boolean): string {
+    const s = n.source
+    return [
+        `[${key}] ${citationOf(s)}, ${s.journal} (${n.design}; ${n.population})`,
+        ...n.claims.map((c) => `- ${c}`),
+        ...(zh ? [`- 中文重點：${n.summaryZh}`] : []),
+        `- How sure: ${n.certainty}${n.caveats?.length ? `; note: ${n.caveats.join('; ')}` : ''}`,
+    ].join('\n')
+}
+
 const weekdayOf = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })
 const shiftDate = (iso: string, days: number) => {
     const d = new Date(`${iso}T00:00:00Z`)
@@ -140,7 +164,7 @@ const shiftDate = (iso: string, days: number) => {
 }
 const mondayOf = (iso: string) => shiftDate(iso, -((new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7))
 
-export function createRonnieExecutor({ data, language, timeZone, todayRoutineName, weightUnit = 'kg', distanceUnit = 'km', now = () => new Date() }: RonnieExecutorContext): RonnieExecutor {
+export function createRonnieExecutor({ data, language, timeZone, todayRoutineName, weightUnit = 'kg', distanceUnit = 'km', now = () => new Date(), knowledgeKeyStart = 1 }: RonnieExecutorContext): RonnieExecutor {
     const zh = language === 'zh-TW'
     let needsDashboardReload = false
     const proposals: (RoutineProposal & { id: string })[] = []
@@ -149,6 +173,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
     const confirmations: string[] = []
     const notices: string[] = []
     const remembered: string[] = []
+    const knowledge: CitedNote[] = []
     const notice = (zhLine: string, enLine: string) => notices.push(zh ? zhLine : enLine)
 
     const nameOf = (ex: { name: string; name_zh_tw: string | null } | null | undefined) =>
@@ -294,6 +319,26 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             const injured = new Set(list.filter(isActiveInjury).map((n) => n.subject))
             const lines = (await Promise.all(found.map((e) => listLine(e.id, nameOf(e), describe(e, injured))))).join('\n')
             return `${ranked.exact ? lines : `Nothing in the library matches "${input.query}" exactly. Closest:\n${lines}`}${without}`
+        },
+
+        async search_knowledge(input) {
+            const query = String(input.query ?? '').trim()
+            if (!query) return 'Give the question to search for'
+            const found = searchKnowledge(query, await data.nearestKnowledge(query), 5)
+            if (!found.length) return `No notes match "${query}". Answer what you can as general coaching, without saying research shows it.`
+            // A note found twice in one turn keeps its first key, so a reply's citations stay one per paper
+            const keyed = found.map((note) => {
+                const had = knowledge.find((k) => k.note.id === note.id)
+                if (had) return had
+                const cited = { key: `K${knowledgeKeyStart + knowledge.length}`, note }
+                knowledge.push(cited)
+                return cited
+            })
+            return [
+                `GymPro's research notes for "${query}", closest first. Each is one paper's findings, for the people it studied. Cite a note right after the sentence it supports, with its key in square brackets, e.g. [${keyed[0].key}]; cite nothing else, and never name a paper or say "studies show" without a key.`,
+                ...keyed.map((k) => noteText(k.key, k.note, zh)),
+                'Notes that don\'t answer the question are left uncited. What no note covers may be said as general coaching.',
+            ].join('\n\n')
         },
 
         async get_workout_history(input) {
@@ -729,6 +774,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         confirmations,
         notices,
         remembered,
+        knowledge,
         async todayLog() {
             const range = todayRange()
             const workout = await data.getLatestWorkoutBetween(range.start, range.end)

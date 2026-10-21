@@ -3,6 +3,8 @@ import { stripMarkdown } from './prompt'
 import { RONNIE_TOOLS } from './tools'
 import type { RonnieExecutor } from './executor'
 import { doneClaimCorrection, doneClaimFeedback, doneClaims } from './reply-check'
+import { renumber, withSources, type ReplySource } from './citations'
+import { checkKnowledge, overclaimFeedback, RESEARCH_WORDS, type KnowledgeVerdict } from './knowledge-check'
 
 // Ronnie's agent loop. The caller passes the full history - tool calls and results
 // included - and stores the `messages` returned, so an ID looked up stays available.
@@ -38,9 +40,17 @@ export interface RonnieTurn {
     toolCalls: RonnieToolCall[]
     usage: Anthropic.Usage[]
     servedModel: string | null
-    /** Set when the reply said exercises with no sets today were done (reply-check.ts): which, and whether the one retry fixed it */
     /** The reply check fired: what the first draft claimed, the draft itself, and whether the retry fixed it */
     replyCheck?: { claimed: string[]; fixed: boolean; draft: string }
+    /** The papers the reply cites, numbered as its sentences are ([1], [2]): written by code (citations.ts) */
+    sources?: ReplySource[]
+    /** The reply gives general fitness advice no note supports: the chat says so under it (knowledge-check.ts) */
+    unsourced?: boolean
+    /**
+     * The knowledge check ran: its verdict on the first draft, the draft when it was sent back, the
+     * verdict after, keys the reply used that no note had, and the check's own usage (Haiku)
+     */
+    knowledgeCheck?: { first: KnowledgeVerdict; retried: boolean; draft?: string; after?: KnowledgeVerdict; unknownKeys?: string[]; usage: Anthropic.Usage[] }
 }
 
 const isUserText = (m: Anthropic.MessageParam) =>
@@ -90,6 +100,7 @@ export async function runRonnieTurn({
     language,
     model = RONNIE_MODEL,
     signal,
+    tools = RONNIE_TOOLS,
 }: {
     client: Anthropic
     system: string
@@ -99,6 +110,8 @@ export async function runRonnieTurn({
     model?: string
     /** Aborted when the user presses Stop: the in-flight call is cancelled and no more tools run */
     signal?: AbortSignal
+    /** Ronnie's tools; the eval leaves one out to measure without it (the knowledge baseline) */
+    tools?: Anthropic.Tool[]
 }): Promise<RonnieTurn> {
     const toolCalls: RonnieToolCall[] = []
     const usage: Anthropic.Usage[] = []
@@ -133,7 +146,7 @@ export async function runRonnieTurn({
                 model,
                 max_tokens: 1024,
                 system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
-                tools: RONNIE_TOOLS,
+                tools,
                 tool_choice: { type: 'none' },
                 // The reply and the check aren't kept in the history: only the reply shown is
                 messages: compactHistory([...history, { role: 'assistant', content: [{ type: 'text', text }] }, { role: 'user', content: doneClaimFeedback(claimed) }]),
@@ -155,6 +168,61 @@ export async function runRonnieTurn({
         return content
     }
 
+    // The reply's research claims, checked against the notes it was given (knowledge-check.ts):
+    // a turn that searched the notes, or a reply that presents something as research. Claims the
+    // notes don't support go back to the model once, without tools; general advice no note supports
+    // stays, and is labelled under the reply
+    let knowledgeCheck: RonnieTurn['knowledgeCheck']
+    let unsourced = false
+    const question = () => {
+        for (let i = messages.length - 1; i >= 0; i--) {
+            const m = messages[i]
+            if (m.role !== 'user') continue
+            if (typeof m.content === 'string') return m.content
+            const text = m.content.filter((b): b is Anthropic.TextBlockParam => b.type === 'text').map((b) => b.text).join('')
+            if (text) return text
+        }
+        return ''
+    }
+    const sourced = async (content: Anthropic.ContentBlock[]): Promise<Anthropic.ContentBlock[]> => {
+        const text = textOf(content)
+        if (executor.proposals.length || !text.trim()) return content
+        if (!executor.knowledge.length && !RESEARCH_WORDS.test(text)) return content
+        const first = await checkKnowledge(client, { question: question(), reply: text, notes: executor.knowledge, signal })
+        knowledgeCheck = { first: first.verdict, retried: false, usage: first.usage ? [first.usage] : [] }
+        let final = first.verdict
+        let out = content
+        if (first.verdict.overclaims.length) {
+            knowledgeCheck.retried = true
+            knowledgeCheck.draft = text
+            try {
+                const retry = await client.messages.create({
+                    model,
+                    max_tokens: 1024,
+                    system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+                    tools,
+                    tool_choice: { type: 'none' },
+                    messages: compactHistory([...history, { role: 'assistant', content: [{ type: 'text', text }] }, { role: 'user', content: overclaimFeedback(first.verdict.overclaims) }]),
+                    ...options.params,
+                }, { signal, ...(options.headers ? { headers: options.headers } : {}) })
+                usage.push(retry.usage)
+                servedModel = retry.model
+                const again = textOf(retry.content)
+                if (again.trim()) {
+                    const second = await checkKnowledge(client, { question: question(), reply: again, notes: executor.knowledge, signal })
+                    if (second.usage) knowledgeCheck.usage.push(second.usage)
+                    knowledgeCheck.after = second.verdict
+                    final = second.verdict
+                    out = retry.content
+                }
+            } catch (err) {
+                if (signal?.aborted) throw err
+            }
+        }
+        unsourced = final.general
+        return out
+    }
+
     const finish = (content: Anthropic.ContentBlock[]): RonnieTurn => {
         // A turn that proposed a routine change answers in the code's words: whether a change is
         // applied must be stated exactly, and given the wording the model still said "Done!". What
@@ -162,8 +230,16 @@ export async function runRonnieTurn({
         // user only saw the three that were.
         const proposed = executor.proposals.length > 0
         const codeLines = [...executor.confirmations, ...executor.notices].join('\n')
-        // An empty reply falls back to what the tools changed
-        const answer = proposed ? codeLines : stripMarkdown(textOf(content)) || codeLines
+        // An empty reply falls back to what the tools changed. Its citations become numbers, with the
+        // papers listed under it by code; a key no note had this turn is dropped
+        const cited = withSources(proposed ? '' : stripMarkdown(textOf(content)), executor.knowledge)
+        if (cited.unknown.length) knowledgeCheck = { ...(knowledgeCheck ?? { first: { overclaims: [], general: false }, retried: false, usage: [] }), unknownKeys: cited.unknown }
+        // A turn that searched the notes and cites none answers as general coaching, so it is labelled
+        // whatever the check says: given replies that called themselves "my own coaching advice", the
+        // check left all 6 such runs unlabelled (eval v30)
+        const searched = toolCalls.some((c) => c.name === 'search_knowledge')
+        const general = unsourced || (searched && !cited.sources.length && !!cited.text.trim())
+        const answer = proposed ? codeLines : cited.text || codeLines
         // A note saved or forgotten is said in the code's words, first, as something done: the model
         // claimed to have remembered things it never saved (the memory baseline, 5 of 42 runs)
         const memoryLines = executor.remembered.join('\n')
@@ -171,7 +247,8 @@ export async function runRonnieTurn({
         // A reply cut off by max_tokens can end in a half-written tool call, which stored
         // without its result would make the next request invalid
         const kept = proposed ? [] : [
-            ...content.filter((b) => b.type !== 'tool_use'),
+            // Stored with the numbers shown, so a later turn's keys never read as these
+            ...content.filter((b) => b.type !== 'tool_use').map((b) => (b.type === 'text' ? { ...b, text: renumber(b.text, cited.numbers) } : b)),
             // The correction is part of what was said, so the next turn doesn't take the claim as standing
             ...(correction ? [{ type: 'text' as const, text: correction, citations: null }] : []),
         ]
@@ -183,6 +260,9 @@ export async function runRonnieTurn({
             usage,
             servedModel,
             ...(replyCheck ? { replyCheck } : {}),
+            ...(cited.sources.length && !proposed ? { sources: cited.sources } : {}),
+            ...(general && !proposed ? { unsourced: true } : {}),
+            ...(knowledgeCheck ? { knowledgeCheck } : {}),
         }
     }
 
@@ -225,7 +305,7 @@ export async function runRonnieTurn({
                 // tool round reuse the conversation so far. Below the model's minimum it isn't cached.
                 system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
                 cache_control: { type: 'ephemeral' },
-                tools: RONNIE_TOOLS,
+                tools,
                 ...(lastRound ? { tool_choice: { type: 'none' as const } } : {}),
                 messages: compactHistory(history),
                 ...options.params,
@@ -238,7 +318,7 @@ export async function runRonnieTurn({
                     emptyRetried = true
                     continue
                 }
-                return finish(await checked(response.content))
+                return finish(await sourced(await checked(response.content)))
             }
 
             // A tool that throws (a database error, a malformed date) answers as a failed result, so the
