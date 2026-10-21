@@ -1,0 +1,2 @@
+Report with the headline told the plan shrinks (code 2394e3f) on claude-sonnet-4-6, missed-half-shrink-en, 3 reps; the harness unchanged.
+Results: 1/3, about US$0.12. No headline pushed for the full plan any more. Two actions said Leg Day and Push Day were missed "again" or "this week and last": the advice said the last report found the same, with its sessions unknown, and the model filled them in (grounded, advice_fits). Next: the advice says nothing about the last report.
