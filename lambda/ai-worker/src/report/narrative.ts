@@ -23,7 +23,7 @@ const REQUEST_TIMEOUT_MS = 60_000
 /** Too little time left for a call to finish: stop, so the report is saved as failed instead of cut off */
 const MIN_CALL_MS = 15_000
 
-type ModelRule = Exclude<RuleId, 'goal_path' | 'next_session' | 'pain_hold'>
+type ModelRule = Exclude<RuleId, 'goal_path' | 'next_session' | 'pain_hold' | 'few_days'>
 const isModelRule = (r: RuleId): r is ModelRule => !CODE_RULES.has(r)
 
 /** What each rule's advice says, in the user's unit. The app shows the research behind it. */
@@ -36,6 +36,16 @@ const advice = (unit: WeightUnit, period: string): Record<ModelRule, string> => 
     weight_trend: 'Body weight is moving against the goal: suggest a small daily calorie change (about 200-300 kcal) and steady weigh-ins, not a crash diet.',
     cardio_first: `On a lower-body day, do the leg lifts before the cardio (the cardio and lift in the data), or the cardio at another time; a 5-10 minute warm-up before lifting is fine. It is about leg strength: don't say cardio hurts muscle growth, and don't suggest doing more or less cardio.`,
 })
+
+/** The deload's advice when code lists each lift's numbers for the lighter week under it (plan.ts deloadOf) */
+const DELOAD_LINES_ADVICE = 'Plan one lighter week, then back to the usual plan the week after. Code lists each main lift\'s numbers for it under this action (about 10% lighter, half the sets), so name no lift, weight or set count. If a note, or tired in the data (the user\'s own words this period), mentions sleep, stress or tiredness, suggest looking after it; don\'t claim it is the cause.'
+/**
+ * missed_sessions' advice in place of its own when the user did under 3 in 4 of the planned sessions
+ * two periods running (rules.ts ADHERENCE_MIN). Added after the usual advice, which says making the
+ * sessions up brings the low muscles back, the model wrote both: plan 2 a week, and make them up (v17).
+ * Told the last report found the same, it said the same routines were missed again (v18, v19).
+ */
+const shrinkAdvice = (period: string) => `Name this ${period}'s missed sessions. Fewer than 3 in 4 planned sessions are getting done, so don't suggest making them up or doing them as planned: suggest planning the number of sessions in suggest each ${period}, a plan they can keep, with each routine's first lifts first, and add nothing on top. Don't say this brings any muscle back into range. Never scold; if a note explains it, acknowledge that.`
 
 /** Added to a lift rule's advice when one of its lifts is assisted, where less assist is the progress */
 const ASSISTED_ADVICE: Partial<Record<RuleId, string>> = {
@@ -134,14 +144,17 @@ function cardioLine(c: CardioFacts | undefined, zh: boolean, unit: string, days:
  * but a headline that knows a lift is held for pain, or which lifts the goal's plan is on, won't
  * contradict it.
  */
-function codeWrote(findings: Finding[], zh: boolean): string | null {
+function codeWrote(findings: Finding[], zh: boolean, lighterWeek: string[]): string | null {
     const nameIn = (f: Finding) => String((zh && f.data.nameZh) || f.data.name)
-    const named = (rule: RuleId) => findings.filter((f) => f.rule === rule).map(nameIn)
+    const named = (rule: RuleId) => findings.filter((f) => f.rule === rule && f.data.how !== 'deload').map(nameIn)
+    const few = findings.find((f) => f.rule === 'few_days')
     const restarted = findings.filter((f) => f.rule === 'goal_path' && f.data.path === 'stalled').map(nameIn)
     const parts = [
         named('pain_hold').length ? `holding ${named('pain_hold').join(', ')} this period at its weight, because the user said it hurt` : null,
         named('goal_path').length ? `the next session for the goal's lifts (${named('goal_path').join(', ')}), with other ways to get there${restarted.length ? `; ${restarted.join(', ')} stalled, so its plan starts lighter and builds back up` : ''}` : null,
         named('next_session').length ? `the next session for ${named('next_session').join(', ')}: reach the top of the reps on every set, then add weight` : null,
+        lighterWeek.length ? `under deload, a line for each main lift's lighter week: ${lighterWeek.join('; ')}` : null,
+        few ? `strength training on ${few.data.target} days a week, as health guidelines suggest for adults (they trained on ${few.data.days} this period)` : null,
     ].filter(Boolean)
     return parts.length ? `Code writes this advice in the app, with its numbers; don't write it in actions, and name it in the headline only if it matters most: ${parts.join('; ')}.` : null
 }
@@ -152,8 +165,10 @@ function codeWrote(findings: Finding[], zh: boolean): string | null {
  * track for the goal, once code wrote that lift's advice and no stall rule named it (v14). Told
  * only not to say on track, it still tied the stuck lift to the goal ("to keep the goal on track",
  * "back to 100 kg" for a bench that never reached it, v15), so the goal stays out of the headline.
+ * A plan that shrinks isn't one to get back to.
  */
 function headlineLimitsOf(facts: ReportFacts, findings: Finding[], zh: boolean): string {
+    const shrink = findings.find((f) => f.rule === 'missed_sessions' && f.data.shrink)
     const goalIds = new Set(findings.filter((f) => f.rule === 'goal_path').flatMap((f) => [f.subject, f.data.viaId]))
     const notUp = facts.lifts.filter((l) => l.trend === 'flat' || l.trend === 'down')
     // One flat week is ordinary; two without a new best is a goal lift not moving
@@ -162,6 +177,8 @@ function headlineLimitsOf(facts: ReportFacts, findings: Finding[], zh: boolean):
     return [
         notUp.length ? ` Not every main lift went up, so it doesn't say every, all or across the board${zh ? ' (全面)' : ''}.` : '',
         goalNotUp.length ? ` The goal rests on ${goalNotUp.map((l) => `${nameOf(l, zh)} (${how(l)})`).join(' and ')}, so the headline leaves the goal out: it may say what comes next for ${goalNotUp.length === 1 ? 'that lift' : 'those lifts'}, not that this keeps the goal on track, nears it, or builds toward or back to the goal's number.` : '',
+        // v18: "now the priority is getting back to 4 sessions", over advice to plan 2
+        shrink ? ` The plan shrinks to ${shrink.data.suggest} sessions a ${facts.period.days === 7 ? 'week' : 'cycle'}, so the headline doesn't push for more sessions, the full plan or more consistency.` : '',
     ].join('')
 }
 
@@ -181,7 +198,9 @@ export function buildPrompt(input: NarrativeInput): string {
     // perWeek is the same number as sets, and two names for one number read as two numbers.
     // A low muscle's options go in as phrases (optionsOf), not as their fields.
     const hidden = new Set(['previousValue', ...OPTION_FIELDS, ...(facts.period.days === 7 ? ['perWeek'] : [])])
-    const hiddenFor = (f: Finding) => (f.rule === 'cardio_first' ? new Set([...hidden, ...CARDIO_FIRST_FIELDS]) : hidden)
+    // A plan that shrinks doesn't bring the muscles its missed sessions left low back, so the model isn't told which
+    const hiddenFor = (f: Finding) => (f.rule === 'cardio_first' ? new Set([...hidden, ...CARDIO_FIRST_FIELDS])
+        : f.rule === 'missed_sessions' && f.data.shrink ? new Set([...hidden, 'lowGroups']) : hidden)
     // Muscles by name, in the user's language like exercise names
     const muscleName = (g: string) => unitLabel(g, language, (x) => x)
     // Spelled out so "4 more sets" can't be read as "4 sets in all"; a missing option is left out
@@ -259,14 +278,24 @@ export function buildPrompt(input: NarrativeInput): string {
     }
     const itemName = (f: Finding) => findingName(f, language)
     const modelFindings = findings.filter((f) => isModelRule(f.rule))
+    // Each main lift's numbers for a lighter week, which code writes under the deload (plan.ts deloadOf)
+    const lighterWeek = findings.filter((f) => f.rule === 'next_session' && f.data.how === 'deload').map((f) => {
+        const d = f.data
+        const set = d.assisted ? `${w(Number(d.assistKg))} assist x ${d.low}` : d.bodyweight ? `${d.low} reps` : `${w(Number(d.weightKg))} x ${d.low}`
+        const usual = d.assisted || d.bodyweight ? `usually ${d.usualSets} sets` : `usually ${w(Number(d.usualKg))}, ${d.usualSets} sets`
+        return `${String((zh && d.nameZh) || d.name)} ${set}, ${d.sets} ${Number(d.sets) === 1 ? 'set' : 'sets'} (${usual})`
+    })
     lines.push(modelFindings.length
         ? `Rules that fired, most important first; each has one or more items:\n${rulesOf(findings).map((r) => {
             const fs = findings.filter((f) => f.rule === r)
-            const advice = fs.some((f) => f.data.assisted) && ASSISTED_ADVICE[r] ? `${ADVICE[r]} ${ASSISTED_ADVICE[r]}` : ADVICE[r]
+            const own = r === 'deload' && lighterWeek.length ? DELOAD_LINES_ADVICE
+                : r === 'missed_sessions' && fs.some((f) => f.data.shrink) ? shrinkAdvice(unit) : ADVICE[r]
+            const extra = [fs.some((f) => f.data.assisted) && ASSISTED_ADVICE[r]].filter(Boolean)
+            const advice = [own, ...extra].join(' ')
             return `- ${r} (priority ${Math.max(...fs.map((f) => f.priority))}). Advice: ${advice}\n${fs.map((f) => `    - ${itemName(f) ? `${itemName(f)}: ` : ''}data ${JSON.stringify(dataFor(f))}`).join('\n')}`
         }).join('\n')}`
         : 'No rules fired this period.')
-    const planned = codeWrote(findings, zh)
+    const planned = codeWrote(findings, zh, lighterWeek)
     if (planned) lines.push(planned)
     const headlineLimits = headlineLimitsOf(facts, findings, zh)
     if (watching.length) lines.push(`Watching, below threshold (do not advise on these): ${watching.map((x) => `${x.rule}${nameIn(x.rule, x.subject, x.data) ? ` (${nameIn(x.rule, x.subject, x.data)})` : ''}`).join(', ')}.`)
@@ -320,6 +349,11 @@ export function textProblems(n: ReportNarrative, input: NarrativeInput): string[
         const noteMax = zh ? LOW_VOLUME_NOTE_MAX.zh : LOW_VOLUME_NOTE_MAX.en
         if (noteLength > noteMax) problems.push(`the low_volume text is ${noteLength} ${zh ? 'characters' : 'words'}; keep it to one sentence of at most ${noteMax}, only for a note: code lists the muscles and their options`)
     }
+    // A lighter week's lifts and numbers are code's lines under the deload: the action names none (v17: it listed five)
+    const deload = (n.items.find((i) => i.rule === 'deload')?.action ?? '').toLowerCase()
+    const lighter = input.findings.filter((f) => f.rule === 'next_session' && f.data.how === 'deload')
+    const listed = lighter.map((f) => String((zh && f.data.nameZh) || f.data.name)).filter((name) => deload.includes(name.toLowerCase()))
+    if (listed.length) problems.push(`the deload action names ${listed.join(', ')}; code lists each lift and its numbers under it, so name none`)
     // Every other item named in its rule's action
     for (const f of input.findings) {
         if (f.rule === 'low_volume' || CODE_RULES.has(f.rule)) continue

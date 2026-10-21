@@ -41,7 +41,7 @@ const MARKDOWN = /\*\*|__|`|^\s*#|^\s*[-*]\s|^\s*\d+\.\s/m
 const WRONG_UNIT = { kg: /\d\s*(lbs?|磅)/i, lb: /\d\s*(kg|公斤)/i }
 
 // The next-session advice code writes in full (lib/report/types.ts CODE_RULES): check-plan.mjs checks it, the model writes none of it
-const CODE_RULES = new Set(['goal_path', 'next_session', 'pain_hold'])
+const CODE_RULES = new Set(['goal_path', 'next_session', 'pain_hold', 'few_days'])
 /** The model's part of a report: its items and the findings it writes for */
 export const modelPart = (n) => ({ ...n, items: (n?.items ?? []).filter((i) => i.rule && !CODE_RULES.has(i.rule)) })
 

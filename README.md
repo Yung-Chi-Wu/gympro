@@ -121,15 +121,19 @@ flowchart LR
    - The report lists these signals, with Ronnie's memory notes, so the user sees what it went on.
 2. **Facts:** the numbers are computed in code. That covers sets per muscle, with half sets for secondary muscles, estimated 1RM trends, missed sessions, body weight, cardio minutes, and how far each goal target is.
 3. **Rules:** a rule table fires on those facts, for example deload, regression, stall, low volume, missed sessions, weight trend, and cardio before legs. For low volume, code also picks the exercises to add the sets with: at most 2 more sets a week, none without a goal, and for a strength goal only for the muscles of a stalled goal lift.
+   - **Deload:** it fires when several main lifts drop together, or when the user said they were tired and their lifts dropped.
+   - **Missed sessions:** under 3 in 4 planned sessions done two periods running, with no reason given, the advice is a smaller plan the user can keep, and nothing is added.
+   - **Too few days:** under 2 training days a week, the report suggests 2 (WHO 2020), unless the user said they were ill or away.
 4. **Next session:** code works out each main lift's next session from the user's own sets. It keeps the heaviest weight and adds reps up to two more, then the smallest step for the equipment in the user's unit (double progression).
    - **The goal's lifts:** each lift the goal names gets that plan first, then the other ways research supports. A strength goal gets heavier sets, and a lift trained once a week a second day. A first pull-up goes through the pulldown or the assisted pull-up the user already does.
    - **What the user said:** a lift that hurt this period is held at its weight, with a lighter alternative. An injury in Ronnie's notes rules out the heavier options, and an exercise the user doesn't want is never suggested.
+   - **A lighter week:** a deload replaces the plan. Each main lift gets a line about 10% lighter, with half the sets.
    - **Text:** code writes all of it, in both languages.
 5. **Words:** Claude Sonnet 4.6 phrases only the rules that fired. Low-volume advice is the exception: code writes it, a line per muscle with its options, and the model adds one sentence only when the user's note bears on them.
    - Code checks the text before it's saved: Traditional, not Simplified, characters; punctuation; no Markdown; the user's weight unit; headline length; and that each action names every finding of its rule.
    - A failure is retried with the specific error.
    - After two failures, a code template is used.
-6. **Research:** each rule's research line comes from a table of 22 papers in [`lib/report/evidence.ts`](lib/report/evidence.ts), not from the model.
+6. **Research:** each rule's research line comes from a table of 24 papers in [`lib/report/evidence.ts`](lib/report/evidence.ts), not from the model.
 
 ## Evaluation
 
@@ -140,7 +144,7 @@ flowchart LR
 | Ronnie, fitness knowledge | 8 | The judge |
 | Ronnie, memory | 21, some across several conversations | Code checks on the saved notes, plus the judge |
 | Exercise search | 51 queries, plus 20 held out | hit@1, hit@5, MRR |
-| Weekly report | 36 scenarios | Rule checks, a grader and the judge |
+| Weekly report | 42 scenarios | Rule checks, a grader and the judge |
 | Report goal reader | 20 goal texts, run by hand | Code checks on each read |
 | Report period reader | 16 sets of notes and messages, run by hand | Code checks on each read |
 

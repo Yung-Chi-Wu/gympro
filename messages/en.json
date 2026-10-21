@@ -466,7 +466,11 @@
             "holdAssist": "{lift}: keep the assist this {unit, select, week {week} other {cycle}}; {assist} assist × {low} is enough",
             "holdAlt": "{alt}, at a weight that doesn't hurt",
             "stillHurts": "If it still hurts",
-            "seeSomeone": "have a doctor or physical therapist look at it; don't push through"
+            "seeSomeone": "have a doctor or physical therapist look at it; don't push through",
+            "fewDays": "Strength train on {n} days a week, working the major muscle groups each time",
+            "deloadLoad": "{weight} × {low}, {sets} {count, select, one {set} other {sets}} (usually {usual}, {usualSets} {usualCount, select, one {set} other {sets}})",
+            "deloadReps": "{low} reps, {sets} {count, select, one {set} other {sets}} (usually {usualSets} {usualCount, select, one {set} other {sets}})",
+            "deloadAssist": "{assist} assist × {low}, {sets} {count, select, one {set} other {sets}} (usually {usualSets} {usualCount, select, one {set} other {sets}})"
         },
         "advised": {
             "lift_stalled": "Add reps on {lift}",
@@ -478,7 +482,8 @@
             "cardio_first": "Legs before cardio on leg days",
             "goal_path": "{lift}: the plan toward the goal",
             "next_session": "{lift}: top reps, then more weight",
-            "pain_hold": "{lift}: no more weight this {unit, select, week {week} other {cycle}}"
+            "pain_hold": "{lift}: no more weight this {unit, select, week {week} other {cycle}}",
+            "few_days": "Strength train 2 days a week"
         },
         "result": {
             "lift_stalled": {
@@ -526,6 +531,11 @@
                 "done": "done ({now})",
                 "partial": "getting there ({now})",
                 "not_done": "still {now}"
+            },
+            "few_days": {
+                "done": "{n} days this {unit, select, week {week} other {cycle}}",
+                "partial": "{n, plural, one {# day} other {# days}}, more than last time",
+                "not_done": "{n, plural, one {# day} other {# days}} this {unit, select, week {week} other {cycle}}"
             }
         },
         "nextTitle": "Next {unit, select, week {week} other {cycle}}",
@@ -538,9 +548,11 @@
             "lift_stalled": "{lift}: best set {best} for {n} {unit, select, week {weeks} other {cycles}} running",
             "lift_regressed": "{lift}: down from {previous} to {best}",
             "deload": "{lifts} all went down",
+            "deloadOne": "{lifts} went down",
             "low_volume": "{muscle}: {perWeek} sets a week{level, select, below {, below the roughly 4 that give measurable growth} other {; under 10 is where added sets pay off most}}",
             "missed_sessions": "{done} of {planned} planned sessions (missed: {routines})",
             "missedLow": "{groups} fell below 10 sets because of it",
+            "missedShrink": "under 3 in 4 done two {unit, select, week {weeks} other {cycles}} running, so a plan you can keep comes first, with nothing added",
             "weight_trend": "Your goal is to {direction, select, gain {gain} other {lose}} weight, and it has gone {direction, select, gain {down} other {up}} {n} {unit, select, week {weeks} other {cycles}} running",
             "cardio_first": "{day}: {minutes} min of {cardio} before {lift}",
             "cardioFirstMore": "Cardio came first on {n} leg days this {unit, select, week {week} other {cycle}} ({dates})",
@@ -552,20 +564,22 @@
             "goalOnce": "Trained on 1 day this {unit, select, week {week} other {cycle}}",
             "goalInjury": "{text} ({date}), so no heavier or extra-day options",
             "next_session": "heaviest set {set}",
-            "pain_hold": "{date} {source, select, ronnie {you told Ronnie} other {your note said}} \"{text}\"",
-            "goalDislike": "{text} ({date}), so that option is left out"
+            "goalDislike": "{text} ({date}), so that option is left out",
+            "few_days": "{n, plural, one {# day} other {# days}} of training this {unit, select, week {week} other {cycle}, about {perWeek} a week}",
+            "said": "{date} {source, select, ronnie {you told Ronnie} other {your note said}} \"{text}\""
         },
         "researchText": {
             "lift_stalled": "In an 8-week study of leg training in people with a year or more of lifting, adding reps at the same weight built muscle and strength about as well as adding weight. So GymPro suggests adding reps first, then weight once every set reaches the top of the range (double progression).",
             "lift_regressed": "A short dip can be fatigue that recovery reverses; a drop that lasts is the warning sign of overtraining. So GymPro suggests holding the weight and looking after recovery, rather than adding load or stopping.",
-            "deload": "Deload weeks rest mostly on coaches' experience, with few trials; in one study, a scheduled week off midway made no difference to muscle growth but led to smaller strength gains. So GymPro doesn't schedule deloads: it suggests a lighter week, not a week off, only when several main lifts drop together.",
+            "deload": "Deload weeks rest mostly on coaches' experience, with few trials; in one study, a scheduled week off midway made no difference to muscle growth but led to smaller strength gains. In a survey of 246 strength and physique athletes, a deload lasted about a week, mainly to manage fatigue, with the same days and exercises, fewer sets and lighter weights. So GymPro doesn't schedule deloads: it suggests a lighter week, not a week off, when several main lifts drop together, or when you say you're tired and your lifts drop; about 10% lighter with half the sets is GymPro's setting.",
             "low_volume": "The largest meta-analysis (67 studies) found that about 4 sets a week already give measurable growth, and more sets keep adding muscle, each a little less. Up to 10, about 6 more sets give one more measurable step (about 2%, the smallest difference studies detect); past 10 it takes 8 or more, and more the higher you go. So GymPro suggests more sets below 10 when the muscle bears on your goal, where each set buys the most growth; adding 1-2 sets a week at a time is a gradual step, not a number from the studies.",
-            "missed_sessions": "With total sets equal, how often you train barely changes growth but helps strength; what a missed session really costs is that week's sets. So GymPro suggests fitting the missed routines in, not swapping in other exercises.",
+            "missed_sessions": "With total sets equal, how often you train barely changes growth but helps strength; what a missed session really costs is that week's sets. So GymPro suggests fitting the missed routines in, not swapping in other exercises. When fewer than 3 in 4 planned sessions get done two weeks running, with no illness or travel said, it suggests a smaller plan you can keep instead, with nothing added; 3 in 4 is GymPro's threshold.",
             "weight_trend": "For a cut before a competition, losing 0.5–1% of body weight a week is advised to keep the most muscle; a modest surplus helps a bulk, but how much is unsettled. So GymPro suggests a small change in calories, not a crash diet.",
             "cardio_first": "Two meta-analyses found that lifting before cardio in the same session gave more lower-body strength (about 4 kg more on the 1RM), with no difference in muscle growth; a newer umbrella review saw the same trend, short of significance. So when cardio comes before the leg lifts on a leg day, GymPro suggests lifting first and doing the cardio after, or at another time.",
             "goal_path": "Add reps the way you train now, then the smallest weight step once every set reaches the top; each other way has research behind it, listed below.",
             "next_session": "A study found that adding reps at the same weight grew muscle and strength about as well as adding weight; the American College of Sports Medicine suggests 2-10% more weight once you can do 1-2 reps more than the set calls for. So GymPro adds reps first, then the smallest step once every set reaches the top.",
-            "pain_hold": "No more weight on what hurts; if it lasts more than a week, have a doctor or physical therapist look at it. This is a safety rule, not a study's finding."
+            "pain_hold": "No more weight on what hurts; if it lasts more than a week, have a doctor or physical therapist look at it. This is a safety rule, not a study's finding.",
+            "few_days": "WHO's 2020 guidelines suggest adults do muscle-strengthening activities that work the major muscle groups on 2 or more days a week. A meta-analysis of 16 cohort studies linked muscle-strengthening to a 10–17% lower risk of early death, heart disease, cancer and diabetes, the most at about 30–60 minutes a week. So when you train on fewer than 2 days a week, GymPro suggests 2."
         },
         "openFull": "See the full report",
         "accordionHint": "Tap a row to open it; one opens at a time.",
@@ -627,14 +641,15 @@
         "ruleText": {
             "lift_stalled": "A main lift's best set hasn't improved for 3 {unit, select, week {weeks} other {cycles}}",
             "lift_regressed": "A main lift dropped 5% or more, or two {unit, select, week {weeks} other {cycles}} in a row",
-            "deload": "Two or more main lifts dropped 3% or more, and more went down than up",
-            "low_volume": "Chest, back, side or rear delts, quads, hamstrings, glutes, biceps or triceps under 10 sets a week, and not just from a missed session; not without a goal, and for a strength goal only the muscles a stalled goal lift mainly trains",
-            "missed_sessions": "Days your training cycle planned that weren't trained",
+            "deload": "Two or more main lifts dropped 3% or more, and more went down than up; or you said you were tired and two main lifts went down, or one dropped 5% or more",
+            "low_volume": "Chest, back, side or rear delts, quads, hamstrings, glutes, biceps or triceps under 10 sets a week, and not just from a missed session; not without a goal, and for a strength goal only the muscles a stalled goal lift mainly trains; not in a lighter week, nor while the plan shrinks",
+            "missed_sessions": "Days your training cycle planned that weren't trained; under 3 in 4 done two {unit, select, week {weeks} other {cycles}} running, a smaller plan instead",
             "weight_trend": "Body weight moving against the goal 4 {unit, select, week {weeks} other {cycles}} running",
             "cardio_first": "15 minutes or more of cardio before the first leg lift in the same session; a 5–10 minute warm-up doesn't count (the order is when each set was logged)",
             "goal_path": "A lift your goal names: the next session the way you train it now, and other ways research supports",
             "next_session": "Your other main lifts: reach the top reps on every set, then add weight",
-            "pain_hold": "A lift you said hurt this {unit, select, week {week} other {cycle}}, or one that loads the sore joint more than lightly"
+            "pain_hold": "A lift you said hurt this {unit, select, week {week} other {cycle}}, or one that loads the sore joint more than lightly",
+            "few_days": "Strength training on fewer than 2 days a week, with no planned session missed and no illness or travel mentioned that {unit, select, week {week} other {cycle}}"
         },
         "glossary": {
             "mainLifts": {

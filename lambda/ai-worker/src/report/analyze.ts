@@ -13,7 +13,7 @@ export function analyze(inputs: ReportInputs) {
         const e = inputs.exercises.find((x) => x.id === id)
         return e ? setWeights(e.primaryMuscles, e.secondaryMuscles, e.muscleGroup).filter(([, w]) => w === 1).map(([u]) => u) : []
     }
-    const { findings: fired, watching } = evaluateRules(facts, primaryUnitsOf)
+    const { findings: fired, watching } = evaluateRules(facts, primaryUnitsOf, inputs.previousFindings)
     // A low muscle's advice offers two ways to add its sets, both chosen here from the user's exercises and the library;
     // then what to do next session on each main lift (plan.ts)
     const findings = withPlan(withExerciseOptions(fired, inputs), facts, inputs)

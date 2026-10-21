@@ -353,11 +353,12 @@ export interface ContextNote {
 }
 
 export type RuleId = 'deload' | 'lift_regressed' | 'lift_stalled' | 'low_volume' | 'missed_sessions' | 'weight_trend' | 'cardio_first'
-    // Written by code, action and lines (plan.ts): next session for a goal's lift, for the other main lifts, and holding a lift that hurt
-    | 'goal_path' | 'next_session' | 'pain_hold'
+    // Written by code, action and lines (plan.ts): next session for a goal's lift, for the other main lifts, and holding a lift that hurt;
+    // and (rules.ts) training on fewer days than health guidelines suggest
+    | 'goal_path' | 'next_session' | 'pain_hold' | 'few_days'
 
-/** The rules whose action and lines code writes in full (lambda/ai-worker/src/report/plan.ts): the model writes none of them */
-export const CODE_RULES: ReadonlySet<RuleId> = new Set<RuleId>(['goal_path', 'next_session', 'pain_hold'])
+/** The rules whose action and lines code writes in full (lambda/ai-worker/src/report/plan.ts, rules.ts few_days): the model writes none of them */
+export const CODE_RULES: ReadonlySet<RuleId> = new Set<RuleId>(['goal_path', 'next_session', 'pain_hold', 'few_days'])
 
 type Data = Record<string, number | string | null>
 

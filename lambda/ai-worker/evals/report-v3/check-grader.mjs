@@ -16,7 +16,7 @@ const { analyze, findingName, optionLines, optionNames } = createRequire(import.
 
 let failures = 0
 const check = (ok, msg) => { if (!ok) { failures++; console.log(`FAIL ${msg}`) } }
-const CODE_RULES = new Set(['goal_path', 'next_session', 'pain_hold'])
+const CODE_RULES = new Set(['goal_path', 'next_session', 'pain_hold', 'few_days'])
 
 for (const c of SCENARIOS) {
     const { findings: all, facts } = analyze(inputsFor(c))

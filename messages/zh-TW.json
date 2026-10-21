@@ -466,7 +466,11 @@
             "holdAssist": "{lift}：這{unit, select, week {週} other {輪}}先不減輔助，輔助 {assist} × {low} 下就好",
             "holdAlt": "換{alt}，用不痛的重量",
             "stillHurts": "還痛的話",
-            "seeSomeone": "給醫師或物理治療師看，不要硬練"
+            "seeSomeone": "給醫師或物理治療師看，不要硬練",
+            "fewDays": "每週排 {n} 天肌力訓練，每次都練到全身主要肌群",
+            "deloadLoad": "{weight} × {low} 下，{sets} 組（平常 {usual}、{usualSets} 組）",
+            "deloadReps": "{low} 下，{sets} 組（平常 {usualSets} 組）",
+            "deloadAssist": "輔助 {assist} × {low} 下，{sets} 組（平常 {usualSets} 組）"
         },
         "advised": {
             "lift_stalled": "{lift}先加次數再加重",
@@ -478,7 +482,8 @@
             "cardio_first": "腿日先練腿再做有氧",
             "goal_path": "{lift}照計畫往目標練",
             "next_session": "{lift}做滿次數再加重",
-            "pain_hold": "{lift}這{unit, select, week {週} other {輪}}先不加重"
+            "pain_hold": "{lift}這{unit, select, week {週} other {輪}}先不加重",
+            "few_days": "每週練 2 天"
         },
         "result": {
             "lift_stalled": {
@@ -526,6 +531,11 @@
                 "done": "做到了（{now}）",
                 "partial": "有進步（{now}）",
                 "not_done": "還是 {now}"
+            },
+            "few_days": {
+                "done": "這{unit, select, week {週} other {輪}}練了 {n} 天",
+                "partial": "練了 {n} 天，比上次多",
+                "not_done": "這{unit, select, week {週} other {輪}}練了 {n} 天"
             }
         },
         "nextTitle": "下{unit, select, week {週} other {輪}}重點",
@@ -538,9 +548,11 @@
             "lift_stalled": "{lift}連續 {n} {unit, select, week {週} other {輪}}最佳都是 {best}",
             "lift_regressed": "{lift}從 {previous} 降到 {best}",
             "deload": "{lifts} 同時退步",
+            "deloadOne": "{lifts}退步",
             "low_volume": "{muscle}每週 {perWeek} 組，{level, select, below {還不到測得到成長的約 4 組} other {10 組以下是加組最划算的區段}}",
             "missed_sessions": "排了 {planned} 次，練了 {done} 次（沒練：{routines}）",
             "missedLow": "{groups}因此低於 10 組",
+            "missedShrink": "連續兩{unit, select, week {週} other {輪}}完成不到四分之三，所以先排做得到的計畫，不再往上加",
             "weight_trend": "目標是{direction, select, gain {增肌} other {減脂}}，體重連續 {n} {unit, select, week {週} other {輪}}{direction, select, gain {下降} other {上升}}",
             "cardio_first": "{day}先做了 {minutes} 分鐘{cardio}，才開始{lift}",
             "cardioFirstMore": "這{unit, select, week {週} other {輪}}共 {n} 次腿日是這樣（{dates}）",
@@ -552,20 +564,22 @@
             "goalOnce": "這{unit, select, week {週} other {輪}}只練了 1 天",
             "goalInjury": "{text}（{date}），所以不列更重和多一天的練法",
             "next_session": "最重的一組 {set}",
-            "pain_hold": "{date} {source, select, ronnie {跟 Ronnie 說} other {的筆記寫}}「{text}」",
-            "goalDislike": "{text}（{date}），所以不列這個練法"
+            "goalDislike": "{text}（{date}），所以不列這個練法",
+            "few_days": "這{unit, select, week {週練了 {n} 天} other {輪練了 {n} 天，約每週 {perWeek} 天}}",
+            "said": "{date} {source, select, ronnie {跟 Ronnie 說} other {的筆記寫}}「{text}」"
         },
         "researchText": {
             "lift_stalled": "一項研究讓有一年以上訓練經驗的人練 8 週腿，發現重量不變、只加次數，肌肉和力量的進步跟加重量差不多。所以 GymPro 建議先加次數，每組都做滿再加重（雙重漸進）。",
             "lift_regressed": "短期的表現下滑可能只是疲勞，恢復後就會回升；長期持續下滑才是過度訓練的警訊。所以 GymPro 先建議維持重量、照顧恢復，不急著加重或停練。",
-            "deload": "減量週的做法主要來自教練的經驗共識，對照研究很少；一項研究在課程中間固定停練一週，肌肉成長沒有差別，肌力進步反而比較少。所以 GymPro 不排固定的減量週，只在多個主要動作一起退步時，才建議練輕一點的一週，而不是完全停練。",
+            "deload": "減量週的做法主要來自教練的經驗共識，對照研究很少；一項研究在課程中間固定停練一週，肌肉成長沒有差別，肌力進步反而比較少。一項針對 246 位力量與健美選手的調查中，減量通常持續約一週，主要用來處理疲勞，練的天數和動作不變，組數減少、重量減輕。所以 GymPro 不排固定的減量週，只在多個主要動作一起退步，或你說很累而且動作退步時，才建議練輕一點的一週，而不是完全停練；輕約 10%、組數減半是 GymPro 的設定。",
             "low_volume": "規模最大的統合研究（67 篇研究）發現，每週約 4 組就測得到肌肉成長；組數越多長越多，但每一組的效益越來越小。10 組以內，每多約 6 組就多長一截（約 2%，研究測得到的最小差異）；超過 10 組，要多 8 組以上才換得到同樣的一截，而且越往上要越多。所以 GymPro 在 10 組以下、跟你的目標有關時建議加組，這是每一組換到最多成長的區段；一次每週先加 1–2 組，是循序漸進的做法，不是研究定的數字。",
-            "missed_sessions": "總組數相同時，一週練幾次對增肌影響很小，對肌力則有幫助；漏練真正少掉的是當週的組數。所以 GymPro 建議把沒練的課表找時間補上，而不是換成別的動作。",
+            "missed_sessions": "總組數相同時，一週練幾次對增肌影響很小，對肌力則有幫助；漏練真正少掉的是當週的組數。所以 GymPro 建議把沒練的課表找時間補上，而不是換成別的動作。連續兩週完成不到四分之三、也沒說生病或出遠門時，改建議排一個做得到的較小計畫，不再往上加；四分之三是 GymPro 設的門檻。",
             "weight_trend": "針對減脂備賽的建議是每週減 0.5–1% 體重，較能保住肌肉；增肌時適度的熱量盈餘有幫助，但多少才夠還沒有定論。所以 GymPro 建議小幅調整熱量，不建議激烈節食。",
             "cardio_first": "兩篇統合分析發現，同一次訓練先重訓、再做有氧，下肢肌力進步比較多（1RM 多約 4 公斤），肌肉成長則沒有差別；較新的總覽研究看到同樣方向的趨勢，但差異不顯著。所以 GymPro 在腿日看到有氧排在腿部動作前面時，建議先練腿，有氧放到後面或別的時間。",
             "goal_path": "照你現在的練法先加次數，每組都做到上限再加最小的一格；其他練法各有研究支持，下面列出。",
             "next_session": "一項研究發現重量不變、先加次數，肌肉和力量的進步跟加重量差不多；美國運動醫學會建議做得比要求多 1–2 下時，再加 2–10% 的重量。所以 GymPro 先加次數，每組都做到上限再加最小的一格。",
-            "pain_hold": "痛的部位先不加重；痛超過一週，給醫師或物理治療師看。這是安全原則，不是研究結論。"
+            "pain_hold": "痛的部位先不加重；痛超過一週，給醫師或物理治療師看。這是安全原則，不是研究結論。",
+            "few_days": "WHO 2020 年的指引建議成人每週至少 2 天做肌力訓練，練到全身主要肌群。一項統合 16 個世代研究的分析發現，有做肌力訓練的人，早逝、心血管疾病、癌症和糖尿病的風險低 10–17%，每週約 30–60 分鐘時效益最大。所以一週練不到 2 天時，GymPro 建議練 2 天。"
         },
         "openFull": "看完整報告",
         "accordionHint": "點一列展開，一次只打開一個。",
@@ -627,14 +641,15 @@
         "ruleText": {
             "lift_stalled": "同一個主要動作連續 3 {unit, select, week {週} other {輪}}，最佳重量和次數都沒變",
             "lift_regressed": "一個主要動作退步 5% 以上，或連續兩{unit, select, week {週} other {輪}}退步",
-            "deload": "兩個以上主要動作同時退步 3% 以上，而且退步的比進步的多",
-            "low_volume": "胸、背、肩中束、肩後束、股四頭、腿後側、臀、二頭或三頭每週少於 10 組，而且不是因為這次漏練；沒寫目標時不建議，力量目標只看停住的目標動作主要練到的肌群",
-            "missed_sessions": "訓練循環裡排了、但沒有練的日子",
+            "deload": "兩個以上主要動作同時退步 3% 以上，而且退步的比進步的多；或你說很累，而且兩個主要動作退步，或一個退步 5% 以上",
+            "low_volume": "胸、背、肩中束、肩後束、股四頭、腿後側、臀、二頭或三頭每週少於 10 組，而且不是因為這次漏練；沒寫目標時不建議，力量目標只看停住的目標動作主要練到的肌群；減量週或計畫縮小時也不建議",
+            "missed_sessions": "訓練循環裡排了、但沒有練的日子；連續兩{unit, select, week {週} other {輪}}完成不到四分之三時，改排較小的計畫",
             "weight_trend": "體重連續 4 {unit, select, week {週} other {輪}}往目標的反方向走",
             "cardio_first": "同一次下肢訓練裡，第一個腿部動作之前做了 15 分鐘以上的有氧，5–10 分鐘的暖身不算（先後依每組記錄的時間）",
             "goal_path": "目標裡的動作：照你現在的練法，下次怎麼練，另外列研究支持的其他練法",
             "next_session": "其他主要動作：每組都做到次數上限，下次再加重",
-            "pain_hold": "這{unit, select, week {週} other {輪}}說了痛的動作，或痛的關節負荷中等以上的動作"
+            "pain_hold": "這{unit, select, week {週} other {輪}}說了痛的動作，或痛的關節負荷中等以上的動作",
+            "few_days": "一週練不到 2 天，沒有漏掉排好的課，這{unit, select, week {週} other {輪}}也沒說生病或出遠門"
         },
         "glossary": {
             "mainLifts": {

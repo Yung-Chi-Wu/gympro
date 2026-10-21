@@ -126,8 +126,9 @@ export function fallbackNarrative(facts: ReportFacts, findings: Finding[], langu
 
 /**
  * The next-session items, written from their findings' numbers: one item for each goal lift
- * and each lift held for pain (by finding), and one for the other main lifts with a line each.
- * Weights are in the unit the user logs in.
+ * and each lift held for pain (by finding), one for the other main lifts with a line each, and
+ * one for training on too few days. A lighter week's numbers are lines under the deload's item
+ * (withPlanItems), not an item. Weights are in the unit the user logs in.
  */
 export function planItems(findings: Finding[], language: string, unit: 'week' | 'cycle', weightUnit: WeightUnit): NarrativeItem[] {
     const isZh = language === 'zh-TW'
@@ -178,7 +179,7 @@ export function planItems(findings: Finding[], language: string, unit: 'week' | 
             ],
         }
     }
-    const next = findings.filter((f) => f.rule === 'next_session')
+    const next = findings.filter((f) => f.rule === 'next_session' && f.data.how !== 'deload')
     const nextItem = (): NarrativeItem => ({
         rule: 'next_session',
         action: t(findings.some((f) => f.rule === 'goal_path') ? 'plan.nextLeadGoal' : 'plan.nextLead', {}),
@@ -193,8 +194,22 @@ export function planItems(findings: Finding[], language: string, unit: 'week' | 
         if (f.rule === 'goal_path') items.push(goal(f))
         else if (f.rule === 'pain_hold') items.push(hold(f))
         else if (f.rule === 'next_session' && f === next[0]) items.push(nextItem())
+        else if (f.rule === 'few_days') items.push({ rule: 'few_days', action: plan('fewDays', { n: f.data.target, unit }) })
     }
     return items
+}
+
+/** A lighter week's numbers, a line for each main lift, from plan.ts deloadOf */
+export function deloadLines(findings: Finding[], language: string, unit: 'week' | 'cycle', weightUnit: WeightUnit): NarrativeLine[] {
+    const isZh = language === 'zh-TW'
+    const t = labelIn(language)
+    const w = (kg: unknown) => `${toDisplayWeight(Number(kg), weightUnit)} ${weightUnit}`
+    return findings.filter((f) => f.rule === 'next_session' && f.data.how === 'deload').map((f) => {
+        const d = f.data
+        const key = d.assisted ? 'deloadAssist' : d.bodyweight ? 'deloadReps' : 'deloadLoad'
+        const values = { weight: w(d.weightKg), usual: w(d.usualKg), assist: w(d.assistKg), low: String(d.low), sets: String(d.sets), count: Number(d.sets) === 1 ? 'one' : 'other', usualSets: String(d.usualSets), usualCount: Number(d.usualSets) === 1 ? 'one' : 'other', unit }
+        return { label: String((isZh && d.nameZh) || d.name), text: t(`plan.${key}`, values) }
+    })
 }
 
 /**
@@ -203,6 +218,7 @@ export function planItems(findings: Finding[], language: string, unit: 'week' | 
  */
 export function withPlanItems(narrative: ReportNarrative, findings: Finding[], language: string, unit: 'week' | 'cycle', weightUnit: WeightUnit): ReportNarrative {
     const code = planItems(findings, language, unit, weightUnit)
+    const lighter = deloadLines(findings, language, unit, weightUnit)
     const items: NarrativeItem[] = []
     const seen = new Set<string>()
     for (const f of findings) {
@@ -216,7 +232,7 @@ export function withPlanItems(narrative: ReportNarrative, findings: Finding[], l
         } else if (!seen.has(f.rule)) {
             seen.add(f.rule)
             const own = narrative.items.find((i) => i.rule === f.rule)
-            if (own) items.push(own)
+            if (own) items.push(own.rule === 'deload' && lighter.length ? { ...own, lines: lighter } : own)
         }
     }
     return { ...narrative, items }

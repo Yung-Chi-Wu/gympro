@@ -16,7 +16,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const worker = join(here, '..', '..')
 execFileSync(join(worker, 'node_modules/.bin/esbuild'), ['evals/report-v3/entry.ts', '--bundle', '--platform=node', '--format=cjs', '--outfile=evals/report-v3/dist/report.cjs', '--log-level=warning'], { cwd: worker, stdio: 'inherit' })
 const { analyze, buildPrompt } = createRequire(import.meta.url)(join(here, 'dist', 'report.cjs'))
-const CODE_RULES = new Set(['goal_path', 'next_session', 'pain_hold'])
+const CODE_RULES = new Set(['goal_path', 'next_session', 'pain_hold', 'few_days'])
 
 const show = process.argv.includes('--show') ? process.argv[process.argv.indexOf('--show') + 1] : null
 const CARDIO_TYPES = ['treadmill', 'cardio_level', 'rower', 'cardio_time']
@@ -29,16 +29,36 @@ for (const sc of SCENARIOS) {
     if (JSON.stringify(ids) !== JSON.stringify(sc.expect.findings)) problems.push(`findings ${JSON.stringify(ids)}, expected ${JSON.stringify(sc.expect.findings)}`)
     const plan = r.findings.filter((f) => CODE_RULES.has(f.rule))
     if (sc.expect.plan && JSON.stringify(plan.map((f) => f.id)) !== JSON.stringify(sc.expect.plan)) problems.push(`plan ${JSON.stringify(plan.map((f) => f.id))}, expected ${JSON.stringify(sc.expect.plan)}`)
+    for (const [id, want] of Object.entries(sc.expect.data ?? {})) {
+        const f = r.findings.find((x) => x.id === id)
+        if (!f) problems.push(`no finding ${id}`)
+        else for (const [k, v] of Object.entries(want)) if (f.data[k] !== v) problems.push(`${id}: ${k} ${JSON.stringify(f.data[k])}, expected ${JSON.stringify(v)}`)
+    }
     for (const [id, want] of Object.entries(sc.expect.planData ?? {})) {
         const f = plan.find((x) => x.id === id)
         if (!f) problems.push(`no plan ${id}`)
         else for (const [k, v] of Object.entries(want)) if (f.data[k] !== v) problems.push(`${id}: ${k} ${JSON.stringify(f.data[k])}, expected ${JSON.stringify(v)}`)
     }
-    // Every plan makes sense: the next weight is heavier, the range goes up, the other lifts are main lifts no rule speaks to
-    const next = plan.filter((f) => f.rule === 'next_session')
+    // Every plan makes sense: the next weight is heavier, the range goes up, the other lifts are main
+    // lifts no rule speaks to. A lighter week instead: only with a deload, every main lift but a held
+    // one, lighter or the same, fewer sets or one, and nothing else that adds weight
+    const lighter = plan.filter((f) => f.data.how === 'deload')
+    const deloadFired = r.findings.some((f) => f.rule === 'deload')
+    const next = plan.filter((f) => f.rule === 'next_session' && f.data.how !== 'deload')
     if (next.length > 3) problems.push(`${next.length} other lifts planned, at most 3`)
+    if (deloadFired) {
+        const held = new Set(plan.filter((f) => f.rule === 'pain_hold').map((f) => f.subject))
+        const want = r.facts.lifts.map((l) => l.exerciseId).filter((id) => !held.has(id))
+        if (JSON.stringify(lighter.map((f) => f.subject).sort()) !== JSON.stringify([...want].sort())) problems.push(`lighter week for ${JSON.stringify(lighter.map((f) => f.subject))}, expected every main lift ${JSON.stringify(want)}`)
+        if (plan.some((f) => f.rule === 'goal_path' || (f.rule === 'next_session' && f.data.how !== 'deload'))) problems.push('a plan to add weight in a lighter week')
+        if (r.findings.some((f) => f.rule === 'low_volume' || f.rule === 'lift_stalled')) problems.push('sets or reps added in a lighter week')
+    } else if (lighter.length) problems.push('a lighter week without a deload')
     const spoken = new Set(r.findings.filter((f) => f.rule === 'lift_stalled' || f.rule === 'lift_regressed').map((f) => f.subject))
-    for (const f of plan) {
+    for (const f of lighter) {
+        const d = f.data
+        if (!(d.weightKg <= d.usualKg) || !(d.sets <= d.usualSets) || !(d.sets < d.usualSets || d.usualSets === 1)) problems.push(`${f.id}: ${d.weightKg} kg x ${d.sets} sets is no lighter than ${d.usualKg} kg x ${d.usualSets}`)
+    }
+    for (const f of plan.filter((x) => x.data.how !== 'deload')) {
         const d = f.data
         if ((d.how === 'load' || d.how === 'load_now') && !(d.nextKg > d.weightKg)) problems.push(`${f.id}: next ${d.nextKg} kg is not above ${d.weightKg} kg`)
         if (d.low != null && d.top != null && !(d.top > d.low || d.how === 'load_now')) problems.push(`${f.id}: range ${d.low}-${d.top}`)

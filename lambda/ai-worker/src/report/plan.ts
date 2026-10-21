@@ -16,6 +16,10 @@ import type { ExerciseInfo, Finding, GoalProgress, GoalTarget, LiftFacts, Logged
 // What the user told Ronnie and wrote this period changes the plan: a lift that hurt this period
 // is held; an injury Ronnie keeps rules out the heavier options on a lift that loads that joint;
 // an exercise they don't want is never suggested.
+//
+// A lighter week (a deload) replaces the plan: each main lift's numbers for it go under the
+// deload's advice, and nothing says to add weight. A plan the user isn't keeping up with (under
+// 3 in 4 sessions done two periods running) offers no extra day.
 
 /** The smallest jump on each kind of equipment, in the unit the user logs in */
 const STEP = {
@@ -40,6 +44,11 @@ const MAX_NEXT_LINES = 3
 const STALL_WINDOWS = 3
 /** Taken off a stalled lift before building back up: 10% (the stall ladder's second step) */
 const STALL_DROP = 0.1
+/**
+ * A lighter week: about 10% off the weight and half the sets, the same days and exercises
+ * (Rogerson 2024: athletes deload with fewer sets and lighter loads, keeping both). GymPro's numbers.
+ */
+const DELOAD_DROP = 0.1
 
 const PRIORITY: Partial<Record<RuleId, number>> = { pain_hold: 90, goal_path: 65, next_session: 55 }
 
@@ -72,6 +81,8 @@ interface Context {
     /** Joints Ronnie's notes have an active injury on, with the note */
     injuries: Map<string, { text: string; date: string }>
     pains: WeekSignal[]
+    /** Under 3 in 4 planned sessions done two periods running (rules.ts): no option that adds a day */
+    shrink: boolean
 }
 
 /** The weight step for an exercise, in the user's unit */
@@ -244,7 +255,7 @@ function goalPath(target: GoalTarget, progress: GoalProgress | undefined, ctx: C
     const weighted = rx.how === 'load' || rx.how === 'load_now'
     // Heavier sets suit a strength goal; a second day suits a lift trained once. Neither for a joint Ronnie knows is injured.
     const heavy = strength && weighted && !injury && e1 != null && rx.low >= 6
-    const secondDay = daysTrained(e, ctx) <= 1 && weighted && !injury && e1 != null
+    const secondDay = daysTrained(e, ctx) <= 1 && weighted && !injury && e1 != null && !ctx.shrink
     return finding('goal_path', e.id, {
         ...base, path: stalled ? 'stalled' : rx.how, ...rxData(rx), dropKg, flatWindows: lift.flatWindows,
         options: [heavy && 'heavy', secondDay && 'second_day'].filter(Boolean).join(','),
@@ -253,6 +264,22 @@ function goalPath(target: GoalTarget, progress: GoalProgress | undefined, ctx: C
         daysTrained: daysTrained(e, ctx),
         research: ['progress', heavy && 'heavy', secondDay && 'frequency'].filter(Boolean).join(','),
     })
+}
+
+/**
+ * A lift's numbers for a lighter week, from its next session: the weight about 10% down, on the
+ * nearest step and at least one step lighter (a weight already at one step stays), half the sets
+ * at the same reps; an assisted or bodyweight lift keeps its assist or reps with half the sets
+ */
+export function deloadOf(rx: Prescription, e: ExerciseInfo, unit: 'kg' | 'lb'): Finding['data'] {
+    const sets = Math.max(1, Math.ceil(rx.sets / 2))
+    const base = { how: 'deload', low: rx.low, sets, usualSets: rx.sets, assistKg: rx.assistKg, weightKg: rx.weightKg, usualKg: rx.weightKg }
+    if (rx.how !== 'load' && rx.how !== 'load_now') return { ...base, ...(rx.how === 'assist' ? { assisted: 1 } : { bodyweight: 1 }) }
+    const step = stepOf(e, unit)
+    const shown = display(rx.weightKg, unit)
+    const near = Math.round((shown * (1 - DELOAD_DROP)) / step) * step
+    const lighter = Math.max(step, near < shown ? near : shown - step)
+    return { ...base, weightKg: lighter < shown ? kgOf(lighter, unit) : rx.weightKg }
 }
 
 /** Days this period the exercise was trained */
@@ -275,6 +302,7 @@ export function withPlan(fired: Finding[], facts: ReportFacts, inputs: ReportInp
         disliked: new Set(memory.filter((n) => n.kind === 'exercise' && n.state === 'dislike' && n.subject).map((n) => n.subject!)),
         injuries: new Map(memory.filter((n) => n.kind === 'injury' && n.state === 'active' && n.subject).map((n) => [n.subject!, { text: n.text, date: n.date }])),
         pains: (inputs.weekRead?.signals ?? []).filter((s) => s.kind === 'pain'),
+        shrink: fired.some((f) => f.rule === 'missed_sessions' && f.data.shrink),
     }
     const regressed = new Set(fired.filter((f) => f.rule === 'lift_regressed').map((f) => f.subject))
     const targets = (inputs.goalRead?.targets ?? []).filter((t) => t.kind === 'lift' && t.exerciseId)
@@ -292,6 +320,15 @@ export function withPlan(fired: Finding[], facts: ReportFacts, inputs: ReportInp
             added.push(f)
             held.add(l.exerciseId)
         }
+    }
+    // A lighter week: every main lift's numbers for it (but a held one's), and no plan to add weight
+    if (fired.some((f) => f.rule === 'deload')) {
+        for (const l of facts.lifts) {
+            const e = held.has(l.exerciseId) ? undefined : exerciseOf(l.exerciseId)
+            const rx = e ? prescribe(e, inputs.sets, unit, ctx.windowOf) : null
+            if (e && rx) added.push(finding('next_session', e.id, { ...nameData(e), ...deloadOf(rx, e, unit) }))
+        }
+        return [...fired, ...added].sort((a, b) => b.priority - a.priority)
     }
     for (const t of targets) {
         if (regressed.has(t.exerciseId!) || held.has(t.exerciseId!)) continue
