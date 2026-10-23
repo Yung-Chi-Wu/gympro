@@ -111,7 +111,7 @@
     },
     "sets": {
         "set": "Set",
-        "optional": "optional",
+        "optional": "opt.",
         "fields": {
             "weight": "{unit}",
             "added": "+{unit}",
