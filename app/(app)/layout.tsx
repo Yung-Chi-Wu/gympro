@@ -6,6 +6,7 @@ import { BottomNav, type NavLink } from '@/components/BottomNav'
 import { AskRonnieButton, SidebarLink } from '@/components/SidebarLink'
 import { RonnieProvider, RonnieWidget } from '@/components/RonnieWidget'
 import { TimeZoneSync } from '@/components/TimeZoneSync'
+import { CspViolationReporter } from '@/components/CspViolationReporter'
 import { getFrameProfile } from '@/lib/frame-profile'
 import { getEffectiveLanguage } from '@/lib/get-language'
 
@@ -68,6 +69,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
                 {user && <RonnieWidget language={language} userId={user.id} />}
                 {user && <TimeZoneSync timeZone={profile?.timezone ?? null} />}
+                {user && <CspViolationReporter />}
 
                 <BottomNav links={NAV_LINKS} />
             </div>
