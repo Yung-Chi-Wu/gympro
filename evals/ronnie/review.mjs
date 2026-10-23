@@ -36,7 +36,8 @@ const fence = (text) => {
     const f = '`'.repeat(longest + 1)
     return `${f}text\n${text}\n${f}`
 }
-const cell = (s) => String(s ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ')
+// A table cell: a backslash first, so one already before a | can't undo its escape
+const cell = (s) => String(s ?? '').replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ')
 const short = (s, n = 300) => (s.length > n ? `${s.slice(0, n)}…（省略 ${s.length - n} 字）` : s)
 
 const passed = rows.filter((r) => r.grade?.pass === 1).length

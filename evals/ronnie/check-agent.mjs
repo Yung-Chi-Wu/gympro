@@ -831,7 +831,7 @@ const op = (q, name) => q.ops.find(([k]) => k === name)?.[1]
     const writer = Object.assign(fakeSupabase(() => ({ data: null, error: null })), { rpc: async (name, args) => { rpcs.push([name, args]); return { error: null } } })
     const add = { messages: [{ role: 'user', content: 'hi' }], display: [{ kind: 'user', text: 'hi' }] }
     const appended = await appendConversation(writer, 'u1', '2026-10-14', add)
-    check(appended === null && rpcs[0]?.[0] === 'append_ronnie_conversation_for' && rpcs[0][1].p_user_id === 'u1' && rpcs[0][1].p_date === '2026-10-14', `an append names the user to the service-role function (${JSON.stringify(rpcs[0])})`)
+    check(appended === null && rpcs[0]?.[0] === 'append_ronnie_conversation_for' && rpcs[0][1].p_user_id === 'u1' && rpcs[0][1].p_date === '2026-10-14', `an append names the user to the service-role RPC: ${JSON.stringify(rpcs[0])}`)
     await replaceConversation(writer, 'u1', '2026-10-14', add)
     const upsert = writer.requests.find((q) => q.table === 'ronnie_conversations' && op(q, 'upsert'))
     check(op(upsert, 'upsert')?.[0].user_id === 'u1', 'an edit replaces this user\'s conversation with the service-role client')
