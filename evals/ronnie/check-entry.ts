@@ -2,7 +2,7 @@
 // eval's entry (part of its approved harness), so offline checks can grow without touching it.
 export { runRonnieTurn } from '../../lib/ronnie/agent'
 export { doneClaims, namesOf } from '../../lib/ronnie/reply-check'
-export { buildSystemPrompt, stripMarkdown } from '../../lib/ronnie/prompt'
+export { buildSystemPrompt, MEDICINE_RULE, stripMarkdown } from '../../lib/ronnie/prompt'
 export { MAX_EXERCISE_NOTES_SHOWN, MAX_NOTES, MAX_OTHER_NOTES, memoryLines } from '../../lib/ronnie/memory'
 export { createRonnieExecutor } from '../../lib/ronnie/executor'
 export { MAX_INCLUDE } from '../../lib/coach-g-planner'
