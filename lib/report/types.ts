@@ -41,6 +41,12 @@ export interface LoggedSet {
     distanceM: number | null
     /** Assisted sets: the machine's help */
     assistKg: number | null
+    /** Treadmill incline (%); absent in evals that don't set it */
+    inclinePct?: number | null
+    /** Bike, elliptical and stair machine level; absent in evals that don't set it */
+    level?: number | null
+    /** A cardio set's average heart rate (bpm), when the user typed one */
+    avgHr?: number | null
     /** When the set was logged (ISO), which orders the sets of one session */
     loggedAt: string
 }
@@ -80,6 +86,8 @@ export interface ReportInputs {
     weightUnit?: 'kg' | 'lb'
     /** The built-in exercises, for an alternative the plan may suggest; the exercises above when absent */
     library?: ExerciseInfo[]
+    /** The user's age at the period's end, from the profile's birth date, for rating cardio by heart rate; null without one */
+    age?: number | null
 }
 
 export interface BestSet {
@@ -168,6 +176,44 @@ export interface CardioExerciseFacts {
     days: number
 }
 
+/**
+ * This period's cardio minutes by intensity, rated from each set's average heart rate against the
+ * user's estimated maximum (lib/report/cardio-intensity.ts). Sets without a heart rate, or every
+ * set when the age is unknown, are unrated: counted in the minutes, never guessed.
+ */
+export interface CardioIntensityFacts {
+    light: number
+    moderate: number
+    vigorous: number
+    unrated: number
+    /** The estimated maximum heart rate used; null without an age */
+    maxHr: number | null
+    /** Moderate plus twice the vigorous minutes, scaled to 7 days, as WHO counts them; null when none were rated */
+    equivalentPerWeek: number | null
+    /** Some sets have a heart rate, but there is no birth date to rate them with */
+    needsAge: boolean
+}
+
+/**
+ * One machine setting done in two or more periods with a heart rate: the first and the latest of
+ * them, the latest this period. At the same speed and incline, or the same level, a lower heart
+ * rate means the work got easier for the heart (Buchheit 2014).
+ */
+export interface CardioTrendFacts {
+    exerciseId: string
+    name: string
+    nameZh: string | null
+    logType: LogType
+    /** Treadmill: km/h and incline %; machines with levels: the level */
+    speedKmh: number | null
+    inclinePct: number | null
+    level: number | null
+    first: { date: string; avgHr: number }
+    last: { date: string; avgHr: number }
+    /** Days with this setting and a heart rate, in the lookback */
+    sessions: number
+}
+
 /** A session this period with a lower-body lift, and the cardio logged in it before that lift */
 export interface LegSessionFacts {
     date: string
@@ -195,6 +241,9 @@ export interface CardioFacts {
     days: number
     exercises: CardioExerciseFacts[]
     legSessions: LegSessionFacts[]
+    /** Absent in reports saved before heart rate was logged */
+    intensity?: CardioIntensityFacts
+    trends?: CardioTrendFacts[]
 }
 
 export type ReportStatus = 'progressing' | 'stalling' | 'regressing' | 'baseline'

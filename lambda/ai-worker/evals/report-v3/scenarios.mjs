@@ -74,11 +74,11 @@ const addDays = (iso, n) => {
     d.setUTCDate(d.getUTCDate() + n)
     return d.toISOString().slice(0, 10)
 }
-/** A set as the report reads it, from '80x8', 'a30x8' or '10min' */
+/** A set as the report reads it, from '80x8', 'a30x8', '10min' or '15min@150' (with an average heart rate) */
 const parse = (s) => {
     const set = { reps: 0, weightKg: 0, durationS: null, speedKmh: null, distanceM: null, assistKg: null }
-    const minutes = /^(\d+)min$/.exec(s)
-    if (minutes) return { ...set, durationS: Number(minutes[1]) * 60 }
+    const minutes = /^(\d+)min(?:@(\d+))?$/.exec(s)
+    if (minutes) return { ...set, durationS: Number(minutes[1]) * 60, ...(minutes[2] ? { avgHr: Number(minutes[2]) } : {}) }
     const [w, r] = s.replace(/^a/, '').split('x').map(Number)
     return s.startsWith('a') ? { ...set, reps: r, assistKg: w } : { ...set, weightKg: w, reps: r }
 }
@@ -105,8 +105,9 @@ export function inputsFor(sc) {
             for (const [key, n] of sc.routines[routine]) {
                 const series = sc.progress?.[key]
                 const set = series ? parse(series[series.length - 1 - k] ?? series[0]) : defaultAt(key, k)
-                // A treadmill set runs at 10 km/h, so it has a distance
-                if (key === 'treadmill' && set.durationS != null) set.speedKmh = 10
+                // A treadmill set runs at 10 km/h and 1% incline, so it has a distance; the bike is at level 8
+                if (key === 'treadmill' && set.durationS != null) Object.assign(set, { speedKmh: 10, inclinePct: 1 })
+                if (key === 'bike' && set.durationS != null) set.level = 8
                 for (let j = 0; j < n; j++) {
                     // Logged in the routine's order, three minutes apart, from 18:00 UTC
                     const loggedAt = new Date(Date.parse(`${date}T18:00:00Z`) + order++ * 180_000).toISOString()
@@ -143,6 +144,8 @@ export function inputsFor(sc) {
         ...(sc.memory ? { memory: sc.memory } : {}),
         ...(sc.signals ? { weekRead: { signals: sc.signals.map(({ day, ...x }) => ({ date: addDays(sc.periodStart, day), ...x })), texts: sc.signals.length, model: 'm' } } : {}),
         weightUnit: sc.weightUnit ?? 'kg',
+        // The age from the profile's birth date, where a scenario gives one
+        ...(sc.age !== undefined ? { age: sc.age } : {}),
     }
 }
 
@@ -505,6 +508,36 @@ export const SCENARIOS = [
             status: 'progressing', findings: ['cardio_first:-'],
             followUps: { 'cardio_first:-': 'partial' },
             cardio: { minutes: 40, days: 2, legSessions: 2 },
+        },
+    },
+    {
+        id: 'cardio-heart-rate-zh',
+        why: '30 歲（估計最大心率 187）。推日先跑步機 2 組各 15 分鐘、平均心率 150（80%，高強度），腿日練完騎腳踏車 20 分鐘、心率 125（67%，中強度）：有氧 100 分鐘，中強度 40、高強度 60，照 WHO 算法一週約 160 分鐘。同樣 10 km/h、坡度 1% 的心率從 156 降到 150，腳踏車 8 段從 132 降到 125，只是事實。有氧都不在腿部動作之前，所以沒有規則成立，也不能建議多做或少做。',
+        language: 'zh-TW', goal: '增肌', note: null, age: 30,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_ZH,
+        routines: { ...PPL, push: [['treadmill', 2], ...PPL.push], legs: [...PPL.legs, ['bike', 1]] },
+        progress: {
+            treadmill: ['15min@156', '15min@155', '15min@154', '15min@153', '15min@152', '15min@150'],
+            bike: ['20min@132', '20min@131', '20min@129', '20min@128', '20min@126', '20min@125'],
+        },
+        expect: {
+            status: 'progressing', findings: [],
+            cardio: { minutes: 100, days: 4, legSessions: 2, moderate: 40, vigorous: 60, light: 0, unrated: 0, maxHr: 187, equivalentPerWeek: 160, needsAge: false, trends: 'Stationary Bike L8 132>125 x12; Treadmill 10/1 156>150 x12' },
+        },
+    },
+    {
+        id: 'cardio-heart-rate-no-age-en',
+        why: "The same cardio with heart rates, but no birth date in the profile: no maximum to rate against, so all 100 minutes are unrated, there is no WHO count, and the report says a birth date would rate them. Heart rate at the same setting needs no age, so both trends still show.",
+        language: 'en', goal: 'Build muscle', note: null,
+        periodStart: '2026-09-28', plan: WEEK, cycle: true, routineNames: NAMES_EN,
+        routines: { ...PPL, push: [['treadmill', 2], ...PPL.push], legs: [...PPL.legs, ['bike', 1]] },
+        progress: {
+            treadmill: ['15min@156', '15min@155', '15min@154', '15min@153', '15min@152', '15min@150'],
+            bike: ['20min@132', '20min@131', '20min@129', '20min@128', '20min@126', '20min@125'],
+        },
+        expect: {
+            status: 'progressing', findings: [],
+            cardio: { minutes: 100, moderate: 0, vigorous: 0, unrated: 100, maxHr: null, equivalentPerWeek: null, needsAge: true, trends: 'Stationary Bike L8 132>125 x12; Treadmill 10/1 156>150 x12' },
         },
     },
     {

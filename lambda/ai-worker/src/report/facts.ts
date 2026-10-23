@@ -2,7 +2,8 @@ import { addDays, daysBetween } from '../../../../lib/periods'
 import { hasTarget, setWeights, VOLUME_UNIT_IDS } from '../../../../lib/report/volume'
 import { isCardio } from '../../../../lib/set-log'
 import type { LogType } from '../../../../lib/exercise-attributes'
-import type { BestSet, CardioFacts, ExerciseInfo, GoalProgress, GoalTarget, LiftFacts, LoggedSet, MuscleFacts, RecordFacts, ReportFacts, ReportInputs, ReportStatus } from './types'
+import { intensityOf, maxHeartRate, moderateEquivalent } from '../../../../lib/report/cardio-intensity'
+import type { BestSet, CardioFacts, CardioIntensityFacts, CardioTrendFacts, ExerciseInfo, GoalProgress, GoalTarget, LiftFacts, LoggedSet, MuscleFacts, RecordFacts, ReportFacts, ReportInputs, ReportStatus } from './types'
 
 // Every number in the report, computed from the logged sets. Pure: the same inputs
 // give the same facts, so the rules and the eval can rely on them.
@@ -382,7 +383,73 @@ function cardioFacts(inputs: ReportInputs, windowOf: (date: string) => number, h
         days: new Set(cardio.map((s) => s.date)).size,
         exercises,
         legSessions,
+        intensity: cardioIntensity(cardio, inputs.age ?? null, perWeek),
+        trends: cardioTrends(inputs.sets.filter((s) => timed(s) && windowOf(s.date) >= 0 && windowOf(s.date) < WINDOWS), byId, windowOf),
     }
+}
+
+/**
+ * The period's cardio minutes by intensity: each set's average heart rate against the maximum
+ * estimated from the age. Without a heart rate or an age a set is unrated, never guessed. The
+ * rated minutes are rounded first and unrated is the rest, so the parts add up to the total shown.
+ */
+function cardioIntensity(cardio: LoggedSet[], age: number | null, perWeek: (minutes: number) => number): CardioIntensityFacts {
+    const maxHr = age != null ? maxHeartRate(age) : null
+    const seconds = { light: 0, moderate: 0, vigorous: 0 }
+    for (const s of cardio) if (s.avgHr != null && maxHr != null) seconds[intensityOf(s.avgHr, maxHr)] += s.durationS ?? 0
+    const [light, moderate, vigorous] = [seconds.light, seconds.moderate, seconds.vigorous].map((x) => Math.round(x / 60))
+    const total = Math.round(cardio.reduce((a, s) => a + (s.durationS ?? 0), 0) / 60)
+    const rated = light + moderate + vigorous
+    return {
+        light, moderate, vigorous,
+        unrated: Math.max(0, total - rated),
+        maxHr,
+        equivalentPerWeek: rated > 0 ? perWeek(moderateEquivalent(moderate, vigorous)) : null,
+        needsAge: maxHr == null && cardio.some((s) => s.avgHr != null),
+    }
+}
+
+/** A set this short is mostly the heart rate still rising, so it says little about fitness */
+const TREND_MIN_SECONDS = 10 * 60
+const MAX_TRENDS = 3
+
+/**
+ * Machine settings done again with a heart rate: the same treadmill speed and incline, or the same
+ * level, in this period and in an earlier one of the lookback. Each day's heart rate is the
+ * time-weighted average of its sets at that setting of 10 minutes or more. A rower's pace and a
+ * jump rope have no setting to hold fixed, so they aren't compared.
+ */
+function cardioTrends(sets: LoggedSet[], byId: Map<string, ExerciseInfo>, windowOf: (date: string) => number): CardioTrendFacts[] {
+    const settingOf = (s: LoggedSet, logType: LogType) =>
+        logType === 'treadmill' && s.speedKmh != null && s.inclinePct != null ? { speedKmh: s.speedKmh, inclinePct: s.inclinePct, level: null }
+            : logType === 'cardio_level' && s.level != null ? { speedKmh: null, inclinePct: null, level: s.level }
+                : null
+    const groups = new Map<string, { exercise: ExerciseInfo; setting: NonNullable<ReturnType<typeof settingOf>>; days: Map<string, { seconds: number; beats: number }> }>()
+    for (const s of sets) {
+        const e = byId.get(s.exerciseId)
+        if (!e || s.avgHr == null || (s.durationS ?? 0) < TREND_MIN_SECONDS) continue
+        const setting = settingOf(s, e.logType)
+        if (!setting) continue
+        const key = `${e.id}|${setting.speedKmh}|${setting.inclinePct}|${setting.level}`
+        const group = groups.get(key) ?? { exercise: e, setting, days: new Map() }
+        const day = group.days.get(s.date) ?? { seconds: 0, beats: 0 }
+        day.seconds += s.durationS!
+        day.beats += s.avgHr * s.durationS!
+        group.days.set(s.date, day)
+        groups.set(key, group)
+    }
+    return [...groups.values()].flatMap(({ exercise: e, setting, days }) => {
+        const dates = [...days.keys()].sort()
+        const last = dates.at(-1)!
+        if (windowOf(last) !== 0 || windowOf(dates[0]) === 0) return []
+        const hr = (date: string) => Math.round(days.get(date)!.beats / days.get(date)!.seconds)
+        return [{
+            exerciseId: e.id, name: e.name, nameZh: e.nameZh, logType: e.logType, ...setting,
+            first: { date: dates[0], avgHr: hr(dates[0]) },
+            last: { date: last, avgHr: hr(last) },
+            sessions: dates.length,
+        }]
+    }).sort((a, b) => b.sessions - a.sessions || a.name.localeCompare(b.name)).slice(0, MAX_TRENDS)
 }
 
 function liftFacts(e: ExerciseInfo, allSets: LoggedSet[], windowOf: (date: string) => number, goal: string | null, userExercises: ExerciseInfo[]): LiftFacts {
