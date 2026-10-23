@@ -25,7 +25,7 @@ async function main() {
         const claims: Record<string, string> = messages.reportV3.researchText
         for (const rule of rules) if (!claims[rule]?.trim()) problems.push(`${lang}: no researchText for ${rule}`)
         for (const key of Object.keys(claims)) if (!(key in EVIDENCE)) problems.push(`${lang}: researchText.${key} has no rule`)
-        for (const key of ['researchText', 'who'] as const) if (!messages.reportV3.cardio[key]?.trim()) problems.push(`${lang}: no cardio.${key}`)
+        for (const key of ['researchText', 'who', 'intensityText', 'trendText'] as const) if (!messages.reportV3.cardio[key]?.trim()) problems.push(`${lang}: no cardio.${key}`)
         const plan: Record<string, string> = messages.reportV3.planResearch
         for (const part of Object.keys(PLAN_EVIDENCE)) if (!plan[part]?.trim()) problems.push(`${lang}: no planResearch for ${part}`)
         // A safety rule's claim says it is one, so it never reads as a study's result

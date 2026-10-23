@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { addDays, daysBetween } from '../../../../lib/periods'
+import { ageOn } from '../../../../lib/report/cardio-intensity'
 import { SUGGESTED_NAMES } from '../../../../lib/report/volume'
 import { isCardio, logTypeOf } from '../../../../lib/set-log'
 import { isMemoryKind } from '../../../../lib/ronnie/memory'
@@ -33,6 +34,9 @@ interface SetRow {
     speed_kmh: number | string | null
     distance_m: number | string | null
     assist_kg: number | string | null
+    incline_pct: number | string | null
+    level: number | string | null
+    avg_hr: number | null
     created_at: string
     workout_id: string
     workouts: { performed_at: string }
@@ -56,7 +60,7 @@ export async function fetchReportInputs(
 
     const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
-        .select('timezone, training_goal, language, weight_unit, distance_unit')
+        .select('timezone, training_goal, language, weight_unit, distance_unit, date_of_birth')
         .eq('user_id', userId)
         .maybeSingle()
     if (profileError) throw new Error(`Failed to fetch profile: ${profileError.message}`)
@@ -77,10 +81,13 @@ export async function fetchReportInputs(
         speedKmh: num(r.speed_kmh),
         distanceM: num(r.distance_m),
         assistKg: num(r.assist_kg),
+        inclinePct: num(r.incline_pct),
+        level: num(r.level),
+        avgHr: r.avg_hr,
         loggedAt: r.created_at,
     })
     // Cardio, timed and assisted sets keep their values outside reps and weight (lib/set-log.ts)
-    const setColumns = 'exercise_id, reps, weight_kg, duration_s, speed_kmh, distance_m, assist_kg, created_at, workout_id, workouts!inner(performed_at)'
+    const setColumns = 'exercise_id, reps, weight_kg, duration_s, speed_kmh, distance_m, assist_kg, incline_pct, level, avg_hr, created_at, workout_id, workouts!inner(performed_at)'
     const recent = (await fetchAll<SetRow>((from, to) => supabase
         .from('workout_sets')
         .select(setColumns)
@@ -120,7 +127,7 @@ export async function fetchReportInputs(
     ])
 
     return {
-        inputs: { periodStart, periodEnd, sets, exercises, schedule, weighIns, bodyFat, goal: profile?.training_goal ?? null, routineLeads, previousFindings: previous.findings, notes, memory, weightUnit: profile?.weight_unit === 'lb' ? 'lb' : 'kg' },
+        inputs: { periodStart, periodEnd, sets, exercises, schedule, weighIns, bodyFat, goal: profile?.training_goal ?? null, routineLeads, previousFindings: previous.findings, notes, memory, weightUnit: profile?.weight_unit === 'lb' ? 'lb' : 'kg', age: ageOn(profile?.date_of_birth, periodEnd) },
         language: profile?.language ?? 'en',
         weightUnit: profile?.weight_unit === 'lb' ? 'lb' : 'kg',
         distanceUnit: profile?.distance_unit === 'mi' ? 'mi' : 'km',

@@ -15,7 +15,7 @@ import { EXERCISES, inputsFor, SCENARIOS } from './scenarios.mjs'
 const here = dirname(fileURLToPath(import.meta.url))
 const worker = join(here, '..', '..')
 execFileSync(join(worker, 'node_modules/.bin/esbuild'), ['evals/report-v3/entry.ts', '--bundle', '--platform=node', '--format=cjs', '--outfile=evals/report-v3/dist/report.cjs', '--log-level=warning'], { cwd: worker, stdio: 'inherit' })
-const { analyze, buildPrompt } = createRequire(import.meta.url)(join(here, 'dist', 'report.cjs'))
+const { analyze, buildPrompt, ageOn, intensityOf, maxHeartRate, moderateEquivalent } = createRequire(import.meta.url)(join(here, 'dist', 'report.cjs'))
 const CODE_RULES = new Set(['goal_path', 'next_session', 'pain_hold', 'few_days'])
 
 const show = process.argv.includes('--show') ? process.argv[process.argv.indexOf('--show') + 1] : null
@@ -81,7 +81,13 @@ for (const sc of SCENARIOS) {
     if (r.facts.totalSets.now !== working) problems.push(`totalSets ${r.facts.totalSets.now}, expected ${working} working sets`)
     if (sc.expect.cardio) {
         const c = r.facts.cardio
-        const got = { minutes: c.minutes, days: c.days, legSessions: c.legSessions.length }
+        // By heart rate: the minutes by intensity, and each setting's first and latest heart rate
+        const trend = (x) => `${x.name} ${x.level != null ? `L${x.level}` : `${x.speedKmh}/${x.inclinePct}`} ${x.first.avgHr}>${x.last.avgHr} x${x.sessions}`
+        const got = {
+            minutes: c.minutes, days: c.days, legSessions: c.legSessions.length,
+            ...c.intensity,
+            trends: (c.trends ?? []).map(trend).sort().join('; '),
+        }
         for (const [k, v] of Object.entries(sc.expect.cardio)) if (got[k] !== v) problems.push(`cardio ${k} ${got[k]}, expected ${v}`)
     }
     for (const [id, want] of Object.entries(sc.expect.lifts ?? {})) {
@@ -214,6 +220,30 @@ for (const sc of SCENARIOS) {
     ].filter(Boolean)
     if (problems.length) failed++
     console.log(`${problems.length ? 'FAIL' : 'ok  '} 0 kg sets of a weighted lift${problems.map((p) => `\n       ${p}`).join('')}`)
+}
+// Heart rate against an estimated maximum (lib/report/cardio-intensity.ts): ACSM's 64% and 77% are
+// where moderate and vigorous start, the age turns over on the birthday, and a trend needs this
+// period, an earlier one, and sets of 10 minutes or more
+{
+    const problems = []
+    const max = maxHeartRate(30)
+    if (max !== 187) problems.push(`max at 30 is ${max}, expected 187 (208 - 0.7 x 30)`)
+    const at = (pct) => intensityOf((pct / 100) * 200, 200)
+    const cases = [[63.9, 'light'], [64, 'moderate'], [76.9, 'moderate'], [77, 'vigorous'], [98, 'vigorous']]
+    for (const [pct, want] of cases) if (at(pct) !== want) problems.push(`${pct}% is ${at(pct)}, expected ${want}`)
+    const ages = [['1996-10-02', '2026-10-01', 29], ['1996-10-02', '2026-10-02', 30], ['1996-02-29', '2026-02-28', 29], ['2030-01-01', '2026-10-01', null], ['', '2026-10-01', null], [null, '2026-10-01', null]]
+    for (const [born, on, want] of ages) if (ageOn(born, on) !== want) problems.push(`born ${born}, on ${on}: ${ageOn(born, on)}, expected ${want}`)
+    if (moderateEquivalent(40, 60) !== 160) problems.push('40 moderate and 60 vigorous minutes should count as 160')
+    const base = SCENARIOS.find((x) => x.id === 'cardio-heart-rate-zh')
+    const trendsOf = (sc) => analyze(inputsFor(sc)).facts.cardio.trends.length
+    // Heart rate only this period: nothing to compare with
+    const thisPeriod = trendsOf({ ...base, history: 0 })
+    if (thisPeriod) problems.push(`${thisPeriod} trends with no earlier period`)
+    // Sets under 10 minutes are mostly the heart rate still rising
+    const short = trendsOf({ ...base, progress: { treadmill: base.progress.treadmill.map((x) => x.replace('15min', '9min')), bike: base.progress.bike.map((x) => x.replace('20min', '9min')) } })
+    if (short) problems.push(`${short} trends from sets under 10 minutes`)
+    if (problems.length) failed++
+    console.log(`${problems.length ? 'FAIL' : 'ok  '} heart rate: intensity by ACSM's cutoffs, age on the birthday, trends only between periods and from 10 minutes${problems.map((p) => `\n       ${p}`).join('')}`)
 }
 console.log(failed ? `\n${failed} scenario(s) failed` : `\nAll ${SCENARIOS.length} scenarios behave as expected`)
 process.exit(failed ? 1 : 0)

@@ -24,6 +24,8 @@ export type Source = {
     doi: string
     /** An organization's statement (ACSM), cited by its name alone, with no "et al." */
     organization?: true
+    /** A paper with one author, cited with no "et al." either */
+    soleAuthor?: true
 }
 
 /**
@@ -161,10 +163,12 @@ export const EVIDENCE: Record<RuleId, { sources: Source[]; ownThreshold: boolean
 
 /**
  * The research behind the cardio facts, which give no advice: cardio alongside lifting doesn't
- * hold back muscle growth or maximal strength (messages: reportV3.cardio.researchText), and
- * WHO's weekly amount of aerobic activity (reportV3.cardio.who).
+ * hold back muscle growth or maximal strength (messages: reportV3.cardio.researchText), WHO's
+ * weekly amount of aerobic activity (reportV3.cardio.who), how a set's heart rate is rated
+ * (reportV3.cardio.intensityText) and what a lower heart rate at the same setting means
+ * (reportV3.cardio.trendText). The last three resolved through LibKey on 2026-10-23.
  */
-export const CARDIO_EVIDENCE: { research: Source[]; who: Source[] } = {
+export const CARDIO_EVIDENCE: { research: Source[]; who: Source[]; intensity: Source[]; trend: Source[] } = {
     research: [
         // 43 studies: concurrent training against the same lifting alone, no difference in hypertrophy or maximal strength; explosive strength blunted, more so in the same session
         { author: 'Schumann', year: 2022, title: 'Compatibility of Concurrent Aerobic and Strength Training for Skeletal Muscle Size and Function: An Updated Systematic Review and Meta-Analysis', journal: 'Sports Medicine', doi: '10.1007/s40279-021-01587-7' },
@@ -174,6 +178,19 @@ export const CARDIO_EVIDENCE: { research: Source[]; who: Source[] } = {
     who: [
         // Adults: 150-300 minutes of moderate aerobic activity a week, or 75-150 vigorous, counting all of daily life
         BULL_2020,
+    ],
+    intensity: [
+        // ACSM position stand: moderate 64-76% and vigorous 77-95% of maximum heart rate. The table is
+        // paywalled; the numbers were read where others cite it (Morais 2023, EXCLI J, full text, citing
+        // Garber for 64-76%; Scharhag-Rosenberger 2015, J Cancer Surviv, abstract, ACSM's classes 64-76 and 77-95)
+        { author: 'Garber', year: 2011, title: 'Quantity and Quality of Exercise for Developing and Maintaining Cardiorespiratory, Musculoskeletal, and Neuromotor Fitness in Apparently Healthy Adults: Guidance for Prescribing Exercise', journal: 'Medicine & Science in Sports & Exercise', doi: '10.1249/MSS.0b013e318213fefb' },
+        // 351 studies (18,712 people), then 514 tested in a lab: maximum heart rate 208 - 0.7 x age, the same for men and women and at any activity level
+        { author: 'Tanaka', year: 2001, title: 'Age-predicted maximal heart rate revisited', journal: 'Journal of the American College of Cardiology', doi: '10.1016/S0735-1097(00)01054-8' },
+    ],
+    trend: [
+        // Review: heart rate during submaximal exercise marks fitness, "the lower the HR, the fitter";
+        // its fall goes with better endurance performance; read changes against day-to-day noise
+        { author: 'Buchheit', year: 2014, title: 'Monitoring training status with HR measures: do all roads lead to Rome?', journal: 'Frontiers in Physiology', doi: '10.3389/fphys.2014.00073', soleAuthor: true },
     ],
 }
 

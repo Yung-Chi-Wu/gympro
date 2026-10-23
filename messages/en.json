@@ -633,7 +633,23 @@
             "metres": "{n} m",
             "note": "Minutes are each set's logged time; treadmill distance is speed × time.",
             "researchText": "Meta-analyses found that adding cardio to lifting builds muscle and maximal strength about as well as lifting alone, with better aerobic fitness; explosive strength is what can be blunted, more so in the same session. So GymPro only records your cardio and never asks for more or less of it; its one note is to lift first on leg days.",
-            "who": "WHO suggests 150–300 minutes of moderate aerobic activity a week for adults, everyday activity like walking to work included; this counts only what you logged."
+            "who": "WHO suggests 150–300 minutes of moderate aerobic activity a week for adults, or 75–150 of vigorous, or a mix in which a vigorous minute counts as two; everyday activity like walking to work counts too, and this counts only what you logged.",
+            "intensity": "Sets with a heart rate: {parts}.",
+            "intensityPart": {
+                "moderate": "{n} min moderate",
+                "vigorous": "{n} min vigorous",
+                "light": "{n} min light"
+            },
+            "equivalent": "Counted as WHO does, a vigorous minute as two: about {n} min a week.",
+            "unrated": "{n} min have no heart rate and aren't rated.",
+            "maxHr": "Your maximum heart rate is estimated at {n} bpm from your age.",
+            "needsAge": "Some sets have a heart rate. Add your birth date in <link>Settings</link> to rate them.",
+            "intensityText": "ACSM rates aerobic intensity by the share of maximum heart rate: 64–76% is moderate and 77–95% vigorous; below 64% is light. GymPro estimates the maximum from your age as 208 − 0.7 × age, the equation a meta-analysis of 351 studies found, the same for men and women. It is an estimate, not a measurement, so the rating is a guide; a set without a heart rate isn't rated.",
+            "trendTitle": "Same setting, heart rate over time",
+            "trend": "{first} bpm ({firstDate}) → {last} bpm ({lastDate})",
+            "treadmillSetting": "{speed} {speedUnit}, {incline}% incline",
+            "levelSetting": "level {level}",
+            "trendText": "A review of heart-rate monitoring found that heart rate at the same submaximal work marks fitness: the lower it is, the fitter, and its fall goes with better endurance performance. It also varies from day to day, so a trend over several sessions says more than one. Only sets of 10 minutes or more are compared."
         },
         "liftWatch": "{lift} has been flat {n} {unit, select, week {weeks} other {cycles}}; one more and it gets a note.",
         "basisLabels": {

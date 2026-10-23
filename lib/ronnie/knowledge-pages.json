@@ -2121,6 +2121,65 @@
     ]
   },
   {
+    "id": "cardio-heart-rate",
+    "title": "Heart rate and cardio intensity",
+    "titleZh": "心率與有氧強度",
+    "terms": "心率 最大心率 心率區間 有氧強度 中強度 高強度 220減年齡 體能進步 heart rate max heart rate zones cardio intensity fitness",
+    "agreed": [
+      {
+        "text": "Maximum heart rate can be estimated from age as 208 - 0.7 x age: a meta-analysis of 351 studies with 18,712 subjects found it, and measuring 514 healthy adults in a laboratory gave a virtually identical equation.",
+        "notes": [
+          "tanaka-2001-max-heart-rate"
+        ]
+      },
+      {
+        "text": "The equation was the same for men and women and did not change with how active people usually were.",
+        "notes": [
+          "tanaka-2001-max-heart-rate"
+        ]
+      },
+      {
+        "text": "At the same submaximal work, a lower heart rate marks better fitness, and drops in it went with large to very large improvements in high-intensity exercise performance.",
+        "notes": [
+          "buchheit-2014-heart-rate-monitoring"
+        ]
+      },
+      {
+        "text": "WHO advises adults 150-300 minutes of moderate or 75-150 minutes of vigorous aerobic activity a week, or an equivalent combination.",
+        "notes": [
+          "bull-2020-who-guidelines"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "The common 220 - age formula underestimates maximum heart rate in older adults, the authors of the 351-study analysis concluded.",
+        "notes": [
+          "tanaka-2001-max-heart-rate"
+        ]
+      },
+      {
+        "text": "A change in heart rate means little until it is larger than its error of measurement and the smallest worthwhile change, and it should be read in light of the training phase and load.",
+        "notes": [
+          "buchheit-2014-heart-rate-monitoring"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "To follow fitness, compare heart rate at the same submaximal work over several sessions rather than one, since a single change may be within its error of measurement.",
+        "notes": [
+          "buchheit-2014-heart-rate-monitoring"
+        ]
+      }
+    ],
+    "related": [
+      "health-benefits",
+      "concurrent-programming",
+      "fat-loss-cardio-myths"
+    ]
+  },
+  {
     "id": "mental-health-sleep",
     "title": "Mood, anxiety and sleep",
     "titleZh": "心情、焦慮與睡眠",

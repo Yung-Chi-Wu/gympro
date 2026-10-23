@@ -7,9 +7,9 @@ import { JOINT_LABELS, type Joint } from '@/lib/exercise-attributes'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { unitLabel } from '@/lib/report/volume'
 import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
-import { toDisplayDistance, type DistanceUnit } from '@/lib/distance-unit'
+import { toDisplayDistance, toDisplaySpeed, type DistanceUnit } from '@/lib/distance-unit'
 import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, GOAL_EVIDENCE, MIN_EFFECTIVE_WEEKLY_SETS, PLAN_EVIDENCE, type PlanPart, type Source } from '@/lib/report/evidence'
-import { CODE_RULES, type BestSet, type CardioFacts, type ContextNote, type DayFacts, type Finding, type FollowUp, type LiftFacts, type ReportFacts, type ReportV3, type WeekSignal } from '@/lib/report/types'
+import { CODE_RULES, type BestSet, type CardioFacts, type CardioTrendFacts, type ContextNote, type DayFacts, type Finding, type FollowUp, type LiftFacts, type ReportFacts, type ReportV3, type WeekSignal } from '@/lib/report/types'
 import { BodyMap } from './BodyMap'
 import { Sparkline } from './Sparkline'
 
@@ -671,7 +671,7 @@ function Sources({ sources }: { sources: Source[] }) {
                 <span key={s.doi}>
                     {i > 0 && '; '}
                     <a href={`https://doi.org/${s.doi}`} target="_blank" rel="noopener noreferrer" title={`${s.title}. ${s.journal}`}
-                        className="underline decoration-dotted underline-offset-2 hover:text-ink dark:hover:text-white">{s.author}{s.organization ? '' : ' et al.'}, {s.year}</a>
+                        className="underline decoration-dotted underline-offset-2 hover:text-ink dark:hover:text-white">{s.author}{s.organization || s.soleAuthor ? '' : ' et al.'}, {s.year}</a>
                 </span>
             ))}
         </span>
@@ -764,7 +764,10 @@ function LiftTable({ lifts, name, set, prev, trendLabel, trendNote }: {
     )
 }
 
-/** Cardio as a fact: minutes and distance, what research says about cardio next to lifting, and WHO's weekly amount. No advice. */
+/**
+ * Cardio as a fact: minutes and distance, the minutes by heart rate and the heart rate at a setting
+ * done again, what research says about each, and WHO's weekly amount. No advice.
+ */
 function CardioSection({ cardio, unit, zh, name, distanceUnit, research }: {
     cardio: CardioFacts
     unit: 'week' | 'cycle'
@@ -779,6 +782,20 @@ function CardioSection({ cardio, unit, zh, name, distanceUnit, research }: {
         cardio.minutes && unit === 'cycle' ? t('perWeek', { n: cardio.perWeek }) : null,
         cardio.previousPerWeek != null ? t('previous', { n: cardio.previousPerWeek, unit }) : null,
     ].filter(Boolean).join(zh ? '' : ' ')
+    // By heart rate, in reports saved since it was logged: the rated minutes, WHO's count of them, the rest
+    const i = cardio.intensity
+    const rated = !!i && i.light + i.moderate + i.vigorous > 0
+    const intensity = rated ? [
+        t('intensity', { parts: (['moderate', 'vigorous', 'light'] as const).filter((k) => i[k] > 0).map((k) => t(`intensityPart.${k}`, { n: i[k] })).join(zh ? '、' : ', ') }),
+        i.equivalentPerWeek != null ? t('equivalent', { n: i.equivalentPerWeek }) : null,
+        i.unrated > 0 ? t('unrated', { n: i.unrated }) : null,
+        i.maxHr != null ? t('maxHr', { n: i.maxHr }) : null,
+    ].filter(Boolean).join(zh ? '' : ' ') : null
+    const trends = cardio.trends ?? []
+    const speedUnit = distanceUnit === 'mi' ? 'mph' : 'km/h'
+    const settingOf = (x: CardioTrendFacts) => x.level != null
+        ? t('levelSetting', { level: x.level })
+        : t('treadmillSetting', { speed: toDisplaySpeed(x.speedKmh ?? 0, distanceUnit), speedUnit, incline: x.inclinePct ?? 0 })
     return (
         <>
             <p className="text-sm max-md:text-[15px]">{summary}</p>
@@ -796,9 +813,32 @@ function CardioSection({ cardio, unit, zh, name, distanceUnit, research }: {
                     ))}
                 </ul>
             )}
+            {intensity && <p className="text-sm max-md:text-[15px]">{intensity}</p>}
+            {cardio.intensity?.needsAge && (
+                <p className="text-sm max-md:text-[15px]">
+                    {t.rich('needsAge', { link: (chunks) => <Link href="/settings" className="font-semibold underline underline-offset-2">{chunks}</Link> })}
+                </p>
+            )}
+            {trends.length > 0 && (
+                <div className="space-y-1">
+                    <p className="text-xs font-semibold text-ink/60 max-md:text-[13px] dark:text-white/60">{t('trendTitle')}</p>
+                    <ul className="divide-y divide-ink/10 rounded-lg border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
+                        {trends.map((x) => (
+                            <li key={`${x.exerciseId}-${x.speedKmh}-${x.inclinePct}-${x.level}`} className="flex flex-wrap items-baseline justify-between gap-x-2.5 px-3 py-2 text-sm max-md:px-0 max-md:py-2.5 max-md:text-[15px]">
+                                <span className="min-w-0 font-semibold">{name(x)} <span className="font-normal text-ink/60 dark:text-white/60">{settingOf(x)}</span></span>
+                                <span className="whitespace-nowrap tabular-nums text-ink/70 dark:text-white/70">
+                                    {t('trend', { first: x.first.avgHr, firstDate: shortDate(x.first.date), last: x.last.avgHr, lastDate: shortDate(x.last.date) })}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
             <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('note')}</p>
             <dl className="space-y-1 text-[13px] text-ink/70 dark:text-white/70">
                 <Reason tag={research} tone="study">{t('researchText')}<Sources sources={CARDIO_EVIDENCE.research} /></Reason>
+                {rated && <Reason tag={research} tone="study">{t('intensityText')}<Sources sources={CARDIO_EVIDENCE.intensity} /></Reason>}
+                {trends.length > 0 && <Reason tag={research} tone="study">{t('trendText')}<Sources sources={CARDIO_EVIDENCE.trend} /></Reason>}
             </dl>
             <p className="text-[13px] text-ink/70 dark:text-white/70">{t('who')}<Sources sources={CARDIO_EVIDENCE.who} /></p>
         </>
