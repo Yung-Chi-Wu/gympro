@@ -12,6 +12,8 @@ on:
     branches: [main]
   schedule:
     - cron: '23 7 * * 1'
+  # A full scan of any branch on demand: a pull request's own scan reports only the lines it changes
+  workflow_dispatch:
 
 concurrency:
   group: codeql-${{ github.ref }}
