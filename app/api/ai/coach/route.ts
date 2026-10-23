@@ -139,16 +139,16 @@ export async function POST(request: Request) {
                 ...(turn.sources?.length ? { sources: turn.sources } : {}),
                 ...(turn.unsourced ? { unsourced: true } : {}),
                 ...(turn.knowledgeCheck ? { knowledgeCheck: turn.knowledgeCheck } : {}),
-                ...(turn.medicineCheck ? { medicineCheck: turn.medicineCheck } : {}),
+                ...(turn.medicineNoted ? { medicineNoted: true } : {}),
             },
             // A check fired: what the first draft claimed (done exercises, research the notes don't
-            // support, a source key no note had, advice on taking a medicine), the draft, and whether
-            // the retry fixed it; or code added the medicine line under the reply
-            flags: turn.replyCheck || turn.knowledgeCheck?.retried || turn.knowledgeCheck?.unknownKeys?.length || turn.medicineCheck?.retried || turn.medicineCheck?.noted
+            // support, a source key no note had), the draft, and whether the retry fixed it; or a
+            // reply about a medicine sent them to no doctor or pharmacist, so code said it
+            flags: turn.replyCheck || turn.knowledgeCheck?.retried || turn.knowledgeCheck?.unknownKeys?.length || turn.medicineNoted
                 ? [{ kind: 'reply_check' as const, detail: {
                     ...(turn.replyCheck ?? {}),
                     ...(turn.knowledgeCheck?.retried || turn.knowledgeCheck?.unknownKeys?.length ? { knowledge: turn.knowledgeCheck } : {}),
-                    ...(turn.medicineCheck?.retried || turn.medicineCheck?.noted ? { medicine: turn.medicineCheck } : {}),
+                    ...(turn.medicineNoted ? { medicineNoted: true } : {}),
                 } }]
                 : [],
         })

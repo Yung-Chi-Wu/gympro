@@ -5,7 +5,7 @@ import type { RonnieExecutor } from './executor'
 import { doneClaimCorrection, doneClaimFeedback, doneClaims } from './reply-check'
 import { renumber, withSources, type ReplySource } from './citations'
 import { checkKnowledge, overclaimFeedback, RESEARCH_WORDS, type KnowledgeVerdict } from './knowledge-check'
-import { checkMedicine, medicineFeedback, medicineNote, mentionsMedicine, refersToDoctor, type MedicineVerdict } from './medicine-check'
+import { medicineNote, mentionsMedicine, refersToDoctor } from './medicine-check'
 
 // Ronnie's agent loop. The caller passes the full history - tool calls and results
 // included - and stores the `messages` returned, so an ID looked up stays available.
@@ -52,11 +52,8 @@ export interface RonnieTurn {
      * verdict after, keys the reply used that no note had, and the check's own usage (Haiku)
      */
     knowledgeCheck?: { first: KnowledgeVerdict; retried: boolean; draft?: string; after?: KnowledgeVerdict; unknownKeys?: string[]; usage: Anthropic.Usage[] }
-    /**
-     * The medicine check ran: its verdict on the first draft, the draft when it was sent back, the
-     * verdict after, whether code added the line under the reply, and the check's own usage (Haiku)
-     */
-    medicineCheck?: { first: MedicineVerdict; retried: boolean; draft?: string; after?: MedicineVerdict; noted: boolean; usage: Anthropic.Usage[] }
+    /** The reply is about a medicine and sends them to no doctor or pharmacist: code added the line under it (medicine-check.ts) */
+    medicineNoted?: boolean
 }
 
 const isUserText = (m: Anthropic.MessageParam) =>
@@ -133,23 +130,6 @@ export async function runRonnieTurn({
         ? (zh ? '📋 課表在下面的卡片上：可以先修改，按「存入」後才會取代你目前的課表和訓練循環。' : '📋 The plan is on the card below: you can edit it first, and it replaces your current routines and training cycle only when you tap Save.')
         : '')
 
-    // One rewrite of a reply a check sent back, without tools. The draft and the feedback aren't
-    // kept in the history: only the reply shown is
-    const rewrite = async (text: string, feedback: string): Promise<Anthropic.ContentBlock[]> => {
-        const retry = await client.messages.create({
-            model,
-            max_tokens: 1024,
-            system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
-            tools,
-            tool_choice: { type: 'none' },
-            messages: compactHistory([...history, { role: 'assistant', content: [{ type: 'text', text }] }, { role: 'user', content: feedback }]),
-            ...options.params,
-        }, { signal, ...(options.headers ? { headers: options.headers } : {}) })
-        usage.push(retry.usage)
-        servedModel = retry.model
-        return retry.content
-    }
-
     // The reply, checked against today's log before it's shown (reply-check.ts). A claim the log
     // contradicts goes back to the model once, without tools; if it stays, or the retry fails, the
     // reply is shown with a correction in the code's words under it
@@ -165,13 +145,24 @@ export async function runRonnieTurn({
         if (!claimed.length) return content
         replyCheck = { claimed, fixed: false, draft: text }
         try {
-            const retried = await rewrite(text, doneClaimFeedback(claimed))
-            const again = textOf(retried)
+            const retry = await client.messages.create({
+                model,
+                max_tokens: 1024,
+                system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+                tools,
+                tool_choice: { type: 'none' },
+                // The reply and the check aren't kept in the history: only the reply shown is
+                messages: compactHistory([...history, { role: 'assistant', content: [{ type: 'text', text }] }, { role: 'user', content: doneClaimFeedback(claimed) }]),
+                ...options.params,
+            }, { signal, ...(options.headers ? { headers: options.headers } : {}) })
+            usage.push(retry.usage)
+            servedModel = retry.model
+            const again = textOf(retry.content)
             if (again.trim()) {
                 const still = doneClaims(again, today)
                 replyCheck.fixed = still.length === 0
                 if (still.length) correction = doneClaimCorrection(still, zh)
-                return retried
+                return retry.content
             }
         } catch (err) {
             if (signal?.aborted) throw err
@@ -180,7 +171,12 @@ export async function runRonnieTurn({
         return content
     }
 
-    // The user's latest message, which the checks read the reply against
+    // The reply's research claims, checked against the notes it was given (knowledge-check.ts):
+    // a turn that searched the notes, or a reply that presents something as research. Claims the
+    // notes don't support go back to the model once, without tools; general advice no note supports
+    // stays, and is labelled under the reply
+    let knowledgeCheck: RonnieTurn['knowledgeCheck']
+    let unsourced = false
     const question = () => {
         for (let i = messages.length - 1; i >= 0; i--) {
             const m = messages[i]
@@ -191,45 +187,6 @@ export async function runRonnieTurn({
         }
         return ''
     }
-
-    // A reply where the question or the reply names a medicine, checked for advice on taking it
-    // (medicine-check.ts). Advice goes back to the model once, without tools. If it stays, or the
-    // reply sends them to no doctor or pharmacist, the line under the reply says so in the code's
-    // words (finish). It runs before the knowledge check, which then reads the reply that is shown.
-    let medicineCheck: RonnieTurn['medicineCheck']
-    let medicineAdviceLeft = false
-    const medicineChecked = async (content: Anthropic.ContentBlock[]): Promise<Anthropic.ContentBlock[]> => {
-        const text = textOf(content)
-        if (executor.proposals.length || !text.trim()) return content
-        if (!mentionsMedicine(question()) && !mentionsMedicine(text)) return content
-        const first = await checkMedicine(client, { question: question(), reply: text, signal })
-        medicineCheck = { first: first.verdict, retried: false, noted: false, usage: first.usage ? [first.usage] : [] }
-        if (!first.verdict.advice.length) return content
-        medicineCheck.retried = true
-        medicineCheck.draft = text
-        medicineAdviceLeft = true
-        try {
-            const retried = await rewrite(text, medicineFeedback(first.verdict.advice))
-            const again = textOf(retried)
-            if (again.trim()) {
-                const second = await checkMedicine(client, { question: question(), reply: again, signal })
-                if (second.usage) medicineCheck.usage.push(second.usage)
-                medicineCheck.after = second.verdict
-                medicineAdviceLeft = second.verdict.advice.length > 0
-                return retried
-            }
-        } catch (err) {
-            if (signal?.aborted) throw err
-        }
-        return content
-    }
-
-    // The reply's research claims, checked against the notes it was given (knowledge-check.ts):
-    // a turn that searched the notes, or a reply that presents something as research. Claims the
-    // notes don't support go back to the model once, without tools; general advice no note supports
-    // stays, and is labelled under the reply
-    let knowledgeCheck: RonnieTurn['knowledgeCheck']
-    let unsourced = false
     const sourced = async (content: Anthropic.ContentBlock[]): Promise<Anthropic.ContentBlock[]> => {
         const text = textOf(content)
         if (executor.proposals.length || !text.trim()) return content
@@ -242,14 +199,24 @@ export async function runRonnieTurn({
             knowledgeCheck.retried = true
             knowledgeCheck.draft = text
             try {
-                const retried = await rewrite(text, overclaimFeedback(first.verdict.overclaims))
-                const again = textOf(retried)
+                const retry = await client.messages.create({
+                    model,
+                    max_tokens: 1024,
+                    system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+                    tools,
+                    tool_choice: { type: 'none' },
+                    messages: compactHistory([...history, { role: 'assistant', content: [{ type: 'text', text }] }, { role: 'user', content: overclaimFeedback(first.verdict.overclaims) }]),
+                    ...options.params,
+                }, { signal, ...(options.headers ? { headers: options.headers } : {}) })
+                usage.push(retry.usage)
+                servedModel = retry.model
+                const again = textOf(retry.content)
                 if (again.trim()) {
                     const second = await checkKnowledge(client, { question: question(), reply: again, notes: executor.knowledge, signal })
                     if (second.usage) knowledgeCheck.usage.push(second.usage)
                     knowledgeCheck.after = second.verdict
                     final = second.verdict
-                    out = retried
+                    out = retry.content
                 }
             } catch (err) {
                 if (signal?.aborted) throw err
@@ -276,10 +243,9 @@ export async function runRonnieTurn({
         const searched = toolCalls.some((c) => c.name === 'search_knowledge')
         const general = unsourced || (searched && !cited.sources.length && !!cited.text.trim())
         const answer = proposed ? codeLines : cited.text || codeLines
-        // Whether to take a medicine is left to a doctor or pharmacist in the code's words when the
-        // reply still advises on it, or never sends them to one
-        if (medicineCheck && !proposed && (medicineAdviceLeft || !refersToDoctor(answer))) medicineCheck.noted = true
-        const medicineLine = medicineCheck?.noted ? medicineNote(zh) : ''
+        // A reply about a medicine leaves the decision to a doctor or pharmacist, in the code's words
+        // when it names neither (medicine-check.ts)
+        const medicineLine = !proposed && answer && (mentionsMedicine(question()) || mentionsMedicine(answer)) && !refersToDoctor(answer) ? medicineNote(zh) : ''
         // A note saved or forgotten is said in the code's words, first, as something done: the model
         // claimed to have remembered things it never saved (the memory baseline, 5 of 42 runs)
         const memoryLines = executor.remembered.join('\n')
@@ -304,7 +270,7 @@ export async function runRonnieTurn({
             ...(cited.sources.length && !proposed ? { sources: cited.sources } : {}),
             ...(general && !proposed ? { unsourced: true } : {}),
             ...(knowledgeCheck ? { knowledgeCheck } : {}),
-            ...(medicineCheck ? { medicineCheck } : {}),
+            ...(medicineLine ? { medicineNoted: true } : {}),
         }
     }
 
@@ -360,7 +326,7 @@ export async function runRonnieTurn({
                     emptyRetried = true
                     continue
                 }
-                return finish(await sourced(await medicineChecked(await checked(response.content))))
+                return finish(await sourced(await checked(response.content)))
             }
 
             // A tool that throws (a database error, a malformed date) answers as a failed result, so the

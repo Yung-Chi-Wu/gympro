@@ -51,7 +51,6 @@ function rebuild(trace, c) {
             turns.at(-1).memoryChanged = true
         }
         else if (m.role === 'reply_check') turns.at(-1).replyCheck = JSON.parse(m.content)
-        else if (m.role === 'medicine_check') turns.at(-1).medicineCheck = JSON.parse(m.content)
         // The sources and the label as the chat showed them, and the check's verdicts
         else if (m.role === 'knowledge') {
             const k = JSON.parse(m.content)
