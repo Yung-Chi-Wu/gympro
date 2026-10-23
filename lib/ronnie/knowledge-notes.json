@@ -3323,6 +3323,54 @@
     ]
   },
   {
+    "id": "tanaka-2001-max-heart-rate",
+    "topic": "health",
+    "subtopic": "heart-rate",
+    "summaryZh": "最大心率可以用 208 − 0.7 × 年齡估計（351 個研究、18,712 人），男女和平常活動量都不影響；常用的 220 − 年齡會低估年長者的最大心率。",
+    "claims": [
+      "A meta-analysis of 351 studies (492 groups, 18,712 subjects) found maximal heart rate strongly related to age (r = -0.90), with the equation 208 - 0.7 x age.",
+      "In a laboratory study that measured maximal heart rate in 514 healthy subjects, the equation was virtually identical (209 - 0.7 x age).",
+      "The equation did not differ between men and women and was not influenced by habitual physical activity.",
+      "The authors concluded that the commonly used 220 - age underestimates maximal heart rate in older adults."
+    ],
+    "population": "healthy adults: 18,712 subjects across 351 studies, and 514 tested in a laboratory",
+    "design": "meta-analysis plus a laboratory cross-validation study",
+    "certainty": "large sample and two methods that agree; an equation from age predicts a group average, not one person's measured maximum",
+    "terms": "最大心率 心率區間 220減年齡 估算 有氧強度 maximal heart rate HRmax age-predicted heart rate zones",
+    "source": {
+      "author": "Tanaka",
+      "year": 2001,
+      "title": "Age-predicted maximal heart rate revisited",
+      "journal": "Journal of the American College of Cardiology",
+      "doi": "10.1016/S0735-1097(00)01054-8",
+      "pmid": "11153730"
+    }
+  },
+  {
+    "id": "buchheit-2014-heart-rate-monitoring",
+    "topic": "health",
+    "subtopic": "heart-rate",
+    "summaryZh": "回顧研究：同樣的次最大運動下心率越低代表體能越好，心率下降和高強度表現進步高度相關；判讀心率變化要考慮每天的起伏和最小有意義變化。",
+    "claims": [
+      "Heart rate during submaximal exercise, expressed as a percentage of maximal heart rate, marks an athlete's relative exercise intensity: the lower the heart rate, the fitter the athlete.",
+      "Decreases in submaximal exercise heart rate showed large to very large correlations with improvements in high-intensity exercise performance.",
+      "Measures of resting heart rate variability and of submaximal exercise heart rate (a 30-60 s average) are likely the most useful heart-rate monitoring tools.",
+      "A change in a heart-rate measure should be interpreted against its error of measurement and the smallest worthwhile change, and in light of the training phase and load."
+    ],
+    "population": "athletes in endurance and team sports (studies reviewed)",
+    "design": "narrative review",
+    "certainty": "narrative review by one author, mostly from athlete studies",
+    "terms": "心率 體能進步 心肺能力 同樣速度心率下降 有氧進步 heart rate monitoring submaximal exercise fitness training status",
+    "source": {
+      "author": "Buchheit",
+      "year": 2014,
+      "title": "Monitoring training status with HR measures: do all roads lead to Rome?",
+      "journal": "Frontiers in Physiology",
+      "doi": "10.3389/fphys.2014.00073",
+      "pmid": "24578692"
+    }
+  },
+  {
     "id": "rogerson-2024-deload",
     "topic": "training",
     "subtopic": "deload",
