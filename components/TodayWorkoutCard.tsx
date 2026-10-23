@@ -609,6 +609,11 @@ const LOGGED = 'h-11 min-h-0! w-full min-w-0 truncate rounded-lg bg-done px-1 te
 const INPUT = 'h-11 min-h-0! w-full min-w-0 rounded-lg border border-line bg-card px-1 text-center font-mono text-base font-bold placeholder:font-medium placeholder:text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:h-9'
 const PLUS = 'h-11 w-11 rounded-lg bg-accent text-xl leading-none text-accent-ink transition-colors disabled:bg-accent-soft disabled:text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:h-9 md:w-9'
 const WHOLE_NUMBERS = new Set<FieldKey>(['reps', 'seconds', 'hr'])
+// Narrower gaps on the phone, where a treadmill's four columns share about 300px
+const ROW = 'grid items-center gap-x-1.5 md:gap-x-2'
+// "optional" in an empty optional cell: small plain text, so the word fits a phone's column
+// and doesn't read as last time's number
+const OPTIONAL_HINT = 'placeholder:font-sans placeholder:text-xs'
 
 /** The sets as a table: set number, the log type's columns, and delete or add */
 function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSet, onUpdateSet, onDeleteSet }: {
@@ -630,14 +635,15 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
     // would delete the set just logged
     const addedAt = useRef(0)
     // One column template for every row, so the numbers, cells and buttons line up
-    const grid = { gridTemplateColumns: `28px repeat(${fields.length}, minmax(0, 1fr)) auto` }
+    const grid = { gridTemplateColumns: `22px repeat(${fields.length}, minmax(0, 1fr)) auto` }
     const next = exercise.loggedSets.length
     // Last time's set with the same number, as hints; none if it was logged another way
     const hint = exercise.previous[next] && fitsLogType(exercise.logType, exercise.previous[next]) ? exercise.previous[next] : null
     const ready = fields.every((key, i) => isValidField(key, draft[i], units))
-    const placeholderOf = (key: FieldKey, last: SetValues | null) => {
-        const v = last ? fieldValue(key, last, units) : null
-        return v != null ? String(v) : isOptionalField(key) ? ts('optional') : last ? '' : undefined
+    const lastValue = (key: FieldKey) => (hint ? fieldValue(key, hint, units) : null)
+    const placeholderOf = (key: FieldKey) => {
+        const v = lastValue(key)
+        return v != null ? String(v) : isOptionalField(key) ? ts('optional') : hint ? '' : undefined
     }
 
     async function handleSubmit(e: React.FormEvent) {
@@ -655,7 +661,7 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
 
     return (
         <div className="grid gap-1.5">
-            <div className="mb-0.5 grid items-center gap-x-2 border-b border-line pb-1.5 text-center text-xs tracking-wide text-faint" style={grid}>
+            <div className={`${ROW} mb-0.5 border-b border-line pb-1.5 text-center text-xs tracking-wide text-faint`} style={grid}>
                 <span>{ts('set')}</span>
                 {fields.map((key) => {
                     const label = fieldLabel(ts, key, units)
@@ -665,29 +671,33 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
                         : key === 'speed'
                             ? () => onDistanceUnitChange(units.distance === 'km' ? 'mi' : 'km')
                             : null
-                    if (!switchTo) return <span key={key} className="truncate">{label}</span>
+                    // Wrapped rather than cut off where a phone's column is too narrow (Incline %)
+                    if (!switchTo) return <span key={key} className="min-w-0 leading-tight break-words">{label}</span>
                     const other = fieldLabel(ts, key, isWeightField(key)
                         ? { ...units, weight: units.weight === 'kg' ? 'lb' : 'kg' }
                         : { ...units, distance: units.distance === 'km' ? 'mi' : 'km' })
+                    // The ⇄ only where the column has room for it: a phone's treadmill table has
+                    // about 50px for km/h, and the bordered unit alone still reads as a button
                     return (
-                        <button
-                            key={key}
-                            type="button"
-                            onClick={switchTo}
-                            aria-label={t('switchTo', { unit: other })}
-                            title={t('switchTo', { unit: other })}
-                            className="mx-auto inline-flex min-h-8 max-w-full items-center gap-1 rounded-md border border-line px-2 font-semibold text-ink hover:border-ink/30"
-                        >
-                            <span className="truncate">{label}</span>
-                            <span aria-hidden="true" className="text-faint">⇄</span>
-                        </button>
+                        <span key={key} className="@container min-w-0">
+                            <button
+                                type="button"
+                                onClick={switchTo}
+                                aria-label={t('switchTo', { unit: other })}
+                                title={t('switchTo', { unit: other })}
+                                className="mx-auto flex min-h-8 w-fit max-w-full items-center justify-center gap-1 rounded-md border border-line px-1.5 font-semibold text-ink hover:border-ink/30 @min-[4rem]:px-2"
+                            >
+                                <span className="truncate">{label}</span>
+                                <span aria-hidden="true" className="hidden text-faint @min-[4rem]:inline">⇄</span>
+                            </button>
+                        </span>
                     )
                 })}
                 <span className="w-11 md:w-9" />
             </div>
 
             {exercise.loggedSets.map((s, i) => (
-                <div key={s.id} className="grid items-center gap-x-2" style={grid}>
+                <div key={s.id} className={ROW} style={grid}>
                     <span className={NUMBER}>{i + 1}</span>
                     {fitsLogType(exercise.logType, s)
                         ? fields.map((key) => (
@@ -717,7 +727,7 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
                 </div>
             ))}
 
-            <form onSubmit={handleSubmit} className="grid items-center gap-x-2" style={grid}>
+            <form onSubmit={handleSubmit} className={ROW} style={grid}>
                 <span className={NUMBER}>{next + 1}</span>
                 {fields.map((key, i) => (
                     <input
@@ -728,9 +738,9 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
                         value={draft[i]}
                         onChange={(e) => setDraft((d) => d.map((v, j) => (j === i ? e.target.value : v)))}
                         // Last time's value as a hint; an optional field says so while it has none
-                        placeholder={placeholderOf(key, hint)}
+                        placeholder={placeholderOf(key)}
                         aria-label={ts('fieldOfSet', { n: next + 1, field: fieldLabel(ts, key, units) })}
-                        className={INPUT}
+                        className={isOptionalField(key) && lastValue(key) == null ? `${INPUT} ${OPTIONAL_HINT}` : INPUT}
                     />
                 ))}
                 <button type="submit" disabled={!ready || saving} aria-label={ts('addSet', { n: next + 1 })} className={PLUS}>
@@ -790,7 +800,7 @@ function LoggedCell({ field, set, units, label, onSave }: {
             aria-label={label}
             aria-invalid={draft != null && !isValidField(field, draft, unitsOfSet(set, units))}
             data-logged=""
-            className={LOGGED}
+            className={isOptionalField(field) ? `${LOGGED} ${OPTIONAL_HINT}` : LOGGED}
         />
     )
 }
