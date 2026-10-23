@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getFrameProfile, getSessionUser } from '@/lib/frame-profile'
 import { redirect } from 'next/navigation'
 import { getEffectiveLanguage } from '@/lib/get-language'
 import { localDate } from '@/lib/periods'
@@ -43,21 +44,14 @@ interface RawRoutineRow {
     routine_exercises: RawRoutineExerciseRow[]
 }
 
+// One round: the profile, the exercise list, the routines and the cycle with its days
 export default async function RoutinesPage() {
-    const supabase = await createClient()
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
-
+    const user = await getSessionUser()
     if (!user) redirect('/login')
+    const supabase = await createClient()
 
-    const [profileResult, exercisesResult, recentIds, routinesResult, cycleResult] = await Promise.all([
-
-        supabase
-            .from('user_profiles')
-            .select('language,onboarding_completed,timezone')
-            .eq('user_id', user.id)
-            .maybeSingle(),
+    const [{ profile }, exercisesResult, recentIds, routinesResult, cycleResult] = await Promise.all([
+        getFrameProfile(),
         supabase
             .from('exercises')
             .select('id, name, name_zh_tw, muscle_group, equipment')
@@ -76,11 +70,11 @@ export default async function RoutinesPage() {
             .order('created_at'),
         supabase
             .from('training_cycles')
-            .select('id, cycle_length, start_date')
+            .select('id, cycle_length, start_date, cycle_days ( day_index, routine_id )')
             .eq('user_id', user.id)
+            .order('day_index', { referencedTable: 'cycle_days' })
             .maybeSingle(),
     ])
-    const profile = profileResult.data
     const language = await getEffectiveLanguage(profile)
     const cycle = cycleResult.data
 
@@ -100,15 +94,7 @@ export default async function RoutinesPage() {
             .sort((a, b) => a.order_index - b.order_index),
     }))
 
-    const cycleDays: CycleDayInfo[] = []
-    if (cycle) {
-        const { data: days } = await supabase
-            .from('cycle_days')
-            .select('day_index, routine_id')
-            .eq('training_cycle_id', cycle.id)
-            .order('day_index')
-        cycleDays.push(...(days ?? []).map((d) => ({ dayIndex: d.day_index, routineId: d.routine_id })))
-    }
+    const cycleDays: CycleDayInfo[] = (cycle?.cycle_days ?? []).map((d) => ({ dayIndex: d.day_index, routineId: d.routine_id }))
 
     return (
         // A plan saved from Ronnie's card makes a new cycle: the editor then starts over from it

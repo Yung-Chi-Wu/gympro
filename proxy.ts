@@ -25,9 +25,11 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Refreshes the session when its access token is about to expire (setAll above saves the new
+  // cookies), then checks the token's signature here, with no call to the Auth server
+  // (lib/frame-profile.ts getSessionUser)
+  const { data } = await supabase.auth.getClaims()
+  const user = data?.claims
 
   const protectedPaths = ['/dashboard', '/metrics', '/settings', '/history', '/routines']
   const isProtected = protectedPaths.some(

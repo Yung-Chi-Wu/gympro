@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/frame-profile'
 import { getTranslations, getLocale } from 'next-intl/server'
 import { LangToggle } from '@/components/LangToggle'
 import { LogoLink } from '@/components/LogoLink'
@@ -44,8 +44,7 @@ const DETAILS = ['languages', 'units', 'themes', 'install']
 // The welcome page for signed-out visitors: what GymPro does, then sign up or log in.
 // Signed-in users go straight to the dashboard.
 export default async function Home() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (user) redirect('/dashboard')
 

@@ -21,16 +21,16 @@ import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
 import { isReportV3, ReportView } from './report/ReportView'
 import { FailedReport } from './report/FailedReport'
-import { shownStatus } from '@/lib/report/queue'
+import { loadLatestReport, type LatestReport, type ReportStatus } from '@/lib/report/latest'
 
 interface RecommendationPanelProps {
     userId: string
+    /** The newest report, read with the page (null: there is none yet) */
+    initial: LatestReport | null
     language: string
     weightUnit: WeightUnit
     distanceUnit: DistanceUnit
 }
-
-type Status = 'idle' | 'pending' | 'completed' | 'insufficient_data' | 'failed'
 
 const SEVERITY_STYLES: Record<string, string> = {
     mild: 'bg-yellow-50 text-yellow-800 border-yellow-200',
@@ -47,33 +47,23 @@ interface StrengthHistoryPoint {
 
 // The latest report on the dashboard, in one card. On a phone nothing inside the card is a
 // box of its own (ReportView flattens the same way): sections are set apart by lines.
-export function RecommendationPanel({ userId, language, weightUnit, distanceUnit }: RecommendationPanelProps) {
+export function RecommendationPanel({ userId, initial, language, weightUnit, distanceUnit }: RecommendationPanelProps) {
     const supabase = createClient()
     const t = useTranslations('report')
     const tV3 = useTranslations('reportV3')
-    const [status, setStatus] = useState<Status>('idle')
-    const [recommendation, setRecommendation] = useState<AiRecommendation | null>(null)
-    const [periodStart, setPeriodStart] = useState<string | null>(null)
+    const [status, setStatus] = useState<ReportStatus>(initial?.status ?? 'idle')
+    const [recommendation, setRecommendation] = useState((initial?.recommendation ?? null) as unknown as AiRecommendation | null)
+    const [periodStart, setPeriodStart] = useState(initial?.periodStart ?? null)
     const [strengthHistory, setStrengthHistory] = useState<StrengthHistoryPoint[]>([])
     const [muscleGroupsInHistory, setMuscleGroupsInHistory] = useState<string[]>([])
 
     // State is set when the query answers, never while an effect runs
-    const checkStatus = useCallback(() => supabase
-        .from('period_reports')
-        .select('status, recommendation, period_start, queued_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-        .then(({ data }) => {
-            if (!data) return
-            // A pending report whose run died shows as failed, with its retry
-            setStatus(shownStatus(data) as Status)
-            setPeriodStart(data.period_start)
-            if (data.status === 'completed') {
-                setRecommendation(data.recommendation as unknown as AiRecommendation)
-            }
-        }), [supabase, userId])
+    const checkStatus = useCallback(() => loadLatestReport(supabase, userId).then((latest) => {
+        if (!latest) return
+        setStatus(latest.status)
+        setPeriodStart(latest.periodStart)
+        if (latest.recommendation) setRecommendation(latest.recommendation as unknown as AiRecommendation)
+    }), [supabase, userId])
 
     const loadStrengthHistory = useCallback(() => supabase
         .from('period_reports')
@@ -100,15 +90,11 @@ export function RecommendationPanel({ userId, language, weightUnit, distanceUnit
             setMuscleGroupsInHistory(Array.from(groups).sort())
         }), [supabase, userId])
 
+    // Only the older reports' layout draws the strength chart
+    const isLegacy = status === 'completed' && !!recommendation && !isReportV3(recommendation)
     useEffect(() => {
-        void checkStatus()
-    }, [checkStatus])
-
-    useEffect(() => {
-        if (status === 'completed') {
-            void loadStrengthHistory()
-        }
-    }, [status, loadStrengthHistory])
+        if (isLegacy) void loadStrengthHistory()
+    }, [isLegacy, loadStrengthHistory])
 
     // The worker finishes in seconds, but nothing pushes its result back to
     // the browser — keep checking until the report leaves 'pending'.

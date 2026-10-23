@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getFrameProfile, getSessionUser } from '@/lib/frame-profile'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { getEffectiveLanguage } from '@/lib/get-language'
@@ -14,35 +15,28 @@ import { timeZoneOf } from '@/lib/time-zone'
 // shows, by date range: records are kept forever and the page must not slow down as
 // they grow. Training starts with this month and the last four periods (one query
 // covers both); the rest loads from /api/history/workouts as the user goes back.
+// Two rounds: the profile and the cycle (with its days), then the tab's records.
 export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ tab?: string; day?: string; report?: string }> }) {
-    const supabase = await createClient()
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
-
+    const user = await getSessionUser()
     if (!user) redirect('/login')
+    const supabase = await createClient()
 
-    const t = await getTranslations('history')
-    const params = await searchParams
-    const tab: HistoryTab = params.tab === 'weight' || params.tab === 'reports' ? params.tab : 'training'
-
-    const [profileResult, cycleResult] = await Promise.all([
-        supabase
-            .from('user_profiles')
-            .select('timezone, language, onboarding_completed, weight_unit, distance_unit')
-            .eq('user_id', user.id)
-            .maybeSingle(),
+    const [{ profile }, cycleResult, t, params] = await Promise.all([
+        getFrameProfile(),
         supabase
             .from('training_cycles')
-            .select('id, cycle_length, start_date')
+            .select('id, cycle_length, start_date, cycle_days ( routine_id )')
             .eq('user_id', user.id)
             .maybeSingle(),
+        getTranslations('history'),
+        searchParams,
     ])
+    const tab: HistoryTab = params.tab === 'weight' || params.tab === 'reports' ? params.tab : 'training'
 
-    const timeZone = timeZoneOf(profileResult.data?.timezone)
-    const language = await getEffectiveLanguage(profileResult.data)
-    const weightUnit: WeightUnit = profileResult.data?.weight_unit === 'lb' ? 'lb' : 'kg'
-    const distanceUnit: DistanceUnit = profileResult.data?.distance_unit === 'mi' ? 'mi' : 'km'
+    const timeZone = timeZoneOf(profile?.timezone)
+    const language = await getEffectiveLanguage(profile)
+    const weightUnit: WeightUnit = profile?.weight_unit === 'lb' ? 'lb' : 'kg'
+    const distanceUnit: DistanceUnit = profile?.distance_unit === 'mi' ? 'mi' : 'km'
     const cycleRow = cycleResult.data
     const cycle: CycleSettings | null = cycleRow ? { cycleLength: cycleRow.cycle_length, startDate: cycleRow.start_date } : null
     const today = localDate(timeZone, new Date())
@@ -54,17 +48,10 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
         const month = monthOf(day ?? today)
         const range = rangeOf([...periodsBack(today, PERIODS_PER_PAGE, cycle, today), ...periodsInMonth(month, cycle, today)])
 
-        const [days, reports, firstDate, plannedResult] = await Promise.all([
+        const [days, reports, firstDate] = await Promise.all([
             loadHistoryDays(supabase, { userId: user.id, range, timeZone, language }),
             loadReportStatuses(supabase, user.id, range),
             loadFirstTrainedDate(supabase, user.id, timeZone),
-            cycleRow
-                ? supabase
-                    .from('cycle_days')
-                    .select('day_index', { count: 'exact', head: true })
-                    .eq('training_cycle_id', cycleRow.id)
-                    .not('routine_id', 'is', null)
-                : Promise.resolve({ count: null }),
         ])
 
         content = (
@@ -72,7 +59,8 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                 today={today}
                 initialMonth={month}
                 cycle={cycle}
-                plannedPerPeriod={plannedResult.count}
+                // Training days in each period: the cycle's days with a routine
+                plannedPerPeriod={cycleRow ? cycleRow.cycle_days.filter((d) => d.routine_id !== null).length : null}
                 initialRange={range}
                 initialDays={days}
                 initialReports={reports}

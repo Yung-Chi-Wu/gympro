@@ -1,25 +1,16 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getFrameProfile, getSessionUser } from '@/lib/frame-profile'
 import { getTranslations } from 'next-intl/server'
 import { getEffectiveLanguage } from '@/lib/get-language'
 import { ProfileSettingsForm } from '@/components/ProfileSettingsForm'
 import { CHOSEN_UTC, timeZoneOf, UNSET_TIME_ZONE } from '@/lib/time-zone'
 
 export default async function SettingsPage() {
-    const supabase = await createClient()
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
-
+    const user = await getSessionUser()
     if (!user) redirect('/login')
 
-    const t = await getTranslations('settings')
-
-    const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('display_name, height_cm, date_of_birth, sex, training_goal, timezone, language, onboarding_completed, weight_unit, distance_unit')
-        .eq('user_id', user.id)
-        .maybeSingle()
+    // The profile is the one the frame read (lib/frame-profile.ts)
+    const [{ profile }, t] = await Promise.all([getFrameProfile(), getTranslations('settings')])
 
     const effectiveLanguage = await getEffectiveLanguage(profile)
 
