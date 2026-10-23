@@ -238,7 +238,7 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
 - No long-lived AWS credentials. Production and preview deployments get separate IAM roles through OIDC.
 - Queues are encrypted, size-capped and TLS-only.
 - Security headers are set, and sign-in redirects are validated. A Content Security Policy is enforced: scripts, styles and connections only from the app itself, Supabase and the Vercel toolbar, and no framing. It ran report-only for a week first. Anything it blocks in a signed-in page is sent to `app_errors`, so it raises an alarm.
-- Dependabot is on, and GitHub Actions are pinned to commit SHAs.
+- Dependabot is on, and GitHub Actions are pinned to commit SHAs. CodeQL scans the code and the workflows on every pull request and once a week.
 
 ## Tech stack
 
