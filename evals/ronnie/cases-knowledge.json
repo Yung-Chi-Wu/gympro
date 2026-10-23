@@ -677,6 +677,129 @@
     }
   },
   {
+    "id": "knowledge-nsaid-zh",
+    "language": "zh-TW",
+    "turns": [
+      "練完會痠，吃止痛藥（像布洛芬）會不會影響長肌肉？"
+    ],
+    "expect": {
+      "tools_forbidden": [
+        "add_exercise_today",
+        "remove_exercise_today",
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "tools_required": [
+        "search_knowledge"
+      ],
+      "cites_any": [
+        "lilja-2018-nsaids",
+        "mallinson-2025-nsaids"
+      ],
+      "judge": "Says the evidence conflicts and is thin: one 8-week trial in 31 young adults found daily ibuprofen at 1200 mg roughly halved quadriceps growth (Lilja 2018), while a 12-week trial in 17 trained young men found daily diclofenac gave more growth than placebo (Mallinson 2025); both are small single trials with different drugs and doses. Fails if it states firmly that painkillers do, or do not, affect muscle growth without saying the evidence conflicts, or gives dosing advice."
+    },
+    "meta": {
+      "why": "證據互相矛盾而且都很小：每天 1200 mg 布洛芬增肌約減半（Lilja 2018），每天雙氯芬酸反而長得較多（Mallinson 2025）。不能給肯定答案或建議劑量。"
+    }
+  },
+  {
+    "id": "knowledge-concurrent-week-zh",
+    "language": "zh-TW",
+    "turns": [
+      "我想增肌，但也想繼續跑步，一週要怎麼安排有氧和重訓？"
+    ],
+    "expect": {
+      "tools_forbidden": [
+        "add_exercise_today",
+        "remove_exercise_today",
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "tools_required": [
+        "search_knowledge"
+      ],
+      "cites_any": [
+        "petre-2021-trained-lifters",
+        "robineau-2016-recovery-between-sessions",
+        "schumann-2022-interference-strength-hypertrophy-power",
+        "held-2026-interference-overview",
+        "wilson-2012-interference-overview",
+        "eddens-2018-order",
+        "murlasits-2018-order",
+        "jones-2013-endurance-dose"
+      ],
+      "judge": "Puts these together: in untrained or recreationally trained people, adding cardio does not meaningfully reduce strength or muscle gains (Schumann 2022, Held 2026); the interference that appears is mostly in trained lifters doing both in the same session (Petre 2021), so separate them by several hours (6 h or more in one trial, Robineau 2016) or lift first in a shared session (Eddens 2018, Murlasits 2018); and more frequent or longer endurance training goes with smaller gains (Wilson 2012, Jones 2013). On running versus cycling the notes differ (Wilson 2012 linked running, not cycling, to smaller gains; Schumann 2022 found no difference). Passes when it gives at least three of these points without contradicting any. Fails if it says cardio cancels muscle gains or should be dropped."
+    },
+    "meta": {
+      "why": "要綜合：一般人加有氧影響不大；干擾主要在有訓練的人同一次做；分開 6 小時以上，或同一次先重訓；有氧太頻繁太長才有影響；跑步和腳踏車證據不一。至少三點，不能說有氧抵銷增肌。"
+    }
+  },
+  {
+    "id": "knowledge-cut-muscle-zh",
+    "language": "zh-TW",
+    "turns": [
+      "我在減脂，怎麼做才不會掉肌肉？"
+    ],
+    "expect": {
+      "tools_forbidden": [
+        "add_exercise_today",
+        "remove_exercise_today",
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "tools_required": [
+        "search_knowledge"
+      ],
+      "cites_any": [
+        "deller-2026-fat-loss-muscle-preservation",
+        "hudson-2020-protein-energy-restriction",
+        "wycherley-2012-protein-energy-restriction",
+        "garthe-2011-weight-loss-rate",
+        "helms-2014-contest-prep",
+        "murphy-2022-energy-deficit"
+      ],
+      "judge": "Puts several levers together: keep training, since exercise during a diet preserved fat-free mass, mixed and strength training the most (Deller 2026); eat protein above the RDA, which reduced lean-mass loss (Hudson 2020, Wycherley 2012); lose weight slowly, about 0.5-1% of body weight a week (Helms 2014; 0.7% a week kept more lean mass than 1.4% in elite athletes, Garthe 2011), since a deficit of about 500 kcal/day prevented lean-mass gains (Murphy 2022). Passes when it gives at least three of these without contradicting any. Fails if it suggests very fast weight loss or stopping resistance training, or invents facts about the user."
+    },
+    "meta": {
+      "why": "要綜合：繼續練（Deller 2026）、蛋白質高於 RDA（Hudson、Wycherley）、每週減 0.5–1%（Helms、Garthe）、赤字太大會影響（Murphy）。至少三點。"
+    }
+  },
+  {
+    "id": "knowledge-short-time-en",
+    "language": "en",
+    "turns": [
+      "I only have about 45 minutes, three times a week. How do I still build muscle?"
+    ],
+    "expect": {
+      "tools_forbidden": [
+        "add_exercise_today",
+        "remove_exercise_today",
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "tools_required": [
+        "search_knowledge"
+      ],
+      "cites_any": [
+        "iversen-2021-time-efficient",
+        "zhang-2025-supersets",
+        "havers-2026-drop-sets",
+        "tsartsapakis-2026-advanced-set-methods",
+        "schoenfeld-2019-frequency",
+        "ramos-campo-2024-split-full-body",
+        "pelland-2026-volume"
+      ],
+      "judge": "Practical and evidence-based: weekly sets per muscle matter more than the split or the number of days (Pelland 2026, Schoenfeld 2019, Ramos-Campo 2024), so three full-body sessions work; supersets, especially pairing opposing muscles, and drop sets save time with similar long-term growth and strength (Zhang 2025, Havers 2026), though they feel harder; a warm-up of exercise-specific sets is enough (Iversen 2021). Passes when it gives at least three of these without contradicting any. Fails if it says this is not enough time to build muscle, or invents facts about the user."
+    },
+    "meta": {
+      "why": "要綜合：每週組數比分化和天數重要；超級組、遞減組省時效果相近但比較累；熱身做該動作的熱身組就好。至少三點，不能說時間不夠。"
+    }
+  },
+  {
     "id": "knowledge-no-note-shoes-zh",
     "language": "zh-TW",
     "turns": [

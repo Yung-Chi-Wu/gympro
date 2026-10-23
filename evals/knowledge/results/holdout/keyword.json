@@ -3,7 +3,8 @@
   "summary": {
     "hit1": 0.76,
     "hit5": 0.88,
-    "mrr": 0.8079999999999999
+    "mrr": 0.8079999999999999,
+    "pageHit": 0.88
   },
   "results": [
     {
@@ -17,7 +18,9 @@
         "rantila-2025-individual-response",
         "varovic-2025-long-length",
         "eddens-2018-order"
-      ]
+      ],
+      "page": "volume-frequency",
+      "pageHit": true
     },
     {
       "id": "h-plateau-zh",
@@ -26,7 +29,9 @@
       "rank": null,
       "top5": [
         "ogasawara-2013-detraining"
-      ]
+      ],
+      "page": "deload-overtraining-detraining",
+      "pageHit": true
     },
     {
       "id": "h-pre-workout-en",
@@ -39,7 +44,9 @@
         "bull-2020-who-guidelines",
         "morton-2018-protein-daily",
         "murlasits-2018-order"
-      ]
+      ],
+      "page": "other-supplements",
+      "pageHit": true
     },
     {
       "id": "h-older-zh",
@@ -52,7 +59,9 @@
         "willis-2012-body-composition",
         "refalo-2025-sex-differences",
         "roberts-2020-sex-differences"
-      ]
+      ],
+      "page": "concurrent-programming",
+      "pageHit": false
     },
     {
       "id": "h-pregnant-zh",
@@ -63,7 +72,9 @@
         "prevett-2025-pregnancy",
         "keogh-2017-lifting-injury-rates",
         "mottola-2018-pregnancy"
-      ]
+      ],
+      "page": "women",
+      "pageHit": true
     },
     {
       "id": "h-kids-zh",
@@ -76,7 +87,9 @@
         "eddens-2018-order",
         "morze-2021-body-composition",
         "willis-2012-body-composition"
-      ]
+      ],
+      "page": "older-adults-youth",
+      "pageHit": true
     },
     {
       "id": "h-shoulder-zh",
@@ -86,7 +99,9 @@
       "top5": [
         "tena-portilla-2026-shoulder-pain",
         "zhang-2026-shoulder-pain"
-      ]
+      ],
+      "page": "pain-injury",
+      "pageHit": true
     },
     {
       "id": "h-knee-oa-zh",
@@ -99,7 +114,9 @@
         "alentorn-geli-2017-running-knees",
         "burfield-2023-running-knees",
         "lauersen-2014-injury-prevention"
-      ]
+      ],
+      "page": "pain-injury",
+      "pageHit": true
     },
     {
       "id": "h-running-knee-en",
@@ -112,7 +129,9 @@
         "hartmann-2013-deep-squat-knees",
         "lawford-2024-knee-osteoarthritis",
         "llanos-lagos-2024-endurance-athletes-running-economy"
-      ]
+      ],
+      "page": "pain-injury",
+      "pageHit": true
     },
     {
       "id": "h-depression-zh",
@@ -124,7 +143,9 @@
         "henselmans-2022-carbs-performance",
         "kassiano-2022-exercise-variation",
         "keogh-2017-lifting-injury-rates"
-      ]
+      ],
+      "page": "mental-health-sleep",
+      "pageHit": true
     },
     {
       "id": "h-carbs-zh",
@@ -135,7 +156,9 @@
         "warneke-2024-warm-up",
         "henselmans-2022-carbs-performance",
         "wilson-2025-warm-up"
-      ]
+      ],
+      "page": "warm-up-stretching",
+      "pageHit": false
     },
     {
       "id": "h-meals-zh",
@@ -148,7 +171,9 @@
         "helms-2023-energy-surplus",
         "willis-2012-body-composition",
         "baz-valle-2022-volume"
-      ]
+      ],
+      "page": "diets",
+      "pageHit": true
     },
     {
       "id": "h-cheat-zh",
@@ -161,7 +186,9 @@
         "coleman-2024-deload",
         "rogerson-2024-deload",
         "poon-2025-diet-breaks"
-      ]
+      ],
+      "page": "deload-overtraining-detraining",
+      "pageHit": false
     },
     {
       "id": "h-bulk-zh",
@@ -174,7 +201,9 @@
         "murphy-2022-energy-deficit",
         "trommelen-2023-protein-meal",
         "morton-2018-protein-daily"
-      ]
+      ],
+      "page": "bulking",
+      "pageHit": true
     },
     {
       "id": "h-cut-rate-en",
@@ -187,7 +216,9 @@
         "bull-2020-who-guidelines",
         "haugen-2023-machines-free-weights",
         "morton-2018-protein-daily"
-      ]
+      ],
+      "page": "fat-loss-rate-muscle",
+      "pageHit": true
     },
     {
       "id": "h-collagen-zh",
@@ -200,7 +231,9 @@
         "devries-2018-protein-kidney",
         "hudson-2020-protein-energy-restriction",
         "morton-2018-protein-daily"
-      ]
+      ],
+      "page": "protein",
+      "pageHit": true
     },
     {
       "id": "h-bfr-zh",
@@ -213,7 +246,9 @@
         "edwards-2023-blood-pressure",
         "fragala-2019-older-adults",
         "o-donoghue-2021-body-composition"
-      ]
+      ],
+      "page": "time-efficient-methods",
+      "pageHit": true
     },
     {
       "id": "h-unilateral-zh",
@@ -226,7 +261,9 @@
         "peos-2021-diet-breaks",
         "baz-valle-2022-volume",
         "schoenfeld-2017-volume"
-      ]
+      ],
+      "page": "exercise-execution",
+      "pageHit": true
     },
     {
       "id": "h-genetics-zh",
@@ -236,7 +273,9 @@
       "top5": [
         "rantila-2025-individual-response",
         "varovic-2025-long-length"
-      ]
+      ],
+      "page": "progression-plateaus",
+      "pageHit": true
     },
     {
       "id": "h-who-zh",
@@ -249,7 +288,9 @@
         "lauersen-2014-injury-prevention",
         "devries-2018-protein-kidney",
         "gordon-2017-anxiety"
-      ]
+      ],
+      "page": "health-benefits",
+      "pageHit": true
     },
     {
       "id": "h-concurrent-fat-zh",
@@ -262,7 +303,9 @@
         "o-donoghue-2021-body-composition",
         "eddens-2018-order",
         "schoenfeld-2014-fasted-cardio"
-      ]
+      ],
+      "page": "concurrent-body-composition",
+      "pageHit": true
     },
     {
       "id": "h-tendon-zh",
@@ -275,7 +318,9 @@
         "singer-2024-rest",
         "bell-2023-deload",
         "byrne-2018-diet-breaks"
-      ]
+      ],
+      "page": "pain-injury",
+      "pageHit": true
     },
     {
       "id": "h-alcohol-en",
@@ -288,7 +333,9 @@
         "eddens-2018-order",
         "damas-2018-doms",
         "murlasits-2018-order"
-      ]
+      ],
+      "page": "soreness-recovery",
+      "pageHit": true
     },
     {
       "id": "h-1rm-zh",
@@ -301,7 +348,9 @@
         "halperin-2022-rir-accuracy",
         "llanos-lagos-2024-endurance-athletes-running-performance",
         "llanos-lagos-2026-endurance-athletes-cycling"
-      ]
+      ],
+      "page": "load-reps",
+      "pageHit": true
     },
     {
       "id": "h-pullup-zh",
@@ -310,7 +359,9 @@
       "rank": 1,
       "top5": [
         "johnson-2009-pull-up"
-      ]
+      ],
+      "page": "progression-plateaus",
+      "pageHit": true
     }
   ]
 }

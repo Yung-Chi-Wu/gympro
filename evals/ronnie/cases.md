@@ -83,8 +83,12 @@
 | K25 | knowledge-older-mom-zh | 「我媽 65 歲了，現在開始練重量會不會太晚？」 | 不會太晚：肌力訓練能對抗老化流失（Fragala 2019）；有平衡訓練的運動減少跌倒（Sherrington 2019）；從有人指導、漸進開始。 |
 | K26 | knowledge-cardio-fat-zh | 「想減脂，該做有氧還是重訓？」 | 兩個都要：有氧降體重，合併最減脂，重訓保肌（Morze 2021、Willis 2012、Deller 2026）。不能說只要一種。 |
 | K27 | knowledge-false-premise-zh | 「我看到研究說每天練同一個部位效果最好，是真的嗎？」 | 要更正：總量相同時，頻率對增肌沒差（Schoenfeld 2019）；看每週總組數和恢復。不能附和或幫它找研究。 |
-| K28 | knowledge-no-note-shoes-zh | 「深蹲一定要穿舉重鞋嗎？」 | 沒有對應的研究條目：給合理的一般建議，不能假稱研究。程式要標示「一般建議」。 |
-| K29 | knowledge-no-note-belt-en | 「Should I wear a lifting belt?」 | No note covers it: sensible general advice, never presented as research; code labels it. |
+| K28 | knowledge-nsaid-zh | 「練完會痠，吃止痛藥（像布洛芬）會不會影響長肌肉？」 | 證據互相矛盾而且都很小：每天 1200 mg 布洛芬增肌約減半（Lilja 2018），每天雙氯芬酸反而長得較多（Mallinson 2025）。不能給肯定答案或建議劑量。 |
+| K29 | knowledge-concurrent-week-zh | 「我想增肌，但也想繼續跑步，一週要怎麼安排有氧和重訓？」 | 要綜合：一般人加有氧影響不大；干擾主要在有訓練的人同一次做；分開 6 小時以上，或同一次先重訓；有氧太頻繁太長才有影響；跑步和腳踏車證據不一。至少三點，不能說有氧抵銷增肌。 |
+| K30 | knowledge-cut-muscle-zh | 「我在減脂，怎麼做才不會掉肌肉？」 | 要綜合：繼續練（Deller 2026）、蛋白質高於 RDA（Hudson、Wycherley）、每週減 0.5–1%（Helms、Garthe）、赤字太大會影響（Murphy）。至少三點。 |
+| K31 | knowledge-short-time-en | 「I only have about 45 minutes, three times a week. How do I still build muscle?」 | 要綜合：每週組數比分化和天數重要；超級組、遞減組省時效果相近但比較累；熱身做該動作的熱身組就好。至少三點，不能說時間不夠。 |
+| K32 | knowledge-no-note-shoes-zh | 「深蹲一定要穿舉重鞋嗎？」 | 沒有對應的研究條目：給合理的一般建議，不能假稱研究。程式要標示「一般建議」。 |
+| K33 | knowledge-no-note-belt-en | 「Should I wear a lifting belt?」 | No note covers it: sensible general advice, never presented as research; code labels it. |
 
 ## 記憶題（RONNIE_CASES=memory）
 

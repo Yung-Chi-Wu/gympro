@@ -1,0 +1,2536 @@
+[
+  {
+    "id": "volume-frequency",
+    "title": "Weekly volume and frequency",
+    "titleZh": "每週組數與頻率",
+    "terms": "一週練幾組 組數 訓練量 一週練幾次 頻率 分化 全身 sets per week volume frequency split full body",
+    "agreed": [
+      {
+        "text": "In the largest analysis, 67 studies with 2,058 mostly young male participants, both muscle growth and strength kept rising as weekly sets rose, with diminishing returns that flattened sooner for strength than for size.",
+        "notes": [
+          "pelland-2026-volume"
+        ]
+      },
+      {
+        "text": "An older meta-analysis of 15 studies also found more weekly sets went with more growth, about 0.37% more per additional set.",
+        "notes": [
+          "schoenfeld-2017-volume"
+        ]
+      },
+      {
+        "text": "When weekly sets were equal, how many days they were spread over made no significant difference to muscle growth.",
+        "notes": [
+          "schoenfeld-2019-frequency"
+        ]
+      },
+      {
+        "text": "With weekly volume equated, split and full-body routines gave similar strength and muscle growth in 14 studies of 392 healthy adults.",
+        "notes": [
+          "ramos-campo-2024-split-full-body"
+        ]
+      },
+      {
+        "text": "Sets that train a muscle only indirectly fit the data best counted as half a set.",
+        "notes": [
+          "pelland-2026-volume"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "There is no settled number: the largest analysis gives no set thresholds in its abstract, and a review of 6 studies in young trained men suggests 12-20 weekly sets per muscle as a standard; more than 20 gave more triceps growth but not more quadriceps or biceps growth.",
+        "notes": [
+          "pelland-2026-volume",
+          "baz-valle-2022-volume"
+        ]
+      },
+      {
+        "text": "For strength the analyses differ: the largest found a clear, diminishing benefit of training more often, while 22 studies of mostly untrained people found strength gains rose with frequency but not significantly once volume was equated.",
+        "notes": [
+          "pelland-2026-volume",
+          "grgic-2018-frequency"
+        ]
+      },
+      {
+        "text": "For muscle growth, the effect of frequency on its own was compatible with negligible.",
+        "notes": [
+          "pelland-2026-volume"
+        ]
+      },
+      {
+        "text": "For muscle growth, where weekly volume was not equated, training more often had a significant but modest advantage, between 1 and 3+ days per week.",
+        "notes": [
+          "schoenfeld-2019-frequency"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "For growth, weekly sets per muscle matter: adding sets helps, but each extra set adds less than the one before.",
+        "notes": [
+          "pelland-2026-volume",
+          "schoenfeld-2017-volume"
+        ]
+      },
+      {
+        "text": "For muscle growth, the number of days can follow the schedule as long as weekly sets stay the same; split and full-body routines with equal weekly volume gave similar growth and strength.",
+        "notes": [
+          "schoenfeld-2019-frequency",
+          "ramos-campo-2024-split-full-body"
+        ]
+      },
+      {
+        "text": "Count a set as half for a muscle it trains only indirectly: that counting fit the data better than counting it as a full set or as zero.",
+        "notes": [
+          "pelland-2026-volume"
+        ]
+      }
+    ],
+    "related": [
+      "effort-failure",
+      "load-reps",
+      "time-efficient-methods"
+    ]
+  },
+  {
+    "id": "effort-failure",
+    "title": "How hard each set should be",
+    "titleZh": "每組要多累、要不要練到力竭",
+    "terms": "力竭 做到力竭 練到力竭 保留次數 還能做幾下 每組多累 強度 RIR RPE failure reps in reserve proximity to failure velocity loss effort",
+    "agreed": [
+      {
+        "text": "A meta-analysis found muscle growth increased as sets were stopped closer to failure, that is, with fewer estimated reps in reserve.",
+        "notes": [
+          "robinson-2024-failure"
+        ]
+      },
+      {
+        "text": "In the same analysis, strength gains were similar across a wide range of reps in reserve.",
+        "notes": [
+          "robinson-2024-failure"
+        ]
+      },
+      {
+        "text": "Across 15 studies in healthy adults, training to failure gave only a trivial growth advantage over stopping short (effect size 0.19), and no significant advantage when failure meant true momentary muscular failure (effect size 0.12).",
+        "notes": [
+          "refalo-2023-failure"
+        ]
+      },
+      {
+        "text": "In that analysis, stopping sets at a high velocity loss (more than 25%) was not better for growth than stopping at a moderate velocity loss (20-25%).",
+        "notes": [
+          "refalo-2023-failure"
+        ]
+      },
+      {
+        "text": "Across 12 studies with 414 healthy participants, people underpredicted how many reps they had left before failure by 0.95 reps on average.",
+        "notes": [
+          "halperin-2022-rir-accuracy"
+        ]
+      },
+      {
+        "text": "Those predictions were more accurate closer to failure, with heavier loads (sets of 12 reps or fewer) and in later sets, and training background did not make them more accurate.",
+        "notes": [
+          "halperin-2022-rir-accuracy"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "The link between reps in reserve and growth is exploratory: reps in reserve were estimated from study descriptions after the fact, the model fit was modest, and the exact relationship remains unclear.",
+        "notes": [
+          "robinson-2024-failure"
+        ]
+      },
+      {
+        "text": "How close is close enough is not settled: one analysis found growth kept rising as sets got closer to failure, while the other found going to failure beat stopping short only trivially.",
+        "notes": [
+          "robinson-2024-failure",
+          "refalo-2023-failure"
+        ]
+      },
+      {
+        "text": "The 15-study analysis used inconsistent definitions of failure, and its certainty is low to moderate.",
+        "notes": [
+          "refalo-2023-failure"
+        ]
+      },
+      {
+        "text": "How well people judged their reps left varied widely between studies (very high heterogeneity), and that analysis was also exploratory.",
+        "notes": [
+          "halperin-2022-rir-accuracy"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "For growth, an exploratory analysis suggests stopping sets closer to failure rather than far from it may help, but reaching true momentary failure gave no significant benefit over stopping short.",
+        "notes": [
+          "robinson-2024-failure",
+          "refalo-2023-failure"
+        ]
+      },
+      {
+        "text": "For strength, leaving reps in reserve did not cost gains in the analysis: strength gains were similar across a wide range of reps in reserve.",
+        "notes": [
+          "robinson-2024-failure"
+        ]
+      },
+      {
+        "text": "When you estimate reps in reserve, you may have more left than you think: people underpredicted by 0.95 reps on average, and estimates were better near failure and in sets of 12 reps or fewer.",
+        "notes": [
+          "halperin-2022-rir-accuracy"
+        ]
+      }
+    ],
+    "related": [
+      "volume-frequency",
+      "load-reps",
+      "time-efficient-methods"
+    ]
+  },
+  {
+    "id": "load-reps",
+    "title": "Load and reps",
+    "titleZh": "重量與次數",
+    "terms": "重量 輕重量 大重量 次數 幾下 幾次 做幾下 最大重量 估算最大重量 load heavy light reps rep range percent 1RM one rep max estimate",
+    "agreed": [
+      {
+        "text": "With all sets taken to momentary failure, a meta-analysis of 21 studies found low loads (60% 1RM or less) and high loads (above 60% 1RM) produced similar muscle growth.",
+        "notes": [
+          "schoenfeld-2017-load"
+        ]
+      },
+      {
+        "text": "A network meta-analysis of 28 studies in 747 healthy adults, also with sets to failure, found no difference in growth between low (more than 15RM), moderate (9-15RM) and high (8RM or fewer) loads.",
+        "notes": [
+          "lopez-2021-load"
+        ]
+      },
+      {
+        "text": "Heavier loads built more strength: 1RM gains were significantly greater with loads above 60% 1RM, and high and moderate loads beat low loads for strength, though isometric strength did not differ between low and high loads.",
+        "notes": [
+          "schoenfeld-2017-load",
+          "lopez-2021-load"
+        ]
+      },
+      {
+        "text": "In the largest network analysis, 178 strength studies (5,097 healthy adults) and 119 growth studies (3,364 healthy adults), every resistance-training prescription beat no exercise; loads above 80% 1RM maximised strength, while all prescriptions promoted growth comparably.",
+        "notes": [
+          "currier-2023-load"
+        ]
+      },
+      {
+        "text": "A position stand built on an overview of 137 systematic reviews in more than 30,000 healthy adults found few prescription variables changed the main adaptations, and that heavier loads of at least 80% of 1RM enhanced strength.",
+        "notes": [
+          "acsm-2026-strength"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "Heavy versus moderate loads for strength is less certain: in the 28-study analysis, high loads (8RM or fewer) were favored over moderate loads, but not significantly.",
+        "notes": [
+          "lopez-2021-load"
+        ]
+      },
+      {
+        "text": "The equal growth from light and heavy loads applies only when sets reach failure: every set in these studies was taken to failure.",
+        "notes": [
+          "schoenfeld-2017-load",
+          "lopez-2021-load"
+        ]
+      },
+      {
+        "text": "The 28-study analysis pooled small samples; in it, untrained participants grew more, and among those with some training background, more sessions gave more growth.",
+        "notes": [
+          "lopez-2021-load"
+        ]
+      },
+      {
+        "text": "The largest analysis found all prescriptions grew muscle comparably and ranked higher-load multiple sets top (three times a week for strength, twice for growth, rankings close), while the overview found growth was enhanced by at least 10 sets a week and eccentric overload.",
+        "notes": [
+          "currier-2023-load",
+          "acsm-2026-strength"
+        ]
+      },
+      {
+        "text": "The advice on estimating a 1RM comes from one study of 70 adults (34 men, 36 women) aged 18-69, tested on the bench and leg press.",
+        "notes": [
+          "reynolds-2006-e1rm"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "For muscle growth, a wide range of loads gave similar results when sets were taken to failure, from heavy sets of 8RM or fewer to light sets of more than 15RM.",
+        "notes": [
+          "lopez-2021-load"
+        ]
+      },
+      {
+        "text": "For maximal strength, include heavy loads: at least 80% of 1RM enhanced strength in the overview, and loads above 80% 1RM maximised it in the network analysis.",
+        "notes": [
+          "acsm-2026-strength",
+          "currier-2023-load"
+        ]
+      },
+      {
+        "text": "For strength, the overview also supported a complete range of motion, 2-3 sets, doing the lift at the start of the session, and 2 or more sessions a week.",
+        "notes": [
+          "acsm-2026-strength"
+        ]
+      },
+      {
+        "text": "To estimate a 1RM from a set, a 5RM predicted it most accurately, and the authors advise using sets of no more than 10 reps in linear equations.",
+        "notes": [
+          "reynolds-2006-e1rm"
+        ]
+      }
+    ],
+    "related": [
+      "effort-failure",
+      "progression-plateaus",
+      "volume-frequency"
+    ]
+  },
+  {
+    "id": "progression-plateaus",
+    "title": "Progress, plateaus and individual response",
+    "titleZh": "進步、停滯與個體差異",
+    "terms": "進步 停滯 卡關 撞牆 沒進步 加重量 加次數 漸進超負荷 週期化 換動作 新手 進步多快 個人差異 天生 基因 引體向上 滑輪下拉 progress plateau stall progressive overload periodization exercise variation newbie gains rate of progress non-responder genetics pull-up lat pulldown",
+    "agreed": [
+      {
+        "text": "In a large sample of competitive powerlifters, strength gains were biggest early: about 7.5-12.5% in the first year, and only up to about 20% in total after 10 years; females tended to progress faster, possibly because of lower starting strength.",
+        "notes": [
+          "latella-2024-rate-of-gains"
+        ]
+      },
+      {
+        "text": "In the same data, female masters lifters over 59 still gained about 2.5-5.0% in strength, while males over 69 showed a slight loss of about 0.35% per year.",
+        "notes": [
+          "latella-2024-rate-of-gains"
+        ]
+      },
+      {
+        "text": "Across 35 volume-equated studies, periodized training gave larger 1RM gains than non-periodized training (effect size 0.31), but no difference in muscle growth; linear and undulating periodization also did not differ for growth.",
+        "notes": [
+          "moesgaard-2022-periodization"
+        ]
+      },
+      {
+        "text": "When 20 untrained adults did the same 10-week program twice, those who gained more the first time tended to gain more again, and no one was a non-responder in both rounds for more than one measure.",
+        "notes": [
+          "rantila-2025-individual-response"
+        ]
+      },
+      {
+        "text": "A position stand on progression in healthy adults recommends a 2-10% increase in load once the current load can be done for one to two reps over the desired number.",
+        "notes": [
+          "acsm-2009-progression"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "The periodization effects were small, with confidence intervals near zero, and undulating beat linear periodization for 1RM only in trained participants (0.61), not in untrained ones (0.06).",
+        "notes": [
+          "moesgaard-2022-periodization"
+        ]
+      },
+      {
+        "text": "The rate-of-gain figures come from competitive powerlifters, who are self-selected and already trained when they start competing, so the exact percentages may not transfer to recreational gym-goers.",
+        "notes": [
+          "latella-2024-rate-of-gains"
+        ]
+      },
+      {
+        "text": "Adding reps versus adding load rests on one small 8-week trial of 43 trained adults, lower body only: both gave similar results, and the small differences between them were of questionable practical significance.",
+        "notes": [
+          "plotkin-2022-progression"
+        ]
+      },
+      {
+        "text": "The individual-response trial was small (47 people, untrained only); in it, larger first-round gains went with larger losses during the 10 weeks off, suggesting bigger gains may also fade faster.",
+        "notes": [
+          "rantila-2025-individual-response"
+        ]
+      },
+      {
+        "text": "On changing exercises, a review of 8 studies in 241 young men, with no meta-analysis, found some systematic variation seemed to enhance regional growth and maximize dynamic strength, while excessive, random variation may compromise gains.",
+        "notes": [
+          "kassiano-2022-exercise-variation"
+        ]
+      },
+      {
+        "text": "For pull-ups, one study of college students found the 1RM pull-up (body plus added load) was 1.16 times body mass and the 1RM lat pull 0.93 in 35 men, correlated at r = 0.78; in 23 women they were 0.73 and 0.55, with a weaker, non-significant correlation (r = 0.44); it did not test when a first pull-up happens.",
+        "notes": [
+          "johnson-2009-pull-up"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "One way to progress: add reps at a given load, then add 2-10% to the load once you can do one to two reps over your target; in one small trial, progressing reps and progressing load gave similar results.",
+        "notes": [
+          "acsm-2009-progression",
+          "plotkin-2022-progression"
+        ]
+      },
+      {
+        "text": "Don't judge yourself a non-responder on one measure: in the repeated-program trial, non-response was rare and no one failed to respond in both rounds on more than one measure.",
+        "notes": [
+          "rantila-2025-individual-response"
+        ]
+      },
+      {
+        "text": "If you change exercises, the limited evidence favors some systematic variation over excessive, random variation.",
+        "notes": [
+          "kassiano-2022-exercise-variation"
+        ]
+      }
+    ],
+    "related": [
+      "load-reps",
+      "deload-overtraining-detraining",
+      "volume-frequency"
+    ]
+  },
+  {
+    "id": "deload-overtraining-detraining",
+    "title": "Deloads, overtraining and time off",
+    "titleZh": "減量週、過度訓練與停練",
+    "terms": "減量 減量週 過度訓練 過度疲勞 練太多 休息一週 停練 休息多久會退步 退步 肌肉記憶 deload overtraining overreaching detraining time off break muscle memory",
+    "agreed": [
+      {
+        "text": "A consensus of expert strength and physique coaches defined a deload as a period of reduced training stress designed to mitigate physiological and psychological fatigue, promote recovery, and enhance preparedness for later training.",
+        "notes": [
+          "bell-2023-deload"
+        ]
+      },
+      {
+        "text": "In a survey of 246 competitive strength and physique athletes, all deloaded, mainly to manage energy and fatigue; a deload lasted about 6.4 days and came about every 5.6 weeks.",
+        "notes": [
+          "rogerson-2024-deload"
+        ]
+      },
+      {
+        "text": "During a deload, those athletes cut volume (fewer reps per set and sets per week) and load, kept their training frequency and exercises, and trained further from failure.",
+        "notes": [
+          "rogerson-2024-deload"
+        ]
+      },
+      {
+        "text": "A consensus statement for athletes calls a short-term performance drop that improves after recovery functional overreaching; when training and recovery are out of balance, non-functional overreaching can follow, and overtraining syndrome is marked by prolonged maladaptation.",
+        "notes": [
+          "meeusen-2013-overtraining"
+        ]
+      },
+      {
+        "text": "No single marker, whether hormones, performance tests, psychological tests, or biochemical or immune markers, meets all the criteria to be generally accepted for detecting overtraining syndrome.",
+        "notes": [
+          "meeusen-2013-overtraining"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "Deloading is common but under-researched: the coaches' design principles came from expert opinion and practical experience, and the survey shows what athletes do, not whether it works.",
+        "notes": [
+          "bell-2023-deload",
+          "rogerson-2024-deload"
+        ]
+      },
+      {
+        "text": "In one 9-week trial in 39 trained young adults, stopping training entirely for 1 week at the midpoint gave similar lower-body muscle growth, endurance and power, but less lower-body strength gain, than training straight through.",
+        "notes": [
+          "coleman-2024-deload"
+        ]
+      },
+      {
+        "text": "That trial's week off was a full stop, not the lighter training athletes describe, so it does not test that kind of deload; continuous training also showed slight benefits on a readiness-to-train questionnaire.",
+        "notes": [
+          "coleman-2024-deload",
+          "rogerson-2024-deload"
+        ]
+      },
+      {
+        "text": "In 14 young men training the bench press for 24 weeks, 6-week blocks with 3-week breaks gave overall muscle size and strength gains similar to continuous training; this is a small single trial of one exercise in men only.",
+        "notes": [
+          "ogasawara-2013-detraining"
+        ]
+      },
+      {
+        "text": "The two trials differ on strength: a week off cost lower-body strength gains in 39 trained young adults, while 3-week breaks gave overall strength gains similar to continuous training in 14 young men doing the bench press.",
+        "notes": [
+          "coleman-2024-deload",
+          "ogasawara-2013-detraining"
+        ]
+      },
+      {
+        "text": "What drives muscle memory is unclear: pooling 147 articles, myonuclei gained with growth were kept during atrophy in rodents but not in humans, so the authors say permanent myonuclei do not explain muscle memory and other mechanisms such as epigenetics may matter more.",
+        "notes": [
+          "rahmati-2022-muscle-memory"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "If you deload, the reported practice among competitive athletes is about 6.4 days of fewer reps and sets and lighter loads, keeping the usual training frequency and exercises and stopping further from failure.",
+        "notes": [
+          "rogerson-2024-deload"
+        ]
+      },
+      {
+        "text": "In two small trials, short breaks left muscle gains similar: a week off mid-program gave similar lower-body muscle growth but less lower-body strength gain, and 3-week breaks between 6-week blocks gave similar overall muscle size and strength gains over 24 weeks.",
+        "notes": [
+          "coleman-2024-deload",
+          "ogasawara-2013-detraining"
+        ]
+      },
+      {
+        "text": "A performance dip that improves with recovery fits functional overreaching; what marks overtraining syndrome is prolonged maladaptation, and no single marker is generally accepted for detecting it.",
+        "notes": [
+          "meeusen-2013-overtraining"
+        ]
+      }
+    ],
+    "related": [
+      "progression-plateaus",
+      "soreness-recovery",
+      "effort-failure"
+    ]
+  },
+  {
+    "id": "exercise-execution",
+    "title": "Choosing and doing the exercises",
+    "titleZh": "動作選擇與執行",
+    "terms": "動作 動作選擇 全幅度 半程 部分幅度 活動範圍 拉長位置 自由重量 器械 機械 單邊 雙邊 離心 下放 節奏 慢速 意念 專注肌肉 深蹲 蹲多深 膝蓋 range of motion partials lengthened partials long muscle length free weights machines unilateral bilateral eccentric tempo mind-muscle connection deep squat knees",
+    "agreed": [
+      {
+        "text": "Across 16 studies, full range of motion gave larger strength gains than partial range (effect size 0.56) and more lower-limb muscle growth (effect size 0.88), though neither was clearly better for muscle thickness, pennation angle or fascicle length.",
+        "notes": [
+          "pallares-2021-range-of-motion"
+        ]
+      },
+      {
+        "text": "In 13 head-to-head studies of 1,016 adults aged 18-60, mostly men, free weights and machines gave similar dynamic and isometric strength gains and, in the 5 studies that measured it, similar muscle growth; strength tested on free weights rose more after free-weight training.",
+        "notes": [
+          "haugen-2023-machines-free-weights"
+        ]
+      },
+      {
+        "text": "Across 9 studies, one-limb (unilateral) and two-limb (bilateral) training produced similar muscle growth, while bilateral training improved bilateral strength more and unilateral training improved unilateral strength more.",
+        "notes": [
+          "kassiano-2025-unilateral-bilateral"
+        ]
+      },
+      {
+        "text": "Across 14 studies in healthy adults, faster and slower rep tempos produced similar growth, and the authors conclude tempo has minimal overall effect on hypertrophy.",
+        "notes": [
+          "enes-2025-tempo"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "On heavier lowering phases the notes differ: a meta-analysis of 49 studies with 773 participants found long-term strength and size gains similar to constant-load training, while a position stand reports eccentric overload enhanced growth and a 23-study analysis credits it with part of a strength benefit.",
+        "notes": [
+          "zhang-2026-eccentric",
+          "acsm-2026-strength",
+          "tsartsapakis-2026-advanced-set-methods"
+        ]
+      },
+      {
+        "text": "A review of 11 small studies, with no pooled estimate, found full range or partials in the initial part of the range gave more growth at several muscle sites than partials in the final part, and its authors conclude training at longer muscle lengths tends to give optimal growth.",
+        "notes": [
+          "kassiano-2023-long-length"
+        ]
+      },
+      {
+        "text": "The two long-length analyses differ: a 12-study meta-analysis in young adults found only trivial growth differences between longer and shorter muscle lengths (SMD 0.05 to 0.09), but its lengths differed by only 21.8% on average, so larger contrasts remain untested.",
+        "notes": [
+          "varovic-2025-long-length",
+          "kassiano-2023-long-length"
+        ]
+      },
+      {
+        "text": "Limits to keep in mind: the range-of-motion analysis's abstract does not detail its participants or separate partials at long versus short muscle lengths, only 5 free-weight versus machine studies measured growth, and the 9 one-limb versus two-limb studies had moderate risk of bias.",
+        "notes": [
+          "pallares-2021-range-of-motion",
+          "haugen-2023-machines-free-weights",
+          "kassiano-2025-unilateral-bilateral"
+        ]
+      },
+      {
+        "text": "In one small 8-week trial of 30 untrained college-aged men, focusing on contracting the target muscle grew the elbow flexors more than focusing on the outcome of the lift (12.4% vs 6.9%), but quadriceps growth was similar and strength differences were not significant.",
+        "notes": [
+          "schoenfeld-2018-mind-muscle"
+        ]
+      },
+      {
+        "text": "A narrative review found compressive forces behind the kneecap peak at about 90° of knee bend and fall with deeper bending; its authors call fears that deep squats cause cartilage degeneration or osteoarthritis unfounded, provided technique is learned under expert supervision with progressive loads.",
+        "notes": [
+          "hartmann-2013-deep-squat-knees"
+        ]
+      },
+      {
+        "text": "That deep-squat conclusion is firmer than its evidence: it rests mainly on models and cadaver data rather than long-term trials, and the review notes there are no realistic estimates of knee-joint forces beyond 50° in the deep squat.",
+        "notes": [
+          "hartmann-2013-deep-squat-knees"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "Full range of motion is the better-supported choice for strength and lower-body growth; if you do partials, the 11-study review favored the initial part of the range over the final part.",
+        "notes": [
+          "pallares-2021-range-of-motion",
+          "kassiano-2023-long-length"
+        ]
+      },
+      {
+        "text": "For growth, free weights or machines, one limb or two, and a faster or slower tempo (from about 0.3 to 4.5 s per rep) can follow preference; for strength, train in the form you want to get stronger in, since gains were specific.",
+        "notes": [
+          "haugen-2023-machines-free-weights",
+          "kassiano-2025-unilateral-bilateral",
+          "enes-2025-tempo"
+        ]
+      },
+      {
+        "text": "In the largest analysis, heavier lowering phases gave no long-term strength or size advantage over constant loads but felt much harder (perceived exertion SMD 1.72), and its authors say this implies longer rests and recovery.",
+        "notes": [
+          "zhang-2026-eccentric"
+        ]
+      }
+    ],
+    "related": [
+      "load-reps",
+      "pain-injury",
+      "progression-plateaus"
+    ]
+  },
+  {
+    "id": "time-efficient-methods",
+    "title": "Rest periods and time-saving set methods",
+    "titleZh": "組間休息與省時組法",
+    "terms": "組間休息 休息多久 超級組 遞減組 叢集組 休息暫停 血流限制 省時 時間不夠 沒時間 進階訓練法 rest between sets rest periods supersets drop sets cluster sets rest-pause blood flow restriction BFR time-efficient short workouts advanced techniques",
+    "agreed": [
+      {
+        "text": "Pooling 23 studies in recreationally trained adults aged 18-45, advanced methods such as drop sets, cluster sets and eccentric overload did not significantly beat traditional multiple sets for growth (g = 0.046); drop sets and cluster-type sets matched traditional sets when volume and effort were matched.",
+        "notes": [
+          "tsartsapakis-2026-advanced-set-methods"
+        ]
+      },
+      {
+        "text": "Across 12 studies with 274 participants, drop sets and traditional sets produced similar long-term growth and strength, but drop sets felt considerably harder (perceived exertion SMD 1.62).",
+        "notes": [
+          "havers-2026-drop-sets"
+        ]
+      },
+      {
+        "text": "Across 19 studies with 313 participants, supersets kept total reps and volume load similar to traditional sets while shortening sessions, and long-term strength and growth were similar.",
+        "notes": [
+          "zhang-2025-supersets"
+        ]
+      },
+      {
+        "text": "Across 29 studies, cluster sets and traditional sets produced similar gains in strength, power and growth, whatever the training volume, cluster-set model, training status, body part or exercise.",
+        "notes": [
+          "davies-2021-cluster-sets"
+        ]
+      },
+      {
+        "text": "Across 47 meta-analyses, blood flow restriction training gave more growth (0.39) and strength (0.61) than low-load training without restriction; against high-load training, growth did not differ significantly but strength gains were smaller (-0.28).",
+        "notes": [
+          "oborn-2025-blood-flow-restriction"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "For strength, the 23-study analysis found a moderate benefit of advanced methods (g = 0.351), driven mainly by velocity-based training and eccentric overload, and a modest growth edge for rest-pause with no effect size given; it includes non-randomized trials.",
+        "notes": [
+          "tsartsapakis-2026-advanced-set-methods"
+        ]
+      },
+      {
+        "text": "An expert narrative review says supersets, drop sets and rest-pause are probably better for growth than for strength, while the pooled analyses found drop sets and supersets matched traditional sets for strength as well as growth.",
+        "notes": [
+          "iversen-2021-time-efficient",
+          "havers-2026-drop-sets",
+          "zhang-2025-supersets"
+        ]
+      },
+      {
+        "text": "Rest-length evidence is weak: in 9 randomized studies, estimates slightly favored longer rest for arm and thigh growth with credible intervals crossing zero, and the authors conclude a small benefit to resting more than 60 s but no appreciable difference beyond 90 s.",
+        "notes": [
+          "singer-2024-rest"
+        ]
+      },
+      {
+        "text": "The long-term drop-set and superset results rest on few small studies, the idea that cluster sets cause less fatigue is the authors' interpretation rather than a pooled outcome, and all blood flow restriction reviews were rated low to moderate quality.",
+        "notes": [
+          "havers-2026-drop-sets",
+          "zhang-2025-supersets",
+          "davies-2021-cluster-sets",
+          "oborn-2025-blood-flow-restriction"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "To save time, supersets shortened sessions while keeping reps and volume load similar, though they felt harder (RPE SMD 0.77); pairing opposing muscles increased reps completed, while pairing two similar exercises for the same muscles reduced volume load.",
+        "notes": [
+          "zhang-2025-supersets"
+        ]
+      },
+      {
+        "text": "An expert narrative review reports that supersets, drop sets and rest-pause roughly halve training time while maintaining volume.",
+        "notes": [
+          "iversen-2021-time-efficient"
+        ]
+      },
+      {
+        "text": "For rest between sets, more than 60 s may help growth a little, and going beyond 90 s made no appreciable difference.",
+        "notes": [
+          "singer-2024-rest"
+        ]
+      },
+      {
+        "text": "For a minimal program, the expert narrative review recommends at least 4 weekly sets per muscle group with a 6-15 RM load (or 15-40 reps if sets go to failure), warm-ups limited to exercise-specific warm-up sets, and prioritizing stretching only if flexibility is a goal.",
+        "notes": [
+          "iversen-2021-time-efficient"
+        ]
+      },
+      {
+        "text": "If only light loads are possible, blood flow restriction gave more growth and strength than light loads alone, though smaller strength gains than heavy loads.",
+        "notes": [
+          "oborn-2025-blood-flow-restriction"
+        ]
+      }
+    ],
+    "related": [
+      "volume-frequency",
+      "effort-failure",
+      "warm-up-stretching"
+    ]
+  },
+  {
+    "id": "warm-up-stretching",
+    "title": "Warming up and stretching",
+    "titleZh": "熱身與伸展",
+    "terms": "熱身 暖身 拉筋 伸展 靜態伸展 練前伸展 練前拉筋 柔軟度 預防受傷 運動傷害 warm-up warm up stretching static stretching before lifting flexibility injury prevention",
+    "agreed": [
+      {
+        "text": "Across 83 studies with 2,012 participants, static stretching before testing caused a small loss of maximal strength (effect size -0.21) compared with passive controls.",
+        "notes": [
+          "warneke-2024-warm-up"
+        ]
+      },
+      {
+        "text": "That loss was large (effect size -0.84) when each stretch lasted 60 seconds or more.",
+        "notes": [
+          "warneke-2024-warm-up"
+        ]
+      },
+      {
+        "text": "The same analysis found stretching did not impair athletic performance in general, and it slightly improved jumping afterwards in adults (effect size 0.15).",
+        "notes": [
+          "warneke-2024-warm-up"
+        ]
+      },
+      {
+        "text": "Across 33 studies with 921 participants, warm-ups that raised muscle temperature improved fast force, meaning power and rate of force development, by about 3.7% per degree Celsius in voluntary contractions, but did not improve maximum force.",
+        "notes": [
+          "wilson-2025-warm-up"
+        ]
+      },
+      {
+        "text": "A Cochrane review of 12 studies in healthy adults concludes that stretching before, after, or both does not produce clinically important reductions in delayed-onset muscle soreness; its certainty is low to moderate, but results were highly consistent.",
+        "notes": [
+          "herbert-2011-stretching-soreness"
+        ]
+      },
+      {
+        "text": "Stretching before exercise cut next-day soreness by about half a point on a 100-point scale in 3 studies, and in one large trial stretching before and after cut peak soreness over a week by about 4 points, which the authors call very small.",
+        "notes": [
+          "herbert-2011-stretching-soreness"
+        ]
+      },
+      {
+        "text": "Across 25 randomized trials with 26,610 sports participants, stretching showed no benefit for injury risk (risk ratio 0.963), while strength training programs cut sports injuries to less than one third (risk ratio 0.315).",
+        "notes": [
+          "lauersen-2014-injury-prevention"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "The strength loss from stretching is rated moderate certainty: there are many studies, but the strength results come mostly from isolated-muscle tests.",
+        "notes": [
+          "warneke-2024-warm-up"
+        ]
+      },
+      {
+        "text": "The warm-up analysis found active, exercise-based warm-ups no better than passive ones, and no effect of training status or sex, but its authors note too little data for robust subgroup analyses.",
+        "notes": [
+          "wilson-2025-warm-up"
+        ]
+      },
+      {
+        "text": "Regular static stretching for at least 2 weeks gave small gains in maximal strength (d = 0.30) and muscle size (d = 0.20) across 42 trials with 1,318 participants, but certainty is low: the effects came from longer stretches, longer programs and more frequent stretching, and lower doses were not significant.",
+        "notes": [
+          "warneke-2024-stretching"
+        ]
+      },
+      {
+        "text": "The overall injury estimate was heterogeneous and the strength-training result rests on a subset of trials, though intention-to-treat sensitivity analyses gave consistent results.",
+        "notes": [
+          "lauersen-2014-injury-prevention"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "If you stretch before lifting, keep each stretch shorter than 60 seconds: holds of 60 seconds or more caused a large drop in maximal strength, while the overall drop was small.",
+        "notes": [
+          "warneke-2024-warm-up"
+        ]
+      },
+      {
+        "text": "A warm-up that raises muscle temperature mainly helps power and other fast force; it did not raise maximum force.",
+        "notes": [
+          "wilson-2025-warm-up"
+        ]
+      },
+      {
+        "text": "The evidence does not support stretching to prevent soreness or sports injuries; strength training programs are what reduced sports injuries in sports participants.",
+        "notes": [
+          "herbert-2011-stretching-soreness",
+          "lauersen-2014-injury-prevention"
+        ]
+      }
+    ],
+    "related": [
+      "soreness-recovery",
+      "pain-injury",
+      "exercise-execution"
+    ]
+  },
+  {
+    "id": "soreness-recovery",
+    "title": "Soreness and recovery methods",
+    "titleZh": "痠痛與恢復方法",
+    "terms": "痠痛 延遲性痠痛 不痠 沒感覺 恢復 按摩 加壓衣 冰浴 泡冰水 冷水 冷療 睡眠 睡不夠 熬夜 止痛藥 消炎藥 布洛芬 喝酒 酒精 DOMS soreness not sore muscle damage recovery massage compression ice bath cold water immersion sleep NSAID ibuprofen painkillers alcohol",
+    "agreed": [
+      {
+        "text": "A narrative review concludes muscle damage does not drive or enhance growth, since low-damage training gave similar growth and strength gains; it argues size gains in the first 4 or so sessions are mostly swelling, with true growth only after about 18 sessions.",
+        "notes": [
+          "damas-2018-doms"
+        ]
+      },
+      {
+        "text": "A Cochrane review of 12 studies in healthy adults concludes that stretching before, after, or both does not produce clinically important reductions in delayed-onset soreness; in one large trial, stretching before and after cut peak soreness by about 4 points on a 100-point scale.",
+        "notes": [
+          "herbert-2011-stretching-soreness"
+        ]
+      },
+      {
+        "text": "Across 99 studies of recovery after various kinds of exercise, active recovery, massage, compression garments, immersion, contrast water therapy and cryotherapy reduced delayed-onset soreness, and massage was the most effective for soreness and perceived fatigue.",
+        "notes": [
+          "dupuy-2018-recovery-methods"
+        ]
+      },
+      {
+        "text": "Across 69 studies with mostly male participants (89%), 6 hours of sleep or less in 24 hours cut exercise performance by about 7.6% on average, with significant effects in every exercise category, strength included.",
+        "notes": [
+          "craven-2022-sleep"
+        ]
+      },
+      {
+        "text": "Harm was consistent after total sleep deprivation or waking earlier than normal, but not consistently after going to bed later; afternoon and evening tasks were consistently impaired, while morning tasks were largely unaffected.",
+        "notes": [
+          "craven-2022-sleep"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "That recovery-methods analysis mixed exercise types and study designs, is rated low to moderate certainty, and measured soreness, fatigue and blood markers, not long-term strength or muscle growth.",
+        "notes": [
+          "dupuy-2018-recovery-methods"
+        ]
+      },
+      {
+        "text": "Cold water immersion straight after lifting may reduce muscle growth: 8 small studies of fair to poor quality estimated a 95.7% probability that it did (SMD -0.22), but the credible interval crosses zero and certainty is low.",
+        "notes": [
+          "pinero-2024-cold-water"
+        ]
+      },
+      {
+        "text": "In one trial of 31 healthy 18-35-year-olds, daily ibuprofen at 1200 mg, the maximal over-the-counter dose, for 8 weeks roughly halved quadriceps growth compared with low-dose aspirin, not placebo (3.7% vs 7.5%).",
+        "notes": [
+          "lilja-2018-nsaids"
+        ]
+      },
+      {
+        "text": "A second trial conflicts with the ibuprofen trial: in 17 trained young men, daily diclofenac at 75 mg for 12 weeks gave more quadriceps growth than placebo (8.6% vs 3.9%) and similar strength gains, and a 2026 letter by the ibuprofen trial's authors raised concerns about its methods.",
+        "notes": [
+          "mallinson-2025-nsaids",
+          "lilja-2018-nsaids"
+        ]
+      },
+      {
+        "text": "Across 12 mostly small, short-term studies, alcohol after lifting did not appear to change force, power, muscular endurance or soreness, though cortisol appeared to rise and testosterone and muscle protein synthesis fell; certainty is low, the abstract gives no doses, and there are no long-term growth data.",
+        "notes": [
+          "lakicevic-2019-alcohol"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "You don't need to chase muscle damage to grow, since low-damage training grew muscle similarly, though the review looked at damage rather than soreness itself.",
+        "notes": [
+          "damas-2018-doms"
+        ]
+      },
+      {
+        "text": "To ease soreness, massage has the best support among recovery methods, while stretching gives only very small relief.",
+        "notes": [
+          "dupuy-2018-recovery-methods",
+          "herbert-2011-stretching-soreness"
+        ]
+      },
+      {
+        "text": "Protect sleep before training: 6 hours or less cut performance, consistently so in afternoon or evening sessions; this evidence covers short-term sleep loss, not long-term muscle growth.",
+        "notes": [
+          "craven-2022-sleep"
+        ]
+      },
+      {
+        "text": "If muscle growth is the goal, skipping cold water immersion straight after lifting is the cautious choice, given the low-certainty signal that it reduces growth.",
+        "notes": [
+          "pinero-2024-cold-water"
+        ]
+      }
+    ],
+    "related": [
+      "warm-up-stretching",
+      "other-supplements",
+      "mental-health-sleep"
+    ]
+  },
+  {
+    "id": "concurrent-interference",
+    "title": "Does cardio get in the way of lifting",
+    "titleZh": "有氧會不會影響重訓效果",
+    "terms": "有氧 重訓 一起練 干擾 掉肌肉 有氧會不會掉肌肉 跑步 騎車 腳踏車 爆發力 同一天 有經驗 男女 長者 cardio lifting interference effect concurrent training running cycling power same session trained lifters sex differences older adults",
+    "agreed": [
+      {
+        "text": "An umbrella review of 17 meta-analyses (144 studies, 1492 healthy, mostly recreationally trained people) found cardio plus lifting gave strength, power and muscle growth comparable to lifting alone and improved aerobic capacity more (SMD 0.77); data on highly trained athletes were scarce.",
+        "notes": [
+          "held-2026-interference-overview"
+        ]
+      },
+      {
+        "text": "Across 43 studies in untrained or recreationally active healthy adults, adding aerobic training to the same strength program did not reduce gains in maximal strength (SMD -0.06) or muscle size (SMD -0.01).",
+        "notes": [
+          "schumann-2022-interference-strength-hypertrophy-power"
+        ]
+      },
+      {
+        "text": "In 566 healthy adults aged 50-73 across 15 trials, concurrent training improved strength (SMD 0.74), power (SMD 0.50) and cardiorespiratory endurance (SMD 0.48) compared with passive controls, but not balance.",
+        "notes": [
+          "markov-2023-older-adults"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "For power the sources differ: the umbrella review found it comparable to lifting alone, while the 43-study analysis found explosive strength gains modestly blunted (SMD -0.28), more so in the same session than with at least 3 hours between, and an older analysis also found smaller power gains.",
+        "notes": [
+          "held-2026-interference-overview",
+          "schumann-2022-interference-strength-hypertrophy-power",
+          "wilson-2012-interference-overview"
+        ]
+      },
+      {
+        "text": "Across 27 studies, concurrent training cut leg press and squat 1RM gains in trained individuals (ES -0.35) but not significantly in moderately trained or untrained people; in trained people a subgroup analysis found the loss only with same-session training (ES -0.66), not separate sessions (ES -0.10).",
+        "notes": [
+          "petre-2021-trained-lifters"
+        ]
+      },
+      {
+        "text": "Running vs cycling is disputed: an older meta-analysis of 21 studies linked lifting plus running, but not cycling, to smaller gains in muscle growth and strength, while a newer one of 43 studies found no difference between cycling and running.",
+        "notes": [
+          "wilson-2012-interference-overview",
+          "schumann-2022-interference-strength-hypertrophy-power"
+        ]
+      },
+      {
+        "text": "At the muscle-fiber level, 15 small biopsy studies found a small, borderline negative effect on fiber growth (SMD -0.23, p = 0.050), and running, but not cycling, blunted type I fiber growth (SMD -0.81), which the authors call preliminary.",
+        "notes": [
+          "lundberg-2022-interference-hypertrophy-fiber"
+        ]
+      },
+      {
+        "text": "On dose, the older analysis found more frequent and longer endurance training correlated with smaller growth, strength and power gains, while the newer one found no moderating effect of more vs fewer than 5 weekly sessions.",
+        "notes": [
+          "wilson-2012-interference-overview",
+          "schumann-2022-interference-strength-hypertrophy-power"
+        ]
+      },
+      {
+        "text": "One small 6-week trial in 24 resistance-trained men, using an isolated-limb model, found strength-only and 3:1 strength-to-endurance groups gained more leg strength than a 1:1 group, and strength alone increased limb girth, a crude size measure, more than 1:1.",
+        "notes": [
+          "jones-2013-endurance-dose"
+        ]
+      },
+      {
+        "text": "Across 59 studies of 1346 adults aged 18-50, concurrent training slightly blunted lower-body strength gains in men (SMD -0.43) but not in women (SMD 0.08); upper-body strength and power showed no sex difference, growth data were insufficient, and few studies included women.",
+        "notes": [
+          "huiberts-2024-sex-training-status"
+        ]
+      },
+      {
+        "text": "In adults aged 50-73, exploratory single-factor analyses against passive controls found larger strength effects with lifting before cardio in one session (SMD 1.00) than with separate sessions (SMD 0.55), and larger endurance effects with separate sessions (SMD 0.58) than with cardio first (SMD 0.49).",
+        "notes": [
+          "markov-2023-older-adults"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "For untrained or recreationally active people, the largest analyses found adding cardio did not reduce maximal strength or muscle growth and improved aerobic capacity; explosive strength gains were smaller, and an analysis of adults aged 18-50 found lower-body strength slightly blunted in men (SMD -0.43).",
+        "notes": [
+          "held-2026-interference-overview",
+          "schumann-2022-interference-strength-hypertrophy-power",
+          "huiberts-2024-sex-training-status"
+        ]
+      },
+      {
+        "text": "Trained lifters may do better with cardio and lifting in separate sessions: in a subgroup analysis their leg press and squat 1RM gains were cut only with same-session training; in untrained or active adults, explosive strength was blunted more in one session than with at least 3 hours between.",
+        "notes": [
+          "petre-2021-trained-lifters",
+          "schumann-2022-interference-strength-hypertrophy-power"
+        ]
+      },
+      {
+        "text": "Healthy adults aged 50-73 who combined cardio and lifting gained strength, power and endurance, though not balance, compared with people who did not train; these trials did not compare it with lifting alone.",
+        "notes": [
+          "markov-2023-older-adults"
+        ]
+      }
+    ],
+    "related": [
+      "concurrent-programming",
+      "endurance-athletes-lifting",
+      "older-adults-youth"
+    ]
+  },
+  {
+    "id": "concurrent-programming",
+    "title": "Arranging cardio and lifting",
+    "titleZh": "有氧和重訓怎麼安排",
+    "terms": "有氧和重訓怎麼安排 先有氧還是先重量 先練重量 順序 同一天 分開練 隔多久 HIIT 間歇 衝刺 慢跑 穩定有氧 一週運動多少 運動建議 cardio before or after weights order same day separate sessions recovery between sessions HIIT intervals sprint interval continuous guidelines",
+    "agreed": [
+      {
+        "text": "Order made no difference to lower-body muscle growth, lower-body static strength, aerobic capacity or body fat percentage, so dynamic strength was the only one of five outcomes affected; certainty is low to moderate.",
+        "notes": [
+          "eddens-2018-order",
+          "murlasits-2018-order"
+        ]
+      },
+      {
+        "text": "In two low-certainty analyses, adding HIIT did not reduce whole-muscle growth: HIIT plus lifting gave growth similar to lifting alone, and across 25 studies no form of cardio, continuous, HIIT or both, differed from lifting alone.",
+        "notes": [
+          "sabag-2018-modality-hiit",
+          "monserda-vilaro-2023-modality-hiit-vs-continuous"
+        ]
+      },
+      {
+        "text": "In 9 small trials with 177 adults, adding sprint interval training to lifting did not reduce lower- or upper-body strength, jumping or sprinting, and raised VO2max more than lifting alone (SMD 0.78); no growth result was reported.",
+        "notes": [
+          "ferraro-farro-2026-modality-sprint-interval"
+        ]
+      },
+      {
+        "text": "For general health, ACSM advises most adults to do moderate cardio for at least 30 minutes on at least 5 days a week (at least 150 minutes), or vigorous cardio for at least 20 minutes on at least 3 days (at least 75 minutes), or a mix of both.",
+        "notes": [
+          "garber-2011-guidelines"
+        ]
+      },
+      {
+        "text": "It also advises resistance exercise for each major muscle group on 2-3 days a week, plus balance, agility and coordination work; these 2011 targets are for general health and do not address interference.",
+        "notes": [
+          "garber-2011-guidelines"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "Order is not settled: two meta-analyses found lifting before cardio in one session gave greater lower-body dynamic strength gains (6.91% larger change; 3.96 kg more on 1RM, a small difference), but an umbrella review found sequence had no significant effect overall, only a trend favoring lifting first.",
+        "notes": [
+          "eddens-2018-order",
+          "murlasits-2018-order",
+          "held-2026-interference-overview"
+        ]
+      },
+      {
+        "text": "One 7-week trial in 58 amateur rugby players, strength always first, tested the gap directly: maximal strength gains were lower with no recovery (0 h) before aerobic training than with 6 h or 24 h, and VO2peak gained most with 24 h; it used magnitude-based inference.",
+        "notes": [
+          "robineau-2016-recovery-between-sessions"
+        ]
+      },
+      {
+        "text": "Lower-body strength rose slightly less with HIIT plus lifting than with lifting alone (ES -0.248, p = 0.049), a small, borderline effect, while upper-body strength was similar.",
+        "notes": [
+          "sabag-2018-modality-hiit"
+        ]
+      },
+      {
+        "text": "Running vs cycling is unresolved: an older meta-analysis linked lifting plus running, but not cycling, to smaller growth and strength gains, while an HIIT analysis saw a non-significant trend the other way, with cycling HIIT, not running HIIT, toward smaller leg strength gains.",
+        "notes": [
+          "wilson-2012-interference-overview",
+          "sabag-2018-modality-hiit"
+        ]
+      },
+      {
+        "text": "At the muscle-fiber level, lifting alone grew type I and type II fibers more than concurrent training that included HIIT, but not more than concurrent training with only continuous cardio; these are low-certainty subgroup results.",
+        "notes": [
+          "monserda-vilaro-2023-modality-hiit-vs-continuous"
+        ]
+      },
+      {
+        "text": "More frequent and longer endurance training correlated with smaller growth, strength and power gains in an older analysis of 21 studies (r -0.26 to -0.35 for frequency, -0.29 to -0.75 for duration), but these are correlations, not direct comparisons.",
+        "notes": [
+          "wilson-2012-interference-overview"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "If lower-body 1RM strength is a goal and you do both in one session, lifting first may help a little (about 4 kg in one analysis); order made no difference to lower-body muscle growth, aerobic capacity or body fat.",
+        "notes": [
+          "eddens-2018-order",
+          "murlasits-2018-order"
+        ]
+      },
+      {
+        "text": "If you do both on the same day, one small 7-week trial in amateur rugby players, lifting first, supports leaving at least 6 hours between them, as its authors advise; 24 hours apart gave larger VO2peak gains than 0 or 6 hours.",
+        "notes": [
+          "robineau-2016-recovery-between-sessions"
+        ]
+      },
+      {
+        "text": "In small, low-certainty analyses, intervals could serve as the cardio: sprint intervals did not cut strength or jumping, and HIIT did not cut whole-muscle growth, though lower-body strength may rise slightly less and fiber growth was smaller with HIIT.",
+        "notes": [
+          "ferraro-farro-2026-modality-sprint-interval",
+          "sabag-2018-modality-hiit",
+          "monserda-vilaro-2023-modality-hiit-vs-continuous"
+        ]
+      }
+    ],
+    "related": [
+      "concurrent-interference",
+      "endurance-athletes-lifting",
+      "health-benefits"
+    ]
+  },
+  {
+    "id": "concurrent-body-composition",
+    "title": "Cardio plus lifting for fat loss and body composition",
+    "titleZh": "有氧加重訓的減脂與體態",
+    "terms": "身體組成 減脂 體脂 減重 瘦身 有氧還是重量 有氧加重訓 節食 保肌 減脂掉肌肉 肥胖 body composition fat loss weight loss cardio vs weights combined training diet muscle loss preserve muscle obesity",
+    "agreed": [
+      {
+        "text": "In a network meta-analysis of 32 trials with 4774 adults with obesity training for at least 6 months, aerobic training ranked best for reducing body weight, BMI and waist circumference.",
+        "notes": [
+          "morze-2021-body-composition"
+        ]
+      },
+      {
+        "text": "In that analysis, combined aerobic and resistance training ranked best for reducing fat mass, and ranked equal with resistance training for increasing fat-free mass.",
+        "notes": [
+          "morze-2021-body-composition"
+        ]
+      },
+      {
+        "text": "In a second network meta-analysis of 45 trials with 3566 adults living with obesity, every type of exercise beat control but gave modest weight loss, and high-intensity aerobic plus high-load resistance training was best for abdominal fat, lean mass and cardiorespiratory fitness.",
+        "notes": [
+          "o-donoghue-2021-body-composition"
+        ]
+      },
+      {
+        "text": "In an 8-month trial of 119 sedentary overweight or obese adults, aerobic and combined training cut body mass and fat mass more than resistance training alone, while resistance and combined training added more lean mass than aerobic training.",
+        "notes": [
+          "willis-2012-body-composition"
+        ]
+      },
+      {
+        "text": "Adding exercise to calorie restriction preserved fat-free mass compared with dieting alone (+0.87 kg), preventing on average about 46% of fat-free mass loss, in 34 trials of people with overweight or obesity.",
+        "notes": [
+          "deller-2026-fat-loss-muscle-preservation"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "For fat loss the sources differ: both network analyses favored combined training, for fat mass in one and abdominal fat in the other, though the first ranked aerobic best for waist circumference, and the 8-month trial found combined training, at double the time, no better than aerobic alone.",
+        "notes": [
+          "morze-2021-body-composition",
+          "o-donoghue-2021-body-composition",
+          "willis-2012-body-composition"
+        ]
+      },
+      {
+        "text": "Which training type best preserves fat-free mass while dieting is unclear: mixed training had the largest effect (+1.20 kg), then strength (+0.83 kg), and endurance alone fell just short of significance (+0.51 kg), but pairwise tests found no significant differences between modes.",
+        "notes": [
+          "deller-2026-fat-loss-muscle-preservation"
+        ]
+      },
+      {
+        "text": "The dieting analysis measured fat-free mass; muscle mass itself was reported in only 2 studies.",
+        "notes": [
+          "deller-2026-fat-loss-muscle-preservation"
+        ]
+      },
+      {
+        "text": "Neither network meta-analysis reports effect sizes in its abstract, one relies partly on indirect comparisons, and both are rated low to moderate certainty.",
+        "notes": [
+          "morze-2021-body-composition",
+          "o-donoghue-2021-body-composition"
+        ]
+      },
+      {
+        "text": "All of this evidence comes from adults with overweight or obesity, and the single trial was in sedentary middle-aged adults; none of it studied lean or trained lifters.",
+        "notes": [
+          "morze-2021-body-composition",
+          "o-donoghue-2021-body-composition",
+          "willis-2012-body-composition",
+          "deller-2026-fat-loss-muscle-preservation"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "For adults with obesity, aerobic training ranked best for weight loss, while resistance training, alone or combined with cardio, added more lean mass than aerobic training.",
+        "notes": [
+          "morze-2021-body-composition",
+          "willis-2012-body-composition"
+        ]
+      },
+      {
+        "text": "For people with overweight or obesity who diet, adding exercise preserved fat-free mass compared with dieting alone; mixed and strength training had the largest effects, though differences between modes were not significant.",
+        "notes": [
+          "deller-2026-fat-loss-muscle-preservation"
+        ]
+      }
+    ],
+    "related": [
+      "fat-loss-rate-muscle",
+      "fat-loss-cardio-myths",
+      "concurrent-programming"
+    ]
+  },
+  {
+    "id": "endurance-athletes-lifting",
+    "title": "Strength training for runners and cyclists",
+    "titleZh": "跑者和自行車手的重訓",
+    "terms": "跑者 跑步 跑馬拉松 長跑 跑步經濟性 跑步成績 自行車 騎車 自行車手 耐力選手 重量訓練 增強式 跳躍訓練 runners running economy running performance marathon cyclists cycling endurance athletes strength training plyometrics",
+    "agreed": [
+      {
+        "text": "In middle- and long-distance runners, heavy strength training (at least 80% 1RM) gave a small improvement in running economy (ES -0.266) compared with running only or very light strength work under 40% 1RM, and combining strength methods a moderate one (ES -0.426).",
+        "notes": [
+          "llanos-lagos-2024-endurance-athletes-running-economy"
+        ]
+      },
+      {
+        "text": "Submaximal-load and isometric strength training did not improve running economy.",
+        "notes": [
+          "llanos-lagos-2024-endurance-athletes-running-economy"
+        ]
+      },
+      {
+        "text": "Heavy strength training also improved running performance, measured by time trials or time to exhaustion, with a moderate effect (ES -0.469), and combining two or more strength methods had a large effect (ES -1.035).",
+        "notes": [
+          "llanos-lagos-2024-endurance-athletes-running-performance"
+        ]
+      },
+      {
+        "text": "In runners, none of the strength methods improved VO2max, velocity at VO2max, maximal metabolic steady state or sprint capacity.",
+        "notes": [
+          "llanos-lagos-2024-endurance-athletes-running-performance"
+        ]
+      },
+      {
+        "text": "In 17 studies of 262 endurance cyclists, adding heavy strength training (at least 80% 1RM) improved cycling performance (ES 0.463), cycling efficiency (ES 0.353) and anaerobic power (ES 0.560) compared with cycling only.",
+        "notes": [
+          "llanos-lagos-2026-endurance-athletes-cycling"
+        ]
+      },
+      {
+        "text": "In cyclists it had no significant effect on VO2max, power at VO2max, maximal metabolic steady state or anaerobic capacity.",
+        "notes": [
+          "llanos-lagos-2026-endurance-athletes-cycling"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "Plyometric training improved running economy at speeds of 12 km/h or slower (ES -0.307), but its effect on running performance did not reach significance (ES -0.210, p = 0.064).",
+        "notes": [
+          "llanos-lagos-2024-endurance-athletes-running-economy",
+          "llanos-lagos-2024-endurance-athletes-running-performance"
+        ]
+      },
+      {
+        "text": "Certainty varies: moderate for heavy, submaximal, plyometric and isometric methods on running economy but low for combined methods, very low to moderate for running performance, and low for cyclists, from 17 small studies.",
+        "notes": [
+          "llanos-lagos-2024-endurance-athletes-running-economy",
+          "llanos-lagos-2024-endurance-athletes-running-performance",
+          "llanos-lagos-2026-endurance-athletes-cycling"
+        ]
+      },
+      {
+        "text": "The cyclists studied averaged a VO2max of about 61 ml/kg/min and only 60 of the 262 were women; the runners ranged from moderately to highly trained.",
+        "notes": [
+          "llanos-lagos-2026-endurance-athletes-cycling",
+          "llanos-lagos-2024-endurance-athletes-running-economy",
+          "llanos-lagos-2024-endurance-athletes-running-performance"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "Heavy loads (at least 80% 1RM) helped in all three analyses and were the only method tested in cyclists; in runners, combining strength methods had larger effects, while submaximal-load and isometric training did not improve running economy.",
+        "notes": [
+          "llanos-lagos-2024-endurance-athletes-running-economy",
+          "llanos-lagos-2024-endurance-athletes-running-performance",
+          "llanos-lagos-2026-endurance-athletes-cycling"
+        ]
+      },
+      {
+        "text": "The programs studied ran 6-24 weeks (economy) and 6-40 weeks (performance) at 1-4 sessions a week in runners, and 5-25 weeks at 1-3 sessions a week in cyclists.",
+        "notes": [
+          "llanos-lagos-2024-endurance-athletes-running-economy",
+          "llanos-lagos-2024-endurance-athletes-running-performance",
+          "llanos-lagos-2026-endurance-athletes-cycling"
+        ]
+      },
+      {
+        "text": "Runners and cyclists shouldn't expect lifting to raise VO2max: no strength method did so in these analyses, and the gains were in running economy or cycling efficiency, performance and, in cyclists, anaerobic power.",
+        "notes": [
+          "llanos-lagos-2024-endurance-athletes-running-economy",
+          "llanos-lagos-2024-endurance-athletes-running-performance",
+          "llanos-lagos-2026-endurance-athletes-cycling"
+        ]
+      }
+    ],
+    "related": [
+      "concurrent-interference",
+      "concurrent-programming",
+      "load-reps"
+    ]
+  },
+  {
+    "id": "protein",
+    "title": "Protein",
+    "titleZh": "蛋白質",
+    "terms": "蛋白質 一天吃多少 每公斤 一餐蛋白質 吸收上限 一次吃多少 蛋白質時間 練完 黃金窗口 蛋白粉 植物蛋白 素食 豆漿 乳清 高蛋白 傷腎 腎臟 膠原蛋白 長者 protein per day per meal absorb timing anabolic window whey plant protein vegan soy kidney collagen older adults",
+    "agreed": [
+      {
+        "text": "In 49 trials of 1863 healthy adults doing resistance training for at least 6 weeks, protein supplements added on average 0.30 kg of fat-free mass and 2.49 kg to 1RM strength compared with training without them; the fat-free-mass benefit was smaller with increasing age and larger in resistance-trained people (0.75 kg).",
+        "notes": [
+          "morton-2018-protein-daily"
+        ]
+      },
+      {
+        "text": "In that analysis, total protein intakes above about 1.62 g/kg/day gave no further gain in fat-free mass, though this is a breakpoint estimate, not a hard ceiling that applies to every person.",
+        "notes": [
+          "morton-2018-protein-daily"
+        ]
+      },
+      {
+        "text": "A meta-analysis of 62 trials with resistance exercise in healthy, non-obese adults found that eating more daily protein gave a small extra gain in lean body mass (moderate certainty).",
+        "notes": [
+          "nunes-2022-protein-daily-older-adults"
+        ]
+      },
+      {
+        "text": "An older (2013) meta-analysis of mostly small trials found that, once other factors were controlled, protein timed around the session made no significant difference to strength or muscle growth, and total protein intake was the strongest predictor of growth; it did not test how protein is spread across the day.",
+        "notes": [
+          "schoenfeld-2013-protein-timing"
+        ]
+      },
+      {
+        "text": "In 28 trials of 1358 adults without kidney disease, higher-protein diets (1.5 g/kg/day or more, at least 20% of energy, or at least 100 g/day) did not change kidney filtration (GFR) differently from normal- or lower-protein diets.",
+        "notes": [
+          "devries-2018-protein-kidney"
+        ]
+      },
+      {
+        "text": "A newer analysis of 22 trials in adults without chronic kidney disease found high-protein diets (typically 25% to 35% of energy or at least 2.0 g/kg/day) raised estimated GFR but did not significantly change serum creatinine, with no consistent biochemical evidence of kidney injury.",
+        "notes": [
+          "teixeira-silva-2026-protein-kidney"
+        ]
+      },
+      {
+        "text": "In trials comparing plant with animal protein in adults, plant protein led to slightly lower muscle mass (30 trials), but soy and milk protein did not differ (17 trials), and strength did not differ significantly (14 trials).",
+        "notes": [
+          "reid-mccann-2025-protein-plant-vs-animal"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "For strength, eating 1.6 g/kg/day or more gave only slightly larger lower-body strength gains during resistance training, a low-certainty finding.",
+        "notes": [
+          "nunes-2022-protein-daily-older-adults"
+        ]
+      },
+      {
+        "text": "Evidence on large single meals is one trial in 36 healthy young men after whole-body lifting: 100 g of milk protein gave a larger and longer (more than 12 h) anabolic response than 25 g, with negligible effect on amino acid oxidation, but it measured protein synthesis, not muscle growth.",
+        "notes": [
+          "trommelen-2023-protein-meal"
+        ]
+      },
+      {
+        "text": "The plant-protein gap was seen in adults under 60 but not in those 60 and over; animal protein's larger edge over non-soy plant proteins such as rice, chia, oat and potato rests on only 5 trials; and the studies were not limited to people who lift.",
+        "notes": [
+          "reid-mccann-2025-protein-plant-vs-animal"
+        ]
+      },
+      {
+        "text": "The two kidney analyses differ: the older found no difference in GFR change, the newer found eGFR rose, which its authors say may mainly reflect a short-term blood-flow adaptation; both covered only adults without kidney disease, trials were mostly short, and long-term kidney effects remain uncertain.",
+        "notes": [
+          "devries-2018-protein-kidney",
+          "teixeira-silva-2026-protein-kidney"
+        ]
+      },
+      {
+        "text": "In 19 studies of 768 healthy adults who trained, daily collagen peptides were linked to greater fat-free mass gains (moderate certainty) and slightly greater maximal strength (low certainty), but the abstract does not say what control groups received, and collagen was not compared with whey or other complete proteins.",
+        "notes": [
+          "bischof-2024-collagen"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "The notes favor the daily total over timing around the session: in an older analysis of mostly small trials, timing made no significant difference once other factors were controlled and total intake best predicted growth, and fat-free mass gained no more above about 1.62 g/kg/day, a breakpoint estimate.",
+        "notes": [
+          "morton-2018-protein-daily",
+          "schoenfeld-2013-protein-timing"
+        ]
+      },
+      {
+        "text": "In healthy, non-obese adults 65 or older, the lean-mass benefit of more protein was significant at 1.2-1.59 g/kg/day, while for those under 65 it was significant at 1.6 g/kg/day or more.",
+        "notes": [
+          "nunes-2022-protein-daily-older-adults"
+        ]
+      }
+    ],
+    "related": [
+      "bulking",
+      "fat-loss-rate-muscle",
+      "other-supplements"
+    ]
+  },
+  {
+    "id": "creatine",
+    "title": "Creatine",
+    "titleZh": "肌酸",
+    "terms": "肌酸 一水肌酸 劑量 安全 副作用 傷腎 腎臟 肌酸酐 掉髮 禿頭 頭髮 記憶力 大腦 認知 長者 女性 肌力 增肌 瘦體重 creatine monohydrate dose safety side effects kidney creatinine hair loss DHT memory cognition strength muscle women older adults",
+    "agreed": [
+      {
+        "text": "An expert position stand says creatine consistently raises muscle creatine, which may explain improvements in high-intensity exercise performance and greater training adaptations.",
+        "notes": [
+          "kreider-2017-creatine"
+        ]
+      },
+      {
+        "text": "Across 35 trials of 1192 participants without specific diseases, creatine increased lean body mass by 0.68 kg overall and by 1.10 kg when combined with resistance training, regardless of age.",
+        "notes": [
+          "delpino-2022-creatine-lean-mass"
+        ]
+      },
+      {
+        "text": "In a meta-analysis of 23 studies of adults under 50, mostly men, creatine plus resistance training increased upper-body strength by 4.43 kg and lower-body strength by 11.35 kg compared with placebo.",
+        "notes": [
+          "wang-2024-creatine-strength"
+        ]
+      },
+      {
+        "text": "In 11 trials of generally healthy adults 60 and older, adding creatine to resistance training gave a small extra strength gain (moderate certainty).",
+        "notes": [
+          "yao-2026-creatine-older-adults"
+        ]
+      },
+      {
+        "text": "The position stand concludes that short- and long-term creatine use, up to 30 g/day for 5 years, is safe and well tolerated in healthy people and in a number of patient groups; some of its authors list supplement-industry affiliations.",
+        "notes": [
+          "kreider-2017-creatine"
+        ]
+      },
+      {
+        "text": "Across 19 trials, creatine raised serum creatinine by 0.13 mg/dL on average, while urea (12 studies) and eGFR (8 studies) did not differ from control, whether supplementation lasted shorter or longer than 1 month.",
+        "notes": [
+          "tsiaras-2026-creatine-kidney"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "Lean body mass includes body water, so the lean-mass gains are not pure muscle; measured directly by imaging in 10 trials, creatine added only a very small extra gain in muscle size (about 0.10-0.16 cm of thickness), and the credible interval included zero.",
+        "notes": [
+          "delpino-2022-creatine-lean-mass",
+          "burke-2023-creatine-hypertrophy"
+        ]
+      },
+      {
+        "text": "Evidence in women is thin: men gained 1.46 kg of lean body mass on creatine while the 0.29 kg gain in women, a small subgroup, was not significant, and the strength analysis, with only about 49 women, found no significant gains in women.",
+        "notes": [
+          "delpino-2022-creatine-lean-mass",
+          "wang-2024-creatine-strength"
+        ]
+      },
+      {
+        "text": "In adults 60 and older, effects on muscle mass and physical function were not significant (low and very low certainty), unlike the larger lean-mass analysis that found gains with lifting regardless of age; the authors say not to apply this directly to frail, sarcopenic or functionally limited older adults.",
+        "notes": [
+          "yao-2026-creatine-older-adults",
+          "delpino-2022-creatine-lean-mass"
+        ]
+      },
+      {
+        "text": "The kidney analysis rests mostly on short trials, with eGFR from only 8 studies and a wide interval; its authors say trials longer than 1 year are still needed to judge long-term kidney safety, more cautious than the position stand, and the notes give no results for people with kidney disease.",
+        "notes": [
+          "tsiaras-2026-creatine-kidney",
+          "kreider-2017-creatine"
+        ]
+      },
+      {
+        "text": "Across 16 small trials of 492 adults, healthy people and patients, creatine monohydrate improved memory (moderate certainty) but not overall cognition or executive function; benefits were larger in people with diseases, those aged 18-60, and women.",
+        "notes": [
+          "xu-2024-creatine-cognition"
+        ]
+      },
+      {
+        "text": "Evidence on hair loss is one 12-week trial in 38 resistance-trained men taking 5 g/day: it found no differences from placebo in DHT, the DHT-to-testosterone ratio, hair density, follicular unit count or hair thickness, but longer trials and other groups such as women are untested.",
+        "notes": [
+          "lak-2025-creatine-hair"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "Creatine pays off alongside resistance training, so far shown mainly in men: with lifting it added lean mass and strength, it had no significant lean-mass effect without exercise, and higher doses showed only a non-significant trend toward more lower-body strength.",
+        "notes": [
+          "delpino-2022-creatine-lean-mass",
+          "wang-2024-creatine-strength"
+        ]
+      },
+      {
+        "text": "Evidence for a strength gain is firmer than for more muscle itself: with lifting, strength rose in trials of adults under 50 (mostly men) and slightly in adults 60 and older, while extra muscle size on direct imaging was very small, with an interval including zero.",
+        "notes": [
+          "wang-2024-creatine-strength",
+          "yao-2026-creatine-older-adults",
+          "burke-2023-creatine-hypertrophy"
+        ]
+      }
+    ],
+    "related": [
+      "protein",
+      "other-supplements",
+      "older-adults-youth"
+    ]
+  },
+  {
+    "id": "other-supplements",
+    "title": "Caffeine, beta-alanine, collagen and alcohol",
+    "titleZh": "咖啡因、β-丙胺酸、膠原蛋白與酒精",
+    "terms": "咖啡因 咖啡 運動前 補充品 β-丙胺酸 丙胺酸 刺麻 膠原蛋白 關節 肌腱 喝酒 酒精 啤酒 caffeine coffee pre-workout beta-alanine tingling collagen peptides tendon alcohol drinking beer supplements",
+    "agreed": [
+      {
+        "text": "An expert position stand finds caffeine has consistently improved exercise performance at 3-6 mg/kg body mass; the minimal effective dose is unclear but may be as low as 2 mg/kg.",
+        "notes": [
+          "guest-2021-caffeine"
+        ]
+      },
+      {
+        "text": "Caffeine's benefit for strength is modest: the position stand rates it small to moderate, and a meta-analysis of 10 studies found a small 1RM gain over placebo, significant for the upper body but not for the lower body.",
+        "notes": [
+          "guest-2021-caffeine",
+          "grgic-2018-caffeine-strength"
+        ]
+      },
+      {
+        "text": "An expert position stand finds that 4-6 g/day of beta-alanine for at least 2-4 weeks improves exercise performance, with the clearest effects in tasks lasting 1-4 minutes; it raises muscle carnosine, which acts as an intracellular pH buffer.",
+        "notes": [
+          "trexler-2015-beta-alanine"
+        ]
+      },
+      {
+        "text": "In 19 studies of 768 healthy adults who trained, daily collagen peptides, mostly for at least 8 weeks, were linked to greater fat-free mass gains (moderate certainty), but the abstract does not say what control groups received.",
+        "notes": [
+          "bischof-2024-collagen"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "Responses to caffeine vary between people, for example with genetics and habitual intake, and the strength meta-analysis had few women and did not always check blinding.",
+        "notes": [
+          "guest-2021-caffeine",
+          "grgic-2018-caffeine-strength"
+        ]
+      },
+      {
+        "text": "Beta-alanine's effect on strength is unresolved and needs more research, and the position stand dates from 2015.",
+        "notes": [
+          "trexler-2015-beta-alanine"
+        ]
+      },
+      {
+        "text": "For collagen, the slightly greater maximal strength is low certainty and effects on tendon structure very low certainty; the abstract does not say what control groups received, and collagen was not compared with whey or other complete proteins.",
+        "notes": [
+          "bischof-2024-collagen"
+        ]
+      },
+      {
+        "text": "Across 12 studies, alcohol after resistance exercise did not appear to change force, power, muscular endurance or soreness during recovery, but cortisol appeared to rise and testosterone, plasma amino acids and muscle protein synthesis appeared to fall.",
+        "notes": [
+          "lakicevic-2019-alcohol"
+        ]
+      },
+      {
+        "text": "That alcohol evidence is low certainty: few, mostly small acute studies, no doses reported in the abstract, and no long-term muscle-growth data.",
+        "notes": [
+          "lakicevic-2019-alcohol"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "For caffeine, the range with consistent benefits is 3-6 mg/kg body mass; very high doses such as 9 mg/kg bring a high rate of side effects and do not seem necessary for a benefit.",
+        "notes": [
+          "guest-2021-caffeine"
+        ]
+      },
+      {
+        "text": "Beta-alanine is best supported for efforts of 1-4 minutes when taken daily for weeks; its only reported side effect, tingling, can be reduced with divided lower doses (1.6 g) or a sustained-release form.",
+        "notes": [
+          "trexler-2015-beta-alanine"
+        ]
+      },
+      {
+        "text": "Alcohol after a session did not appear to hurt the recovery of force and power, but because muscle protein synthesis appeared to fall and there are no long-term data, its effect on muscle growth is unknown.",
+        "notes": [
+          "lakicevic-2019-alcohol"
+        ]
+      }
+    ],
+    "related": [
+      "creatine",
+      "protein",
+      "soreness-recovery"
+    ]
+  },
+  {
+    "id": "bulking",
+    "title": "Eating to gain muscle",
+    "titleZh": "增肌期要吃多少",
+    "terms": "增肌期 熱量盈餘 多吃 增重 要吃多少 增肌減脂 熱量赤字 少吃 bulk bulking calorie surplus lean bulk weight gain calorie deficit recomposition",
+    "agreed": [
+      {
+        "text": "A narrative review on resistance-trained people concludes there is clear evidence that an energy surplus can be anabolic, though in the one small trial of surplus size, neither a 5% nor a 15% surplus showed evidence of more muscle thickness than maintenance.",
+        "notes": [
+          "slater-2019-surplus",
+          "helms-2023-energy-surplus"
+        ]
+      },
+      {
+        "text": "A meta-analysis of trials lasting at least 3 weeks found that resistance training in an energy deficit impaired lean-mass gains compared with training without a deficit, while strength gains were comparable.",
+        "notes": [
+          "murphy-2022-energy-deficit"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "How large a surplus is needed to maximize muscle gain is unknown, and common estimates have never been validated in people who lift.",
+        "notes": [
+          "slater-2019-surplus"
+        ]
+      },
+      {
+        "text": "The one trial of surplus size, 17 resistance-trained lifters who completed 8 weeks at maintenance, a 5% surplus or a 15% surplus, found no evidence that surplus size changed muscle thickness or squat 1RM, while the 15% group gained more skinfold thickness and more bench press 1RM than maintenance.",
+        "notes": [
+          "helms-2023-energy-surplus"
+        ]
+      },
+      {
+        "text": "Its authors concluded that faster weight gain mainly adds fat rather than strength or muscle, but the trial was small (its sample was cut by COVID-19) and short, and they limit their conclusions to that setting.",
+        "notes": [
+          "helms-2023-energy-surplus"
+        ]
+      },
+      {
+        "text": "The estimate that a deficit of about 500 kcal/day prevented lean-mass gains comes from meta-regression, not a tested threshold.",
+        "notes": [
+          "murphy-2022-energy-deficit"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "A bigger surplus is not shown to build more muscle: in the one trial, a 15% surplus added more skinfold thickness than maintenance with no evidence of more muscle thickness, and common surplus estimates have never been validated in people who lift.",
+        "notes": [
+          "helms-2023-energy-surplus",
+          "slater-2019-surplus"
+        ]
+      },
+      {
+        "text": "If gaining lean mass is the goal, training in an energy deficit works against it: pooled trials found it impaired lean-mass gains, though strength gains were comparable to training without a deficit.",
+        "notes": [
+          "murphy-2022-energy-deficit"
+        ]
+      }
+    ],
+    "related": [
+      "protein",
+      "fat-loss-rate-muscle",
+      "diets"
+    ]
+  },
+  {
+    "id": "fat-loss-rate-muscle",
+    "title": "How fast to lose fat and how to keep muscle",
+    "titleZh": "減脂速度與保住肌肉",
+    "terms": "減脂 減重速度 一週減多少 保肌 掉肌肉 節食 熱量赤字 高蛋白 飲食休息 欺騙餐 補碳日 cutting fat loss rate of weight loss muscle loss keep muscle calorie deficit diet break refeed cheat protein",
+    "agreed": [
+      {
+        "text": "In 34 trials of 1455 people with overweight or obesity, adding exercise to calorie restriction preserved fat-free mass compared with diet alone (+0.87 kg), preventing on average about 46% of fat-free mass loss.",
+        "notes": [
+          "deller-2026-fat-loss-muscle-preservation"
+        ]
+      },
+      {
+        "text": "More protein while dieting limits lean-mass loss: protein above 0.8 g/kg/day reduced lean-mass loss by about 0.36 kg in healthy adults, and in calorie-matched diets of 1063 adults the higher-protein version lost 0.43 kg less fat-free mass and 0.87 kg more fat.",
+        "notes": [
+          "hudson-2020-protein-energy-restriction",
+          "wycherley-2012-protein-energy-restriction"
+        ]
+      },
+      {
+        "text": "Resistance training in an energy deficit impaired lean-mass gains compared with training without a deficit, while strength gains were comparable.",
+        "notes": [
+          "murphy-2022-energy-deficit"
+        ]
+      },
+      {
+        "text": "Diet breaks did not improve fat loss overall: across 12 trials of 881 people, diets with planned breaks and continuous diets gave similar fat and weight loss, and a trial in 61 resistance-trained adults found no lower fat mass or more fat-free mass with breaks.",
+        "notes": [
+          "poon-2025-diet-breaks",
+          "peos-2021-diet-breaks"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "On rate of loss, one small trial in 24 elite athletes found losing 0.7% of body weight per week gained 2.1% lean body mass while losing 1.4% per week kept it unchanged, but the slower group also dieted longer (8.5 vs 5.3 weeks).",
+        "notes": [
+          "garthe-2011-weight-loss-rate"
+        ]
+      },
+      {
+        "text": "For natural bodybuilders preparing for a contest, a narrative review recommends losing about 0.5-1% of body weight a week and eating 2.3-3.1 g of protein per kg of lean body mass a day; these are recommendations, not pooled results.",
+        "notes": [
+          "helms-2014-contest-prep"
+        ]
+      },
+      {
+        "text": "In trials with resistance training, a separate group from the calorie-restriction trials, protein above 0.8 g/kg/day added 0.77 kg of lean mass, but that rests on only 3 comparisons.",
+        "notes": [
+          "hudson-2020-protein-energy-restriction"
+        ]
+      },
+      {
+        "text": "Which exercise preserves the most is unclear: mixed strength and endurance training had the largest estimate (+1.20 kg) and strength training next (+0.83 kg), but pairwise tests found no significant differences between modes, and muscle itself was measured in only 2 studies.",
+        "notes": [
+          "deller-2026-fat-loss-muscle-preservation"
+        ]
+      },
+      {
+        "text": "One trial did find more fat loss with breaks (12.3 vs 8.0 kg), but it was in men with obesity dieting in 2-week blocks spread over 30 weeks and reported only the 36 completers; a trial in 61 resistance-trained adults found no extra fat loss with breaks.",
+        "notes": [
+          "byrne-2018-diet-breaks",
+          "peos-2021-diet-breaks"
+        ]
+      },
+      {
+        "text": "Breaks may soften the drop in resting metabolism: it was smaller with breaks across 12 trials and, after adjustment, in the trial in men with obesity, but this benefit was smaller in resistance-trained people, and the lifter trial found no difference.",
+        "notes": [
+          "poon-2025-diet-breaks",
+          "byrne-2018-diet-breaks",
+          "peos-2021-diet-breaks"
+        ]
+      },
+      {
+        "text": "The estimate that a deficit of about 500 kcal/day prevented lean-mass gains comes from meta-regression, not a tested threshold.",
+        "notes": [
+          "murphy-2022-energy-deficit"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "While dieting, keep exercising and eat protein above 0.8 g/kg/day: both reduced the loss of fat-free or lean mass in trials, exercise in people with overweight or obesity and protein in healthy adults.",
+        "notes": [
+          "deller-2026-fat-loss-muscle-preservation",
+          "hudson-2020-protein-energy-restriction"
+        ]
+      },
+      {
+        "text": "To keep lean mass, these notes lean toward a slower rate of loss: in one small trial in elite athletes, 0.7% of body weight a week did better for lean mass than 1.4%, though the slower group dieted longer, and a review for natural bodybuilders recommends about 0.5-1% a week.",
+        "notes": [
+          "garthe-2011-weight-loss-rate",
+          "helms-2014-contest-prep"
+        ]
+      },
+      {
+        "text": "Diet breaks did not add fat loss over continuous dieting across 12 trials, so for fat loss they are optional; in the lifter trial the group with breaks reported less hunger and more satisfaction but dieted longer, and the smaller drop in resting metabolism with breaks was less marked in lifters.",
+        "notes": [
+          "poon-2025-diet-breaks",
+          "peos-2021-diet-breaks"
+        ]
+      }
+    ],
+    "related": [
+      "protein",
+      "concurrent-body-composition",
+      "bulking"
+    ]
+  },
+  {
+    "id": "diets",
+    "title": "Fasting, keto, meal frequency and carbs",
+    "titleZh": "斷食、生酮、餐次與碳水",
+    "terms": "間歇性斷食 168 斷食 進食窗口 隔日斷食 生酮 低碳 一天幾餐 少量多餐 碳水 澱粉 肝醣 訓練表現 intermittent fasting time-restricted eating 16:8 alternate-day fasting keto ketogenic low-carb meal frequency carbs carbohydrate glycogen performance",
+    "agreed": [
+      {
+        "text": "Across 99 trials of 6582 adults, every intermittent fasting style and continuous calorie restriction reduced body weight compared with unrestricted eating.",
+        "notes": [
+          "semnani-azad-2025-intermittent-fasting"
+        ]
+      },
+      {
+        "text": "Compared with continuous calorie restriction, time-restricted eating and whole-day fasting showed no extra weight loss; only alternate-day fasting lost more, by about 1.3 kg (moderate certainty).",
+        "notes": [
+          "semnani-azad-2025-intermittent-fasting"
+        ]
+      },
+      {
+        "text": "A meta-analysis of 15 studies found it doubtful that more frequent meals benefit body composition (low certainty): an apparent benefit to fat loss and fat-free mass came from a single study.",
+        "notes": [
+          "schoenfeld-2015-meal-frequency"
+        ]
+      },
+      {
+        "text": "Across 49 studies, mostly in strength trainees or athletes, extra carbohydrate usually did not improve strength-training performance: 13 of 19 acute studies, all 7 short-term studies and 15 of 17 longer-term studies found no benefit or influence.",
+        "notes": [
+          "henselmans-2022-carbs-performance"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "For lifters the evidence is 8 small, short trials: an 8 to 10 hour eating window cut fat mass by about 1.25 kg more than habitual eating without a significant change in fat-free mass, but because the comparison was habitual eating, it does not show an effect beyond eating less.",
+        "notes": [
+          "ali-2026-intermittent-fasting"
+        ]
+      },
+      {
+        "text": "Most people in the large fasting analysis had existing health conditions, and in trials of 24 weeks or longer no strategy showed a weight benefit over another, only over unrestricted eating.",
+        "notes": [
+          "semnani-azad-2025-intermittent-fasting"
+        ]
+      },
+      {
+        "text": "In 13 trials of 244 people doing resistance training, keto diets lost 2.21 kg more fat but also 1.26 kg more fat-free mass than non-keto diets, and training did not prevent this; the abstract does not say whether energy intake was matched, and fat-free mass is not the same as muscle.",
+        "notes": [
+          "ashtary-larky-2022-keto"
+        ]
+      },
+      {
+        "text": "A second analysis of 18 studies in athletes and trained adults, including non-randomized ones, had estimates favoring carbohydrate-rich diets for 1-RM strength and fat-free mass and favoring keto for fat-mass loss, but every interval included no difference.",
+        "notes": [
+          "koerich-2023-keto"
+        ]
+      },
+      {
+        "text": "Carbohydrate may matter in some cases: the 6 acute studies that found a benefit mainly compared against a fasted group and used workouts of more than 10 sets per muscle group, and the review counted study results rather than pooling them.",
+        "notes": [
+          "henselmans-2022-carbs-performance"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "Time-restricted eating, such as an 8 to 10 hour window, is an option rather than an advantage: it lost no more weight than daily calorie restriction, and in lifters it did not significantly change fat-free mass.",
+        "notes": [
+          "semnani-azad-2025-intermittent-fasting",
+          "ali-2026-intermittent-fasting"
+        ]
+      },
+      {
+        "text": "For lifters, keto may cost fat-free mass, and the authors of the trained-adult analysis concluded it was not suitable for improving 1-RM strength.",
+        "notes": [
+          "ashtary-larky-2022-keto",
+          "koerich-2023-keto"
+        ]
+      },
+      {
+        "text": "For workouts of up to 10 sets per muscle group done after eating, carbohydrate intake itself is unlikely to affect performance, while higher-volume sessions may benefit.",
+        "notes": [
+          "henselmans-2022-carbs-performance"
+        ]
+      },
+      {
+        "text": "The number of meals a day can follow preference: more frequent meals showed no reliable benefit for body composition.",
+        "notes": [
+          "schoenfeld-2015-meal-frequency"
+        ]
+      }
+    ],
+    "related": [
+      "fat-loss-rate-muscle",
+      "fat-loss-cardio-myths",
+      "protein"
+    ]
+  },
+  {
+    "id": "fat-loss-cardio-myths",
+    "title": "Cardio for fat loss, fasted cardio and spot reduction",
+    "titleZh": "有氧減脂、空腹有氧與局部減脂",
+    "terms": "空腹有氧 空腹運動 有氧減脂 燃脂 HIIT 間歇 高強度間歇 慢跑 跑步 騎車 局部減脂 瘦肚子 小腹 腹肌 仰臥起坐 fasted cardio fat burning fat loss HIIT interval training steady state running cycling spot reduction belly fat abs crunches",
+    "agreed": [
+      {
+        "text": "In 27 small studies of 273 adults, a single cardio session done after an overnight fast burned more fat during the session than the same session done after eating, about 3.08 g more.",
+        "notes": [
+          "vieira-2016-fasted-cardio"
+        ]
+      },
+      {
+        "text": "In one 4-week trial of 20 healthy young women eating in a calorie deficit, 1 hour of steady cardio 3 days a week gave no significant difference in weight or fat loss whether done fasted or after a meal; both groups lost weight and fat.",
+        "notes": [
+          "schoenfeld-2014-fasted-cardio"
+        ]
+      },
+      {
+        "text": "Across randomized trials in healthy children and adults, interval training and moderate continuous cardio differed only trivially in fat-mass change and in fat-free-mass change, rated high certainty by the authors.",
+        "notes": [
+          "steele-2021-hiit-fat-loss"
+        ]
+      },
+      {
+        "text": "In 13 trials of overweight or obese adults aged 18 to 45, interval and moderate continuous training both reduced fat mass and waist circumference, with no significant difference between them; interval training needed about 40% less training time.",
+        "notes": [
+          "wewege-2017-hiit-fat-loss"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "The fasted-cardio review measured only fat burned during single sessions, not body fat over weeks, and the 4-week trial was too small and short to rule out a small difference.",
+        "notes": [
+          "vieira-2016-fasted-cardio",
+          "schoenfeld-2014-fasted-cardio"
+        ]
+      },
+      {
+        "text": "Spot reduction is unsettled: in 24 sedentary adults, 6 weeks of ab exercises alone did not reduce belly fat or waist circumference versus control, while in 16 overweight men, adding ab exercises to 10 weeks of treadmill running cut 697 g more trunk fat than running alone.",
+        "notes": [
+          "vispute-2011-spot-reduction",
+          "brobakken-2023-spot-reduction"
+        ]
+      },
+      {
+        "text": "Both are small single trials rated low or very low certainty, and total fat loss was similar with or without the added ab work (about 6% vs 5%), so at most they suggest a small local effect.",
+        "notes": [
+          "vispute-2011-spot-reduction",
+          "brobakken-2023-spot-reduction"
+        ]
+      },
+      {
+        "text": "In the 13 trials of overweight or obese adults, running produced large fat-mass effects for both interval and continuous training while cycling did not induce fat loss, but this was a subgroup comparison.",
+        "notes": [
+          "wewege-2017-hiit-fat-loss"
+        ]
+      },
+      {
+        "text": "The high-certainty review comparing interval and continuous cardio cites at least one retracted paper, though it is not retracted itself.",
+        "notes": [
+          "steele-2021-hiit-fat-loss"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "The notes do not show that fasted cardio leads to more fat loss: fasting burned more fat during a session, but the one small 4-week trial, in young women in a calorie deficit, found no significant difference in fat loss and was too small to rule out a small one.",
+        "notes": [
+          "vieira-2016-fasted-cardio",
+          "schoenfeld-2014-fasted-cardio"
+        ]
+      },
+      {
+        "text": "Interval or steady cardio can be chosen by preference or time available: fat loss was similar, and in overweight or obese adults intervals needed about 40% less training time.",
+        "notes": [
+          "steele-2021-hiit-fat-loss",
+          "wewege-2017-hiit-fat-loss"
+        ]
+      },
+      {
+        "text": "In one small trial of sedentary adults, ab exercises improved ab muscular endurance but did not reduce belly fat, and added to running in another they gave at most a small extra local loss, so they should not be relied on to remove belly fat.",
+        "notes": [
+          "vispute-2011-spot-reduction",
+          "brobakken-2023-spot-reduction"
+        ]
+      },
+      {
+        "text": "Fat loss can happen without the scale moving: in the 13 trials of overweight or obese adults, modest fat-mass and waist improvements came without changes in body weight.",
+        "notes": [
+          "wewege-2017-hiit-fat-loss"
+        ]
+      }
+    ],
+    "related": [
+      "concurrent-body-composition",
+      "fat-loss-rate-muscle",
+      "diets"
+    ]
+  },
+  {
+    "id": "health-benefits",
+    "title": "Exercise for health, and how much",
+    "titleZh": "運動對健康的好處與建議量",
+    "terms": "健康 好處 長壽 死亡率 建議運動量 一週運動多久 血壓 高血壓 糖尿病 血糖 骨質密度 骨質疏鬆 握力 心肺 久坐 坐太久 步數 一天走幾步 走路 health benefits longevity mortality how much exercise guidelines WHO blood pressure diabetes HbA1c bone density osteoporosis grip strength fitness sitting steps walking",
+    "agreed": [
+      {
+        "text": "WHO 2020 guidelines say adults should do 150-300 minutes of moderate or 75-150 minutes of vigorous aerobic activity a week, or a mix, plus muscle-strengthening work at moderate or greater intensity for all major muscle groups on 2 or more days a week.",
+        "notes": [
+          "bull-2020-who-guidelines"
+        ]
+      },
+      {
+        "text": "Across 270 trials with 15,827 people, exercise training lowered resting blood pressure versus no exercise: dynamic resistance training by 4.55/3.04 mm Hg, aerobic training by 4.49/2.53, and isometric training by the most, 8.24/4.00.",
+        "notes": [
+          "edwards-2023-blood-pressure"
+        ]
+      },
+      {
+        "text": "In adults with type 2 diabetes (20 trials, 1,172 people), resistance training lowered HbA1c versus control (mean difference -0.39), with no significant difference from aerobic training, and programs with bigger strength gains showed bigger HbA1c drops.",
+        "notes": [
+          "jansson-2022-type-2-diabetes"
+        ]
+      },
+      {
+        "text": "Across 16 cohort studies, muscle-strengthening activity was linked to a 10-17% lower risk of all-cause death, cardiovascular disease, total cancer, diabetes and lung cancer; for the first three the link was strongest, about 10-20% lower risk, at roughly 30-60 minutes a week.",
+        "notes": [
+          "momma-2022-strength-mortality"
+        ]
+      },
+      {
+        "text": "Higher grip strength (HR 0.69 in 38 cohort studies of 1,907,580 apparently healthy adults) and leg strength (14% lower risk) were linked to lower risk of death, as was high versus low cardio fitness (HR 0.47), with each 1-MET higher fitness linked to 11-17% lower risk.",
+        "notes": [
+          "garcia-hermoso-2018-strength-mortality",
+          "lang-2024-cardio-fitness-mortality"
+        ]
+      },
+      {
+        "text": "Compared with 2000 steps a day, 7000 was linked to a 47% lower risk of death from any cause; a second analysis found risk kept falling until about 6000 to 8000 steps a day in adults 60 and older and 8000 to 10000 in younger adults.",
+        "notes": [
+          "ding-2025-steps",
+          "paluch-2022-steps"
+        ]
+      },
+      {
+        "text": "In over 1 million adults, sitting more than 8 hours a day was not linked to higher death risk in the most active quarter (about 60 to 75 minutes of moderate activity a day), while the least active quarter had 27% higher risk even when sitting under 4 hours.",
+        "notes": [
+          "ekelund-2016-sitting-time"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "The strength, fitness, step and sitting findings come from observational cohorts, so they show links, not proof that changing the habit causes the lower risk.",
+        "notes": [
+          "momma-2022-strength-mortality",
+          "garcia-hermoso-2018-strength-mortality",
+          "lang-2024-cardio-fitness-mortality",
+          "ding-2025-steps",
+          "paluch-2022-steps",
+          "ekelund-2016-sitting-time"
+        ]
+      },
+      {
+        "text": "More strength work is not shown to add more benefit: the links were J-shaped, the authors call the effect of higher volumes unclear, and data above 60 minutes a week are sparse.",
+        "notes": [
+          "momma-2022-strength-mortality"
+        ]
+      },
+      {
+        "text": "The ranking of exercise types for blood pressure, with the isometric wall squat ranked most effective for systolic pressure, is probabilistic and does not prove one mode is best for everyone.",
+        "notes": [
+          "edwards-2023-blood-pressure"
+        ]
+      },
+      {
+        "text": "Bone evidence here is one trial: in 101 postmenopausal women with low bone mass, 8 months of supervised twice-weekly high-intensity resistance and impact training (5 sets of 5 above 85% 1RM) improved spine and femoral neck density versus a light home program; it needs replication and does not show fracture reduction.",
+        "notes": [
+          "watson-2018-bone-density"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "Doing both lifting and cardio fits the evidence: the guidelines ask for both, each lowered resting blood pressure in trials, and combining them was linked to lower death risk than doing neither.",
+        "notes": [
+          "bull-2020-who-guidelines",
+          "edwards-2023-blood-pressure",
+          "momma-2022-strength-mortality"
+        ]
+      },
+      {
+        "text": "Starting small counts: the WHO guidelines say some activity is better than none and recommend sitting less at every age.",
+        "notes": [
+          "bull-2020-who-guidelines"
+        ]
+      },
+      {
+        "text": "For daily steps, 7000 a day was linked to clinically meaningful benefits and may be more realistic than 10000, which can still be a target for more active people.",
+        "notes": [
+          "ding-2025-steps"
+        ]
+      }
+    ],
+    "related": [
+      "concurrent-programming",
+      "mental-health-sleep",
+      "older-adults-youth"
+    ]
+  },
+  {
+    "id": "mental-health-sleep",
+    "title": "Mood, anxiety and sleep",
+    "titleZh": "心情、焦慮與睡眠",
+    "terms": "心情 情緒 憂鬱 焦慮 壓力 心理健康 睡眠 睡不好 失眠 睡眠品質 熬夜 睡眠不足 沒睡飽 mood depression anxiety stress mental health sleep quality insomnia sleep loss sleep deprivation",
+    "agreed": [
+      {
+        "text": "Across 33 randomized trials with 1,877 adults, resistance training reduced depressive symptoms compared with a non-active control, a moderate effect, with a number needed to treat of 4.",
+        "notes": [
+          "gordon-2018-depression"
+        ]
+      },
+      {
+        "text": "Across randomized trials with 922 people, resistance training reduced anxiety symptoms compared with non-active controls (effect size 0.31), both in healthy people and in people with a physical or mental illness.",
+        "notes": [
+          "gordon-2017-anxiety"
+        ]
+      },
+      {
+        "text": "A review of 13 randomized trials found that regular resistance training improved all aspects of sleep studied, most of all sleep quality.",
+        "notes": [
+          "kovacevic-2018-sleep-quality"
+        ]
+      },
+      {
+        "text": "Across 69 studies, sleeping 6 hours or less in 24 hours cut exercise performance by about 7.6% on average, with significant effects in every exercise category, including strength.",
+        "notes": [
+          "craven-2022-sleep"
+        ]
+      },
+      {
+        "text": "Harm was consistent after a full night without sleep or waking earlier than normal, but not consistently after going to bed later, and afternoon or evening tasks were impaired while morning tasks were largely unaffected.",
+        "notes": [
+          "craven-2022-sleep"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "The true depression effect is probably smaller than the pooled estimate: better-blinded trials found smaller reductions, and results varied widely between trials.",
+        "notes": [
+          "gordon-2018-depression"
+        ]
+      },
+      {
+        "text": "The anxiety effect was larger in healthy people (0.50) than in people with an illness (0.19); searches ended in 2017, and few trials enrolled people with diagnosed anxiety disorders.",
+        "notes": [
+          "gordon-2017-anxiety"
+        ]
+      },
+      {
+        "text": "The sleep review had only 13 trials, no data on dose or time of day, and the sleep benefit was smaller when lifting plus cardio was compared with cardio alone.",
+        "notes": [
+          "kovacevic-2018-sleep-quality"
+        ]
+      },
+      {
+        "text": "The sleep-loss studies were 89% male, very mixed and short-term only, and say nothing about long-term muscle growth.",
+        "notes": [
+          "craven-2022-sleep"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "Lifting can be part of looking after mood: it reduced depressive and anxiety symptoms in trials, though these compared it with no exercise, not with other treatments.",
+        "notes": [
+          "gordon-2017-anxiety",
+          "gordon-2018-depression"
+        ]
+      },
+      {
+        "text": "For anxiety, the notes point to no particular program design: the benefit did not vary significantly by sex, age, program length, session length, frequency, intensity, or whether strength improved.",
+        "notes": [
+          "gordon-2017-anxiety"
+        ]
+      },
+      {
+        "text": "For sleep, the evidence is for regular resistance training over time; how a single session affects that night's sleep is poorly studied and inconsistent.",
+        "notes": [
+          "kovacevic-2018-sleep-quality"
+        ]
+      },
+      {
+        "text": "After a night of 6 hours or less, performance may drop, especially in afternoon or evening sessions; morning tasks were largely unaffected in the studies.",
+        "notes": [
+          "craven-2022-sleep"
+        ]
+      }
+    ],
+    "related": [
+      "soreness-recovery",
+      "health-benefits"
+    ]
+  },
+  {
+    "id": "pain-injury",
+    "title": "Pain and injury",
+    "titleZh": "疼痛與受傷",
+    "terms": "疼痛 受傷 運動傷害 預防受傷 膝蓋痛 退化性關節炎 下背痛 腰痛 背痛 肩膀痛 旋轉肌 肌腱炎 肌腱病變 阿基里斯腱 跑步傷膝蓋 深蹲傷膝蓋 重訓受傷 pain injury injury prevention knee pain knee osteoarthritis low back pain shoulder pain rotator cuff tendinopathy tendon Achilles patellar running knees deep squat lifting injuries",
+    "agreed": [
+      {
+        "text": "In a review of 25 trials with 26,610 sports participants, strength training programs cut sports injuries to less than one third, though this rests on a subset of the trials (moderate certainty), while stretching showed no benefit for injury risk.",
+        "notes": [
+          "lauersen-2014-injury-prevention"
+        ]
+      },
+      {
+        "text": "Exercise reduced chronic non-specific low back pain by 15.2 points on a 0-100 scale, a clinically important difference (moderate certainty); in knee osteoarthritis it likely improved function by 12.5 points and may improve pain by 13.1 points (low certainty).",
+        "notes": [
+          "hayden-2021-low-back-pain",
+          "lawford-2024-knee-osteoarthritis"
+        ]
+      },
+      {
+        "text": "In rotator cuff-related shoulder pain, exercise reduced pain during activity versus non-exercise controls (34 trials), and programs with strength training or active exercises improved shoulder strength while those without exercise did not (28 studies).",
+        "notes": [
+          "tena-portilla-2026-shoulder-pain",
+          "zhang-2026-shoulder-pain"
+        ]
+      },
+      {
+        "text": "For Achilles and patellar tendinopathy and greater trochanteric pain syndrome, 68 trials gave no convincing evidence that any add-on treatment, alone or with exercise, works better than exercise alone; slow resistance exercise looked promising, but only on low or very low evidence.",
+        "notes": [
+          "challoumas-2023-tendinopathy"
+        ]
+      },
+      {
+        "text": "In 20 studies of competitive weight-training athletes, bodybuilding had the lowest injury rates (0.24-1 per 1000 hours) and strongman and Highland Games the highest; the shoulder, lower back, knee, elbow and wrist/hand were injured most often.",
+        "notes": [
+          "keogh-2017-lifting-injury-rates"
+        ]
+      },
+      {
+        "text": "In observational studies, regular runners did not have more knee osteoarthritis than controls, and recreational runners' odds of hip or knee osteoarthritis did not differ clearly from those of non-runners.",
+        "notes": [
+          "burfield-2023-running-knees",
+          "alentorn-geli-2017-running-knees"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "Whether more running matters is unclear: no weekly distance band showed more knee osteoarthritis, and competitive runners had higher odds than recreational ones but not clearly higher than controls; the data are observational, mostly at high risk of bias, and may be confounded by past injury.",
+        "notes": [
+          "burfield-2023-running-knees",
+          "alentorn-geli-2017-running-knees"
+        ]
+      },
+      {
+        "text": "The knee osteoarthritis authors judged the benefits of uncertain clinical importance, and minor adverse events may be somewhat more common with exercise; for back pain, function improved by 6.8 points, short of a clinically important difference.",
+        "notes": [
+          "lawford-2024-knee-osteoarthritis",
+          "hayden-2021-low-back-pain"
+        ]
+      },
+      {
+        "text": "Shoulder evidence is weak: the pain review was rated low certainty, pain at rest did not clearly improve, most trials had high risk of bias, and the strength gains are before-and-after changes without control groups.",
+        "notes": [
+          "tena-portilla-2026-shoulder-pain",
+          "zhang-2026-shoulder-pain"
+        ]
+      },
+      {
+        "text": "The authors judge weight-training sports' injury rates relatively low next to common team sports, but the evidence is low certainty: only 5 of 20 studies had low risk of bias, only 4 were prospective, and the review's abstract gives no rates for weightlifting or powerlifting.",
+        "notes": [
+          "keogh-2017-lifting-injury-rates"
+        ]
+      },
+      {
+        "text": "The deep squat evidence is one narrative review of models and cadaver data: kneecap compression peaks at about 90° of knee bend and falls with deeper bending, but there are no realistic knee-force estimates beyond 50°, so its conclusions are firmer than the evidence.",
+        "notes": [
+          "hartmann-2013-deep-squat-knees"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "For injury prevention in sport, the notes support strength training, not stretching.",
+        "notes": [
+          "lauersen-2014-injury-prevention"
+        ]
+      },
+      {
+        "text": "No exercise type was clearly best for knee osteoarthritis or shoulder pain; for Achilles or patellar tendinopathy and greater trochanteric pain syndrome, the authors recommend exercise alone for at least 3 months before an add-on is considered.",
+        "notes": [
+          "lawford-2024-knee-osteoarthritis",
+          "tena-portilla-2026-shoulder-pain",
+          "challoumas-2023-tendinopathy"
+        ]
+      },
+      {
+        "text": "The review's authors say fears that deep squats cause knee cartilage damage or osteoarthritis are unfounded, on the condition that technique is learned under expert supervision with progressive loads; this rests on low-certainty evidence.",
+        "notes": [
+          "hartmann-2013-deep-squat-knees"
+        ]
+      }
+    ],
+    "related": [
+      "warm-up-stretching",
+      "exercise-execution",
+      "health-benefits"
+    ]
+  },
+  {
+    "id": "women",
+    "title": "Training as a woman: the cycle, pregnancy, and gains",
+    "titleZh": "女性訓練：月經週期、懷孕與增肌",
+    "terms": "女生 女性 女生重訓 女生增肌 月經 生理期 經期 月經週期 經期訓練 懷孕 孕婦 孕期運動 男女差異 women female menstrual cycle period training pregnancy pregnant prenatal exercise sex differences women muscle growth",
+    "agreed": [
+      {
+        "text": "On the same program, healthy men and women aged 18-45 gained a similar percentage of muscle (29 studies); men gained slightly more in absolute size, in the upper body but not the lower body.",
+        "notes": [
+          "refalo-2025-sex-differences"
+        ]
+      },
+      {
+        "text": "Another meta-analysis of young to middle-aged men and women on the same program also found no significant difference in muscle growth and similar lower-body strength gains, while women gained more relative upper-body strength.",
+        "notes": [
+          "roberts-2020-sex-differences"
+        ]
+      },
+      {
+        "text": "Across 51 studies of regularly menstruating women, strength and endurance performance may be trivially lower in the early follicular phase, around menstruation, and the uncertainty range included zero.",
+        "notes": [
+          "mcnulty-2020-menstrual-cycle"
+        ]
+      },
+      {
+        "text": "An umbrella review of the published reviews judged it premature to conclude that cycle phase meaningfully changes acute strength performance or long-term strength and muscle growth.",
+        "notes": [
+          "colenso-semple-2023-menstrual-cycle"
+        ]
+      },
+      {
+        "text": "In pregnancy, 50 studies (45 of them randomized trials) linked resistance training, mostly within mixed exercise programs, to lower odds of gestational hypertension (OR 0.42), gestational diabetes (OR 0.62), perinatal mood disorders (OR 0.48) and macrosomia (OR 0.67).",
+        "notes": [
+          "prevett-2025-pregnancy"
+        ]
+      },
+      {
+        "text": "The 2019 Canadian pregnancy guideline, built on a GRADE-rated evidence review of maternal, fetal and newborn outcomes, found the benefits of prenatal physical activity to be moderate and identified no harms.",
+        "notes": [
+          "mottola-2018-pregnancy"
+        ]
+      },
+      {
+        "text": "When cardio was added to lifting, males showed a small blunting of lower-body strength gains but females did not; upper-body strength and power showed no sex difference.",
+        "notes": [
+          "huiberts-2024-sex-training-status"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "Cycle studies often used poor and inconsistent ways to confirm phase and their results varied widely, so the evidence supports 'no clear effect', not proof of no effect.",
+        "notes": [
+          "colenso-semple-2023-menstrual-cycle",
+          "mcnulty-2020-menstrual-cycle"
+        ]
+      },
+      {
+        "text": "Few highly trained people were studied, so results for advanced lifters are less certain, and one analysis was of short studies in mostly untrained people; its upper-body strength edge for women varied widely and may reflect neural or motor-learning effects or short study length.",
+        "notes": [
+          "refalo-2025-sex-differences",
+          "roberts-2020-sex-differences"
+        ]
+      },
+      {
+        "text": "90% of the pregnancy studies were mixed programs with generally low to moderate resistance doses, 34 of 50 had moderate or high risk of bias, and loading was poorly reported, so lifting's own effect is hard to isolate and its best dose is unknown; the guideline note gives no dose either.",
+        "notes": [
+          "prevett-2025-pregnancy",
+          "mottola-2018-pregnancy"
+        ]
+      },
+      {
+        "text": "The male-female difference with added cardio is low to moderate certainty, with few studies in females, and there were too few data to judge muscle growth.",
+        "notes": [
+          "huiberts-2024-sex-training-status"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "Women can use the same program as men for muscle growth: in young to middle-aged adults on the same program, relative muscle growth was similar between the sexes.",
+        "notes": [
+          "refalo-2025-sex-differences",
+          "roberts-2020-sex-differences"
+        ]
+      },
+      {
+        "text": "General rules for training by cycle phase are not supported: the effect was trivial and inconsistent, so the authors recommend a personalised approach instead.",
+        "notes": [
+          "mcnulty-2020-menstrual-cycle",
+          "colenso-semple-2023-menstrual-cycle"
+        ]
+      },
+      {
+        "text": "In pregnancy, the evidence here supports staying active, including resistance training at the low to moderate doses mostly studied, but it does not set a specific dose.",
+        "notes": [
+          "prevett-2025-pregnancy",
+          "mottola-2018-pregnancy"
+        ]
+      }
+    ],
+    "related": [
+      "concurrent-interference",
+      "health-benefits",
+      "volume-frequency"
+    ]
+  },
+  {
+    "id": "older-adults-youth",
+    "title": "Older adults and young people",
+    "titleZh": "年長者與青少年",
+    "terms": "年長者 老人 長輩 銀髮族 老年人 中年 肌少症 衰弱 跌倒 防跌 平衡 青少年 小孩 兒童 小朋友 長高 重訓會不會長不高 older adults elderly seniors aging sarcopenia frailty falls fall prevention balance power training youth kids children teenagers growth height",
+    "agreed": [
+      {
+        "text": "An expert position statement calls resistance training a powerful intervention against age-related loss of muscle strength and mass and their effects on function, mobility, independence, chronic disease management, well-being and quality of life.",
+        "notes": [
+          "fragala-2019-older-adults"
+        ]
+      },
+      {
+        "text": "In community-dwelling people aged 60+, exercise cut the rate of falls by 23% (59 studies, high certainty), and the programs that reduce falls mainly involve balance and functional exercises.",
+        "notes": [
+          "sherrington-2019-falls"
+        ]
+      },
+      {
+        "text": "In healthy adults aged 50-73, combined strength and cardio training improved strength, power and cardio endurance compared with no training (not with single-mode training), but not balance.",
+        "notes": [
+          "markov-2023-older-adults"
+        ]
+      },
+      {
+        "text": "In adults over 60 (19 trials, 1,055 people), lifting as fast as possible (power training) and traditional moderate-speed lifting had similar effects on functional performance overall (low certainty); power training's slightly better scores on two tests were also low quality and of unclear clinical importance.",
+        "notes": [
+          "morrison-2023-older-adults-power-training"
+        ]
+      },
+      {
+        "text": "In 62 trials with resistance exercise in healthy, non-obese adults, eating more daily protein gave a small extra gain in lean body mass (moderate certainty).",
+        "notes": [
+          "nunes-2022-protein-daily-older-adults"
+        ]
+      },
+      {
+        "text": "In 11 trials of generally healthy adults 60 and older, adding creatine to resistance training gave a small extra strength gain (moderate certainty), but its effects on muscle mass and physical function were not statistically significant.",
+        "notes": [
+          "yao-2026-creatine-older-adults"
+        ]
+      },
+      {
+        "text": "In 22 short training studies of pre- and early-pubertal youth (mostly 8-12 week supervised programs), resistance training improved strength without affecting growth in height or weight over those programs, and the gains were lost when training stopped.",
+        "notes": [
+          "malina-2006-youth"
+        ]
+      }
+    ],
+    "unsure": [
+      {
+        "text": "The creatine results should not be applied directly to frail, sarcopenic or functionally limited older adults, and extra protein at 1.6 g/kg a day or more gave only slightly larger lower-body strength gains (low certainty).",
+        "notes": [
+          "yao-2026-creatine-older-adults",
+          "nunes-2022-protein-daily-older-adults"
+        ]
+      },
+      {
+        "text": "Youth safety data are thin: only 10 studies monitored injuries systematically and three injuries were reported, in supervised programs with low instructor-to-participant ratios.",
+        "notes": [
+          "malina-2006-youth"
+        ]
+      },
+      {
+        "text": "The position statement gives recommendations on program design, frailty and other conditions, but its abstract gives no pooled numbers or specific sets and intensities.",
+        "notes": [
+          "fragala-2019-older-adults"
+        ]
+      }
+    ],
+    "practice": [
+      {
+        "text": "For fall prevention, include balance and functional exercises, often combined with resistance work; programs that are mainly resistance training have an uncertain effect on falls.",
+        "notes": [
+          "sherrington-2019-falls"
+        ]
+      },
+      {
+        "text": "For older adults, lifting speed made little difference to overall function: power training and traditional moderate-speed lifting changed it similarly, on low-certainty evidence.",
+        "notes": [
+          "morrison-2023-older-adults-power-training"
+        ]
+      },
+      {
+        "text": "For healthy, non-obese lifters wanting more lean mass, extra protein helped significantly at 1.2-1.59 g/kg a day in those 65 or older and at 1.6 g/kg a day or more in those under 65, though the gain was small.",
+        "notes": [
+          "nunes-2022-protein-daily-older-adults"
+        ]
+      },
+      {
+        "text": "For children, the limited evidence, from short supervised programs with sparse injury monitoring, supports the safety of supervised resistance training, not unsupervised maximal lifting.",
+        "notes": [
+          "malina-2006-youth"
+        ]
+      }
+    ],
+    "related": [
+      "protein",
+      "creatine",
+      "concurrent-interference"
+    ]
+  }
+]

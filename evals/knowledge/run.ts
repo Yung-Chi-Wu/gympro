@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { dot, SEARCH_EMBEDDING_MODEL } from '../../lib/embeddings'
 import { cachedEmbedder } from '../shared/embedding-cache'
-import { KNOWLEDGE_NOTES, knowledgeDocument, searchKnowledge, searchKnowledgeByKeyword, type KnowledgeNote } from '../../lib/ronnie/knowledge'
+import { KNOWLEDGE_NOTES, knowledgeDocument, knowledgePageFor, pageNotes, searchKnowledge, searchKnowledgeByKeyword, type KnowledgeNote } from '../../lib/ronnie/knowledge'
 
 const RRF_K = 60
 /** Keyword and vector rankings merged by reciprocal rank, as exercise search fuses them: tried, and not chosen */
@@ -25,6 +25,7 @@ function fused(lists: KnowledgeNote[][], limit: number): KnowledgeNote[] {
 //   hit@1  a right note is first
 //   hit@5  a right note is in the top 5 (what search_knowledge gives Ronnie)
 //   MRR    mean of 1 / rank of the first right note (0 if it isn't in the top 10)
+//   page   the topic page chosen for the top 5 (knowledgePageFor) cites a right note
 //
 // Variants:
 //   keyword   lib/ronnie/knowledge.ts searchKnowledgeByKeyword, the fallback without vectors. Free;
@@ -86,24 +87,29 @@ async function main() {
     const kinds = [...new Set(cases.map((c) => c.kind))]
     let failed = false
     console.log(`${CASE_SET}: ${KNOWLEDGE_NOTES.length} notes, ${cases.length} questions\n`)
-    console.log('variant'.padEnd(10) + 'hit@1'.padStart(8) + 'hit@5'.padStart(8) + 'MRR'.padStart(8) + kinds.map((k) => `${k}@5`.padStart(14)).join(''))
+    console.log('variant'.padEnd(10) + 'hit@1'.padStart(8) + 'hit@5'.padStart(8) + 'MRR'.padStart(8) + 'page'.padStart(8) + kinds.map((k) => `${k}@5`.padStart(14)).join(''))
     for (const variant of variants) {
         const search = await searchFor(variant)
-        const results: { id: string; kind: string; query: string; rank: number | null; top5: string[] }[] = []
+        const results: { id: string; kind: string; query: string; rank: number | null; top5: string[]; page: string | null; pageHit: boolean }[] = []
         for (const c of cases) {
-            const got = (await search(c.query)).map((n) => n.id)
+            const found = await search(c.query)
+            const got = found.map((n) => n.id)
             const rank = got.findIndex((id) => c.relevant.includes(id)) + 1
-            results.push({ id: c.id, kind: c.kind, query: c.query, rank: rank || null, top5: got.slice(0, 5) })
+            const page = knowledgePageFor(found.slice(0, 5))
+            const pageHit = !!page && pageNotes(page).some((id) => c.relevant.includes(id))
+            results.push({ id: c.id, kind: c.kind, query: c.query, rank: rank || null, top5: got.slice(0, 5), page: page?.id ?? null, pageHit })
         }
         const share = (rs: typeof results, f: (r: (typeof results)[number]) => boolean) => rs.filter(f).length / Math.max(1, rs.length)
         const hit1 = share(results, (r) => r.rank === 1)
         const hit5 = share(results, (r) => !!r.rank && r.rank <= 5)
         const mrr = results.reduce((s, r) => s + (r.rank ? 1 / r.rank : 0), 0) / results.length
+        const pageHit = share(results, (r) => r.pageHit)
         const pct = (x: number) => `${Math.round(x * 100)}%`
-        console.log(variant.padEnd(10) + pct(hit1).padStart(8) + pct(hit5).padStart(8) + mrr.toFixed(2).padStart(8)
+        console.log(variant.padEnd(10) + pct(hit1).padStart(8) + pct(hit5).padStart(8) + mrr.toFixed(2).padStart(8) + pct(pageHit).padStart(8)
             + kinds.map((k) => pct(share(results.filter((r) => r.kind === k), (r) => !!r.rank && r.rank <= 5)).padStart(14)).join(''))
         for (const r of results.filter((x) => !x.rank || x.rank > 5)) console.log(`    miss ${r.id}: "${r.query}" -> ${r.top5.slice(0, 3).join(', ')}`)
-        writeFileSync(join(RESULTS_DIR, `${variant}.json`), JSON.stringify({ variant, summary: { hit1, hit5, mrr }, results }, null, 2) + '\n')
+        for (const r of results.filter((x) => !x.pageHit)) console.log(`    page miss ${r.id}: "${r.query}" -> ${r.page ?? 'no page'}`)
+        writeFileSync(join(RESULTS_DIR, `${variant}.json`), JSON.stringify({ variant, summary: { hit1, hit5, mrr, pageHit }, results }, null, 2) + '\n')
         if (minHit5 != null && hit5 < minHit5) {
             console.error(`${variant}: hit@5 ${pct(hit5)} is under ${pct(minHit5)}`)
             failed = true

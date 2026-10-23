@@ -60,6 +60,8 @@ const KNOWLEDGE_OFF = process.env.RONNIE_KNOWLEDGE === 'off'
 const TOOLS = KNOWLEDGE_OFF ? RONNIE_TOOLS.filter((t) => t.name !== 'search_knowledge') : RONNIE_TOOLS
 const BEFORE_KNOWLEDGE = "1. General fitness questions are answered from knowledge. A question about the user's own training (a plateau, progress, fatigue, whether to add weight) is answered from their data: look it up first."
 const promptFor = (prompt: string) => (KNOWLEDGE_OFF ? prompt.replace(/^1\. A general fitness question.*$/m, BEFORE_KNOWLEDGE) : prompt)
+/** RONNIE_PAGES=on: the notes with their topic page, which production leaves off (evals v32 and v33) */
+const PAGES_ON = process.env.RONNIE_PAGES === 'on'
 
 /** The same over the knowledge notes, as match_knowledge ranks them in production */
 let knowledgeVectors: Promise<number[][]> | null = null
@@ -169,6 +171,7 @@ export async function runConversation({
                 weightUnit: FIXTURE_USER.weightUnit === 'lb' ? 'lb' : 'kg',
                 now: () => FIXTURE_NOW,
                 knowledgeKeyStart: nextKnowledgeKey(messages),
+                knowledgePages: PAGES_ON,
             })
             const writesBefore = writes.length
             const notesBefore = JSON.stringify(memories)

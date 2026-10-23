@@ -3,7 +3,8 @@
   "summary": {
     "hit1": 0.88,
     "hit5": 1,
-    "mrr": 0.94
+    "mrr": 0.94,
+    "pageHit": 0.92
   },
   "results": [
     {
@@ -17,7 +18,9 @@
         "vispute-2011-spot-reduction",
         "ramos-campo-2024-split-full-body",
         "ogasawara-2013-detraining"
-      ]
+      ],
+      "page": "exercise-execution",
+      "pageHit": false
     },
     {
       "id": "h-plateau-zh",
@@ -30,7 +33,9 @@
         "rogerson-2024-deload",
         "pelland-2026-volume",
         "acsm-2026-strength"
-      ]
+      ],
+      "page": "deload-overtraining-detraining",
+      "pageHit": true
     },
     {
       "id": "h-pre-workout-en",
@@ -43,7 +48,9 @@
         "helms-2014-contest-prep",
         "trexler-2015-beta-alanine",
         "acsm-2009-progression"
-      ]
+      ],
+      "page": "other-supplements",
+      "pageHit": true
     },
     {
       "id": "h-older-zh",
@@ -56,7 +63,9 @@
         "morrison-2023-older-adults-power-training",
         "momma-2022-strength-mortality",
         "nunes-2022-protein-daily-older-adults"
-      ]
+      ],
+      "page": "older-adults-youth",
+      "pageHit": true
     },
     {
       "id": "h-pregnant-zh",
@@ -69,7 +78,9 @@
         "brobakken-2023-spot-reduction",
         "gordon-2018-depression",
         "held-2026-interference-overview"
-      ]
+      ],
+      "page": "women",
+      "pageHit": true
     },
     {
       "id": "h-kids-zh",
@@ -82,7 +93,9 @@
         "schoenfeld-2017-load",
         "lopez-2021-load",
         "wilson-2012-interference-overview"
-      ]
+      ],
+      "page": "older-adults-youth",
+      "pageHit": true
     },
     {
       "id": "h-shoulder-zh",
@@ -95,7 +108,9 @@
         "hayden-2021-low-back-pain",
         "challoumas-2023-tendinopathy",
         "lawford-2024-knee-osteoarthritis"
-      ]
+      ],
+      "page": "pain-injury",
+      "pageHit": true
     },
     {
       "id": "h-knee-oa-zh",
@@ -108,7 +123,9 @@
         "hartmann-2013-deep-squat-knees",
         "burfield-2023-running-knees",
         "challoumas-2023-tendinopathy"
-      ]
+      ],
+      "page": "pain-injury",
+      "pageHit": true
     },
     {
       "id": "h-running-knee-en",
@@ -121,7 +138,9 @@
         "hartmann-2013-deep-squat-knees",
         "lawford-2024-knee-osteoarthritis",
         "brobakken-2023-spot-reduction"
-      ]
+      ],
+      "page": "pain-injury",
+      "pageHit": true
     },
     {
       "id": "h-depression-zh",
@@ -134,7 +153,9 @@
         "llanos-lagos-2026-endurance-athletes-cycling",
         "prevett-2025-pregnancy",
         "acsm-2026-strength"
-      ]
+      ],
+      "page": "mental-health-sleep",
+      "pageHit": true
     },
     {
       "id": "h-carbs-zh",
@@ -147,7 +168,9 @@
         "eddens-2018-order",
         "helms-2014-contest-prep",
         "slater-2019-surplus"
-      ]
+      ],
+      "page": "diets",
+      "pageHit": true
     },
     {
       "id": "h-meals-zh",
@@ -160,7 +183,9 @@
         "byrne-2018-diet-breaks",
         "poon-2025-diet-breaks",
         "peos-2021-diet-breaks"
-      ]
+      ],
+      "page": "diets",
+      "pageHit": true
     },
     {
       "id": "h-cheat-zh",
@@ -173,7 +198,9 @@
         "poon-2025-diet-breaks",
         "coleman-2024-deload",
         "rogerson-2024-deload"
-      ]
+      ],
+      "page": "fat-loss-rate-muscle",
+      "pageHit": true
     },
     {
       "id": "h-bulk-zh",
@@ -186,7 +213,9 @@
         "murphy-2022-energy-deficit",
         "morton-2018-protein-daily",
         "helms-2014-contest-prep"
-      ]
+      ],
+      "page": "bulking",
+      "pageHit": true
     },
     {
       "id": "h-cut-rate-en",
@@ -199,7 +228,9 @@
         "deller-2026-fat-loss-muscle-preservation",
         "ali-2026-intermittent-fasting",
         "hudson-2020-protein-energy-restriction"
-      ]
+      ],
+      "page": "fat-loss-rate-muscle",
+      "pageHit": true
     },
     {
       "id": "h-collagen-zh",
@@ -212,7 +243,9 @@
         "slater-2019-surplus",
         "morton-2018-protein-daily",
         "delpino-2022-creatine-lean-mass"
-      ]
+      ],
+      "page": "protein",
+      "pageHit": true
     },
     {
       "id": "h-bfr-zh",
@@ -225,7 +258,9 @@
         "vispute-2011-spot-reduction",
         "brobakken-2023-spot-reduction",
         "acsm-2009-progression"
-      ]
+      ],
+      "page": "time-efficient-methods",
+      "pageHit": true
     },
     {
       "id": "h-unilateral-zh",
@@ -238,7 +273,9 @@
         "held-2026-interference-overview",
         "petre-2021-trained-lifters",
         "pallares-2021-range-of-motion"
-      ]
+      ],
+      "page": "exercise-execution",
+      "pageHit": true
     },
     {
       "id": "h-genetics-zh",
@@ -251,7 +288,9 @@
         "kassiano-2025-unilateral-bilateral",
         "schoenfeld-2017-load",
         "lopez-2021-load"
-      ]
+      ],
+      "page": "effort-failure",
+      "pageHit": false
     },
     {
       "id": "h-who-zh",
@@ -264,7 +303,9 @@
         "baz-valle-2022-volume",
         "rogerson-2024-deload",
         "pelland-2026-volume"
-      ]
+      ],
+      "page": "health-benefits",
+      "pageHit": true
     },
     {
       "id": "h-concurrent-fat-zh",
@@ -277,7 +318,9 @@
         "o-donoghue-2021-body-composition",
         "wewege-2017-hiit-fat-loss",
         "schoenfeld-2014-fasted-cardio"
-      ]
+      ],
+      "page": "concurrent-body-composition",
+      "pageHit": true
     },
     {
       "id": "h-tendon-zh",
@@ -290,7 +333,9 @@
         "lawford-2024-knee-osteoarthritis",
         "coleman-2024-deload",
         "damas-2018-doms"
-      ]
+      ],
+      "page": "pain-injury",
+      "pageHit": true
     },
     {
       "id": "h-alcohol-en",
@@ -303,7 +348,9 @@
         "pinero-2024-cold-water",
         "wilson-2012-interference-overview",
         "murphy-2022-energy-deficit"
-      ]
+      ],
+      "page": "soreness-recovery",
+      "pageHit": true
     },
     {
       "id": "h-1rm-zh",
@@ -316,7 +363,9 @@
         "acsm-2009-progression",
         "currier-2023-load",
         "schoenfeld-2017-load"
-      ]
+      ],
+      "page": "load-reps",
+      "pageHit": true
     },
     {
       "id": "h-pullup-zh",
@@ -329,7 +378,9 @@
         "acsm-2009-progression",
         "refalo-2023-failure",
         "warneke-2024-stretching"
-      ]
+      ],
+      "page": "progression-plateaus",
+      "pageHit": true
     }
   ]
 }

@@ -1,4 +1,5 @@
 import NOTES from './knowledge-notes.json'
+import PAGES from './knowledge-pages.json'
 import { latinTokens } from './search'
 
 // Ronnie's knowledge base: one note per paper, written by us from the paper's abstract, never
@@ -127,4 +128,61 @@ export function searchKnowledgeByKeyword(query: string, limit = 10, notes = KNOW
 export function searchKnowledge(query: string, nearestIds: string[] | null, limit = 5): KnowledgeNote[] {
     const nearest = (nearestIds ?? []).map(knowledgeNote).filter((n): n is KnowledgeNote => !!n)
     return nearest.length ? nearest.slice(0, limit) : searchKnowledgeByKeyword(query, limit)
+}
+
+// Topic pages (knowledge-pages.json): what the notes on one subject say together, written once
+// from the notes rather than put together by the model on every question: where the papers agree,
+// where they don't, and what that means for training. Written because Ronnie answered from five
+// separate notes alone, leaving out what a good answer needs (eval v30). By the time they were
+// measured a prompt line had fixed that (v31), and given to Ronnie they made its answers no better
+// (evals v32, v33), so search_knowledge leaves them off (executor.ts); the weekly report uses them.
+// Every line cites the notes it comes from, and says no more than them: `npm run check:knowledge`
+// checks each cited note exists and every number in a line is in one of them, and the knowledge
+// check reads Ronnie's reply against the notes themselves, not the page.
+
+/** A sentence of a topic page, with the notes it comes from */
+export interface KnowledgePageLine {
+    text: string
+    notes: string[]
+}
+
+export interface KnowledgePage {
+    id: string
+    title: string
+    titleZh: string
+    /** Words a user may ask with, Chinese and English */
+    terms: string
+    /** What the notes consistently find, or what the strongest evidence finds */
+    agreed: KnowledgePageLine[]
+    /** Conflicts, small or weak evidence, who wasn't studied */
+    unsure: KnowledgePageLine[]
+    /** What it means for training, as far as the notes support */
+    practice: KnowledgePageLine[]
+    related: string[]
+}
+
+export const KNOWLEDGE_PAGES = PAGES as KnowledgePage[]
+export const KNOWLEDGE_PAGE_SECTIONS = ['agreed', 'unsure', 'practice'] as const
+
+/** The notes a page's lines cite, in the order they first appear */
+export function pageNotes(page: KnowledgePage): string[] {
+    return [...new Set(KNOWLEDGE_PAGE_SECTIONS.flatMap((s) => page[s].flatMap((l) => l.notes)))]
+}
+
+/**
+ * The topic page for a search's notes: a page that cites the nearest note, and of those the one that
+ * cites the most of the rest, a nearer note counting more (1/2 for the second, 1/3 for the third...);
+ * the earlier page on a tie. Without the first rule, three loading notes in 2nd to 4th place outweighed
+ * the youth note in 1st for "小孩練重量會長不高嗎" (holdout page hit 22/25, with it 23/25; dev 48/50
+ * either way). Null when no page cites the nearest note.
+ */
+export function knowledgePageFor(notes: KnowledgeNote[]): KnowledgePage | null {
+    let best: { page: KnowledgePage; score: number } | null = null
+    for (const page of KNOWLEDGE_PAGES) {
+        const cited = new Set(pageNotes(page))
+        if (!notes.length || !cited.has(notes[0].id)) continue
+        const score = notes.reduce((s, n, i) => s + (cited.has(n.id) ? 1 / (i + 1) : 0), 0)
+        if (!best || score > best.score) best = { page, score }
+    }
+    return best?.page ?? null
 }

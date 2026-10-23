@@ -294,7 +294,7 @@ const doiOf = (noteId) => notesFile.find((n) => n.id === noteId).source.doi
     }
     const old = knowledgeCases.find((x) => x.id === 'knowledge-volume-zh')
     check(programmaticGrade(old, knowledgeTurn({}), EXERCISES).grade.sourced === null, 'a case that asks nothing of the sources leaves sourced out')
-    check(cited.length === 19 && cited.every((x) => x.expect.tools_required?.includes('search_knowledge') && x.expect.cites_any.every((id) => doiOf(id))), `every new knowledge case asks for a search and names notes that exist (${cited.length})`)
+    check(cited.length === 23 && cited.every((x) => x.expect.tools_required?.includes('search_knowledge') && x.expect.cites_any.every((id) => doiOf(id))), `every new knowledge case asks for a search and names notes that exist (${cited.length})`)
 }
 
 console.log(failures ? `\n${failures} grader check(s) failed` : `\nGrader behaves as expected (${cases.length} oracle cases, ${memoryCases.length} memory cases, ${knowledgeCases.length} knowledge cases + negative controls)`)
