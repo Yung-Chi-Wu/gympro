@@ -31,9 +31,10 @@ const nextConfig: NextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           // The app uses none of these
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-          // Report-only for now, so it can't break the site: violations show in the browser's
-          // console. To be enforced (as Content-Security-Policy) once a while of use shows none.
-          { key: 'Content-Security-Policy-Report-Only', value: csp },
+          // Enforced since 2026-10-23, after a week report-only (from 2026-10-15) and a check of every
+          // page in a production build. What it still blocks in a signed-in page reaches app_errors
+          // (components/CspViolationReporter.tsx), so a host the app needs and the list leaves out alarms.
+          { key: 'Content-Security-Policy', value: csp },
         ],
       },
     ]
