@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { useTranslations } from 'next-intl'
 import type { LogType } from '@/lib/exercise-attributes'
-import { fieldValue, fitsLogType, isWeightField, summarize, type FieldKey, type SetValues, type SummaryPart, type Units } from '@/lib/set-log'
+import { fieldValue, fitsLogType, isWeightField, LOG_FIELDS, summarize, type FieldKey, type SetValues, type SummaryPart, type Units } from '@/lib/set-log'
 import type { Target } from '@/lib/today-workout'
 
 // How sets read in the user's language (messages: sets): the logging table's headers and
@@ -31,8 +31,16 @@ export function cellText(t: SetsT, key: FieldKey, s: SetValues, units: Units): s
     return `${v}${suffix}`
 }
 
-/** One set on one line, for lists. A set logged before its exercise's log type reads as weight x reps. */
+/**
+ * One set on one line, for lists. A set logged before its exercise's log type reads as weight x reps.
+ * A cardio set's heart rate, when it has one, comes last.
+ */
 export function compactSet(t: SetsT, logType: LogType, s: SetValues, units: Units): string {
+    const main = compactMain(t, logType, s, units)
+    return s.avgHr != null && fitsLogType(logType, s) && LOG_FIELDS[logType].includes('hr') ? main + t('compact.hr', { bpm: s.avgHr }) : main
+}
+
+function compactMain(t: SetsT, logType: LogType, s: SetValues, units: Units): string {
     const v = (key: FieldKey) => fieldValue(key, s, units) ?? 0
     const weightReps = () => t('compact.weightReps', { weight: v('weight'), unit: units.weight, reps: s.reps })
     if (!fitsLogType(logType, s)) return weightReps()

@@ -47,7 +47,7 @@ const EXERCISE_COLUMNS = 'name, name_zh_tw, muscle_group, log_type, per_side, eq
 const TARGET_COLUMNS = 'exercise_id, target_sets, target_reps'
 const targetOf = (re: { target_sets: number | null; target_reps: number | null } | undefined): Target | null =>
     re?.target_sets ? { sets: re.target_sets, reps: re.target_reps } : null
-export const SET_COLUMNS = 'reps, weight_kg, duration_s, speed_kmh, incline_pct, level, distance_m, assist_kg, input_unit'
+export const SET_COLUMNS = 'reps, weight_kg, duration_s, speed_kmh, incline_pct, level, distance_m, assist_kg, avg_hr, input_unit'
 /** Enough earlier sets to find the last session of every exercise done in the past few months */
 const PREVIOUS_ROWS = 500
 

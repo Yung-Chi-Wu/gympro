@@ -199,6 +199,10 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
      */
     const setText = (logType: LogType, s: SetValues) => {
         if (!fitsLogType(logType, s)) return repsText(s)
+        // A cardio set's average heart rate, when the user typed one
+        return s.avgHr != null && isCardio(logType) ? `${mainText(logType, s)}, average heart rate ${s.avgHr} bpm` : mainText(logType, s)
+    }
+    const mainText = (logType: LogType, s: SetValues) => {
         const v = (key: Parameters<typeof fieldValue>[0]) => fieldValue(key, s, units)
         switch (logType) {
             case 'weight_reps': return repsText(s)
