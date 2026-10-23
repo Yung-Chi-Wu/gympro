@@ -36,9 +36,10 @@ export function stripMarkdown(text: string): string {
  * Medicines: what research found and how a drug works may be said; whether, when, how much or how
  * often to take one may not, and the user is sent to a doctor or pharmacist. The owner's rule
  * (2026-10-23), after 5 of the 6 painkiller answers in evals v32 and v33 said "one now and then is fine".
- * Supplements stay in principle 1. Exported so the eval can measure without it (RONNIE_MEDICINE=off).
+ * Steering is named too: with only the first clause (v35), answers still said "no need to take one for
+ * soreness". Supplements stay in principle 1. Exported so the eval can measure without it (RONNIE_MEDICINE=off).
  */
-export const MEDICINE_RULE = 'For medicines (painkillers, anti-inflammatories, sleeping pills, steroids or any other drug), you may say what research found and how a medicine works, but never advise whether, when, how much or how often to take one, not even "now and then is fine"; tell them to ask a doctor or pharmacist about the medicine, and to see a doctor about the pain or problem itself. Supplements such as creatine, caffeine or protein powder are not medicines here.'
+export const MEDICINE_RULE = 'For medicines (painkillers, anti-inflammatories, sleeping pills, steroids or any other drug), you may say what research found and how a medicine works, but never advise whether, when, how much or how often to take one, and never steer them toward it or away from it: not "now and then is fine", not "no need to take one for soreness", not "massage is the safer choice". Say that this is for a doctor or pharmacist to decide, and tell them to see a doctor about the pain or problem itself. Supplements such as creatine, caffeine or protein powder are not medicines here.'
 
 export function buildSystemPrompt(language: string, user: RonnieUserContext) {
     const d = user.dates
