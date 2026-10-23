@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { buildSystemPrompt } from '../../lib/ronnie/prompt'
+import { buildSystemPrompt, MEDICINE_RULE } from '../../lib/ronnie/prompt'
 import { createRonnieExecutor } from '../../lib/ronnie/executor'
 import { runRonnieTurn, RONNIE_MODEL, type RonnieTurn } from '../../lib/ronnie/agent'
 import { RONNIE_TOOLS } from '../../lib/ronnie/tools'
@@ -59,7 +59,12 @@ function fixtureNearest() {
 const KNOWLEDGE_OFF = process.env.RONNIE_KNOWLEDGE === 'off'
 const TOOLS = KNOWLEDGE_OFF ? RONNIE_TOOLS.filter((t) => t.name !== 'search_knowledge') : RONNIE_TOOLS
 const BEFORE_KNOWLEDGE = "1. General fitness questions are answered from knowledge. A question about the user's own training (a plateau, progress, fatigue, whether to add weight) is answered from their data: look it up first."
-const promptFor = (prompt: string) => (KNOWLEDGE_OFF ? prompt.replace(/^1\. A general fitness question.*$/m, BEFORE_KNOWLEDGE) : prompt)
+/** RONNIE_MEDICINE=off: principle 7 without the medicine rule, as before it (2026-10-23) */
+const MEDICINE_OFF = process.env.RONNIE_MEDICINE === 'off'
+const promptFor = (prompt: string) => {
+    const before = KNOWLEDGE_OFF ? prompt.replace(/^1\. A general fitness question.*$/m, BEFORE_KNOWLEDGE) : prompt
+    return MEDICINE_OFF ? before.replace(` ${MEDICINE_RULE}`, '') : before
+}
 /** RONNIE_PAGES=on: the notes with their topic page, which production leaves off (evals v32 and v33) */
 const PAGES_ON = process.env.RONNIE_PAGES === 'on'
 

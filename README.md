@@ -92,6 +92,7 @@ flowchart LR
   - **Citations:** Ronnie marks a sentence with a note's key. Code turns the keys into the papers listed under the reply, so a source shown is always one Ronnie was given. A key it wasn't given is dropped. The chat shows the list as one line ("See 3 sources") that opens it, with no number after each tip.
   - **Check:** before the reply is shown, Claude Haiku reads it against the notes. A finding presented as research that no note supports, or that goes past its note, is sent back once for a rewrite.
   - **No note:** general advice that no note covers stays in the reply, with a line under it saying it has no research source. Code adds that line to any reply that searched the notes and cites none.
+  - **Medicines:** Ronnie may say what research found about a medicine and how it works, but never whether, when, how much or how often to take one; it sends the user to a doctor or pharmacist. This is a prompt rule, measured by four eval questions. Supplements such as creatine are not medicines here.
 - **Memory.** The kinds the code acts on have fixed slots:
   - one injury per joint, active or resolved;
   - a like or dislike per exercise;
@@ -146,7 +147,7 @@ flowchart LR
 |---|---|---|
 | Ronnie, development | 37 conversations | Code checks on every run: the right tools, the right writes and nothing else, valid IDs, date ranges, language, no fallback. A judge (Claude Opus 5.5) with a rubric on 28 of them. |
 | Ronnie, held out | 5 | The same. Run only for acceptance. |
-| Ronnie, fitness knowledge | 33 | Code checks on the sources under the reply (the right paper cited; none, plus the label, when no note covers it), plus the judge |
+| Ronnie, fitness knowledge | 36 | Code checks on the sources under the reply (the right paper cited; none, plus the label, when no note covers it), plus the judge |
 | Ronnie, memory | 21, some across several conversations | Code checks on the saved notes, plus the judge |
 | Exercise search | 51 queries, plus 20 held out | hit@1, hit@5, MRR |
 | Knowledge search | 50 questions, plus 25 held out | hit@1, hit@5, MRR |

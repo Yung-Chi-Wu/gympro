@@ -18,7 +18,7 @@ const {
     runRonnieTurn, stripMarkdown, createRonnieExecutor, MAX_INCLUDE, createSupabaseRonnieData,
     appendConversation, replaceConversation, withoutCitationNumbers, asTypedMessage, EVENT_PREFIX,
     createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER,
-    buildSystemPrompt, fixtureNotes, memoryLines, MAX_NOTES, MAX_EXERCISE_NOTES_SHOWN, MAX_OTHER_NOTES,
+    buildSystemPrompt, MEDICINE_RULE, fixtureNotes, memoryLines, MAX_NOTES, MAX_EXERCISE_NOTES_SHOWN, MAX_OTHER_NOTES,
     correctionIn, flagForCancel, flagForClear, flagsForMessage, RIGHT_AFTER_MS,
     nextKnowledgeKey, renumber, withSources, KNOWLEDGE_NOTES, KNOWLEDGE_PAGES, knowledgePageFor, pageNotes, searchKnowledge, KNOWLEDGE_CHECK_MODEL, RESEARCH_WORDS,
 } = createRequire(import.meta.url)(join(here, 'dist', 'check.cjs'))
@@ -298,6 +298,9 @@ const valid = (messages) => messages.every((m, i) => {
 {
     const prompt = buildSystemPrompt('zh-TW', FIXTURE_USER)
     check(prompt.includes('plan_routines') && !/suggest Coach G/i.test(prompt), 'the prompt plans with plan_routines and no longer sends the user to Coach G')
+    // RONNIE_MEDICINE=off removes ` ${MEDICINE_RULE}`, so it must appear once, inside principle 7
+    const seven = prompt.split('\n').find((l) => l.startsWith('7. '))
+    check(prompt.split(` ${MEDICINE_RULE}`).length === 2 && seven.includes(MEDICINE_RULE) && /doctor or pharmacist/.test(MEDICINE_RULE), 'the medicine rule is in principle 7, once, and sends them to a doctor or pharmacist')
 }
 
 // ---------- memory ----------
