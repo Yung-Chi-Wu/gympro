@@ -5,6 +5,7 @@ import { localDate } from '@/lib/periods'
 import { RoutineBuilder } from '@/components/RoutineBuilder'
 import type { ExerciseOption } from '@/components/log-types'
 import { timeZoneOf } from '@/lib/time-zone'
+import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
 
 export interface RoutineExerciseRow {
     id: string
@@ -50,7 +51,7 @@ export default async function RoutinesPage() {
 
     if (!user) redirect('/login')
 
-    const [profileResult, exercisesResult, routinesResult, cycleResult] = await Promise.all([
+    const [profileResult, exercisesResult, recentIds, routinesResult, cycleResult] = await Promise.all([
 
         supabase
             .from('user_profiles')
@@ -61,6 +62,7 @@ export default async function RoutinesPage() {
             .from('exercises')
             .select('id, name, name_zh_tw, muscle_group, equipment')
             .order('name'),
+        recentExerciseIds(supabase, user.id),
         supabase
             .from('routines')
             .select(`
@@ -114,7 +116,7 @@ export default async function RoutinesPage() {
         <RoutineBuilder
             key={cycle?.id ?? 'no-cycle'}
             userId={user.id}
-            exercises={(exercisesResult.data ?? []) as ExerciseOption[]}
+            exercises={withRecent((exercisesResult.data ?? []) as ExerciseOption[], recentIds)}
             initialRoutines={routineList}
             language={language}
             initialCycle={cycle ? { id: cycle.id, cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { getMuscleGroupLabel } from '@/lib/exercise-display'
+import { exerciseSections, getExerciseName, getMuscleGroupLabel } from '@/lib/exercise-display'
 import { MUSCLE_GROUPS, type ExerciseOption } from './log-types'
 
 interface MuscleGroupExercisePickerProps {
@@ -20,6 +20,10 @@ interface MuscleGroupExercisePickerProps {
     keepUntilPicked?: boolean
 }
 
+/** A group's exercises as listed: done lately first, then by equipment (lib/exercise-display.ts) */
+const sectionsOf = (exercises: ExerciseOption[], group: string, language: string) =>
+    exerciseSections(exercises.filter((ex) => ex.muscle_group === group), language)
+
 export function MuscleGroupExercisePicker({
     exercises,
     value,
@@ -37,10 +41,8 @@ export function MuscleGroupExercisePicker({
     const valueGroup = exercises.find((ex) => ex.id === value)?.muscle_group
     const muscleGroup = browseGroup ?? valueGroup ?? pickedGroup
 
-    const exercisesInGroup = useMemo(
-        () => exercises.filter((ex) => ex.muscle_group === muscleGroup),
-        [exercises, muscleGroup]
-    )
+    const sections = useMemo(() => sectionsOf(exercises, muscleGroup, language), [exercises, muscleGroup, language])
+    const exercisesInGroup = sections.flatMap((section) => section.exercises)
 
     function handleMuscleGroupChange(newGroup: string) {
         setPickedGroup(newGroup)
@@ -49,8 +51,8 @@ export function MuscleGroupExercisePicker({
             return
         }
         if (placeholder) return
-        const firstInGroup = exercises.find((ex) => ex.muscle_group === newGroup)
-        onChange(firstInGroup?.id ?? '')
+        // The first one listed, so what is picked is what shows on top
+        onChange(sectionsOf(exercises, newGroup, language)[0]?.exercises[0]?.id ?? '')
     }
 
     const noExercisesLabel = language === 'zh-TW' ? '這個肌群還沒有動作' : 'No exercises in this group'
@@ -85,17 +87,15 @@ export function MuscleGroupExercisePicker({
                 ) : showChoose && (
                     <option value="" disabled={keepUntilPicked}>{chooseLabel}</option>
                 )}
-                {exercisesInGroup.map((ex) => {
-                    const displayName =
-                        language === 'zh-TW' && ex.name_zh_tw
-                            ? ex.name_zh_tw
-                            : ex.name
-                    return (
-                        <option key={ex.id} value={ex.id}>
-                            {displayName}
-                        </option>
-                    )
-                })}
+                {sections.map((section) => (
+                    <optgroup key={section.key} label={section.label}>
+                        {section.exercises.map((ex) => (
+                            <option key={ex.id} value={ex.id}>
+                                {getExerciseName(ex, language)}
+                            </option>
+                        ))}
+                    </optgroup>
+                ))}
             </select>
         </div>
     )

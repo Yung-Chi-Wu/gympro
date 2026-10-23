@@ -12,6 +12,7 @@ import type { DistanceUnit } from '@/lib/distance-unit'
 import { currentPeriod, daysBetween, localDate } from '@/lib/periods'
 import { localDayToUtcRange, timeZoneOf } from '@/lib/time-zone'
 import { loadTodayWorkout } from '@/lib/today-workout'
+import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -27,7 +28,7 @@ export default async function DashboardPage() {
     getTranslations('periodLog'),
   ])
 
-  const [profileResult, cycleResult, allExercisesResult] = await Promise.all([
+  const [profileResult, cycleResult, allExercisesResult, recentIds] = await Promise.all([
     supabase
       .from('user_profiles')
       .select('display_name, timezone, language, onboarding_completed, weight_unit, distance_unit')
@@ -42,6 +43,7 @@ export default async function DashboardPage() {
       .from('exercises')
       .select('id, name, name_zh_tw, muscle_group, equipment, log_type, per_side')
       .order('name'),
+    recentExerciseIds(supabase, user.id),
   ])
 
   const profile = profileResult.data
@@ -156,7 +158,7 @@ export default async function DashboardPage() {
           dayIndex={dayIndex}
           cycleLength={cycle?.cycle_length ?? 0}
           initialExercises={today.exercises}
-          allExercises={(allExercisesResult.data ?? []) as ExerciseOption[]}
+          allExercises={withRecent((allExercisesResult.data ?? []) as ExerciseOption[], recentIds)}
           language={language}
           weightUnit={weightUnit}
           distanceUnit={distanceUnit}
