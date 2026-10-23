@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { REPS, SETS } from '../lib/coach-g'
-import { isValidField, STORED_MAX, type Units } from '../lib/set-log'
+import { isValidField, MIN_AVG_HR, STORED_MAX, type Units } from '../lib/set-log'
 import { isTarget, TARGET_REPS, TARGET_SETS } from '../lib/targets'
 
 // The limits on what a user types: a set's amounts in any unit, and a routine's targets. The app
@@ -44,6 +44,13 @@ const cases: [string, Parameters<typeof isValidField>[0], string, Units, boolean
     ['-5 kg', 'weight', '-5', metric, false],
     ['8.5 reps', 'reps', '8.5', metric, false],
     ['nothing typed', 'reps', '', metric, false],
+    // Heart rate is optional: empty is a value, and the rest are whole bpm in the table's range
+    ['no heart rate typed', 'hr', '', metric, true],
+    ['30 bpm', 'hr', '30', metric, true],
+    ['29 bpm', 'hr', '29', metric, false],
+    ['250 bpm', 'hr', '250', metric, true],
+    ['251 bpm', 'hr', '251', metric, false],
+    ['142.5 bpm', 'hr', '142.5', metric, false],
 ]
 const wrong = cases.filter(([, key, text, units, ok]) => isValidField(key, text, units) !== ok).map(([name]) => name)
 check(`a set's amounts are held to the table's limits in the unit typed (${cases.length} cases)`, !wrong.length, wrong.join(', '))
@@ -59,6 +66,7 @@ check("Coach G's plans stay inside the targets the table takes",
 const migration = (name: string) => readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', name), 'utf8')
 const limits = migration('20261017130000_routine_and_set_limits.sql')
 const amounts = migration('20261010140000_set_log_types.sql')
+const heartRate = migration('20261023140000_set_average_heart_rate.sql')
 const has = (sql: string, pattern: string) => sql.includes(pattern)
 const sqlMatches: [string, boolean][] = [
     [`target_sets between ${TARGET_SETS.min} and ${TARGET_SETS.max}`, has(limits, `target_sets between ${TARGET_SETS.min} and ${TARGET_SETS.max}`)],
@@ -71,6 +79,7 @@ const sqlMatches: [string, boolean][] = [
     [`distance_m <= ${STORED_MAX.distanceM}`, has(limits, `distance_m <= ${STORED_MAX.distanceM}`)],
     [`speed_kmh between 0 and ${STORED_MAX.speedKmh}`, has(amounts, `speed_kmh between 0 and ${STORED_MAX.speedKmh}`)],
     [`incline_pct between 0 and ${STORED_MAX.inclinePct}`, has(amounts, `incline_pct between 0 and ${STORED_MAX.inclinePct}`)],
+    [`avg_hr between ${MIN_AVG_HR} and ${STORED_MAX.avgHr}`, has(heartRate, `avg_hr between ${MIN_AVG_HR} and ${STORED_MAX.avgHr}`)],
 ]
 const missing = sqlMatches.filter(([, ok]) => !ok).map(([p]) => p)
 check(`the migrations' limits are the app's (${sqlMatches.length})`, !missing.length, missing.join('; '))

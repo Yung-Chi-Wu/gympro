@@ -58,7 +58,7 @@ const executorFor = (data, weightUnit = 'kg') => createRonnieExecutor({
     const assisted = exercise(3, 'Assisted Pull-up', '輔助引體向上', 'back', 'assisted')
     const plank = EXERCISES.find((e) => e.name === 'Plank')
     const extraSets = [
-        { ...blank, workout_id: todayId, exercise_id: treadmill.id, durationS: 1200, speedKmh: 10, inclinePct: 2 },
+        { ...blank, workout_id: todayId, exercise_id: treadmill.id, durationS: 1200, speedKmh: 10, inclinePct: 2, avgHr: 142 },
         { ...blank, workout_id: todayId, exercise_id: rower.id, durationS: 600, distanceM: 2000 },
         { ...blank, workout_id: todayId, exercise_id: assisted.id, reps: 8, assistKg: 20, inputUnit: 'kg' },
         { ...blank, workout_id: todayId, exercise_id: plank.id, durationS: 45 },
@@ -79,6 +79,7 @@ const executorFor = (data, weightUnit = 'kg') => createRonnieExecutor({
     const line = (text, name) => text.split('\n').find((l) => l.includes(name)) ?? '(no line)'
     check(line(today, '跑步機').includes('20 min at 10 km/h, 2% incline'), `a treadmill set reads as minutes, speed and incline: ${line(today, '跑步機')}`)
     check(line(today, '划船機').includes('10 min, 2000 m'), `a rower set reads as minutes and metres: ${line(today, '划船機')}`)
+    check(line(today, '跑步機').includes('2% incline, average heart rate 142 bpm') && !line(today, '划船機').includes('heart rate'), `a cardio set's heart rate is read when it was typed, and not made up when it wasn't: ${line(today, '跑步機')}`)
     check(line(today, '輔助引體向上').includes('8 reps, 20kg assist'), `an assisted set says how much assist: ${line(today, '輔助引體向上')}`)
     check(line(today, '棒式').includes('45 s'), `a timed set reads in seconds: ${line(today, '棒式')}`)
     check(!/\b0 reps\b/.test(today), 'no set reads as 0 reps')

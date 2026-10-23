@@ -111,6 +111,7 @@
     },
     "sets": {
         "set": "組",
+        "optional": "選填",
         "fields": {
             "weight": "{unit}",
             "added": "+{unit}",
@@ -121,7 +122,8 @@
             "speed": "{unit}",
             "incline": "坡度 %",
             "level": "段數",
-            "metres": "公尺"
+            "metres": "公尺",
+            "hr": "平均心率"
         },
         "bodyweight": "自重",
         "note": {
@@ -151,7 +153,8 @@
             "treadmill": "{minutes} 分鐘・{speed} {speedUnit}・坡度 {incline}%",
             "cardioLevel": "{minutes} 分鐘・{level} 段",
             "rower": "{minutes} 分鐘・{metres} 公尺",
-            "cardioTime": "{minutes} 分鐘"
+            "cardioTime": "{minutes} 分鐘",
+            "hr": "・心率 {bpm}"
         },
         "addSet": "新增第 {n} 組",
         "deleteSet": "刪除第 {n} 組",

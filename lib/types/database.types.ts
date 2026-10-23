@@ -553,6 +553,7 @@ export type Database = {
       workout_sets: {
         Row: {
           assist_kg: number | null
+          avg_hr: number | null
           created_at: string
           distance_m: number | null
           duration_s: number | null
@@ -570,6 +571,7 @@ export type Database = {
         }
         Insert: {
           assist_kg?: number | null
+          avg_hr?: number | null
           created_at?: string
           distance_m?: number | null
           duration_s?: number | null
@@ -587,6 +589,7 @@ export type Database = {
         }
         Update: {
           assist_kg?: number | null
+          avg_hr?: number | null
           created_at?: string
           distance_m?: number | null
           duration_s?: number | null

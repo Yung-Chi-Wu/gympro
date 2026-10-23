@@ -23,24 +23,37 @@ export interface SetValues {
     level: number | null
     distanceM: number | null
     assistKg: number | null
+    /** Average heart rate over a cardio set, in bpm, from a watch or the machine; optional, so often null */
+    avgHr: number | null
     /** The unit a weighted set was typed in; null for a set without weight, or logged before units were kept */
     inputUnit: WeightUnit | null
 }
 
-export type FieldKey = 'weight' | 'added' | 'assist' | 'reps' | 'seconds' | 'minutes' | 'speed' | 'incline' | 'level' | 'metres'
+export type FieldKey = 'weight' | 'added' | 'assist' | 'reps' | 'seconds' | 'minutes' | 'speed' | 'incline' | 'level' | 'metres' | 'hr'
 
-/** Each log type's columns, in order. Cardio is logged in sets too: each set is one setting of the machine. */
+/**
+ * Each log type's columns, in order. Cardio is logged in sets too: each set is one setting of the
+ * machine. Its last column, the average heart rate, may be left empty (OPTIONAL_FIELDS).
+ */
 export const LOG_FIELDS: Record<LogType, FieldKey[]> = {
     weight_reps: ['weight', 'reps'],
     bodyweight: ['added', 'reps'],
     assisted: ['assist', 'reps'],
     duration: ['seconds'],
     // Speed, not distance: in a split run the machine's distance is a running total, the speed is what was set
-    treadmill: ['minutes', 'speed', 'incline'],
-    cardio_level: ['minutes', 'level'],
-    rower: ['minutes', 'metres'],
-    cardio_time: ['minutes'],
+    treadmill: ['minutes', 'speed', 'incline', 'hr'],
+    cardio_level: ['minutes', 'level', 'hr'],
+    rower: ['minutes', 'metres', 'hr'],
+    cardio_time: ['minutes', 'hr'],
 }
+
+/**
+ * Fields a set may leave empty. Heart rate is only known with a watch or a machine that reads it,
+ * and the report rates a cardio set's intensity from it only when it is there (owner, 2026-10-23:
+ * objective data only, no felt effort in its place).
+ */
+const OPTIONAL_FIELDS = new Set<FieldKey>(['hr'])
+export const isOptionalField = (key: FieldKey) => OPTIONAL_FIELDS.has(key)
 
 /** Fields typed in the exercise's own kg/lb (its logging unit) */
 const WEIGHT_FIELDS = new Set<FieldKey>(['weight', 'added', 'assist'])
@@ -50,12 +63,14 @@ export const hasWeight = (logType: LogType) => LOG_FIELDS[logType].some(isWeight
 
 /** A set with no reps or no time isn't a set. Every other field may be 0 (no incline, bodyweight alone). */
 const MUST_BE_POSITIVE = new Set<FieldKey>(['reps', 'seconds', 'minutes'])
-const WHOLE_NUMBER = new Set<FieldKey>(['reps', 'seconds'])
+const WHOLE_NUMBER = new Set<FieldKey>(['reps', 'seconds', 'hr'])
 /**
  * The table's limits (workout_sets_amounts_valid and workout_sets_amounts_max), as stored (kg, km/h,
  * seconds, metres), so a typo is caught before it is saved, in whatever unit it was typed
  */
-export const STORED_MAX = { reps: 1000, weightKg: 1000, assistKg: 500, durationS: 86_400, speedKmh: 50, inclinePct: 40, level: 100, distanceM: 100_000 } as const
+export const STORED_MAX = { reps: 1000, weightKg: 1000, assistKg: 500, durationS: 86_400, speedKmh: 50, inclinePct: 40, level: 100, distanceM: 100_000, avgHr: 250 } as const
+/** The lowest average heart rate a set takes (workout_sets_avg_hr_range): below it is a typo */
+export const MIN_AVG_HR = 30
 
 export function logTypeOf(value: string | null | undefined): LogType {
     return LOG_TYPE_IDS.includes(value as LogType) ? (value as LogType) : 'weight_reps'
@@ -84,6 +99,7 @@ type SetRow = {
     level?: number | string | null
     distance_m?: number | string | null
     assist_kg?: number | string | null
+    avg_hr?: number | null
     input_unit?: string | null
 }
 const num = (v: number | string | null | undefined) => (v == null ? null : Number(v))
@@ -99,6 +115,7 @@ export function setValuesOf(row: SetRow): SetValues {
         level: num(row.level),
         distanceM: num(row.distance_m),
         assistKg: num(row.assist_kg),
+        avgHr: num(row.avg_hr),
         inputUnit: row.input_unit === 'kg' || row.input_unit === 'lb' ? row.input_unit : null,
     }
 }
@@ -114,6 +131,7 @@ export function toSetRow(s: SetValues) {
         level: s.level,
         distance_m: s.distanceM,
         assist_kg: s.assistKg,
+        avg_hr: s.avgHr,
         input_unit: s.inputUnit,
     }
 }
@@ -142,34 +160,44 @@ export function fieldValue(key: FieldKey, s: SetValues, units: Units): number | 
             return s.level
         case 'metres':
             return s.distanceM
+        case 'hr':
+            return s.avgHr
     }
 }
 
 /**
- * Whether the set has this log type's fields. Sets logged before log types existed have only
- * reps x weight; a cardio exercise's old sets are shown that way instead of in its columns.
+ * Whether the set has this log type's fields, the optional ones aside. Sets logged before log types
+ * existed have only reps x weight; a cardio exercise's old sets are shown that way instead of in its columns.
  */
 export function fitsLogType(logType: LogType, s: SetValues): boolean {
-    return LOG_FIELDS[logType].every((key) => fieldValue(key, s, { weight: 'kg', distance: 'km' }) != null)
+    return LOG_FIELDS[logType].every((key) => isOptionalField(key) || fieldValue(key, s, { weight: 'kg', distance: 'km' }) != null)
 }
 
-/** Whether what the user typed in a field, in the units shown, is a value it can take */
+/** A field as typed: a number, or null for an optional one left empty */
+export const typedValue = (text: string): number | null => (text.trim() === '' ? null : Number(text))
+
+/** Whether what the user typed in a field, in the units shown, is a value it can take; an optional one may be empty */
 export function isValidField(key: FieldKey, text: string, units: Units): boolean {
-    if (text.trim() === '') return false
+    if (text.trim() === '') return isOptionalField(key)
     const n = Number(text)
     if (!Number.isFinite(n) || n < 0) return false
     if (WHOLE_NUMBER.has(key) && !Number.isInteger(n)) return false
     // Stored the way a save stores it, then held to the table's limits
-    const stored: SetValues = { reps: 0, weightKg: 0, durationS: null, speedKmh: null, inclinePct: null, level: null, distanceM: null, assistKg: null, inputUnit: null }
+    const stored: SetValues = { reps: 0, weightKg: 0, durationS: null, speedKmh: null, inclinePct: null, level: null, distanceM: null, assistKg: null, avgHr: null, inputUnit: null }
     storeField(stored, key, n, units)
     if ((Object.keys(STORED_MAX) as (keyof typeof STORED_MAX)[]).some((k) => (stored[k] ?? 0) > STORED_MAX[k])) return false
     // Minutes are saved as whole seconds, which must come to at least one
     if (key === 'minutes') return Math.round(n * 60) > 0
+    if (key === 'hr') return n >= MIN_AVG_HR
     return MUST_BE_POSITIVE.has(key) ? n > 0 : true
 }
 
-/** Stores one typed value (in the units shown) in its column */
-function storeField(s: SetValues, key: FieldKey, v: number, units: Units) {
+/** Stores one typed value (in the units shown) in its column; null empties an optional one */
+function storeField(s: SetValues, key: FieldKey, v: number | null, units: Units) {
+    if (v == null) {
+        if (key === 'hr') s.avgHr = null
+        return
+    }
     switch (key) {
         case 'weight':
         case 'added':
@@ -199,13 +227,16 @@ function storeField(s: SetValues, key: FieldKey, v: number, units: Units) {
         case 'metres':
             s.distanceM = Math.round(v)
             break
+        case 'hr':
+            s.avgHr = Math.round(v)
+            break
     }
 }
 
-/** The set to store, from the value typed in each of the log type's fields (in the units shown) */
-export function toStoredSet(logType: LogType, typed: number[], units: Units): SetValues {
+/** The set to store, from the value typed in each of the log type's fields (in the units shown; null for an empty optional one) */
+export function toStoredSet(logType: LogType, typed: (number | null)[], units: Units): SetValues {
     const s: SetValues = {
-        reps: 0, weightKg: 0, durationS: null, speedKmh: null, inclinePct: null, level: null, distanceM: null, assistKg: null,
+        reps: 0, weightKg: 0, durationS: null, speedKmh: null, inclinePct: null, level: null, distanceM: null, assistKg: null, avgHr: null,
         inputUnit: hasWeight(logType) ? units.weight : null,
     }
     LOG_FIELDS[logType].forEach((key, i) => storeField(s, key, typed[i], units))
@@ -221,7 +252,7 @@ export function unitsOfSet(s: SetValues, units: Units): Units {
  * A logged set with one field typed over (in the units shown), the others as stored, so
  * changing the reps doesn't round the weight through another unit
  */
-export function withField(s: SetValues, key: FieldKey, typed: number, units: Units): SetValues {
+export function withField(s: SetValues, key: FieldKey, typed: number | null, units: Units): SetValues {
     const next = { ...s }
     storeField(next, key, typed, units)
     if (isWeightField(key)) next.inputUnit = units.weight

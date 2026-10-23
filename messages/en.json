@@ -111,6 +111,7 @@
     },
     "sets": {
         "set": "Set",
+        "optional": "optional",
         "fields": {
             "weight": "{unit}",
             "added": "+{unit}",
@@ -121,7 +122,8 @@
             "speed": "{unit}",
             "incline": "Incline %",
             "level": "Level",
-            "metres": "Metres"
+            "metres": "Metres",
+            "hr": "Avg HR"
         },
         "bodyweight": "BW",
         "note": {
@@ -151,7 +153,8 @@
             "treadmill": "{minutes} min · {speed} {speedUnit} · {incline}% incline",
             "cardioLevel": "{minutes} min · level {level}",
             "rower": "{minutes} min · {metres} m",
-            "cardioTime": "{minutes} min"
+            "cardioTime": "{minutes} min",
+            "hr": " · HR {bpm}"
         },
         "addSet": "Add set {n}",
         "deleteSet": "Delete set {n}",

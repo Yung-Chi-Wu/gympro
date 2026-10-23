@@ -11,7 +11,7 @@ import { reportClientError } from '@/lib/report-client-error'
 import { exerciseSections, getMuscleGroupLabel } from '@/lib/exercise-display'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
-import { fieldValue, fitsLogType, isValidField, isWeightField, LOG_FIELDS, logNoteOf, logTypeOf, toSetRow, toStoredSet, unitsOfSet, withField, type FieldKey, type SetValues, type Units } from '@/lib/set-log'
+import { fieldValue, fitsLogType, isOptionalField, isValidField, isWeightField, LOG_FIELDS, logNoteOf, logTypeOf, toSetRow, toStoredSet, typedValue, unitsOfSet, withField, type FieldKey, type SetValues, type Units } from '@/lib/set-log'
 import { MUSCLE_GROUPS, type ExerciseOption } from './log-types'
 import { dayIsOver, DayOverError, exerciseLogUnits, lastSessionSets, loadTodayWorkout, startTodayWorkout, type TodayExercise } from '@/lib/today-workout'
 import { cellText, compactSet, fieldLabel, SummaryLine } from './set-format'
@@ -608,7 +608,7 @@ const CELL = 'h-11 truncate rounded-lg bg-done px-1 text-center font-mono text-b
 const LOGGED = 'h-11 min-h-0! w-full min-w-0 truncate rounded-lg bg-done px-1 text-center font-mono text-base font-bold focus:bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-invalid:ring-2 aria-invalid:ring-inset aria-invalid:ring-miss md:h-9'
 const INPUT = 'h-11 min-h-0! w-full min-w-0 rounded-lg border border-line bg-card px-1 text-center font-mono text-base font-bold placeholder:font-medium placeholder:text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:h-9'
 const PLUS = 'h-11 w-11 rounded-lg bg-accent text-xl leading-none text-accent-ink transition-colors disabled:bg-accent-soft disabled:text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:h-9 md:w-9'
-const WHOLE_NUMBERS = new Set<FieldKey>(['reps', 'seconds'])
+const WHOLE_NUMBERS = new Set<FieldKey>(['reps', 'seconds', 'hr'])
 
 /** The sets as a table: set number, the log type's columns, and delete or add */
 function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSet, onUpdateSet, onDeleteSet }: {
@@ -635,12 +635,16 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
     // Last time's set with the same number, as hints; none if it was logged another way
     const hint = exercise.previous[next] && fitsLogType(exercise.logType, exercise.previous[next]) ? exercise.previous[next] : null
     const ready = fields.every((key, i) => isValidField(key, draft[i], units))
+    const placeholderOf = (key: FieldKey, last: SetValues | null) => {
+        const v = last ? fieldValue(key, last, units) : null
+        return v != null ? String(v) : isOptionalField(key) ? ts('optional') : last ? '' : undefined
+    }
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
         if (!ready || saving) return
         setSaving(true)
-        const saved = await onAddSet(exercise.exerciseId, toStoredSet(exercise.logType, draft.map(Number), units))
+        const saved = await onAddSet(exercise.exerciseId, toStoredSet(exercise.logType, draft.map(typedValue), units))
         setSaving(false)
         if (saved) {
             addedAt.current = Date.now()
@@ -723,7 +727,8 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
                         inputMode={WHOLE_NUMBERS.has(key) ? 'numeric' : 'decimal'}
                         value={draft[i]}
                         onChange={(e) => setDraft((d) => d.map((v, j) => (j === i ? e.target.value : v)))}
-                        placeholder={hint ? String(fieldValue(key, hint, units) ?? '') : undefined}
+                        // Last time's value as a hint; an optional field says so while it has none
+                        placeholder={placeholderOf(key, hint)}
                         aria-label={ts('fieldOfSet', { n: next + 1, field: fieldLabel(ts, key, units) })}
                         className={INPUT}
                     />
@@ -746,7 +751,7 @@ function LoggedCell({ field, set, units, label, onSave }: {
     set: SetValues
     units: Units
     label: string
-    onSave: (typed: number) => void
+    onSave: (typed: number | null) => void
 }) {
     const ts = useTranslations('sets')
     const typedAs = String(fieldValue(field, set, unitsOfSet(set, units)) ?? '')
@@ -755,7 +760,8 @@ function LoggedCell({ field, set, units, label, onSave }: {
     const cancelled = useRef(false)
 
     function finish() {
-        if (!cancelled.current && draft != null && draft.trim() !== typedAs && isValidField(field, draft, unitsOfSet(set, units))) onSave(Number(draft))
+        // An optional field emptied is saved as empty
+        if (!cancelled.current && draft != null && draft.trim() !== typedAs && isValidField(field, draft, unitsOfSet(set, units))) onSave(typedValue(draft))
         cancelled.current = false
         setDraft(null)
     }
@@ -765,6 +771,7 @@ function LoggedCell({ field, set, units, label, onSave }: {
             type="text"
             inputMode={WHOLE_NUMBERS.has(field) ? 'numeric' : 'decimal'}
             value={draft ?? cellText(ts, field, set, units)}
+            placeholder={isOptionalField(field) ? ts('optional') : undefined}
             onFocus={(e) => {
                 setDraft(typedAs)
                 const input = e.currentTarget
