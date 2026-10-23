@@ -224,7 +224,7 @@ const SLOTS = {
     squat: { unit: 'quads', compound: true, names: ['Barbell Back Squat', 'Leg Press', 'Goblet Squat', 'Smith Machine Squat', 'Bulgarian Split Squat', 'Bodyweight Squat'], onRequest: ['Front Squat', 'Hack Squat', 'Pendulum Squat'] },
     hinge: { unit: 'hamstrings', compound: true, names: ['Romanian Deadlift', 'Cable Pull Through', 'Glute Bridge'],
         onRequest: ['Deadlift', 'Sumo Deadlift', 'Trap Bar Deadlift', 'Stiff Leg Deadlift', 'Rack Pull', 'Good Morning', 'Kettlebell Swing', 'Back Extension'] },
-    legCurl: { unit: 'hamstrings', compound: false, names: ['Leg Curl', 'Nordic Hamstring Curl', 'Glute Ham Raise'] },
+    legCurl: { unit: 'hamstrings', compound: false, names: ['Seated Leg Curl', 'Lying Leg Curl', 'Nordic Hamstring Curl', 'Glute Ham Raise'] },
     quadIso: { unit: 'quads', compound: false, names: ['Leg Extension', 'Reverse Lunge', 'Walking Lunge', 'Step Up'], onRequest: ['Romanian Split Squat', 'Sissy Squat'] },
     glutes: { unit: 'glutes', compound: false, names: ['Hip Thrust Machine', 'Hip Thrust', 'Dumbbell Hip Thrust', 'Glute Bridge'], onRequest: ['Cable Glute Kickback', 'Frog Pump', 'Donkey Kick', 'Hip Abduction Machine', 'Monster Walk'] },
     calves: { unit: 'calves', compound: false, names: ['Standing Calf Raise', 'Seated Calf Raise', 'Leg Press Calf Raise'] },

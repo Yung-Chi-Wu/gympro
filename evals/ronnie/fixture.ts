@@ -47,7 +47,7 @@ const EXERCISE_LIST: [string, string, string][] = [
     ['Romanian Deadlift', '羅馬尼亞硬舉', 'legs'],
     ['Leg Press', '腿推', 'legs'],
     ['Walking Lunge', '行走弓箭步', 'legs'],
-    ['Leg Curl', '腿彎舉', 'legs'],
+    ['Seated Leg Curl', '坐姿腿彎舉機', 'legs'],
     ['Calf Raise', '小腿提踵', 'legs'],
     ['Hip Thrust', '臀推', 'glutes'],
     ['Plank', '棒式', 'core'],

@@ -68,7 +68,7 @@ const braces = (items) => items.flatMap((i) => [i.action, ...(i.lines ?? []).fla
     check('a first pull-up goes through the pulldown the user trains, to the set that marks the try', pull?.action === '引體向上：滑輪下拉 50 kg 做 4 組 × 6–8 下，每組都做到 8 下就換 52.5 kg；能做 55 kg × 6 下時，試一下引體向上'
         && pull.lines?.map((l) => l.text).join('|') === '輔助引體向上做 3 組 × 5–8 下，每組都做到 8 下就減一格輔助|離心引體向上做 3 組 × 2–3 下，每下慢慢放 3–5 秒', JSON.stringify(pull))
     const next = items.find((i) => i.rule === 'next_session')
-    check('the other main lifts are one item, a line each, after the goal\'s; the pulldown is in the pull-up\'s plan, not again here', next?.action === '其他動作：每組都做到次數上限，下次再加重' && next.lines.map((l) => l.label).join() === '側平舉,腿彎舉' && items.indexOf(next) === 3, JSON.stringify(next))
+    check('the other main lifts are one item, a line each, after the goal\'s; the pulldown is in the pull-up\'s plan, not again here', next?.action === '其他動作：每組都做到次數上限，下次再加重' && next.lines.map((l) => l.label).join() === '側平舉,坐姿腿彎舉機' && items.indexOf(next) === 3, JSON.stringify(next))
     check('no placeholder is left in any line (zh)', braces(items).length === 0, JSON.stringify(braces(items)))
     const en = w.planItems(a.findings, 'en', 'week', 'kg')
     check('in English too', en.find((i) => i.findingId === 'goal_path:ex-bench')?.action === 'Barbell Bench Press: 42.5 kg for 3 sets of 8–10; when every set reaches 10, go to 45 kg' && braces(en).length === 0, JSON.stringify(en[1]))
