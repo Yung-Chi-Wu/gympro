@@ -4,6 +4,8 @@ export interface ExerciseOption {
     name_zh_tw?: string | null
     muscle_group: string
     equipment: string | null
+    /** Its place among the exercises the user did last, 0 the latest; missing when not one (lib/recent-exercises.ts) */
+    recent?: number
     /** How its sets are logged (lib/set-log.ts); weight x reps when missing */
     log_type?: string | null
     /** Done one side at a time (lib/set-log.ts logNoteOf) */

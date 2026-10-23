@@ -55,6 +55,8 @@ jobs:
         run: npm run check:time-zone
       - name: What a user types has the same limits in the app and the tables
         run: npm run check:limits
+      - name: The exercise picker lists every group by recent use and equipment
+        run: npm run check:exercise-picker
       - name: The install guide reads every browser right
         run: npm run check:browser-env
       - name: The exercise library's data is valid and every change has its migration

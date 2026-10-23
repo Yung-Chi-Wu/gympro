@@ -8,11 +8,11 @@ import { createClient } from '@/lib/supabase/client'
 import { MuscleGroupExercisePicker } from './MuscleGroupExercisePicker'
 import { toFriendlyError } from '@/lib/friendly-error'
 import { reportClientError } from '@/lib/report-client-error'
-import { getMuscleGroupLabel } from '@/lib/exercise-display'
+import { exerciseSections, getMuscleGroupLabel } from '@/lib/exercise-display'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
 import { fieldValue, fitsLogType, isValidField, isWeightField, LOG_FIELDS, logNoteOf, logTypeOf, toSetRow, toStoredSet, unitsOfSet, withField, type FieldKey, type SetValues, type Units } from '@/lib/set-log'
-import type { ExerciseOption } from './log-types'
+import { MUSCLE_GROUPS, type ExerciseOption } from './log-types'
 import { dayIsOver, DayOverError, exerciseLogUnits, lastSessionSets, loadTodayWorkout, startTodayWorkout, type TodayExercise } from '@/lib/today-workout'
 import { cellText, compactSet, fieldLabel, SummaryLine } from './set-format'
 import { DayLogFields } from './DayLogFields'
@@ -490,7 +490,10 @@ interface AddExercisePanelProps {
 
 function AddExercisePanel({ exercises, language, onAdd, onCancel }: AddExercisePanelProps) {
     const t = useTranslations('today')
-    const [selectedId, setSelectedId] = useState(exercises[0]?.id ?? '')
+    // The top of the first group's list, as the picker shows it (was the first by English name)
+    const [selectedId, setSelectedId] = useState(
+        () => exerciseSections(exercises.filter((ex) => ex.muscle_group === MUSCLE_GROUPS[0]), language)[0]?.exercises[0]?.id ?? ''
+    )
     // One add at a time: a second tap while the first saves would add it twice
     const [adding, setAdding] = useState(false)
 
