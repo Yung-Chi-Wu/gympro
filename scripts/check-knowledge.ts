@@ -1,17 +1,20 @@
 // Free check of Ronnie's knowledge base (lib/ronnie/knowledge-notes.json): every note has what a
 // reader needs (claims, who was studied, design, certainty, a Chinese line in Traditional
 // characters, the words people ask with, a full source), ids and DOIs are unique, every paper the
-// weekly report cites is in it, and every DOI still resolves at doi.org.
-// Run: npm run check:knowledge
+// weekly report cites is in it, every DOI still resolves at doi.org, and the topic pages hold to
+// their notes (checkPages).
+// Run: npm run check:knowledge (-- --offline to skip doi.org)
 
 import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, GOAL_EVIDENCE, PLAN_EVIDENCE } from '../lib/report/evidence'
-import { KNOWLEDGE_NOTES, KNOWLEDGE_TOPICS } from '../lib/ronnie/knowledge'
+import { KNOWLEDGE_NOTES, KNOWLEDGE_PAGE_SECTIONS, KNOWLEDGE_PAGES, KNOWLEDGE_TOPICS } from '../lib/ronnie/knowledge'
 
 const DOI = /^10\.\d{4,9}\/\S+$/
 const ID = /^[a-z0-9]+(-[a-z0-9]+)*-\d{4}-[a-z0-9-]+$/
 // Characters only Simplified Chinese uses, as the report's text check counts them
 const SIMPLIFIED_ONLY = /[这们训练进动议还时对说体发让点从过关应经]/
 const MAX_CLAIM = 450
+/** Skip resolving the DOIs at doi.org, for a quick run while writing (CI resolves them) */
+const OFFLINE = process.argv.includes('--offline')
 
 async function resolves(doi: string): Promise<boolean> {
     // The DOI handle API answers responseCode 1 for a registered DOI, without following it to the publisher
@@ -63,7 +66,9 @@ async function main() {
     ]
     for (const s of reported) if (!dois.has(s.doi.toLowerCase())) problems.push(`the report cites ${s.author} ${s.year} (${s.doi}), which has no note`)
 
-    for (const doi of dois.keys()) {
+    const lines = checkPages(problems)
+
+    if (!OFFLINE) for (const doi of dois.keys()) {
         if (!(await resolves(doi))) problems.push(`DOI does not resolve: ${doi}`)
     }
 
@@ -72,7 +77,53 @@ async function main() {
         process.exit(1)
     }
     const topics = KNOWLEDGE_TOPICS.map((t) => `${t} ${KNOWLEDGE_NOTES.filter((n) => n.topic === t).length}`).join(', ')
-    console.log(`ok: ${KNOWLEDGE_NOTES.length} notes (${topics}), ${KNOWLEDGE_NOTES.reduce((s, n) => s + n.claims.length, 0)} claims, ${dois.size} DOIs resolve, every report paper included`)
+    console.log(`ok: ${KNOWLEDGE_NOTES.length} notes (${topics}), ${KNOWLEDGE_NOTES.reduce((s, n) => s + n.claims.length, 0)} claims, ${OFFLINE ? 'DOIs not resolved (--offline)' : `${dois.size} DOIs resolve`}, every report paper included; ${KNOWLEDGE_PAGES.length} topic pages, ${lines} lines, every note in one`)
+}
+
+// A topic page's line says no more than its notes. Code can't read meaning, but it can hold the
+// page to its notes where a written-once summary goes wrong most easily: a line cites only notes
+// that exist, and every number in it is one of theirs. Every note is in some page, and the keys
+// are code's to add.
+const NUMBER = /\d+(?:[.,]\d+)*/g
+const MAX_LINE = 320
+const MAX_PAGE_LINES = 14
+function checkPages(problems: string[]): number {
+    const notes = new Map(KNOWLEDGE_NOTES.map((n) => [n.id, n]))
+    const numbersOf = (text: string) => new Set((text.match(NUMBER) ?? []).flatMap((x) => [x, x.replace(/,/g, '')]))
+    const noteNumbers = new Map(KNOWLEDGE_NOTES.map((n) => [n.id, numbersOf([...n.claims, n.population, n.design, n.certainty, ...(n.caveats ?? [])].join(' '))]))
+    const ids = new Set<string>()
+    const inPages = new Set<string>()
+    let total = 0
+    for (const page of KNOWLEDGE_PAGES) {
+        const at = page.id || '(no id)'
+        if (!/^[a-z]+(-[a-z]+)*$/.test(page.id)) problems.push(`page ${at}: id is not lower-case words`)
+        if (ids.has(page.id)) problems.push(`page ${at}: id used twice`)
+        ids.add(page.id)
+        if (!page.title?.trim() || /[^\x00-\x7f]/.test(page.title)) problems.push(`page ${at}: no English title`)
+        if (!/[一-鿿]/.test(page.titleZh ?? '') || SIMPLIFIED_ONLY.test(page.titleZh)) problems.push(`page ${at}: no Traditional Chinese title`)
+        if (!/[一-鿿]/.test(page.terms ?? '') || !/[a-z]/i.test(page.terms ?? '')) problems.push(`page ${at}: terms need Chinese and English words`)
+        if (!page.agreed?.length) problems.push(`page ${at}: nothing agreed`)
+        const lines = KNOWLEDGE_PAGE_SECTIONS.flatMap((s) => (page[s] ?? []).map((l, i) => ({ l, where: `page ${at} ${s}[${i}]` })))
+        total += lines.length
+        if (lines.length > MAX_PAGE_LINES) problems.push(`page ${at}: ${lines.length} lines (at most ${MAX_PAGE_LINES})`)
+        for (const { l, where } of lines) {
+            if (!l.text?.trim()) problems.push(`${where}: empty`)
+            if (l.text.length > MAX_LINE) problems.push(`${where}: ${l.text.length} characters (at most ${MAX_LINE})`)
+            if (/[^\x00-\x7f]/.test(l.text.replace(/[–—’“”≥≤°]/g, ''))) problems.push(`${where}: not plain English`)
+            if (/\[K?\d+\]|\bK\d+\b/.test(l.text)) problems.push(`${where}: a key in the text; code adds the keys`)
+            if (!l.notes?.length) problems.push(`${where}: cites no note`)
+            const missingNote = l.notes.filter((id) => !notes.has(id))
+            for (const id of missingNote) problems.push(`${where}: no note ${id}`)
+            for (const id of l.notes) inPages.add(id)
+            const theirs = new Set(l.notes.flatMap((id) => [...(noteNumbers.get(id) ?? [])]))
+            const missing = (l.text.match(NUMBER) ?? []).filter((x) => !theirs.has(x) && !theirs.has(x.replace(/,/g, '')))
+            if (missing.length) problems.push(`${where}: ${missing.join(', ')} is in no note it cites`)
+        }
+        for (const r of page.related ?? []) if (r === page.id) problems.push(`page ${at}: related to itself`)
+    }
+    for (const page of KNOWLEDGE_PAGES) for (const r of page.related ?? []) if (!ids.has(r)) problems.push(`page ${page.id}: related page ${r} doesn't exist`)
+    for (const n of KNOWLEDGE_NOTES) if (!inPages.has(n.id)) problems.push(`${n.id}: in no topic page`)
+    return total
 }
 
 main().catch((e) => {

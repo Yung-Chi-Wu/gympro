@@ -11,7 +11,7 @@ import { namesOf, type LoggedToday } from './reply-check'
 import { VOLUME_UNIT_IDS } from '../report/volume'
 import { describeProposal } from './events'
 import { gatedSearch, latinTokens, searchLibrary } from './search'
-import { citationOf, searchKnowledge, type KnowledgeNote } from './knowledge'
+import { citationOf, knowledgeNote, knowledgePageFor, pageNotes, searchKnowledge, type KnowledgeNote } from './knowledge'
 import {
     INJURY_SITES, MAX_NOTE_CHARS, MAX_NOTES, MAX_OTHER_NOTES, MEMORY_STATES, isActiveInjury, isDislike, isInjurySite, isMemoryKind,
     memoryReceipt, noteIdOf, sameSlot, type MemoryKind, type MemoryNote,
@@ -39,6 +39,8 @@ export interface RonnieExecutorContext {
     now?: () => Date
     /** The first knowledge key this turn gives (citations.ts nextKnowledgeKey), past the ones earlier turns gave */
     knowledgeKeyStart?: number
+    /** Give the topic page with the notes (knowledge.ts); the eval turns it off to measure without */
+    knowledgePages?: boolean
 }
 
 export interface RonnieExecutor {
@@ -156,6 +158,11 @@ function noteText(key: string, n: KnowledgeNote, zh: boolean): string {
     ].join('\n')
 }
 
+/** A note a topic page cites that search didn't find: who it studied and how sure, its findings being in the page's lines */
+function shortNoteText(key: string, n: KnowledgeNote): string {
+    return `[${key}] ${citationOf(n.source)}, ${n.source.journal} (${n.design}; ${n.population}). How sure: ${n.certainty}${n.caveats?.length ? `; note: ${n.caveats.join('; ')}` : ''}`
+}
+
 const weekdayOf = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })
 const shiftDate = (iso: string, days: number) => {
     const d = new Date(`${iso}T00:00:00Z`)
@@ -164,7 +171,7 @@ const shiftDate = (iso: string, days: number) => {
 }
 const mondayOf = (iso: string) => shiftDate(iso, -((new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7))
 
-export function createRonnieExecutor({ data, language, timeZone, todayRoutineName, weightUnit = 'kg', distanceUnit = 'km', now = () => new Date(), knowledgeKeyStart = 1 }: RonnieExecutorContext): RonnieExecutor {
+export function createRonnieExecutor({ data, language, timeZone, todayRoutineName, weightUnit = 'kg', distanceUnit = 'km', now = () => new Date(), knowledgeKeyStart = 1, knowledgePages = true }: RonnieExecutorContext): RonnieExecutor {
     const zh = language === 'zh-TW'
     let needsDashboardReload = false
     const proposals: (RoutineProposal & { id: string })[] = []
@@ -327,16 +334,32 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             const found = searchKnowledge(query, await data.nearestKnowledge(query), 5)
             if (!found.length) return `No notes match "${query}". Answer what you can as general coaching, without saying research shows it.`
             // A note found twice in one turn keeps its first key, so a reply's citations stay one per paper
-            const keyed = found.map((note) => {
+            const keyOf = (note: KnowledgeNote) => {
                 const had = knowledge.find((k) => k.note.id === note.id)
                 if (had) return had
                 const cited = { key: `K${knowledgeKeyStart + knowledge.length}`, note }
                 knowledge.push(cited)
                 return cited
-            })
+            }
+            const keyed = found.map(keyOf)
+            // The topic page the notes belong to, its lines carrying the keys of the notes they come
+            // from: a note it cites that search didn't find gets a key too, and a short entry below
+            const page = knowledgePages ? knowledgePageFor(found) : null
+            const pageKeyed = page ? pageNotes(page).map(knowledgeNote).filter((n): n is KnowledgeNote => !!n).map(keyOf) : []
+            const keyFor = new Map([...keyed, ...pageKeyed].map((k) => [k.note.id, k.key]))
+            const pageText = page && [
+                `Topic summary: ${page.title}${zh ? ` (${page.titleZh})` : ''}. What the notes below say together; each line ends with the keys of the notes it comes from.`,
+                ...([['agreed', 'What the research agrees on'], ['unsure', 'Where it is unsure or disagrees'], ['practice', 'What it means for training']] as const)
+                    .filter(([s]) => page[s].length)
+                    .map(([s, heading]) => [`${heading}:`, ...page[s].map((l) => `- ${l.text} [${l.notes.map((id) => keyFor.get(id)).filter(Boolean).join(', ')}]`)].join('\n')),
+            ].join('\n')
+            const also = pageKeyed.filter((k) => !keyed.includes(k))
             return [
-                `GymPro's research notes for "${query}", closest first. Each is one paper's findings, for the people it studied. Cite a note right after the sentence it supports, with its key in square brackets, e.g. [${keyed[0].key}]; cite nothing else, and never name a paper or say "studies show" without a key.`,
+                `GymPro's research notes for "${query}". Each note is one paper's findings, for the people it studied. Cite a note right after the sentence it supports, with its key in square brackets, e.g. [${keyed[0].key}]; cite nothing else, and never name a paper or say "studies show" without a key.`,
+                ...(pageText ? [pageText] : []),
+                `The notes, closest to the question first:`,
                 ...keyed.map((k) => noteText(k.key, k.note, zh)),
+                ...(also.length ? [`Also cited by the summary:\n${also.map((k) => shortNoteText(k.key, k.note)).join('\n')}`] : []),
                 'Notes that don\'t answer the question are left uncited. What no note covers may be said as general coaching.',
             ].join('\n\n')
         },

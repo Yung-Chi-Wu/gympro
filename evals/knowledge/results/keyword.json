@@ -3,7 +3,8 @@
   "summary": {
     "hit1": 0.84,
     "hit5": 1,
-    "mrr": 0.8973333333333332
+    "mrr": 0.8973333333333332,
+    "pageHit": 0.88
   },
   "results": [
     {
@@ -17,7 +18,9 @@
         "slater-2019-surplus",
         "grgic-2018-frequency",
         "baz-valle-2022-volume"
-      ]
+      ],
+      "page": "volume-frequency",
+      "pageHit": true
     },
     {
       "id": "volume-en",
@@ -30,7 +33,9 @@
         "morton-2018-protein-daily",
         "pelland-2026-volume",
         "bull-2020-who-guidelines"
-      ]
+      ],
+      "page": "volume-frequency",
+      "pageHit": true
     },
     {
       "id": "failure-zh",
@@ -43,7 +48,9 @@
         "acsm-2026-strength",
         "lopez-2021-load",
         "schoenfeld-2017-load"
-      ]
+      ],
+      "page": "effort-failure",
+      "pageHit": true
     },
     {
       "id": "rir-zh",
@@ -53,7 +60,9 @@
       "top5": [
         "halperin-2022-rir-accuracy",
         "zhang-2025-supersets"
-      ]
+      ],
+      "page": "effort-failure",
+      "pageHit": true
     },
     {
       "id": "rest-zh",
@@ -66,7 +75,9 @@
         "robineau-2016-recovery-between-sessions",
         "bell-2023-deload",
         "byrne-2018-diet-breaks"
-      ]
+      ],
+      "page": "time-efficient-methods",
+      "pageHit": true
     },
     {
       "id": "frequency-zh",
@@ -79,7 +90,9 @@
         "petre-2021-trained-lifters",
         "ramos-campo-2024-split-full-body",
         "schoenfeld-2019-frequency"
-      ]
+      ],
+      "page": "progression-plateaus",
+      "pageHit": false
     },
     {
       "id": "light-heavy-zh",
@@ -92,7 +105,9 @@
         "varovic-2025-long-length",
         "lopez-2021-load",
         "acsm-2026-strength"
-      ]
+      ],
+      "page": "load-reps",
+      "pageHit": true
     },
     {
       "id": "strength-load-en",
@@ -105,7 +120,9 @@
         "lopez-2021-load",
         "schoenfeld-2017-load",
         "garcia-hermoso-2018-strength-mortality"
-      ]
+      ],
+      "page": "load-reps",
+      "pageHit": true
     },
     {
       "id": "rom-zh",
@@ -115,7 +132,9 @@
       "top5": [
         "pallares-2021-range-of-motion",
         "ramos-campo-2024-split-full-body"
-      ]
+      ],
+      "page": "exercise-execution",
+      "pageHit": true
     },
     {
       "id": "lengthened-en",
@@ -128,7 +147,9 @@
         "pallares-2021-range-of-motion",
         "burke-2023-creatine-hypertrophy",
         "iversen-2021-time-efficient"
-      ]
+      ],
+      "page": "exercise-execution",
+      "pageHit": true
     },
     {
       "id": "tempo-zh",
@@ -141,7 +162,9 @@
         "enes-2025-tempo",
         "kassiano-2022-exercise-variation",
         "yao-2026-creatine-older-adults"
-      ]
+      ],
+      "page": "exercise-execution",
+      "pageHit": true
     },
     {
       "id": "split-zh",
@@ -154,7 +177,9 @@
         "varovic-2025-long-length",
         "peos-2021-diet-breaks",
         "baz-valle-2022-volume"
-      ]
+      ],
+      "page": "volume-frequency",
+      "pageHit": true
     },
     {
       "id": "machines-zh",
@@ -167,7 +192,9 @@
         "lopez-2021-load",
         "robineau-2016-recovery-between-sessions",
         "oborn-2025-blood-flow-restriction"
-      ]
+      ],
+      "page": "exercise-execution",
+      "pageHit": true
     },
     {
       "id": "supersets-zh",
@@ -180,7 +207,9 @@
         "craven-2022-sleep",
         "schoenfeld-2013-protein-timing",
         "bell-2023-deload"
-      ]
+      ],
+      "page": "time-efficient-methods",
+      "pageHit": true
     },
     {
       "id": "dropsets-en",
@@ -193,7 +222,9 @@
         "tsartsapakis-2026-advanced-set-methods",
         "baz-valle-2022-volume",
         "pelland-2026-volume"
-      ]
+      ],
+      "page": "time-efficient-methods",
+      "pageHit": true
     },
     {
       "id": "mind-muscle-zh",
@@ -206,7 +237,9 @@
         "held-2026-interference-overview",
         "damas-2018-doms",
         "ramos-campo-2024-split-full-body"
-      ]
+      ],
+      "page": "protein",
+      "pageHit": false
     },
     {
       "id": "deload-zh",
@@ -217,7 +250,9 @@
         "bell-2023-deload",
         "rogerson-2024-deload",
         "coleman-2024-deload"
-      ]
+      ],
+      "page": "deload-overtraining-detraining",
+      "pageHit": true
     },
     {
       "id": "break-zh",
@@ -227,7 +262,9 @@
       "top5": [
         "ogasawara-2013-detraining",
         "rahmati-2022-muscle-memory"
-      ]
+      ],
+      "page": "deload-overtraining-detraining",
+      "pageHit": true
     },
     {
       "id": "newbie-zh",
@@ -240,7 +277,9 @@
         "petre-2021-trained-lifters",
         "kassiano-2025-unilateral-bilateral",
         "pallares-2021-range-of-motion"
-      ]
+      ],
+      "page": "progression-plateaus",
+      "pageHit": true
     },
     {
       "id": "stretch-before-zh",
@@ -253,7 +292,9 @@
         "warneke-2024-stretching",
         "warneke-2024-warm-up",
         "wilson-2025-warm-up"
-      ]
+      ],
+      "page": "pain-injury",
+      "pageHit": false
     },
     {
       "id": "cardio-gains-zh",
@@ -266,7 +307,9 @@
         "deller-2026-fat-loss-muscle-preservation",
         "eddens-2018-order",
         "schoenfeld-2014-fasted-cardio"
-      ]
+      ],
+      "page": "concurrent-programming",
+      "pageHit": true
     },
     {
       "id": "cardio-order-zh",
@@ -279,7 +322,9 @@
         "bull-2020-who-guidelines",
         "eddens-2018-order",
         "held-2026-interference-overview"
-      ]
+      ],
+      "page": "fat-loss-cardio-myths",
+      "pageHit": false
     },
     {
       "id": "cardio-gap-en",
@@ -292,7 +337,9 @@
         "schumann-2022-interference-strength-hypertrophy-power",
         "robineau-2016-recovery-between-sessions",
         "vieira-2016-fasted-cardio"
-      ]
+      ],
+      "page": "pain-injury",
+      "pageHit": false
     },
     {
       "id": "run-or-bike-zh",
@@ -305,7 +352,9 @@
         "held-2026-interference-overview",
         "burfield-2023-running-knees",
         "davies-2021-cluster-sets"
-      ]
+      ],
+      "page": "concurrent-interference",
+      "pageHit": true
     },
     {
       "id": "runner-weights-zh",
@@ -318,7 +367,9 @@
         "ali-2026-intermittent-fasting",
         "peos-2021-diet-breaks",
         "eddens-2018-order"
-      ]
+      ],
+      "page": "endurance-athletes-lifting",
+      "pageHit": true
     },
     {
       "id": "protein-amount-zh",
@@ -331,7 +382,9 @@
         "nunes-2022-protein-daily-older-adults",
         "schoenfeld-2013-protein-timing",
         "hudson-2020-protein-energy-restriction"
-      ]
+      ],
+      "page": "protein",
+      "pageHit": true
     },
     {
       "id": "protein-meal-zh",
@@ -344,7 +397,9 @@
         "nunes-2022-protein-daily-older-adults",
         "schoenfeld-2013-protein-timing",
         "hudson-2020-protein-energy-restriction"
-      ]
+      ],
+      "page": "protein",
+      "pageHit": true
     },
     {
       "id": "window-zh",
@@ -357,7 +412,9 @@
         "devries-2018-protein-kidney",
         "hudson-2020-protein-energy-restriction",
         "morton-2018-protein-daily"
-      ]
+      ],
+      "page": "protein",
+      "pageHit": true
     },
     {
       "id": "plant-protein-zh",
@@ -370,7 +427,9 @@
         "bischof-2024-collagen",
         "devries-2018-protein-kidney",
         "hudson-2020-protein-energy-restriction"
-      ]
+      ],
+      "page": "protein",
+      "pageHit": true
     },
     {
       "id": "creatine-safe-zh",
@@ -383,7 +442,9 @@
         "delpino-2022-creatine-lean-mass",
         "lak-2025-creatine-hair",
         "tsiaras-2026-creatine-kidney"
-      ]
+      ],
+      "page": "creatine",
+      "pageHit": true
     },
     {
       "id": "creatine-hair-zh",
@@ -396,7 +457,9 @@
         "delpino-2022-creatine-lean-mass",
         "kreider-2017-creatine",
         "tsiaras-2026-creatine-kidney"
-      ]
+      ],
+      "page": "creatine",
+      "pageHit": true
     },
     {
       "id": "creatine-women-en",
@@ -409,7 +472,9 @@
         "xu-2024-creatine-cognition",
         "burke-2023-creatine-hypertrophy",
         "kreider-2017-creatine"
-      ]
+      ],
+      "page": "creatine",
+      "pageHit": true
     },
     {
       "id": "caffeine-zh",
@@ -421,7 +486,9 @@
         "guest-2021-caffeine",
         "warneke-2024-warm-up",
         "wilson-2025-warm-up"
-      ]
+      ],
+      "page": "other-supplements",
+      "pageHit": true
     },
     {
       "id": "sleep-zh",
@@ -434,7 +501,9 @@
         "ekelund-2016-sitting-time",
         "keogh-2017-lifting-injury-rates",
         "robineau-2016-recovery-between-sessions"
-      ]
+      ],
+      "page": "diets",
+      "pageHit": false
     },
     {
       "id": "ice-bath-zh",
@@ -447,7 +516,9 @@
         "dupuy-2018-recovery-methods",
         "henselmans-2022-carbs-performance",
         "kassiano-2022-exercise-variation"
-      ]
+      ],
+      "page": "soreness-recovery",
+      "pageHit": true
     },
     {
       "id": "ibuprofen-en",
@@ -460,7 +531,9 @@
         "rahmati-2022-muscle-memory",
         "damas-2018-doms",
         "schoenfeld-2018-mind-muscle"
-      ]
+      ],
+      "page": "soreness-recovery",
+      "pageHit": true
     },
     {
       "id": "deficit-zh",
@@ -473,7 +546,9 @@
         "varovic-2025-long-length",
         "deller-2026-fat-loss-muscle-preservation",
         "morze-2021-body-composition"
-      ]
+      ],
+      "page": "fat-loss-rate-muscle",
+      "pageHit": true
     },
     {
       "id": "fasted-zh",
@@ -486,7 +561,9 @@
         "bull-2020-who-guidelines",
         "eddens-2018-order",
         "held-2026-interference-overview"
-      ]
+      ],
+      "page": "fat-loss-cardio-myths",
+      "pageHit": true
     },
     {
       "id": "if-zh",
@@ -499,7 +576,9 @@
         "deller-2026-fat-loss-muscle-preservation",
         "held-2026-interference-overview",
         "wilson-2012-interference-overview"
-      ]
+      ],
+      "page": "diets",
+      "pageHit": true
     },
     {
       "id": "keto-en",
@@ -512,7 +591,9 @@
         "petre-2021-trained-lifters",
         "acsm-2009-progression",
         "latella-2024-rate-of-gains"
-      ]
+      ],
+      "page": "diets",
+      "pageHit": true
     },
     {
       "id": "hiit-fat-zh",
@@ -525,7 +606,9 @@
         "monserda-vilaro-2023-modality-hiit-vs-continuous",
         "sabag-2018-modality-hiit",
         "willis-2012-body-composition"
-      ]
+      ],
+      "page": "fat-loss-cardio-myths",
+      "pageHit": true
     },
     {
       "id": "steps-zh",
@@ -535,7 +618,9 @@
       "top5": [
         "ding-2025-steps",
         "paluch-2022-steps"
-      ]
+      ],
+      "page": "health-benefits",
+      "pageHit": true
     },
     {
       "id": "kidney-zh",
@@ -548,7 +633,9 @@
         "wycherley-2012-protein-energy-restriction",
         "hudson-2020-protein-energy-restriction",
         "bischof-2024-collagen"
-      ]
+      ],
+      "page": "protein",
+      "pageHit": true
     },
     {
       "id": "spot-zh",
@@ -558,7 +645,9 @@
       "top5": [
         "brobakken-2023-spot-reduction",
         "vispute-2011-spot-reduction"
-      ]
+      ],
+      "page": "fat-loss-cardio-myths",
+      "pageHit": true
     },
     {
       "id": "squat-knee-zh",
@@ -571,7 +660,9 @@
         "burfield-2023-running-knees",
         "edwards-2023-blood-pressure",
         "lawford-2024-knee-osteoarthritis"
-      ]
+      ],
+      "page": "pain-injury",
+      "pageHit": true
     },
     {
       "id": "doms-zh",
@@ -581,7 +672,9 @@
       "top5": [
         "damas-2018-doms",
         "schoenfeld-2013-protein-timing"
-      ]
+      ],
+      "page": "soreness-recovery",
+      "pageHit": true
     },
     {
       "id": "women-bulky-zh",
@@ -594,7 +687,9 @@
         "eddens-2018-order",
         "morze-2021-body-composition",
         "willis-2012-body-composition"
-      ]
+      ],
+      "page": "women",
+      "pageHit": true
     },
     {
       "id": "period-zh",
@@ -604,7 +699,9 @@
       "top5": [
         "colenso-semple-2023-menstrual-cycle",
         "mcnulty-2020-menstrual-cycle"
-      ]
+      ],
+      "page": "women",
+      "pageHit": true
     },
     {
       "id": "back-pain-zh",
@@ -615,7 +712,9 @@
         "hayden-2021-low-back-pain",
         "keogh-2017-lifting-injury-rates",
         "halperin-2022-rir-accuracy"
-      ]
+      ],
+      "page": "pain-injury",
+      "pageHit": true
     },
     {
       "id": "bp-en",
@@ -628,7 +727,9 @@
         "oborn-2025-blood-flow-restriction",
         "schumann-2022-interference-strength-hypertrophy-power",
         "jansson-2022-type-2-diabetes"
-      ]
+      ],
+      "page": "health-benefits",
+      "pageHit": true
     }
   ]
 }

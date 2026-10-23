@@ -88,6 +88,7 @@ flowchart LR
 
 - **Who decides a change.** A change to today's workout that the user names, Ronnie makes at once. A change Ronnie picks, and any change to a routine, is shown as a card, and code applies it after the tap. Removing an exercise from a routine asks twice. The model never makes a permanent change itself; that is enforced by code, not by the prompt.
 - **Research notes.** [`lib/ronnie/knowledge-notes.json`](lib/ronnie/knowledge-notes.json) holds one note per paper, 149 in all. Each was written from the paper's abstract and checked against it, and each DOI was resolved through LibKey. Search ranks the notes by Cohere vectors in pgvector.
+  - **Topic pages:** [`lib/ronnie/knowledge-pages.json`](lib/ronnie/knowledge-pages.json) holds 25 pages, one per subject, for example cardio with lifting, protein, or fat loss. Each page says where the notes agree, where they are unsure or conflict, and what that means for training. Every line cites the notes it comes from. They were written once from the notes, each line checked against its notes by a second reader, and CI checks that every number in a line is in a note it cites. Search gives Ronnie the page with the notes, so it doesn't piece five separate notes together on each question.
   - **Citations:** Ronnie marks a sentence with a note's key. Code turns the keys into the papers listed under the reply, so a source shown is always one Ronnie was given. A key it wasn't given is dropped. The chat shows the list as one line ("See 3 sources") that opens it, with no number after each tip.
   - **Check:** before the reply is shown, Claude Haiku reads it against the notes. A finding presented as research that no note supports, or that goes past its note, is sent back once for a rewrite.
   - **No note:** general advice that no note covers stays in the reply, with a line under it saying it has no research source. Code adds that line to any reply that searched the notes and cites none.
@@ -145,7 +146,7 @@ flowchart LR
 |---|---|---|
 | Ronnie, development | 37 conversations | Code checks on every run: the right tools, the right writes and nothing else, valid IDs, date ranges, language, no fallback. A judge (Claude Opus 5.5) with a rubric on 28 of them. |
 | Ronnie, held out | 5 | The same. Run only for acceptance. |
-| Ronnie, fitness knowledge | 29 | Code checks on the sources under the reply (the right paper cited; none, plus the label, when no note covers it), plus the judge |
+| Ronnie, fitness knowledge | 33 | Code checks on the sources under the reply (the right paper cited; none, plus the label, when no note covers it), plus the judge |
 | Ronnie, memory | 21, some across several conversations | Code checks on the saved notes, plus the judge |
 | Exercise search | 51 queries, plus 20 held out | hit@1, hit@5, MRR |
 | Knowledge search | 50 questions, plus 25 held out | hit@1, hit@5, MRR |
@@ -167,6 +168,7 @@ flowchart LR
 | Which model for reports? | Free-text reports: Haiku 4.5 23%, Sonnet 4.6 76% (66 runs each) | Sonnet 4.6. Then a redesign that moved the facts into code. |
 | Which embeddings? | Held-out hit@5: keywords 75%, Titan V2 70%, Cohere Embed v4 90% | Cohere Embed v4, gated with keywords |
 | Knowledge search: keywords, vectors or both? | Held-out hit@5: keywords 88%, both fused 96%, Cohere Embed v4 alone 100% (hit@1 76%, 80%, 88%) | Vectors alone, with keywords when Bedrock is unavailable |
+| Which topic page goes with the notes found? | Held-out page hit: the page citing the most of the top 5 notes 88%; a page that cites the nearest note, then the most of the rest, 92% (dev 96% both) | The nearest note decides |
 | Does a knowledge base make Ronnie better? | 29 knowledge questions, 3 runs each: judge 63/87 → 82/87, the right paper cited 0/63 → 60/63 (63/63 replayed after a fix for full-width brackets). The 8 questions from before the notes fell from 21/24 to 15/24 while Ronnie answered only from the notes, and came back to 20/24 once the prompt said the notes add to a coach's answer | Shipped ([#78](https://github.com/Yung-Chi-Wu/gympro/pull/78)) |
 | Embed the muscles too? | Held-out hit@1 55% → 70%, MRR 0.73 → 0.81 (hit@5 95% → 90%) | Shipped |
 | Ronnie called an exercise still to come "already done" | 5/8 → 8/8, with a code check instead of more prompt | The check is in code ([#62](https://github.com/Yung-Chi-Wu/gympro/pull/62)) |
