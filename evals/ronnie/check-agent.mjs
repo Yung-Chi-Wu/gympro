@@ -21,6 +21,7 @@ const {
     buildSystemPrompt, MEDICINE_RULE, fixtureNotes, memoryLines, MAX_NOTES, MAX_EXERCISE_NOTES_SHOWN, MAX_OTHER_NOTES,
     correctionIn, flagForCancel, flagForClear, flagsForMessage, RIGHT_AFTER_MS,
     nextKnowledgeKey, renumber, withSources, KNOWLEDGE_NOTES, KNOWLEDGE_PAGES, knowledgePageFor, pageNotes, searchKnowledge, KNOWLEDGE_CHECK_MODEL, RESEARCH_WORDS,
+    medicineNote, mentionsMedicine, refersToDoctor,
 } = createRequire(import.meta.url)(join(here, 'dist', 'check.cjs'))
 
 let failures = 0
@@ -628,6 +629,30 @@ function note(kind, subject, state, text, updatedAt = '2026-10-01T02:00:00.000Z'
     const nothing = scripted([toolUse(['search_knowledge', { query: 'zzzz' }]), reply('舉重鞋不是必備，平底硬鞋也可以。')])
     const n = await turn(nothing, data, { messages: [{ role: 'user', content: '要穿舉重鞋嗎' }] })
     check(nothing.calls.length === 2 && n.unsourced === true && !n.knowledgeCheck, `and when the search found no note, with no check call: ${n.unsourced}`)
+}
+
+// ---------- medicines ----------
+
+// A reply about a medicine that sends them to no doctor or pharmacist gets the line under it, in the
+// code's words and with no model call; one that does, or isn't about a medicine, doesn't
+{
+    const { data } = createFixtureData()
+    const none = scripted([reply('安眠藥會讓人比較快睡著，但不會改善睡不好的原因。')])
+    const n = await turn(none, data, { messages: [{ role: 'user', content: '可以吃安眠藥嗎' }] })
+    check(n.message === `安眠藥會讓人比較快睡著，但不會改善睡不好的原因。\n\n${medicineNote(true)}` && n.medicineNoted && none.calls.length === 1, `no doctor or pharmacist: the line, with no extra call: ${n.message}`)
+    check(n.messages.at(-1).content.at(-1).text === medicineNote(true), 'the stored reply ends with the line, so the next turn sees it')
+    const asked = scripted([reply("So I wouldn't use one to push through.")])
+    const a = await turn(asked, data, { language: 'en', messages: [{ role: 'user', content: 'Can I take a couple of ibuprofen before training?' }], executor: executorFor(data, 'en') })
+    check(a.message.endsWith(medicineNote(false)) && a.medicineNoted, `a medicine in the question is enough, though the reply names none: ${a.message}`)
+    const referred = scripted([reply('要不要吃、吃多少，請問醫師或藥師。')])
+    const r = await turn(referred, data, { messages: [{ role: 'user', content: '練完可以吃止痛藥嗎' }] })
+    check(r.message === '要不要吃、吃多少，請問醫師或藥師。' && !r.medicineNoted, `a reply that sends them to a pharmacist gets no line: ${r.message}`)
+    const plain = scripted([reply('藥球砸地可以練爆發力，肌酸每天吃 3–5 克就好。')])
+    const p = await turn(plain, data, { messages: [{ role: 'user', content: '藥球和肌酸怎麼用' }] })
+    check(!p.medicineNoted && !p.message.includes('💊'), 'a medicine ball and creatine are not medicines: no line')
+    check(mentionsMedicine('吃止痛藥會怎樣') && mentionsMedicine('Can I take ibuprofen?') && mentionsMedicine('a couple of Advil') && mentionsMedicine('類固醇')
+        && !mentionsMedicine('medicine ball slams') && !mentionsMedicine('藥球') && !mentionsMedicine('creatine and caffeine'), 'medicines are spotted in both languages, a medicine ball is not one')
+    check(refersToDoctor('請問醫師或藥師') && refersToDoctor('see a doctor') && refersToDoctor('ask your pharmacist') && !refersToDoctor('rest a few days'), 'a doctor or pharmacist is spotted in both languages')
 }
 
 // A key the model made up, with no search this turn, is dropped and reported

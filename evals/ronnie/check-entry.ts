@@ -14,3 +14,4 @@ export { correctionIn, flagForCancel, flagForClear, flagsForMessage, RIGHT_AFTER
 export { nextKnowledgeKey, renumber, withSources } from '../../lib/ronnie/citations'
 export { KNOWLEDGE_NOTES, KNOWLEDGE_PAGES, knowledgePageFor, pageNotes, searchKnowledge } from '../../lib/ronnie/knowledge'
 export { KNOWLEDGE_CHECK_MODEL, RESEARCH_WORDS } from '../../lib/ronnie/knowledge-check'
+export { medicineNote, mentionsMedicine, refersToDoctor } from '../../lib/ronnie/medicine-check'

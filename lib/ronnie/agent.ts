@@ -5,6 +5,7 @@ import type { RonnieExecutor } from './executor'
 import { doneClaimCorrection, doneClaimFeedback, doneClaims } from './reply-check'
 import { renumber, withSources, type ReplySource } from './citations'
 import { checkKnowledge, overclaimFeedback, RESEARCH_WORDS, type KnowledgeVerdict } from './knowledge-check'
+import { medicineNote, mentionsMedicine, refersToDoctor } from './medicine-check'
 
 // Ronnie's agent loop. The caller passes the full history - tool calls and results
 // included - and stores the `messages` returned, so an ID looked up stays available.
@@ -51,6 +52,8 @@ export interface RonnieTurn {
      * verdict after, keys the reply used that no note had, and the check's own usage (Haiku)
      */
     knowledgeCheck?: { first: KnowledgeVerdict; retried: boolean; draft?: string; after?: KnowledgeVerdict; unknownKeys?: string[]; usage: Anthropic.Usage[] }
+    /** The reply is about a medicine and sends them to no doctor or pharmacist: code added the line under it (medicine-check.ts) */
+    medicineNoted?: boolean
 }
 
 const isUserText = (m: Anthropic.MessageParam) =>
@@ -240,10 +243,13 @@ export async function runRonnieTurn({
         const searched = toolCalls.some((c) => c.name === 'search_knowledge')
         const general = unsourced || (searched && !cited.sources.length && !!cited.text.trim())
         const answer = proposed ? codeLines : cited.text || codeLines
+        // A reply about a medicine leaves the decision to a doctor or pharmacist, in the code's words
+        // when it names neither (medicine-check.ts)
+        const medicineLine = !proposed && answer && (mentionsMedicine(question()) || mentionsMedicine(answer)) && !refersToDoctor(answer) ? medicineNote(zh) : ''
         // A note saved or forgotten is said in the code's words, first, as something done: the model
         // claimed to have remembered things it never saved (the memory baseline, 5 of 42 runs)
         const memoryLines = executor.remembered.join('\n')
-        const text = [memoryLines, answer || (memoryLines || planLine() ? '' : sorry), correction, planLine()].filter(Boolean).join('\n\n')
+        const text = [memoryLines, answer || (memoryLines || planLine() ? '' : sorry), correction, medicineLine, planLine()].filter(Boolean).join('\n\n')
         // A reply cut off by max_tokens can end in a half-written tool call, which stored
         // without its result would make the next request invalid
         const kept = proposed ? [] : [
@@ -251,6 +257,7 @@ export async function runRonnieTurn({
             ...content.filter((b) => b.type !== 'tool_use').map((b) => (b.type === 'text' ? { ...b, text: renumber(b.text, cited.numbers) } : b)),
             // The correction is part of what was said, so the next turn doesn't take the claim as standing
             ...(correction ? [{ type: 'text' as const, text: correction, citations: null }] : []),
+            ...(medicineLine ? [{ type: 'text' as const, text: medicineLine, citations: null }] : []),
         ]
         return {
             message: text,
@@ -263,6 +270,7 @@ export async function runRonnieTurn({
             ...(cited.sources.length && !proposed ? { sources: cited.sources } : {}),
             ...(general && !proposed ? { unsourced: true } : {}),
             ...(knowledgeCheck ? { knowledgeCheck } : {}),
+            ...(medicineLine ? { medicineNoted: true } : {}),
         }
     }
 
