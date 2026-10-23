@@ -7,6 +7,7 @@ import { currentPeriod, localDate } from '@/lib/periods'
 import { toFriendlyError } from '@/lib/friendly-error'
 import { timeZoneOf } from '@/lib/time-zone'
 import { reportError } from '@/lib/report-error'
+import { isDate } from '@/lib/history'
 
 // Reports are queued automatically when a period ends (the report-scheduler
 // Lambda). These actions cover what the user still does by hand: today's weight
@@ -158,6 +159,9 @@ export async function savePeriodNote(note: string): Promise<ActionResult> {
  * call the model); after that it is the user's button, up to the database's limit.
  */
 export async function retryFailedReport(periodStart: string, { auto = false }: { auto?: boolean } = {}): Promise<ActionResult> {
+    // Called from the browser, so the day is the caller's: one that isn't YYYY-MM-DD goes no
+    // further, into the database or the log (a newline in it could write a log line of its own)
+    if (!isDate(periodStart)) return { success: false, message: 'This report is not in a failed state.' }
     const supabase = await createClient()
     const {
         data: { user },
