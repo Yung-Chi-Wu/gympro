@@ -98,14 +98,12 @@ for (const [name, over, error] of [
 }
 
 // ---------- The plan ----------
-// The library as the repo has it (supabase/data/exercise-attributes.json), with each planner
-// exercise's equipment, which lives only in the database (scripts/coach-g-equipment.json)
+// The library as the repo has it (supabase/data/exercise-attributes.json), equipment included
 const root = join(__dirname, '..', '..')
-const attributes: { id: string; name: string; nameZh: string | null; muscleGroup: string; primary: string[]; secondary: string[]; stability: string; jointLoad: PlannerExercise['joint_load'] }[] =
+const attributes: { id: string; name: string; nameZh: string | null; muscleGroup: string; equipment: string; primary: string[]; secondary: string[]; stability: string; jointLoad: PlannerExercise['joint_load'] }[] =
     JSON.parse(readFileSync(join(root, 'supabase/data/exercise-attributes.json'), 'utf8'))
-const equipmentOf: Record<string, string> = JSON.parse(readFileSync(join(root, 'scripts/coach-g-equipment.json'), 'utf8'))
 const LIBRARY: PlannerExercise[] = attributes.map((a) => ({
-    id: a.id, name: a.name, name_zh_tw: a.nameZh, muscle_group: a.muscleGroup, equipment: equipmentOf[a.name] ?? 'other',
+    id: a.id, name: a.name, name_zh_tw: a.nameZh, muscle_group: a.muscleGroup, equipment: a.equipment,
     primary_muscles: a.primary, secondary_muscles: a.secondary, joint_load: a.jointLoad, stability_demand: a.stability,
 }))
 const byId = new Map(LIBRARY.map((e) => [e.id, e]))
@@ -113,8 +111,6 @@ const byName = new Map(LIBRARY.map((e) => [e.name, e]))
 {
     const missing = PLANNER_EXERCISE_NAMES.filter((n) => !byName.has(n))
     check(`every exercise a plan can use is in the library (${PLANNER_EXERCISE_NAMES.length})`, !missing.length, missing.join(', '))
-    const noEquipment = PLANNER_EXERCISE_NAMES.filter((n) => !equipmentOf[n])
-    check('and has its equipment in coach-g-equipment.json', !noEquipment.length, noEquipment.join(', '))
     const notFound = ON_REQUEST_NAMES.filter((n) => !byName.has(n))
     check(`every exercise a slot takes when asked for is in the library (${ON_REQUEST_NAMES.length})`, !notFound.length, notFound.join(', '))
 }

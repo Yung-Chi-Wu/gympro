@@ -35,7 +35,7 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
 |---|---|
 | **Log** | One set table for strength and cardio, with 8 log types: weight × reps, bodyweight plus added weight, assisted, timed, treadmill, machine level, rower, time only. Units are per exercise (kg or lb, km or mi). There is also a daily note and body weight. |
 | **Ronnie** | A chat coach. *"My elbow hurts, what instead of pushdowns?"*, *"What's left today?"*, *"Plan me a 4-day week."*, *"Will creatine make my hair fall out?"* It remembers injuries, likes and dislikes, equipment and schedule across conversations, and answers fitness questions from research notes, with the papers listed under the reply. |
-| **Coach G** | The user answers a few questions and gets a week of routines built from a 155-exercise library, rated for muscles and joint load. |
+| **Coach G** | The user answers a few questions and gets a week of routines built from a 169-exercise library, rated for muscles and joint load. |
 | **Weekly report** | Generated when the user's training period ends, in their time zone. It shows the status, the goal's progress, the key numbers and follow-up on last period's advice. Then it says what to do next session: for each lift the goal names, the way the user trains it now and other ways research supports; one line for each other main lift; and an action for each rule that fired. Each piece names its data, where that came from (the log, the goal, Ronnie's notes, what the user said) and the research behind it. |
 | **Layouts** | Separate phone and desktop layouts. On iPhone it installs to the home screen. |
 

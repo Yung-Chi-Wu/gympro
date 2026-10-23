@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto'
 import attributes from '../../supabase/data/exercise-attributes.json'
-import plannerEquipment from '../../scripts/coach-g-equipment.json'
 import type { PlannedExercise, RonnieData, RoutineProposal } from '../../lib/ronnie/data'
 import { logTypeOf, setValuesOf } from '../../lib/set-log'
 import type { ResolvedRow } from '../../lib/ronnie/events'
@@ -48,7 +47,7 @@ const EXERCISE_LIST: [string, string, string][] = [
     ['Romanian Deadlift', '羅馬尼亞硬舉', 'legs'],
     ['Leg Press', '腿推', 'legs'],
     ['Walking Lunge', '行走弓箭步', 'legs'],
-    ['Leg Curl', '腿彎舉', 'legs'],
+    ['Seated Leg Curl', '坐姿腿彎舉機', 'legs'],
     ['Calf Raise', '小腿提踵', 'legs'],
     ['Hip Thrust', '臀推', 'glutes'],
     ['Plank', '棒式', 'core'],
@@ -73,11 +72,9 @@ const attributesOf = (name: string) => {
     const real = (LIBRARY_NAME[name] ?? name).toLowerCase()
     const a = attributes.find((x) => x.name.toLowerCase() === real)
     if (!a) throw new Error(`fixture exercise ${name} has no counterpart in exercise-attributes.json`)
-    // Equipment lives only in the database; Coach G's offline check keeps the planner's (null: bodyweight)
-    const equipment = Object.entries(plannerEquipment as Record<string, string>).find(([n]) => n.toLowerCase() === real)?.[1] ?? null
     return {
         primary_muscles: a.primary, secondary_muscles: a.secondary, joint_load: a.jointLoad as Record<string, string>, log_type: logTypeOf(a.logType),
-        per_side: a.perSide === true, equipment, stability_demand: a.stability,
+        per_side: a.perSide === true, equipment: a.equipment, stability_demand: a.stability,
     }
 }
 

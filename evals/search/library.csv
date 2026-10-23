@@ -1,15 +1,18 @@
 id,name,name_zh_tw,muscle_group,equipment
 b1f735c6-9359-53d8-92ba-492d7b3b74c1,Assisted Pull-up,輔助引體向上,back,machine
-9ffc05c4-965a-5769-b0a2-3eb1c2799ec5,Back Extension,背部伸展,back,bodyweight
+9ffc05c4-965a-5769-b0a2-3eb1c2799ec5,Back Extension,羅馬椅挺身,back,bodyweight
+5d9547f3-c42c-4e8a-b1cc-57ac03fed191,Back Extension Machine,下背伸展機,back,machine
 a03bba95-1574-4ac2-a204-5e4d547711ec,Barbell Row,槓鈴划船,back,barbell
 cec4fc59-2312-52cb-a4e2-68519ece446e,Barbell Shrug,槓鈴聳肩,back,barbell
+807507e3-5006-42b6-a7c0-f9c8607d801e,Cable Shrug,繩索聳肩,back,cable
 835d1d13-10e5-4505-aeed-af6c2c191f79,Chest Supported Row,俯臥支撐划船,back,machine
 d9481455-4292-4125-90d5-f52a83266f5b,Chin-up,反握引體向上,back,bodyweight
 0ecb7835-60d5-416c-8f24-47cdb6bcda1f,Close Grip Lat Pulldown,窄握滑輪下拉,back,cable
-837efafb-516e-47de-899f-ee172486671a,Deadlift,硬舉,back,barbell
 9a4c755e-96c2-4931-8f25-a7a243b694cf,Dumbbell Shrug,啞鈴聳肩,back,dumbbell
 49d93e9a-1046-55ef-b402-ad802775815c,Inverted Row,反向划船,back,bodyweight
 9d187d17-8fc0-477d-a9f4-779df048b0ce,Lat Pulldown,滑輪下拉,back,cable
+5ef07de2-5157-43f7-91d2-1f9141ce4fda,Machine High Row,器械高位划船,back,machine
+86ed85fa-c28a-45f6-a44b-90d42ec0bd65,Machine Lat Pulldown,器械下拉,back,machine
 7203ed9a-a95b-4d51-ae97-c888dcab33dc,Machine Row,器械划船,back,machine
 47aaeed6-f260-4b3c-b96a-75f2a48f7fcb,Meadows Row,梅多斯划船,back,barbell
 305e4696-5b56-4c5f-96de-64650c61aa4b,Pull-up,引體向上,back,bodyweight
@@ -49,6 +52,7 @@ d60e1924-cc7a-4383-ad3a-779f2f74cee4,Spider Curl,蜘蛛彎舉,biceps,dumbbell
 97f47ef6-d55b-4c1c-929b-6b0f4cdc5e56,Cable Fly,繩索夾胸,chest,cable
 72de1404-e41d-423c-8a8f-43e232118b4f,Chest Dip Machine,胸部雙槓機,chest,machine
 575ee01c-ace7-5e38-a39d-3e437f8decb0,Decline Barbell Bench Press,下斜槓鈴臥推,chest,barbell
+b420bf81-1c92-4695-85f7-ef2e0c25099c,Decline Machine Chest Press,下斜器械推胸,chest,machine
 39bac938-bc82-4f4f-a841-7123aa0ef080,Dip,雙槓撐體,chest,bodyweight
 fc16ec49-35fc-4abb-a83d-327aad08ae1c,Dumbbell Bench Press,啞鈴臥推,chest,dumbbell
 9d31499d-c4d3-45c9-9e00-bd82f0ad6fe6,Dumbbell Fly,啞鈴飛鳥,chest,dumbbell
@@ -62,6 +66,7 @@ fc16ec49-35fc-4abb-a83d-327aad08ae1c,Dumbbell Bench Press,啞鈴臥推,chest,dum
 31da5f39-7a7c-4207-9340-e70184a40121,Pec Deck Fly,蝴蝶機夾胸,chest,machine
 0af1daea-7ae7-431a-b891-9c27f5e5a820,Push-up,伏地挺身,chest,bodyweight
 d420c6c5-7651-43a1-af42-4ead98d5aeb5,Smith Machine Bench Press,史密斯機臥推,chest,machine
+341026ae-4cd9-4680-8815-7aca78b9cc43,Smith Machine Incline Bench Press,史密斯機上斜臥推,chest,machine
 75458950-ef5a-430a-a94b-d25a0e55bb56,Svend Press,夾片推胸,chest,plates
 e70512f7-cdab-4c59-ac93-2e741fbd199c,Ab Machine,腹肌機,core,machine
 38d4887f-1427-45e6-ad98-d0cacfe7786a,Ab Wheel Rollout,健腹輪,core,bodyweight
@@ -82,44 +87,50 @@ bb195bba-3b13-5e43-8552-360dcc34edc9,Mountain Climber,登山者,core,bodyweight
 4b7d05f8-324f-45d1-9ef3-ab6e18b8eff4,Plank,棒式,core,bodyweight
 6eb701a8-c89c-4292-9ce6-15fff800a47f,Russian Twist,俄羅斯轉體,core,bodyweight
 d0fc0fac-f489-567a-a508-125d5e78c14f,Side Plank,側棒式,core,bodyweight
+9d0e907a-c89a-4d3a-b3c5-bf3fd2f9d04f,Torso Rotation Machine,轉體機,core,machine
 35bd73ee-0bdb-4a22-8cdd-75bf9c56fb15,Cable Glute Kickback,繩索臀部後踢,glutes,cable
+1d05c58b-6d2b-4898-aa60-122beb616a39,Cable Hip Abduction,繩索髖外展,glutes,cable
 0e52cb87-81ed-4d9a-9bfe-a1e8cf5f022b,Cable Pull Through,繩索 Pull Through,glutes,cable
 2b611877-e252-4a67-b130-01abf5f17c4c,Donkey Kick,驢踢腿,glutes,bodyweight
 ab765daf-8cba-443e-b55a-75bc926097e2,Dumbbell Hip Thrust,啞鈴臀推,glutes,dumbbell
 520b3d4d-868a-4999-970c-a6dd4f1cfb08,Frog Pump,青蛙臀橋,glutes,bodyweight
 40defb75-a81b-4261-8b81-5fc6e48632fd,Glute Bridge,臀橋,glutes,bodyweight
-7b49723c-bc70-4abc-b901-8030f90d72f6,Glute Ham Raise,臀腿抬升（GHR）,glutes,machine
+54901163-47ac-4a3a-a624-0ece3d344962,Glute Kickback Machine,臀部後踢機,glutes,machine
 fe8ed9e9-0b54-450c-8afe-2432032a3313,Hip Abduction Machine,髖外展機,glutes,machine
 930f0373-27a4-4e41-95aa-45a5f65837f0,Hip Thrust,臀推,glutes,barbell
 4fdfcaf0-feef-4ed7-b91e-aa455795ae5b,Hip Thrust Machine,臀推機,glutes,machine
 51231e88-fb37-5348-ae6b-5c988e2ca2af,Kettlebell Swing,壺鈴擺盪,glutes,kettlebell
 9b855917-1a27-481c-a928-a44bf8e29384,Monster Walk,怪獸步,glutes,other
-1b8bf9ca-1a75-4b53-98fc-600bd0254185,Romanian Split Squat,羅馬尼亞分腿蹲,glutes,dumbbell
-bc7d003c-ecad-46d1-aeaf-ebe75163e883,Sumo Deadlift,相撲硬舉,glutes,barbell
 cefb0269-3c0e-4d3d-9b53-ccd8c27cbdca,Barbell Back Squat,槓鈴深蹲,legs,barbell
 cc52b72a-32b7-5d0a-a273-cdadd2e7a28e,Belt Squat,腰帶深蹲,legs,machine
 298f7000-9b0a-5acc-b784-0b146831be61,Bodyweight Squat,徒手深蹲,legs,bodyweight
 3e7225dd-f85a-4f54-9103-19889c7bafcb,Box Jump,跳箱,legs,bodyweight
 4aaa080b-f09d-4280-944a-499536be9c4e,Bulgarian Split Squat,保加利亞分腿蹲,legs,dumbbell
+837efafb-516e-47de-899f-ee172486671a,Deadlift,硬舉,legs,barbell
 351a6a17-03d3-4667-a17a-27c8b164100e,Front Squat,前蹲舉,legs,barbell
+7b49723c-bc70-4abc-b901-8030f90d72f6,Glute Ham Raise,臀腿抬升（GHR）,legs,machine
 d1e0a931-56f6-555c-904e-01a59cc96f3c,Goblet Squat,高腳杯深蹲,legs,dumbbell
 540e71e6-f88c-4da1-a63d-7c691af30c39,Good Morning,早安式,legs,barbell
 ca7667a9-1455-478a-afa8-c8620a18a122,Hack Squat,哈克深蹲,legs,machine
 32921c6b-8fce-4763-89fa-431869057c49,Hip Adduction Machine,髖內收機,legs,machine
-d161aeef-073f-41ce-890b-bf05db4c74a7,Leg Curl,腿彎舉機,legs,machine
 506d4f6a-f877-46d5-8e7d-64b96071bd3f,Leg Extension,腿伸展機,legs,machine
 f73b69a8-15a2-4fda-8225-598c7db2940a,Leg Press,腿推機,legs,machine
 3a944a95-85da-4206-bc4e-ac6e11d52b0b,Leg Press Calf Raise,腿推機提踵,legs,machine
+9cbb956f-0369-4d2d-9ca3-67d93b6a732b,Lying Leg Curl,趴姿腿彎舉機,legs,machine
 99b165ff-6298-467f-8322-61d84d5b2dd7,Nordic Hamstring Curl,北歐腿彎舉,legs,bodyweight
 fbd27bc0-3d63-4dbe-a761-fed752b3ad08,Pendulum Squat,鐘擺深蹲機,legs,machine
 15eb2a99-2dd6-4f35-aeb1-e55220310105,Reverse Lunge,後退弓箭步,legs,dumbbell
 f4f94cfd-d0b3-4153-bf4c-fe885d776dd5,Romanian Deadlift,羅馬尼亞硬舉,legs,barbell
+1b8bf9ca-1a75-4b53-98fc-600bd0254185,Romanian Split Squat,羅馬尼亞分腿蹲,legs,dumbbell
 74ec2d18-b432-53d9-b99a-c1fb31142443,Seated Calf Raise,坐姿提踵,legs,machine
+d161aeef-073f-41ce-890b-bf05db4c74a7,Seated Leg Curl,坐姿腿彎舉機,legs,machine
 2b3eb54f-4f4e-41c2-81a4-4623f24b483f,Sissy Squat,西西深蹲,legs,bodyweight
+0f4752a4-ca87-412d-91a1-aeb6631717a0,Smith Machine Split Squat,史密斯機分腿蹲,legs,machine
 541050a5-e32c-4856-a3c4-0e9372a5600f,Smith Machine Squat,史密斯機深蹲,legs,machine
 546b7d5a-5a38-4f55-a689-05ddd45eb964,Standing Calf Raise,站姿提踵,legs,machine
 c7aa400c-e228-4916-bcc5-9704a506e946,Step Up,登階,legs,dumbbell
 56b122d2-4339-436d-8cc6-a38f74506ec0,Stiff Leg Deadlift,直腿硬舉,legs,barbell
+bc7d003c-ecad-46d1-aeaf-ebe75163e883,Sumo Deadlift,相撲硬舉,legs,barbell
 1062bc05-8db6-533a-ab8e-2a570f89b4e4,Trap Bar Deadlift,六角槓硬舉,legs,barbell
 564061d8-42af-42ee-8498-9e131ac582c6,Walking Lunge,行走弓箭步,legs,dumbbell
 49d0f0d7-6f7d-4773-b35c-0aebc4c41f36,Arnold Press,阿諾德推舉,shoulders,dumbbell
@@ -128,6 +139,8 @@ a96e7f09-d250-40d6-85d5-aa34fa4d149e,Behind The Neck Press,頸後槓鈴推舉,sh
 bc4a52f4-b495-49a4-9708-7f980502a690,Cable Front Raise,繩索前平舉,shoulders,cable
 ac5ec815-d1f9-4a7d-91c7-69bcbd2ef16c,Cable Lateral Raise,繩索側平舉,shoulders,cable
 13635d78-b011-40f6-ad52-a65bc10d3a96,Cable Rear Delt Fly,繩索後束飛鳥,shoulders,cable
+683dc660-f0fe-4791-aeef-71daf14c05f3,Cable Upright Row,繩索直立划船,shoulders,cable
+031ec38a-14a6-4c8a-b677-b77aaf93fb28,Cable Y Raise,繩索Y字舉,shoulders,cable
 88411188-ad1b-4a1b-b2b3-4e871dc65e22,Dumbbell Shoulder Press,啞鈴肩推,shoulders,dumbbell
 cf4e427f-66e5-4223-9b4b-f67fade34185,Dumbbell Upright Row,啞鈴直立划船,shoulders,dumbbell
 52f5bfb0-b10b-4d4f-9cdf-1ff711e139d6,Dumbbell Y Raise,啞鈴Y字舉,shoulders,dumbbell
@@ -143,6 +156,7 @@ fe74c880-8bfd-4c0c-b050-1808ec682347,Rear Delt Machine,反向蝴蝶機,shoulders
 f6928ace-c311-5cb9-bbdd-dbeff0444fc3,Smith Machine Shoulder Press,史密斯機肩推,shoulders,machine
 ff7bde57-b3d9-418a-95fe-0e320bacaa0f,Board Press,墊板臥推,triceps,barbell
 45731af9-c59d-4cb6-88f2-b908cf2796cd,Cable Overhead Triceps Extension,繩索過頭三頭伸展,triceps,cable
+bf9351f5-97b8-41fc-ae36-42dde274ec12,Cable Triceps Kickback,繩索三頭後踢,triceps,cable
 07698d2d-2e8f-4613-b703-ec0a878ca7c9,Close-Grip Bench Press,窄握臥推,triceps,barbell
 f3810e46-3d07-5dea-8b6b-846e22cd7a31,Diamond Push-up,鑽石伏地挺身,triceps,bodyweight
 8ace064e-53ef-4a2c-aab4-f9211783706a,Dumbbell Kickback,啞鈴三頭後踢,triceps,dumbbell

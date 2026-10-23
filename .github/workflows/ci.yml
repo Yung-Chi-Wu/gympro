@@ -57,6 +57,8 @@ jobs:
         run: npm run check:limits
       - name: The install guide reads every browser right
         run: npm run check:browser-env
+      - name: The exercise library's data is valid and every change has its migration
+        run: npm run exercise-attributes
       - name: Coach G accepts only what it can use and save
         run: npm run check:coach-g
       - name: Every server error reaches app_errors
