@@ -43,6 +43,10 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: none
+          # The default queries plus the ones GitHub leaves out of them for more false positives
+          # (owner, 2026-10-23: stricter than the default). A finding that isn't a real problem is
+          # dismissed with its reason in the Security tab.
+          queries: security-extended
       - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           category: /language:${{ matrix.language }}
