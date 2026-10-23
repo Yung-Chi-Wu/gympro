@@ -519,11 +519,11 @@ function note(kind, subject, state, text, updatedAt = '2026-10-01T02:00:00.000Z'
     check(searchKnowledge('creatine hair', ['lak-2025-creatine-hair', 'not-a-note', 'kreider-2017-creatine'], 5).map((n) => n.id).join() === 'lak-2025-creatine-hair,kreider-2017-creatine', 'vectors decide when there are any, and an unknown id is skipped')
 }
 
-// The topic page comes with the notes: its lines carry the notes' keys, and a note it cites that
-// search didn't find gets a key and a short entry, so every key it shows is one the reply may cite
+// With pages on, the topic page comes with the notes: its lines carry the notes' keys, and a note it
+// cites that search didn't find gets a key and a short entry, so every key it shows is one the reply may cite
 {
     const { data } = createFixtureData()
-    const executor = createRonnieExecutor({ data, language: 'zh-TW', timeZone: FIXTURE_TIME_ZONE, todayRoutineName: null, now: () => FIXTURE_NOW })
+    const executor = createRonnieExecutor({ data, language: 'zh-TW', timeZone: FIXTURE_TIME_ZONE, todayRoutineName: null, now: () => FIXTURE_NOW, knowledgePages: true })
     const result = await executor.executeTool('search_knowledge', { query: '吃肌酸會掉頭髮嗎' })
     const page = KNOWLEDGE_PAGES.find((p) => p.id === 'creatine')
     check(result.includes('Topic summary: Creatine (肌酸)') && result.indexOf('Topic summary') < result.indexOf('The notes, closest'), `the creatine page comes first, with its Chinese title: ${result.split('\n')[2]}`)
@@ -532,9 +532,9 @@ function note(kind, subject, state, text, updatedAt = '2026-10-01T02:00:00.000Z'
     check(lineKeys.length > 0 && lineKeys.every((k) => given.has(k) && result.includes(`\n[${k}] `)), `every key on the page is a note given, listed below it: ${[...new Set(lineKeys)].join(' ')}`)
     check(pageNotes(page).every((id) => executor.knowledge.some((k) => k.note.id === id)) && executor.knowledge.length === new Set([...pageNotes(page), ...executor.knowledge.map((k) => k.note.id)]).size, 'every note the page cites is given, each once')
     check(result.includes('Also cited by the summary:') && executor.knowledge.length > 5, `the page's other notes are given short: ${executor.knowledge.length} notes`)
-    const off = createRonnieExecutor({ data, language: 'en', timeZone: FIXTURE_TIME_ZONE, todayRoutineName: null, now: () => FIXTURE_NOW, knowledgePages: false })
+    const off = createRonnieExecutor({ data, language: 'en', timeZone: FIXTURE_TIME_ZONE, todayRoutineName: null, now: () => FIXTURE_NOW })
     const plain = await off.executeTool('search_knowledge', { query: 'creatine hair loss' })
-    check(!plain.includes('Topic summary') && off.knowledge.length <= 5, 'without pages, only the notes found')
+    check(!plain.includes('Topic summary') && off.knowledge.length <= 5, 'pages are off unless asked for (evals v32, v33): only the notes found')
     const note = (id) => KNOWLEDGE_NOTES.find((n) => n.id === id)
     const pageOf = (...ids) => knowledgePageFor(ids.map(note))?.id ?? null
     check(pageOf('lak-2025-creatine-hair', 'singer-2024-rest', 'kreider-2017-creatine') === 'creatine' && pageOf('singer-2024-rest', 'lak-2025-creatine-hair', 'kreider-2017-creatine') === 'time-efficient-methods' && pageOf() === null,

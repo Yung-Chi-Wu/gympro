@@ -131,9 +131,11 @@ export function searchKnowledge(query: string, nearestIds: string[] | null, limi
 }
 
 // Topic pages (knowledge-pages.json): what the notes on one subject say together, written once
-// from the notes rather than put together by the model on every question. Search gave Ronnie five
-// separate notes, and it answered from them alone, leaving out what a good answer needs (eval
-// v30); a page says where the papers agree, where they don't, and what that means for training.
+// from the notes rather than put together by the model on every question: where the papers agree,
+// where they don't, and what that means for training. Written because Ronnie answered from five
+// separate notes alone, leaving out what a good answer needs (eval v30). By the time they were
+// measured a prompt line had fixed that (v31), and given to Ronnie they made its answers no better
+// (evals v32, v33), so search_knowledge leaves them off (executor.ts); the weekly report uses them.
 // Every line cites the notes it comes from, and says no more than them: `npm run check:knowledge`
 // checks each cited note exists and every number in a line is in one of them, and the knowledge
 // check reads Ronnie's reply against the notes themselves, not the page.

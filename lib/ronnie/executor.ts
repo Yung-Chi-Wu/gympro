@@ -39,7 +39,11 @@ export interface RonnieExecutorContext {
     now?: () => Date
     /** The first knowledge key this turn gives (citations.ts nextKnowledgeKey), past the ones earlier turns gave */
     knowledgeKeyStart?: number
-    /** Give the topic page with the notes (knowledge.ts); the eval turns it off to measure without */
+    /**
+     * Give the topic page with the notes (knowledge.ts). Off: with pages, judged answers were no
+     * better (92/99 both, evals v32 and v33), replies cited a side note where no note answered the
+     * question (5 of 6 runs, 1 of 6 without), and a turn read about 3,400 more tokens
+     */
     knowledgePages?: boolean
 }
 
@@ -171,7 +175,7 @@ const shiftDate = (iso: string, days: number) => {
 }
 const mondayOf = (iso: string) => shiftDate(iso, -((new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7))
 
-export function createRonnieExecutor({ data, language, timeZone, todayRoutineName, weightUnit = 'kg', distanceUnit = 'km', now = () => new Date(), knowledgeKeyStart = 1, knowledgePages = true }: RonnieExecutorContext): RonnieExecutor {
+export function createRonnieExecutor({ data, language, timeZone, todayRoutineName, weightUnit = 'kg', distanceUnit = 'km', now = () => new Date(), knowledgeKeyStart = 1, knowledgePages = false }: RonnieExecutorContext): RonnieExecutor {
     const zh = language === 'zh-TW'
     let needsDashboardReload = false
     const proposals: (RoutineProposal & { id: string })[] = []
