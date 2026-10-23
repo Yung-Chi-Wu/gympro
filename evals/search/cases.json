@@ -43,7 +43,7 @@
   { "id": "desc-upper-chest-zh", "kind": "descriptive", "query": "練上胸的動作", "relevant": ["Incline Dumbbell Bench Press", "Incline Barbell Bench Press", "Low Cable Fly", "Incline Machine Chest Press"] },
   { "id": "desc-upper-chest-en", "kind": "descriptive", "query": "upper chest exercise", "relevant": ["Incline Dumbbell Bench Press", "Incline Barbell Bench Press", "Low Cable Fly", "Incline Machine Chest Press"] },
   { "id": "desc-rear-delts-zh", "kind": "descriptive", "query": "後三角", "relevant": ["Rear Delt Fly", "Cable Rear Delt Fly", "Rear Delt Machine", "Face Pull"] },
-  { "id": "desc-hamstrings", "kind": "descriptive", "query": "hamstrings", "relevant": ["Romanian Deadlift", "Leg Curl", "Nordic Hamstring Curl", "Stiff Leg Deadlift", "Good Morning", "Glute Ham Raise"] },
+  { "id": "desc-hamstrings", "kind": "descriptive", "query": "hamstrings", "relevant": ["Romanian Deadlift", "Seated Leg Curl", "Lying Leg Curl", "Nordic Hamstring Curl", "Stiff Leg Deadlift", "Good Morning", "Glute Ham Raise"] },
   { "id": "desc-lats-zh", "kind": "descriptive", "query": "練背闊肌", "relevant": ["Lat Pulldown", "Pull-up", "Chin-up", "Straight-Arm Pulldown", "Close Grip Lat Pulldown", "Reverse Grip Lat Pulldown", "Assisted Pull-up"] },
   { "id": "desc-bodyweight-legs-zh", "kind": "descriptive", "query": "不用器材的腿部動作", "relevant": ["Bodyweight Squat", "Sissy Squat", "Box Jump", "Nordic Hamstring Curl"] },
   { "id": "desc-bodyweight-back", "kind": "descriptive", "query": "bodyweight back exercise", "relevant": ["Pull-up", "Chin-up", "Inverted Row", "Back Extension"] },

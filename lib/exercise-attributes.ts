@@ -50,6 +50,10 @@ export const JOINT_LABELS: Record<Joint, { zh: string; en: string }> = {
     neck: { zh: '頸', en: 'Neck' },
 }
 
+/** What an exercise is done with; the exercise picker has a section for the common ones (lib/exercise-display.ts) */
+export const EQUIPMENT = ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight', 'kettlebell', 'plates', 'other'] as const
+export type Equipment = (typeof EQUIPMENT)[number]
+
 /** How a set of the exercise is logged, shown and summarised */
 export const LOG_TYPES = {
     weight_reps: { zh: '重量 × 次數', en: 'Weight × reps' },

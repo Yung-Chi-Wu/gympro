@@ -56,7 +56,7 @@ export const SUGGESTED_EXERCISES: Partial<Record<VolumeUnit, readonly string[]>>
     side_delts: ['Lateral Raise', 'Cable Lateral Raise', 'Machine Lateral Raise'],
     rear_delts: ['Rear Delt Machine', 'Face Pull', 'Cable Rear Delt Fly'],
     quads: ['Leg Press', 'Leg Extension', 'Goblet Squat'],
-    hamstrings: ['Leg Curl', 'Romanian Deadlift'],
+    hamstrings: ['Seated Leg Curl', 'Romanian Deadlift'],
     glutes: ['Hip Thrust', 'Hip Thrust Machine', 'Glute Bridge'],
     biceps: ['Dumbbell Curl', 'Cable Curl', 'Machine Curl'],
     triceps: ['Triceps Pushdown', 'Rope Pushdown', 'Machine Triceps Extension'],

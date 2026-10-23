@@ -27,7 +27,7 @@ const LIBRARY = [
     ['squat', 'Barbell Back Squat', '深蹲', 'legs'],
     ['rdl', 'Romanian Deadlift', '羅馬尼亞硬舉', 'legs'],
     ['legpress', 'Leg Press', '腿推機', 'legs'],
-    ['legcurl', 'Leg Curl', '腿彎舉', 'legs'],
+    ['legcurl', 'Seated Leg Curl', '坐姿腿彎舉機', 'legs'],
     ['hipthrust', 'Hip Thrust', '臀推', 'glutes'],
     ['plank', 'Plank', '棒式', 'core'],
     ['assisted', 'Assisted Pull-up', '輔助引體向上', 'back'],
