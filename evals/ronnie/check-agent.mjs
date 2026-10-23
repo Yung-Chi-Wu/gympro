@@ -21,6 +21,7 @@ const {
     buildSystemPrompt, MEDICINE_RULE, fixtureNotes, memoryLines, MAX_NOTES, MAX_EXERCISE_NOTES_SHOWN, MAX_OTHER_NOTES,
     correctionIn, flagForCancel, flagForClear, flagsForMessage, RIGHT_AFTER_MS,
     nextKnowledgeKey, renumber, withSources, KNOWLEDGE_NOTES, KNOWLEDGE_PAGES, knowledgePageFor, pageNotes, searchKnowledge, KNOWLEDGE_CHECK_MODEL, RESEARCH_WORDS,
+    medicineNote, mentionsMedicine, refersToDoctor,
 } = createRequire(import.meta.url)(join(here, 'dist', 'check.cjs'))
 
 let failures = 0
@@ -628,6 +629,81 @@ function note(kind, subject, state, text, updatedAt = '2026-10-01T02:00:00.000Z'
     const nothing = scripted([toolUse(['search_knowledge', { query: 'zzzz' }]), reply('舉重鞋不是必備，平底硬鞋也可以。')])
     const n = await turn(nothing, data, { messages: [{ role: 'user', content: '要穿舉重鞋嗎' }] })
     check(nothing.calls.length === 2 && n.unsourced === true && !n.knowledgeCheck, `and when the search found no note, with no check call: ${n.unsourced}`)
+}
+
+// ---------- the medicine check ----------
+
+function medicineVerdict(advice) {
+    return { stop_reason: 'tool_use', model: KNOWLEDGE_CHECK_MODEL, usage, content: [{ type: 'tool_use', id: 'm', name: 'report_medicine_advice', input: { advice } }] }
+}
+
+// Advice on taking a medicine goes back once; the rewrite is checked again and shown, with no line
+// under it when it sends them to a doctor or pharmacist
+{
+    const { data } = createFixtureData()
+    const checks = []
+    let feedback = ''
+    const client = scripted([
+        reply('布洛芬會不會影響長肌肉，研究結果不一致。練完痠痛的話，偶爾吃一顆沒關係。'),
+        (params) => {
+            checks.push(params)
+            // The knowledge check comes after this one and reads the reply that is shown
+            return medicineVerdict(['練完痠痛的話，偶爾吃一顆沒關係。'])
+        },
+        (params) => {
+            feedback = params.messages.at(-1).content
+            check(params.tool_choice?.type === 'none', 'the medicine rewrite runs without tools')
+            return reply('布洛芬會不會影響長肌肉，目前結果不一致。要不要吃、什麼時候吃、吃多少，請問醫師或藥師。')
+        },
+        (params) => {
+            checks.push(params)
+            return medicineVerdict([])
+        },
+    ])
+    const t = await turn(client, data, { messages: [{ role: 'user', content: '練完會痠，吃止痛藥（像布洛芬）會不會影響長肌肉？' }] })
+    check(checks[0]?.model === KNOWLEDGE_CHECK_MODEL && checks[0].tools[0].name === 'report_medicine_advice' && /<question>\n練完會痠，吃止痛藥/.test(checks[0].messages[0].content) && /<reply>\n布洛芬/.test(checks[0].messages[0].content),
+        'the check reads the question and the draft, on Haiku')
+    check(feedback.includes('偶爾吃一顆沒關係') && /doctor or pharmacist/.test(feedback) && /safer one/.test(feedback), `the feedback quotes the advice and names the ways around it: ${feedback.split('\n')[1]}`)
+    check(t.message === '布洛芬會不會影響長肌肉，目前結果不一致。要不要吃、什麼時候吃、吃多少，請問醫師或藥師。', `the rewrite is shown, with no line under it: ${t.message}`)
+    check(t.medicineCheck?.retried && t.medicineCheck.after?.advice.length === 0 && !t.medicineCheck.noted && t.medicineCheck.draft.includes('偶爾吃一顆'), 'the trace keeps the first draft and both verdicts')
+    check(client.calls.length === 4 && !t.knowledgeCheck, `the rewrite has no research words, so the knowledge check doesn't run on it: ${client.calls.length} calls`)
+    check(t.usage.length === 2 && t.medicineCheck.usage.length === 2, 'the check\'s usage is kept apart from Ronnie\'s')
+}
+
+// Advice that stays after the rewrite is shown with the line under it, and the history keeps the line
+{
+    const { data } = createFixtureData()
+    const client = scripted([
+        reply("Painkillers can mask pain. So I wouldn't use one to push through."),
+        medicineVerdict(["So I wouldn't use one to push through."]),
+        reply("Painkillers mask pain, which is a warning sign. I wouldn't use one to push through; see a doctor about the shoulder."),
+        medicineVerdict(["I wouldn't use one to push through; see a doctor about the shoulder."]),
+    ])
+    const t = await turn(client, data, { language: 'en', messages: [{ role: 'user', content: 'Can I take a couple of ibuprofen before training so I can push through it?' }], executor: executorFor(data, 'en') })
+    check(t.message.endsWith(medicineNote(false)) && t.message.startsWith('Painkillers mask pain') && t.medicineCheck.noted, `the advice left is followed by the code's line: ${t.message.slice(-90)}`)
+    check(t.messages.at(-1).content.at(-1).text === medicineNote(false), 'the stored reply ends with the line, so the next turn sees it')
+}
+
+// No advice but no doctor or pharmacist: the line is added; a check that fails passes the reply
+{
+    const { data } = createFixtureData()
+    const quiet = scripted([reply('安眠藥會讓人比較快睡著，但不會改善睡眠品質的根本原因。'), medicineVerdict([])])
+    const q = await turn(quiet, data, { messages: [{ role: 'user', content: '可以吃安眠藥嗎' }] })
+    check(q.message.endsWith(medicineNote(true)) && !q.medicineCheck.retried && q.medicineCheck.noted, `a reply that sends them to no one gets the line: ${q.message}`)
+    const failed = scripted([reply('類固醇確實會讓肌肉長得比較快，風險很多，請找醫師評估。'), () => { throw new Error('overloaded') }])
+    const f = await turn(failed, data, { messages: [{ role: 'user', content: '類固醇真的可以讓肌肉長很快嗎' }] })
+    check(f.message === '類固醇確實會讓肌肉長得比較快，風險很多，請找醫師評估。' && /overloaded/.test(f.medicineCheck.first.error ?? '') && !f.medicineCheck.noted, `a failed check passes a reply that refers them, and says why: ${f.medicineCheck.first.error}`)
+}
+
+// Only a question or reply that names a medicine is checked: a medicine ball and creatine are not
+{
+    const { data } = createFixtureData()
+    const plain = scripted([reply('藥球砸地可以練爆發力，肌酸每天吃 3–5 克就好。')])
+    const p = await turn(plain, data, { messages: [{ role: 'user', content: '藥球和肌酸怎麼用' }] })
+    check(plain.calls.length === 1 && !p.medicineCheck && !p.message.includes('💊'), 'no medicine, no check call and no line')
+    check(mentionsMedicine('吃止痛藥會怎樣') && mentionsMedicine('Can I take ibuprofen?') && mentionsMedicine('a couple of Advil') && mentionsMedicine('類固醇')
+        && !mentionsMedicine('medicine ball slams') && !mentionsMedicine('藥球') && !mentionsMedicine('creatine and caffeine'), 'medicines are spotted in both languages, a medicine ball is not one')
+    check(refersToDoctor('請問醫師或藥師') && refersToDoctor('see a doctor') && refersToDoctor('ask your pharmacist') && !refersToDoctor('rest a few days'), 'a doctor or pharmacist is spotted in both languages')
 }
 
 // A key the model made up, with no search this turn, is dropped and reported

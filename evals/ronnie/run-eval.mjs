@@ -193,6 +193,8 @@ async function runCase(c, ctx) {
       ...(t.sources || t.unsourced || t.knowledgeCheck
         ? [{ role: 'knowledge', content: JSON.stringify({ sources: t.sources ?? [], unsourced: !!t.unsourced, ...(t.knowledgeCheck ? { check: { ...t.knowledgeCheck, usage: undefined } } : {}) }) }]
         : []),
+      // The medicine check's verdicts, the draft it sent back, and whether code added the line under the reply
+      ...(t.medicineCheck ? [{ role: 'medicine_check', content: JSON.stringify({ ...t.medicineCheck, usage: undefined }) }] : []),
       // The notes after a turn that changed them, so regrade.mjs can grade memory from the trace
       ...(t.memoryChanged ? [{ role: 'memory', content: JSON.stringify(t.memoryAfter) }] : []),
     ]),
