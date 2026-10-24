@@ -89,6 +89,8 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     // Replies whose source list is open, by their place in the chat
     const [openSources, setOpenSources] = useState<Set<number>>(() => new Set())
     const abortRef = useRef<AbortController | null>(null)
+    // Counts the messages sent: a reload that started before one would show the conversation without it
+    const sentRef = useRef(0)
     const bottomRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
 
@@ -118,7 +120,9 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         window.dispatchEvent(new CustomEvent('ronnie-routine-changed'))
     }
 
-    // The conversation loads the first time Ronnie opens, from the button or the sidebar
+    // The conversation loads the first time Ronnie opens, from the button or the sidebar. Nothing is
+    // sent until it has (handleSend), since it replaces what the window shows; if it fails, the chat
+    // still works, without the earlier messages.
     useEffect(() => {
         if (!isOpen || loaded) return
         let cancelled = false
@@ -129,10 +133,11 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                 if (cancelled) return
                 if (res.ok && Array.isArray(data?.items)) setItems(data.items)
                 else reportClientError('client/ronnie/load', responseError(`Conversation request failed: ${res.status}`, res.status, data))
-                setLoaded(true)
             } catch (err) {
                 console.error(err)
                 reportClientError('client/ronnie/load', err)
+            } finally {
+                if (!cancelled) setLoaded(true)
             }
         }
         void load()
@@ -140,6 +145,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     }, [isOpen, loaded])
 
     async function send(text: string, editFrom?: number) {
+        sentRef.current++
         setIsLoading(true)
         abortRef.current = new AbortController()
         try {
@@ -187,7 +193,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
 
     function handleSend(text?: string) {
         const content = text ?? input.trim()
-        if (!content || isLoading) return
+        if (!content || isLoading || !loaded) return
         setItems((prev) => [...prev, { kind: 'user', text: content }])
         setInput('')
         focusInput()
@@ -198,12 +204,15 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         abortRef.current?.abort()
         setIsLoading(false)
         focusInput()
-        // A change Ronnie made before the stop is kept on the server: show it, and refresh today's workout
+        // A change Ronnie made before the stop is kept on the server: show it, and refresh today's workout.
+        // Not over a message sent since: its reply brings the window up to date, and the conversation
+        // read now could be from before it.
+        const sent = sentRef.current
         setTimeout(async () => {
             try {
                 const res = await fetch('/api/ai/coach')
                 const data = await res.json().catch(() => null)
-                if (res.ok && Array.isArray(data?.items)) setItems(data.items)
+                if (res.ok && Array.isArray(data?.items)) { if (sentRef.current === sent) setItems(data.items) }
                 else reportClientError('client/ronnie/reload', responseError(`Conversation request failed: ${res.status}`, res.status, data))
                 notifyDashboard()
             } catch (err) {
@@ -514,7 +523,12 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
 
                     {/* Messages */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                        {items.length === 0 && (
+                        {!loaded && (
+                            <p className="pt-4 text-center text-xs text-ink/50 dark:text-white/50">
+                                {zh ? '載入對話中…' : 'Loading the conversation…'}
+                            </p>
+                        )}
+                        {loaded && items.length === 0 && (
                             <div className="text-center space-y-3 pt-4">
                                 <div className="text-4xl">💪</div>
                                 <p className="text-sm font-medium">{"Ain't nothin' but a peanut!"}</p>
@@ -658,7 +672,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                 className="flex-1 rounded-xl border border-ink/20 dark:border-white/20 px-3 py-2 text-sm bg-transparent"
                             />
                             <button type="button" onClick={() => handleSend()}
-                                disabled={!input.trim() || isLoading}
+                                disabled={!input.trim() || isLoading || !loaded}
                                 className="rounded-xl px-3 py-2 text-sm font-medium text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                                 style={{ backgroundColor: ACCENT }}>
                                 {zh ? '發送' : 'Send'}
