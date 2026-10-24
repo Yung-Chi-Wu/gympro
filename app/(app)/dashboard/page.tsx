@@ -1,3 +1,5 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/types/database.types'
 import { createClient } from '@/lib/supabase/server'
 import { getFrameProfile, getSessionUser } from '@/lib/frame-profile'
 import { redirect } from 'next/navigation'
@@ -17,22 +19,18 @@ import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
 import { loadLatestReport } from '@/lib/report/latest'
 import { ServerTimingMark } from '@/components/ServerTimingMark'
 
-// 今天. Its reads go out in rounds, each waiting only on the one before: who is signed in is
-// checked here (no network); then everything that needs only the user, the cycle with all its
-// days among it; then what needs their time zone and today's routine, today's workout among it
-// (loadTodayWorkout adds a round for last time's sets). One query after another was ten rounds.
+// 今天. Its reads go out in two rounds. Who is signed in is checked here (no network). Then
+// everything that needs only the user, and as soon as the profile and the cycle are in, what needs
+// the user's day (loadDay): today's workout with last time's sets for today's routine, the notes
+// and the weigh-ins. An exercise outside today's routine takes one more round
+// (lib/today-workout.ts). One query after another was ten rounds.
 export default async function DashboardPage() {
   const user = await getSessionUser()
   if (!user) redirect('/login')
   const supabase = await createClient()
 
-  const [{ profile }, cycleResult, allExercisesResult, recentIds, latestReport, t, tReport, tPeriod] = await Promise.all([
-    getFrameProfile(),
-    supabase
-      .from('training_cycles')
-      .select('id, cycle_length, start_date, cycle_days ( day_index, routine_id, routines ( name ) )')
-      .eq('user_id', user.id)
-      .maybeSingle(),
+  const [day, allExercisesResult, recentIds, latestReport, t, tReport, tPeriod] = await Promise.all([
+    loadDay(supabase, user.id),
     supabase
       .from('exercises')
       .select('id, name, name_zh_tw, muscle_group, equipment, log_type, per_side')
@@ -43,72 +41,15 @@ export default async function DashboardPage() {
     getTranslations('report'),
     getTranslations('periodLog'),
   ])
+  const { profile, cycle, language, period, todayIso, todayRange, dayIndex, routineIdForToday, routineName, today, periodNote } = day
 
-  const cycle = cycleResult.data
-
-  const language = await getEffectiveLanguage(profile)
   const greetingName = profile?.display_name || user.email || ''
-  const timezone = timeZoneOf(profile?.timezone)
   const onboardingCompleted = profile?.onboarding_completed ?? false
   const weightUnit = (profile?.weight_unit as WeightUnit) ?? 'kg'
   const distanceUnit: DistanceUnit = profile?.distance_unit === 'mi' ? 'mi' : 'km'
 
   const hasCycle = !!cycle
-  const period = currentPeriod(
-    timezone,
-    cycle ? { cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null
-  )
-  const todayIso = localDate(timezone, new Date())
-  const { start: startOfDay, end: endOfDay } = localDayToUtcRange(todayIso, timezone)
-
-  const dayIndex = cycle
-    ? (((daysBetween(cycle.start_date, todayIso) % cycle.cycle_length) + cycle.cycle_length) % cycle.cycle_length) + 1
-    : 0
-  const cycleDay = cycle?.cycle_days.find((d) => d.day_index === dayIndex)
-  const routineIdForToday = cycleDay?.routine_id ?? null
-  const routineName = cycleDay?.routines?.name ?? null
   const isRestDay = hasCycle && routineIdForToday === null
-  const todayRange = { start: startOfDay, end: endOfDay }
-
-  const [periodNoteResult, dayNoteResult, todayWeightResult, lastWeightResult, today] = await Promise.all([
-    period
-      ? supabase
-        .from('period_notes')
-        .select('note')
-        .eq('user_id', user.id)
-        .eq('period_start', period.periodStart)
-        .maybeSingle()
-      : Promise.resolve({ data: null }),
-    supabase
-      .from('day_notes')
-      .select('note')
-      .eq('user_id', user.id)
-      .eq('note_date', todayIso)
-      .maybeSingle(),
-    // Today's weigh-in, and the one before today as the weight box's hint
-    supabase
-      .from('body_metrics')
-      .select('weight_kg')
-      .eq('user_id', user.id)
-      .gte('recorded_at', startOfDay)
-      .lte('recorded_at', endOfDay)
-      .not('weight_kg', 'is', null)
-      .order('recorded_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from('body_metrics')
-      .select('weight_kg')
-      .eq('user_id', user.id)
-      .lt('recorded_at', startOfDay)
-      .not('weight_kg', 'is', null)
-      .order('recorded_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    loadTodayWorkout(supabase, { userId: user.id, range: todayRange, routineId: routineIdForToday, language }),
-  ])
-
-  const periodNote = periodNoteResult.data?.note ?? ''
 
   return (
     <div className="space-y-5 md:space-y-6">
@@ -142,9 +83,9 @@ export default async function DashboardPage() {
           weightUnit={weightUnit}
           distanceUnit={distanceUnit}
           routineName={routineName}
-          initialDayNote={dayNoteResult.data?.note ?? ''}
-          initialWeightKg={todayWeightResult.data?.weight_kg ?? null}
-          lastWeightKg={lastWeightResult.data?.weight_kg ?? null}
+          initialDayNote={day.dayNote}
+          initialWeightKg={day.todayWeightKg}
+          lastWeightKg={day.lastWeightKg}
         />
 
         <section className="space-y-3">
@@ -162,6 +103,97 @@ export default async function DashboardPage() {
       </div>
     </div>
   )
+}
+
+// The user's day, by their time zone and cycle, and what's logged in it. It waits only for the
+// profile and the cycle, so its round goes out while the page's other first reads are still out.
+async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
+  const [{ profile }, cycleResult] = await Promise.all([
+    getFrameProfile(),
+    supabase
+      .from('training_cycles')
+      // Each routine's exercises too: last time's sets for today's go out with today's workout
+      .select('id, cycle_length, start_date, cycle_days ( day_index, routine_id, routines ( name, routine_exercises ( exercise_id ) ) )')
+      .eq('user_id', userId)
+      .maybeSingle(),
+  ])
+  const cycle = cycleResult.data
+
+  const language = await getEffectiveLanguage(profile)
+  const timezone = timeZoneOf(profile?.timezone)
+  const period = currentPeriod(
+    timezone,
+    cycle ? { cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null
+  )
+  const todayIso = localDate(timezone, new Date())
+  const todayRange = localDayToUtcRange(todayIso, timezone)
+
+  const dayIndex = cycle
+    ? (((daysBetween(cycle.start_date, todayIso) % cycle.cycle_length) + cycle.cycle_length) % cycle.cycle_length) + 1
+    : 0
+  const cycleDay = cycle?.cycle_days.find((d) => d.day_index === dayIndex)
+  const routineIdForToday = cycleDay?.routine_id ?? null
+
+  const [periodNoteResult, dayNoteResult, todayWeightResult, lastWeightResult, today] = await Promise.all([
+    period
+      ? supabase
+        .from('period_notes')
+        .select('note')
+        .eq('user_id', userId)
+        .eq('period_start', period.periodStart)
+        .maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from('day_notes')
+      .select('note')
+      .eq('user_id', userId)
+      .eq('note_date', todayIso)
+      .maybeSingle(),
+    // Today's weigh-in, and the one before today as the weight box's hint
+    supabase
+      .from('body_metrics')
+      .select('weight_kg')
+      .eq('user_id', userId)
+      .gte('recorded_at', todayRange.start)
+      .lte('recorded_at', todayRange.end)
+      .not('weight_kg', 'is', null)
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('body_metrics')
+      .select('weight_kg')
+      .eq('user_id', userId)
+      .lt('recorded_at', todayRange.start)
+      .not('weight_kg', 'is', null)
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    loadTodayWorkout(supabase, {
+      userId,
+      range: todayRange,
+      routineId: routineIdForToday,
+      routineExerciseIds: cycleDay?.routines?.routine_exercises.map((re) => re.exercise_id) ?? [],
+      language,
+    }),
+  ])
+
+  return {
+    profile,
+    cycle,
+    language,
+    period,
+    todayIso,
+    todayRange,
+    dayIndex,
+    routineIdForToday,
+    routineName: cycleDay?.routines?.name ?? null,
+    today,
+    periodNote: periodNoteResult.data?.note ?? '',
+    dayNote: dayNoteResult.data?.note ?? '',
+    todayWeightKg: todayWeightResult.data?.weight_kg ?? null,
+    lastWeightKg: lastWeightResult.data?.weight_kg ?? null,
+  }
 }
 
 function formatPeriodDate(dateIso: string, language: string): string {
