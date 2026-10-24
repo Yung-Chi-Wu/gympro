@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { adoptBrowserTimeZone } from '@/app/(app)/time-zone-actions'
+import { serverWrite } from '@/lib/data-version'
 import { browserTimeZone, UNSET_TIME_ZONE } from '@/lib/time-zone'
 
 // Onboarding never asked for a time zone, so a profile kept the column's default (UTC), and a
@@ -15,7 +16,7 @@ export function TimeZoneSync({ timeZone }: { timeZone: string | null }) {
         if (timeZone && timeZone !== UNSET_TIME_ZONE) return
         const zone = browserTimeZone()
         if (!zone) return
-        adoptBrowserTimeZone(zone).then(({ adopted }) => {
+        serverWrite(() => adoptBrowserTimeZone(zone)).then(({ adopted }) => {
             if (adopted) router.refresh()
         }, () => {
             // Tried again on the next page load

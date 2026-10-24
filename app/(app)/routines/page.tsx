@@ -8,6 +8,7 @@ import type { ExerciseOption } from '@/components/log-types'
 import { timeZoneOf } from '@/lib/time-zone'
 import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
 import { ServerTimingMark } from '@/components/ServerTimingMark'
+import { ReadYourWrites } from '@/components/ReadYourWrites'
 
 export interface RoutineExerciseRow {
     id: string
@@ -100,6 +101,7 @@ export default async function RoutinesPage() {
     return (
         <>
             <ServerTimingMark />
+            <ReadYourWrites />
             {/* A plan saved from Ronnie's card makes a new cycle: the editor then starts over from
                 it when the page refreshes, as its state starts from these props */}
             <RoutineBuilder

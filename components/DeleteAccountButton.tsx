@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { deleteAccount } from '@/app/(app)/settings/delete-account-action'
+import { serverWrite } from '@/lib/data-version'
 import { toFriendlyError } from '@/lib/friendly-error'
 
 interface DeleteAccountButtonProps {
@@ -20,7 +21,7 @@ export function DeleteAccountButton({ isZhTW, className = 'text-sm text-red-500 
         setError(null)
 
         // 直接呼叫 server action，裡面會自己處理登出
-        const result = await deleteAccount()
+        const result = await serverWrite(() => deleteAccount())
 
         if (!result.success) {
             setError(result.error === 'not_signed_in'

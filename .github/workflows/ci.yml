@@ -65,6 +65,8 @@ jobs:
         run: npm run check:coach-g
       - name: Every server error reaches app_errors
         run: npm run check:app-errors
+      - name: Every write counts in the browser's data version, and every signed-in page reads its own writes
+        run: npm run check:data-writes
       - name: Ronnie's tools, turn loop, recorded conversations and grader (offline)
         run: |
           npm run eval:ronnie:build

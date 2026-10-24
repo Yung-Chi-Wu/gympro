@@ -3,6 +3,7 @@
 import { useId, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { savePeriodNote } from '@/app/(app)/dashboard/period-actions'
+import { serverWrite } from '@/lib/data-version'
 
 type Feedback = { success: boolean; message: string } | null
 
@@ -21,7 +22,7 @@ export function PeriodNoteCard({ initialNote }: { initialNote: string }) {
         e.preventDefault()
         setSaving(true)
         setFeedback(null)
-        const result = await savePeriodNote(note)
+        const result = await serverWrite(() => savePeriodNote(note))
         setSaving(false)
         if (result.success) setSavedNote(note.trim())
         setFeedback(result.success ? { success: true, message: t('noteSaved') } : { success: false, message: result.message ?? '' })
