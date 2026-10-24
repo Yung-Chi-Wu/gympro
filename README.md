@@ -32,6 +32,7 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
   - Vercel and Supabase, with AWS for the report pipeline: SQS, Lambda and EventBridge Scheduler.
   - No long-lived AWS keys.
   - 12 CloudWatch alarms. Every AI call is traced with its tokens and cost.
+  - Every model call asks a spend limit first: one per user, and one for all users together.
 
 ## What it does
 
@@ -205,6 +206,7 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
   - a server action call or an API write outside `serverWrite`;
   - a second browser database client;
   - a page without the check.
+- **Every model call asks the spend limits first.** Only one module makes a model client or reads the API key, and every feature the app traces counts toward the limits. The limits' own logic is tested against a fake database.
 
 ## Operations
 
@@ -281,6 +283,12 @@ Opening the app on Today went from 0.8–1.1 s to about 0.5 s.
 - No long-lived AWS credentials. Production and preview deployments get separate IAM roles through OIDC.
 - Queues are encrypted, size-capped and TLS-only.
 - Security headers are set, and sign-in redirects are validated. A Content Security Policy is enforced: scripts, styles and connections only from the app itself, Supabase and the Vercel toolbar, and no framing. It ran report-only for a week first. Anything it blocks in a signed-in page is sent to `app_errors`, so it raises an alarm.
+- **AI spend limits**, against what OWASP's LLM10 calls "denial of wallet". Before every model call the app takes a slot from the database ([`lib/ai/spend-limits.ts`](lib/ai/spend-limits.ts)):
+  - one AI request at a time per user;
+  - a user's requests may cost US$0.50 over any 24 hours;
+  - all users' together may cost US$1, so however many accounts someone makes, the scheduled reports keep room under the Anthropic spend cap.
+
+  The cost is summed from the traces, and a slot is let go only after its trace is saved, so a user can pass their limit by one request at most. Past a limit, Ronnie says when it's back, and Coach G carries on without the model. If the limits themselves fail, the request goes through and an alarm fires. Checked against the last 30 days of real use: none of the 47 requests would have been refused.
 - Dependabot is on, and GitHub Actions are pinned to commit SHAs. CodeQL scans the code and the workflows on every pull request and once a week, with GitHub's extended security queries.
 
 ## Tech stack
@@ -302,7 +310,7 @@ components/          UI
 lib/ronnie/          Ronnie: agent loop, tools, executor, memory, search, reply check
 lib/coach-g*.ts      Coach G: request parsing and the code planner
 lib/report/          Report evidence table, volume units, queue
-lib/ai/              AI tracing
+lib/ai/              AI tracing, spend limits and the one place that makes a model client
 lib/server-timing.ts Where each page's server time goes
 lib/data-version.ts  The browser's data version: every write counts
 lambda/ai-worker/    Report worker, hourly scheduler and daily review (Lambda), with their evals

@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { buildSystemPrompt } from '@/lib/ronnie/prompt'
@@ -19,6 +18,7 @@ import {
 import { asTypedMessage } from '@/lib/ronnie/events'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { errorText, usageOfError } from '@/lib/ai/trace'
+import { refusedResponse, takeAiSlot } from '@/lib/ai/model-client'
 import { flagAfterResponse, traceAfterResponse } from '@/lib/ai/trace-after'
 import { flagForClear, flagsForMessage } from '@/lib/ronnie/signals'
 import { reportError } from '@/lib/report-error'
@@ -31,9 +31,8 @@ import { reportError } from '@/lib/report-error'
 //           the user's message at that index and everything after it
 //   DELETE  clears today's conversation
 // Each reply keeps its trace's id, so what the user does next can flag it (lib/ronnie/signals.ts):
-// a correction, an edit, a clear right after it.
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+// a correction, an edit, a clear right after it. A message past the spend limits
+// (lib/ai/spend-limits.ts) is answered 429 and not kept.
 
 async function authed() {
     const supabase = await createClient()
@@ -75,6 +74,9 @@ export async function POST(request: Request) {
     const admin = createAdminClient()
     const ctx = await loadRonnieContext(supabase, user.id, language)
     let conv = await loadConversation(supabase, user.id, ctx.today)
+    // Asked before anything is written, so a refused message changes nothing
+    const { slot, refused } = await takeAiSlot(user.id)
+    if (refused) return refusedResponse(refused)
     const editFrom = Number.isInteger(body?.editFrom) ? Number(body.editFrom) : null
     // What this message says about the replies before it: a correction, or an edit that replaces one
     flagAfterResponse(flagsForMessage(conv.display, message, editFrom, user.id))
@@ -83,6 +85,7 @@ export async function POST(request: Request) {
         const error = await replaceConversation(admin, user.id, ctx.today, conv)
         if (error) {
             reportError('ronnie/edit', error, { userId: user.id })
+            await slot.release()
             return NextResponse.json({ error: 'Could not edit the conversation' }, { status: 500 })
         }
     }
@@ -105,7 +108,7 @@ export async function POST(request: Request) {
     try {
         // Stop in the chat window closes the request: the agent then stops between steps, and what it
         // already changed is saved with the conversation instead of being lost
-        const turn = await runRonnieTurn({ client, system, messages: sent, executor, language, signal: request.signal })
+        const turn = await runRonnieTurn({ client: slot.client, system, messages: sent, executor, language, signal: request.signal })
         const proposals = executor.proposals.map((p) => ({ ...p, status: 'pending' as const }))
         const recommendations = executor.recommendations
         const plans = executor.plans
@@ -151,7 +154,7 @@ export async function POST(request: Request) {
                     ...(turn.medicineNoted ? { medicineNoted: true } : {}),
                 } }]
                 : [],
-        })
+        }, slot)
 
         return NextResponse.json({ message: turn.message, reloadDashboard: turn.reloadDashboard, proposals, recommendations, plans, sources: turn.sources ?? [], unsourced: !!turn.unsourced, traceId, at: reply.at })
     } catch (err) {
@@ -161,7 +164,7 @@ export async function POST(request: Request) {
         traceAfterResponse({
             userId: user.id, feature: 'ronnie', model: RONNIE_MODEL, servedModel: partial.servedModel ?? null, status: 'error', error: errorText(err),
             latencyMs: Date.now() - started, usage: usageOfError(err), input: traceInput, output: { toolCalls: partial.toolCalls ?? [] },
-        })
+        }, slot)
         return NextResponse.json({ error: 'AI error' }, { status: 500 })
     }
 }
