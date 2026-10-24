@@ -135,11 +135,16 @@ export async function lastSessionSets(
 
 export async function loadTodayWorkout(
     supabase: SupabaseClient<Database>,
-    { userId, range, routineId, language }: {
+    { userId, range, routineId, routineExerciseIds, language }: {
         userId: string
         /** Today in the user's time zone, as UTC timestamps */
         range: { start: string; end: string }
         routineId: string | null
+        /**
+         * The exercises of today's routine, when the caller already has them (the page reads them
+         * with the cycle): last time's sets for them then go out with the workout, not after it
+         */
+        routineExerciseIds?: string[]
         language: string
     },
 ): Promise<{ workoutId: string | null; exercises: TodayExercise[] }> {
@@ -157,16 +162,29 @@ export async function loadTodayWorkout(
         target,
     })
     // Last time's sets and the exercise's own kg/lb
-    const withPrevious = async (exercises: TodayExercise[]) => {
-        const ids = exercises.map((ex) => ex.exerciseId)
+    const hintsOf = async (ids: string[]) => {
         const [previous, logUnits] = await Promise.all([lastSessionSets(supabase, userId, ids, range.start), exerciseLogUnits(supabase, userId, ids)])
-        return exercises.map((ex) => ({ ...ex, previous: previous.get(ex.exerciseId) ?? [], logUnit: logUnits.get(ex.exerciseId) ?? null }))
+        return { previous, logUnits }
+    }
+    const known = new Set(routineExerciseIds ?? [])
+    // Hints for today's routine come with the workout (early); the rest of the card (an exercise
+    // added just for today, a workout that follows another routine, or every exercise when the
+    // caller didn't know the routine's) takes one more round
+    const withPrevious = async (exercises: TodayExercise[], early: Awaited<ReturnType<typeof hintsOf>> | null) => {
+        const missing = exercises.map((ex) => ex.exerciseId).filter((id) => !known.has(id))
+        const more = missing.length ? await hintsOf(missing) : null
+        const hintsFor = (id: string) => (known.has(id) ? early : more)
+        return exercises.map((ex) => ({
+            ...ex,
+            previous: hintsFor(ex.exerciseId)?.previous.get(ex.exerciseId) ?? [],
+            logUnit: hintsFor(ex.exerciseId)?.logUnits.get(ex.exerciseId) ?? null,
+        }))
     }
 
-    // Two rounds, not one per step: today's workout with its plan, sets and the targets of the
-    // routine it follows, read alongside today's routine (the plan before there is a workout);
-    // then last time's sets for everything on the card (withPrevious)
-    const [{ data: workoutData }, { data: routineData }] = await Promise.all([
+    // One round when the caller knows today's routine, else two: today's workout with its plan, sets
+    // and the targets of the routine it follows, read alongside today's routine (the plan before
+    // there is a workout) and last time's sets for that routine's exercises
+    const [{ data: workoutData }, { data: routineData }, early] = await Promise.all([
         supabase
             .from('workouts')
             .select(`id, routine_id,
@@ -192,6 +210,7 @@ export async function loadTodayWorkout(
                 .eq('routine_id', routineId)
                 .order('order_index')
             : Promise.resolve({ data: null }),
+        known.size ? hintsOf([...known]) : null,
     ])
     const workout = workoutData as unknown as WorkoutRow | null
     const routineExercises = (routineData as unknown as RoutineRow[] | null) ?? []
@@ -212,12 +231,12 @@ export async function loadTodayWorkout(
             exercises: await withPrevious([
                 ...planned.map((p) => exerciseOf(p.exercise_id, p.exercises, p.id, setsOf(p.exercise_id), targetOf(targetRows.find((re) => re.exercise_id === p.exercise_id)))),
                 ...offPlanIds.map((id) => exerciseOf(id, sets.find((s) => s.exercise_id === id)?.exercises ?? null, null, setsOf(id), null)),
-            ]),
+            ], early),
         }
     }
 
     return {
         workoutId: null,
-        exercises: await withPrevious(routineExercises.map((re) => exerciseOf(re.exercise_id, re.exercises, null, [], targetOf(re)))),
+        exercises: await withPrevious(routineExercises.map((re) => exerciseOf(re.exercise_id, re.exercises, null, [], targetOf(re))), early),
     }
 }
