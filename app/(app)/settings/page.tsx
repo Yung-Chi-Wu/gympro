@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server'
 import { getEffectiveLanguage } from '@/lib/get-language'
 import { ProfileSettingsForm } from '@/components/ProfileSettingsForm'
 import { CHOSEN_UTC, timeZoneOf, UNSET_TIME_ZONE } from '@/lib/time-zone'
+import { ServerTimingMark } from '@/components/ServerTimingMark'
 
 export default async function SettingsPage() {
     const user = await getSessionUser()
@@ -16,6 +17,7 @@ export default async function SettingsPage() {
 
     return (
         <div className="space-y-5 md:space-y-4">
+            <ServerTimingMark />
             <h1 className="text-2xl font-bold max-md:sr-only">{t('title')}</h1>
             <ProfileSettingsForm
                 userId={user.id}
