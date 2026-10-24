@@ -150,6 +150,14 @@ const walk = (dir: string): string[] => readdirSync(dir).flatMap((name) => {
 const parse = (file: string, text: string) =>
     ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS)
 const MODEL_CLIENT = normalize('lib/ai/model-client.ts')
+const MODEL_API_HOST = 'api.anthropic.com'
+const hostOf = (text: string) => {
+    try {
+        return new URL(text).hostname
+    } catch {
+        return null
+    }
+}
 const files = [...['app', 'components', 'lib'].flatMap(walk), 'proxy.ts', 'instrumentation.ts'].map(normalize)
 
 function problemsIn(file: string, sf: ts.SourceFile): string[] {
@@ -176,7 +184,8 @@ function problemsIn(file: string, sf: ts.SourceFile): string[] {
                 : ts.isElementAccessExpression(node) && node.expression.getText(sf) === 'process.env' && ts.isStringLiteral(node.argumentExpression) ? node.argumentExpression.text
                 : null
             if (envName === 'ANTHROPIC_API_KEY') problems.push(`${at(node)} reads the model API key: only lib/ai/model-client.ts may`)
-            if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && node.text.includes('api.anthropic.com')) {
+            // A URL in a string, or at the start of a template, whose host is the API's
+            if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || ts.isTemplateHead(node)) && hostOf(node.text) === MODEL_API_HOST) {
                 problems.push(`${at(node)} calls the model API by its address`)
             }
         }
@@ -208,7 +217,7 @@ function problemsIn(file: string, sf: ts.SourceFile): string[] {
         "        apiKey: process.env['ANTHROPIC_API_KEY'],",
         '    })',
         '    const b = new sdk.Anthropic()',
-        "    await fetch(`https://api.anthropic.com/v1/messages`)",
+        "    await fetch(`https://api.anthropic.com/v1/${'messages'}`, { headers: { referer: 'https://example.com/?api.anthropic.com' } })",
         "    const { slot } = await takeAiSlot('u')",
         "    traceAfterResponse({ userId: 'u', feature: 'ronnie' }, slot!)",
         "    traceAfterResponse({ userId: 'u', feature: 'report' }, slot!)",
