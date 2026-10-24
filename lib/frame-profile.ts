@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { timed } from '@/lib/server-timing'
 
 /** Who is signed in, as the pages need it */
 export interface SessionUser {
@@ -16,7 +17,7 @@ export interface SessionUser {
 // Server actions and API routes still ask the Auth server (getUser), before they write.
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     const supabase = await createClient()
-    const { data } = await supabase.auth.getClaims()
+    const { data } = await timed('auth', () => supabase.auth.getClaims())
     const claims = data?.claims
     return claims?.sub ? { id: claims.sub, email: claims.email ?? null } : null
 })

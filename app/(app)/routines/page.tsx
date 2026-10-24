@@ -7,6 +7,7 @@ import { RoutineBuilder } from '@/components/RoutineBuilder'
 import type { ExerciseOption } from '@/components/log-types'
 import { timeZoneOf } from '@/lib/time-zone'
 import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
+import { ServerTimingMark } from '@/components/ServerTimingMark'
 
 export interface RoutineExerciseRow {
     id: string
@@ -97,17 +98,20 @@ export default async function RoutinesPage() {
     const cycleDays: CycleDayInfo[] = (cycle?.cycle_days ?? []).map((d) => ({ dayIndex: d.day_index, routineId: d.routine_id }))
 
     return (
-        // A plan saved from Ronnie's card makes a new cycle: the editor then starts over from it
-        // when the page refreshes, as its state starts from these props
-        <RoutineBuilder
-            key={cycle?.id ?? 'no-cycle'}
-            userId={user.id}
-            exercises={withRecent((exercisesResult.data ?? []) as ExerciseOption[], recentIds)}
-            initialRoutines={routineList}
-            language={language}
-            initialCycle={cycle ? { id: cycle.id, cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null}
-            initialCycleDays={cycleDays}
-            today={localDate(timeZoneOf(profile?.timezone), new Date())}
-        />
+        <>
+            <ServerTimingMark />
+            {/* A plan saved from Ronnie's card makes a new cycle: the editor then starts over from
+                it when the page refreshes, as its state starts from these props */}
+            <RoutineBuilder
+                key={cycle?.id ?? 'no-cycle'}
+                userId={user.id}
+                exercises={withRecent((exercisesResult.data ?? []) as ExerciseOption[], recentIds)}
+                initialRoutines={routineList}
+                language={language}
+                initialCycle={cycle ? { id: cycle.id, cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null}
+                initialCycleDays={cycleDays}
+                today={localDate(timeZoneOf(profile?.timezone), new Date())}
+            />
+        </>
     )
 }

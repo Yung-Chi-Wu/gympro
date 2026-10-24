@@ -10,6 +10,7 @@ import { HistoryReports, HistoryTabs, HistoryTraining, HistoryWeight, type Histo
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
 import { timeZoneOf } from '@/lib/time-zone'
+import { ServerTimingMark } from '@/components/ServerTimingMark'
 
 // 紀錄: tabs for training, body weight and reports (?tab=). Each tab reads only what it
 // shows, by date range: records are kept forever and the page must not slow down as
@@ -102,6 +103,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
 
     return (
         <div className="space-y-5 md:space-y-4">
+            <ServerTimingMark />
             <h1 className="text-2xl font-bold max-md:sr-only">{t('title')}</h1>
             <HistoryTabs current={tab} />
             {content}

@@ -15,6 +15,7 @@ import { localDayToUtcRange, timeZoneOf } from '@/lib/time-zone'
 import { loadTodayWorkout } from '@/lib/today-workout'
 import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
 import { loadLatestReport } from '@/lib/report/latest'
+import { ServerTimingMark } from '@/components/ServerTimingMark'
 
 // 今天. Its reads go out in rounds, each waiting only on the one before: who is signed in is
 // checked here (no network); then everything that needs only the user, the cycle with all its
@@ -111,6 +112,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-5 md:space-y-6">
+      <ServerTimingMark />
       <OnboardingGuard
         userId={user.id}
         language={language}
