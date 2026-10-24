@@ -24,6 +24,10 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
 - **Facts in code, words from the model.**
   - The weekly report's numbers and advice come from a rule table in code, backed by 22 cited papers whose DOIs are checked in CI. Code writes what to do next session on each lift; the model only phrases the rest.
   - Coach G's plan is built by code; a small model only reads the user's free text.
+- **Measured, then tuned.**
+  - Each page reports where its server time goes.
+  - Tab switches went from 0.4–0.6 s to 0.16–0.33 s. The old and new data loaders were compared on 1,720 runs before the change shipped.
+  - A CI check makes every write count, so a page never shows data from before the user's own change.
 - **Production infrastructure in Terraform.**
   - Vercel and Supabase, with AWS for the report pipeline: SQS, Lambda and EventBridge Scheduler.
   - No long-lived AWS keys.
@@ -197,6 +201,10 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
 - The app and the database enforce the same input limits.
 - Every server error reaches the error log.
 - Coach G accepts only what it can use and save.
+- **Every write counts in the browser's data version, and every signed-in page reads its own writes.** The check reads the code as syntax and fails a pull request with:
+  - a server action call or an API write outside `serverWrite`;
+  - a second browser database client;
+  - a page without the check.
 
 ## Operations
 
@@ -232,6 +240,38 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
   - the app logs an error.
 - **Data integrity.** Today's workout and its plan are created in one transaction, under a per-user lock. Limits on sets, targets and amounts are enforced in both the app and the database.
 
+## Performance
+
+**How it's measured:**
+- A script taps through the tabs on production, on a phone-sized screen. It times each tap until the new page's content is on screen, and takes the median of 6 taps.
+- **Each tap is broken down.** The proxy sends a `Server-Timing` header with its own time, its token check and its region. Each signed-in page lists its server steps in a hidden element: every database request with its start and length, and when the page was ready ([`lib/server-timing.ts`](lib/server-timing.ts)).
+
+**What was found, and what changed:**
+
+| Found | Change |
+|---|---|
+| Each tab switch asked the auth server who the user was three times, one after another: the proxy, the layout and the page. | The session token is verified on the server against the project's public key, once per request ([#91](https://github.com/Yung-Chi-Wu/gympro/pull/91)). |
+| Today read the database in 10 rounds, each waiting for the one before. | Reads are grouped by what they wait for, and related rows come in one query. Today now takes 2 rounds: the day's reads start as soon as the profile and cycle are in, and last time's sets come with today's workout ([#94](https://github.com/Yung-Chi-Wu/gympro/pull/94)). Before shipping, the old and new loaders gave the same result in 1,720 runs: 344 cases (60 days, up to 3 routine choices each, 2 languages), each called 5 ways. |
+| React keeps a loading skeleton on screen for at least 300 ms, so even a fast page took about 360 ms. | No skeletons. The tapped tab is marked at once (about 55 ms), and the page appears when it's ready. |
+| Every database query costs 30–50 ms from the app's region, even for one row. The two regions are about 10 ms apart, so most of that is the database service itself. | The app was not moved next to the database: that would save about 10 ms per round and add a hop for the user. The fix was fewer rounds. |
+
+**Result** (tap to content on production, median of 6; runs vary by about ±50 ms):
+
+| Tab | Before | After |
+|---|---|---|
+| Today | 0.62–0.64 s | 0.30 s |
+| Routines | 0.39–0.45 s | 0.21 s |
+| History | 0.46–0.60 s | 0.33 s |
+| Settings | 0.36–0.42 s | 0.16 s |
+
+Opening the app on Today went from 0.8–1.1 s to about 0.5 s.
+
+**Read your writes.** Most writes go straight from the browser to Postgres, under row-level security. A page cached in the browser would then show data from before the user's own change. So every write is counted before anything is cached ([#95](https://github.com/Yung-Chi-Wu/gympro/pull/95)), after the *read your writes* guarantee in Terry et al., *Session Guarantees for Weakly Consistent Replicated Data* (1994):
+- **One data version per browser.** It goes up after each write ([`lib/data-version.ts`](lib/data-version.ts)).
+- **Writes are counted where they leave the browser,** not by each caller. The database client counts its own writes, and calls that write on the server are wrapped in `serverWrite`. A CI check fails any write that isn't counted.
+- **First use: back and forward.** Back and forward used to show the earlier page exactly as first drawn. Now a page shown again from memory is read again if the user wrote anything since.
+- **Pages are not cached across tabs yet.** Next.js documents cache invalidation only through Server Actions, and its current invalidation clears everything and is marked as temporary. The data version is ready for when it is documented.
+
 ## Security
 
 - Row-level security on every user table, with the policies in [`supabase/migrations`](supabase/migrations). Conversation and memory tables are written only by the server.
@@ -260,6 +300,8 @@ lib/ronnie/          Ronnie: agent loop, tools, executor, memory, search, reply 
 lib/coach-g*.ts      Coach G: request parsing and the code planner
 lib/report/          Report evidence table, volume units, queue
 lib/ai/              AI tracing
+lib/server-timing.ts Where each page's server time goes
+lib/data-version.ts  The browser's data version: every write counts
 lambda/ai-worker/    Report worker, hourly scheduler and daily review (Lambda), with their evals
 evals/ronnie/        Ronnie evals: cases, fixture, grader, judge, runner, replays
 evals/search/        Exercise search eval
