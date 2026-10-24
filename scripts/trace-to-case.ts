@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import { getSecret } from '../lambda/ai-worker/src/secrets'
@@ -76,8 +76,14 @@ async function main() {
         const flags: TraceFlag[] = (flagRows ?? []).filter((f) => f.trace_id === trace.id).map((f) => ({ kind: f.kind, detail: f.detail }))
         const draft = traceToDraft(trace, flags)
         const file = join(DRAFTS, `${draft.id}.json`)
-        const kept = existsSync(file) && !force
-        if (!kept) writeFileSync(file, `${JSON.stringify(draft, null, 2)}\n`)
+        // Created only if it isn't there yet (in one step, so a draft being reviewed is never overwritten), unless --force
+        let kept = false
+        try {
+            writeFileSync(file, `${JSON.stringify(draft, null, 2)}\n`, { flag: force ? 'w' : 'wx' })
+        } catch (err) {
+            if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err
+            kept = true
+        }
         console.log(`${kept ? 'kept   ' : 'drafted'} ${file}  flags: ${flags.map((f) => f.kind).join(', ')}  to do: ${draft.review.todo.length}`)
     }
     if (rows.length) console.log(`\nOpen each draft, do its review.todo, delete \`review\`, save it as evals/ronnie/replays/<id>.json, then run node evals/ronnie/check-replays.mjs.`)
