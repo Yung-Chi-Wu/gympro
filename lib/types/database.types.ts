@@ -695,6 +695,24 @@ export type Database = {
         }
         Returns: undefined
       }
+      begin_ai_request: {
+        Args: {
+          p_all_usd: number
+          p_features: string[]
+          p_request_id: string
+          p_slot_seconds: number
+          p_user_id: string
+          p_user_usd: number
+        }
+        Returns: Json
+      }
+      end_ai_request: {
+        Args: {
+          p_request_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       resolve_ronnie_action: {
         Args: {
           p_action_id: string

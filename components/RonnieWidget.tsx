@@ -99,6 +99,17 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     const errorText = zh ? '發生錯誤，請再試一次。' : 'Something went wrong.'
     // Trying again won't help a message that's too long, so it gets its own line
     const tooLongText = zh ? `訊息太長了，最多 ${MAX_MESSAGE_CHARS} 字。` : `That message is too long; the limit is ${MAX_MESSAGE_CHARS} characters.`
+    // Past the spend limits (lib/ai/spend-limits.ts): what happened and when it's back, not "try again"
+    const limitText = (reason: unknown, resetsAt: unknown) => {
+        if (reason === 'busy') return zh ? 'Ronnie 還在回上一則，等幾秒再傳一次。' : 'Ronnie is still on your last message; send this again in a few seconds.'
+        const at = typeof resetsAt === 'string' ? new Date(resetsAt) : null
+        const time = at?.toLocaleTimeString(zh ? 'zh-TW' : 'en-US', { hour: 'numeric', minute: '2-digit' })
+        const day = at && at.toDateString() !== new Date().toDateString() ? (zh ? '明天' : 'tomorrow') : (zh ? '今天' : 'today')
+        const when = time ? (zh ? `${day}${time}` : `${day} at ${time}`) : (zh ? '晚一點' : 'later')
+        return reason === 'all'
+            ? (zh ? `Ronnie 暫停到${when}。\n記錄訓練不受影響。` : `Ronnie is paused until ${when}.\nLogging workouts still works.`)
+            : (zh ? `AI 額度暫時用完了，${when}恢復。\n記錄訓練不受影響。` : `You've used your AI allowance for now; it's back ${when}.\nLogging workouts still works.`)
+    }
     const focusInput = () => setTimeout(() => inputRef.current?.focus(), 50)
     const notifyDashboard = () => {
         // Counted here too: after a stop, Ronnie's change may land on the server after the request ended
@@ -142,6 +153,10 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
             const data = await res.json().catch(() => null)
             if (res.status === 413) {
                 setItems((prev) => [...prev, { kind: 'error', text: tooLongText }])
+                return
+            }
+            if (res.status === 429) {
+                setItems((prev) => [...prev, { kind: 'error', text: limitText(data?.reason, data?.resetsAt) }])
                 return
             }
             // An error response has no message: show the error line instead of an empty reply
@@ -530,7 +545,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                         {items.map((item, i) => {
                             if (item.kind === 'event' || item.kind === 'error') {
                                 return (
-                                    <p key={i} className={`text-center text-xs ${item.kind === 'error' ? 'text-red-500' : 'text-ink/50 dark:text-white/50'}`}>
+                                    <p key={i} className={`whitespace-pre-line text-center text-xs ${item.kind === 'error' ? 'text-red-500' : 'text-ink/50 dark:text-white/50'}`}>
                                         {item.text}
                                     </p>
                                 )

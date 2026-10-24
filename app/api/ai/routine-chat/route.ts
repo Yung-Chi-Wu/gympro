@@ -1,11 +1,9 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { takeAiSlot } from '@/lib/ai/model-client'
 import { errorText } from '@/lib/ai/trace'
 import { traceAfterResponse } from '@/lib/ai/trace-after'
 import { parseChatRequest } from '@/lib/coach-g'
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
 // 固定問題定義
 const QUESTIONS = {
@@ -167,9 +165,32 @@ Output format:
   // One or two sentences back: the fast model, so the next question comes at once
   const model = 'claude-haiku-4-5-20251001'
   const traceInput = { step: currentStep, system: systemPrompt, user: userContent }
+  // Without the model's line: the next question, or the plan, comes all the same
+  const fallback = () => {
+    const fallbackMsg = zh ? '好的！' : 'Got it!'
+    if (nextQ) {
+      return NextResponse.json({
+        action: 'ask',
+        message: fallbackMsg,
+        question: nextQ.question,
+        options: nextQ.options,
+        multi_select: nextQ.multi_select,
+        skippable: nextQ.skippable,
+        nextStep,
+      })
+    }
+    return NextResponse.json({
+      action: 'ready_to_generate',
+      message: fallbackMsg,
+      collected,
+    })
+  }
+  // Past the spend limits (lib/ai/spend-limits.ts), Coach G goes on without the model
+  const { slot } = await takeAiSlot(user.id)
+  if (!slot) return fallback()
   const started = Date.now()
   try {
-    const response = await client.messages.create({
+    const response = await slot.client.messages.create({
       model,
       max_tokens: 256,
       system: systemPrompt,
@@ -192,7 +213,7 @@ Output format:
     traceAfterResponse({
       userId: user.id, feature: 'coach_chat', model, servedModel: response.model, status: 'ok',
       latencyMs: Date.now() - started, usage: [response.usage], input: traceInput, output: { text: rawText, message },
-    })
+    }, slot)
 
     // 如果還有下一題
     if (nextQ) {
@@ -219,24 +240,7 @@ Output format:
     traceAfterResponse({
       userId: user.id, feature: 'coach_chat', model, status: 'error', error: errorText(err),
       latencyMs: Date.now() - started, usage: [], input: traceInput,
-    })
-    // fallback
-    const fallbackMsg = zh ? '好的！' : 'Got it!'
-    if (nextQ) {
-      return NextResponse.json({
-        action: 'ask',
-        message: fallbackMsg,
-        question: nextQ.question,
-        options: nextQ.options,
-        multi_select: nextQ.multi_select,
-        skippable: nextQ.skippable,
-        nextStep,
-      })
-    }
-    return NextResponse.json({
-      action: 'ready_to_generate',
-      message: fallbackMsg,
-      collected,
-    })
+    }, slot)
+    return fallback()
   }
 }

@@ -1,6 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { takeAiSlot } from '@/lib/ai/model-client'
 import { errorText } from '@/lib/ai/trace'
 import { traceAfterResponse } from '@/lib/ai/trace-after'
 import { reportError } from '@/lib/report-error'
@@ -13,7 +13,7 @@ import { buildPlan, mergeReading, readAnswers, readingRequest, type Answers, typ
 
 // A short reading, so the fast model; one retry, and no long wait: without it the plan still comes
 const READER_MODEL = 'claude-haiku-4-5-20251001'
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY!, timeout: 20_000, maxRetries: 1 })
+const READER_CLIENT = { timeout: 20_000, maxRetries: 1 }
 
 /** How the questions read to the model: the answers come in this order */
 const QUESTIONS = ['Training days a week', 'Length of each session', 'Equipment available', 'Training goals', 'Experience', 'Injuries or areas to avoid', 'Anything else (exercises disliked, muscles to prioritise, other needs)']
@@ -42,12 +42,14 @@ export async function POST(request: Request) {
     const { preferences: byWords, needsModel } = readAnswers(answers)
     let preferences = byWords
 
-    if (needsModel) {
+    // Past the spend limits (lib/ai/spend-limits.ts) too, the plan comes from the answers' own words
+    const { slot } = needsModel ? await takeAiSlot(user.id, READER_CLIENT) : {}
+    if (slot) {
         const ask = readingRequest(answers, QUESTIONS, exercises)
         const traceInput = { answers, byWords, system: ask.system, user: ask.user }
         const started = Date.now()
         try {
-            const response = await client.messages.create({
+            const response = await slot.client.messages.create({
                 model: READER_MODEL,
                 max_tokens: 512,
                 system: ask.system,
@@ -60,14 +62,14 @@ export async function POST(request: Request) {
             traceAfterResponse({
                 userId: user.id, feature: 'coach_routine', model: READER_MODEL, servedModel: response.model, status: 'ok',
                 latencyMs: Date.now() - started, usage: [response.usage], input: traceInput, output: { reading, preferences },
-            })
+            }, slot)
         } catch (err) {
             // The answers' own words still give a plan; the free text is what's missing
             console.error('Coach G reading failed:', errorText(err))
             traceAfterResponse({
                 userId: user.id, feature: 'coach_routine', model: READER_MODEL, status: 'error', error: errorText(err),
                 latencyMs: Date.now() - started, usage: [], input: traceInput,
-            })
+            }, slot)
         }
     }
 
