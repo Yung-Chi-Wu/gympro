@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { MAX_MESSAGE_CHARS, withoutCitationNumbers, type DisplayItem, type PlanCard, type ProposalCard, type ProposalStatus, type RecommendationCard } from '@/lib/ronnie/conversation'
 import { describeProposal } from '@/lib/ronnie/events'
 import { reportClientError, responseError } from '@/lib/report-client-error'
+import { dataChanged, serverWrite } from '@/lib/data-version'
 import { isSubmitEnter, useKeyboardOpen, useVisibleViewport, type VisibleViewport } from '@/lib/keyboard'
 import { CoachGResult } from './CoachGResult'
 import { Icon } from './Icon'
@@ -100,6 +101,8 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     const tooLongText = zh ? `訊息太長了，最多 ${MAX_MESSAGE_CHARS} 字。` : `That message is too long; the limit is ${MAX_MESSAGE_CHARS} characters.`
     const focusInput = () => setTimeout(() => inputRef.current?.focus(), 50)
     const notifyDashboard = () => {
+        // Counted here too: after a stop, Ronnie's change may land on the server after the request ended
+        dataChanged()
         window.dispatchEvent(new CustomEvent('ronnie-workout-changed'))
         window.dispatchEvent(new CustomEvent('ronnie-routine-changed'))
     }
@@ -129,12 +132,13 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         setIsLoading(true)
         abortRef.current = new AbortController()
         try {
-            const res = await fetch('/api/ai/coach', {
+            const signal = abortRef.current.signal
+            const res = await serverWrite(() => fetch('/api/ai/coach', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: text, language, ...(editFrom === undefined ? {} : { editFrom }) }),
-                signal: abortRef.current.signal,
-            })
+                signal,
+            }))
             const data = await res.json().catch(() => null)
             if (res.status === 413) {
                 setItems((prev) => [...prev, { kind: 'error', text: tooLongText }])
@@ -212,7 +216,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         setItems([])
         setAddedToday(new Set())
         setSavedHere(new Set())
-        await fetch('/api/ai/coach', { method: 'DELETE' }).catch(() => null)
+        await serverWrite(() => fetch('/api/ai/coach', { method: 'DELETE' })).catch(() => null)
     }
 
     const setCardStatus = (id: string, status: ProposalStatus) =>
@@ -224,11 +228,11 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         setConfirming(null)
         setBusyCard(card.id)
         try {
-            const res = await fetch('/api/ai/coach/actions', {
+            const res = await serverWrite(() => fetch('/api/ai/coach/actions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ actionId: card.id, decision, language }),
-            })
+            }))
             const data = await res.json().catch(() => null)
             if (!res.ok || !data?.status) throw responseError(`Action failed: ${res.status}`, res.status, data)
             setCardStatus(card.id, data.status)
@@ -252,11 +256,11 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     async function addRecommendation(rec: RecommendationCard) {
         setBusyCard(rec.exerciseId)
         try {
-            const res = await fetch('/api/ai/coach/recommendations', {
+            const res = await serverWrite(() => fetch('/api/ai/coach/recommendations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ exerciseId: rec.exerciseId, replacesExerciseId: rec.replacesExerciseId, language }),
-            })
+            }))
             const data = await res.json().catch(() => null)
             if (!res.ok || !data?.status) throw responseError(`Add failed: ${res.status}`, res.status, data)
             setAddedToday((prev) => new Set(prev).add(rec.exerciseId))
@@ -277,11 +281,11 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         setSavedHere((prev) => new Set(prev).add(card.id))
         notifyDashboard()
         try {
-            const res = await fetch('/api/ai/coach/plans', {
+            const res = await serverWrite(() => fetch('/api/ai/coach/plans', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ planId: card.id, language }),
-            })
+            }))
             const data = await res.json().catch(() => null)
             if (!res.ok) throw responseError(`Plan event failed: ${res.status}`, res.status, data)
             if (data?.text) setItems((prev) => [...prev, { kind: 'event', text: data.text, planId: card.id }])

@@ -18,6 +18,7 @@ import { loadTodayWorkout } from '@/lib/today-workout'
 import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
 import { loadLatestReport } from '@/lib/report/latest'
 import { ServerTimingMark } from '@/components/ServerTimingMark'
+import { ReadYourWrites } from '@/components/ReadYourWrites'
 
 // 今天. Its reads go out in two rounds. Who is signed in is checked here (no network). Then
 // everything that needs only the user, and as soon as the profile and the cycle are in, what needs
@@ -54,6 +55,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-5 md:space-y-6">
       <ServerTimingMark />
+      <ReadYourWrites />
       <OnboardingGuard
         userId={user.id}
         language={language}

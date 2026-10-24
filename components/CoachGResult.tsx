@@ -6,6 +6,7 @@ import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { REPS, SETS } from '@/lib/coach-g'
 import { reportClientError, responseError } from '@/lib/report-client-error'
 import { createClient } from '@/lib/supabase/client'
+import { serverWrite } from '@/lib/data-version'
 
 interface GeneratedExercise {
     exercise_id: string
@@ -101,7 +102,7 @@ export function CoachGResult({ routines, cycleLength, language, onBack, onSaved,
         }
 
         try {
-            const res = await fetch('/api/ai/save-routine', {
+            const res = await serverWrite(() => fetch('/api/ai/save-routine', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -110,7 +111,7 @@ export function CoachGResult({ routines, cycleLength, language, onBack, onSaved,
                     startDayIndex,
                     language,
                 }),
-            })
+            }))
 
             const data = await res.json()
             if (!data.success) {

@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
 import { createClient } from '@/lib/supabase/client'
 import { setLanguageCookie } from '@/lib/set-language-cookie'
+import { serverWrite } from '@/lib/data-version'
 import { reportClientError } from '@/lib/report-client-error'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
@@ -135,9 +136,10 @@ export function ProfileSettingsForm({ userId, initial }: { userId: string; initi
         const profileChanges = { ...changes }
         delete profileChanges.theme
         setSaved((prev) => ({ ...prev, ...profileChanges }))
-        if (changes.language !== undefined && changes.language !== saved.language) {
+        const language = changes.language
+        if (language !== undefined && language !== saved.language) {
             // The page's own text is in the old language until it is drawn again
-            await setLanguageCookie(changes.language)
+            await serverWrite(() => setLanguageCookie(language))
             router.refresh()
         }
         return null

@@ -3,6 +3,7 @@
 import { useId, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { saveDayNote, saveDayWeight } from '@/app/(app)/dashboard/period-actions'
+import { serverWrite } from '@/lib/data-version'
 import { toDisplayWeight, toStorageKg, type WeightUnit } from '@/lib/weight-unit'
 
 // The day_notes table allows 200 characters, so a week of notes can't drown the report's brief
@@ -49,8 +50,8 @@ export function DayLogFields({ initialWeightKg, lastWeightKg, initialNote, weigh
         setSaving(true)
         setFeedback(null)
         const [weightResult, noteResult] = await Promise.all([
-            weightChanged ? saveDayWeight(w ? toStorageKg(Number(w), weightUnit) : null) : null,
-            noteChanged ? saveDayNote(n) : null,
+            weightChanged ? serverWrite(() => saveDayWeight(w ? toStorageKg(Number(w), weightUnit) : null)) : null,
+            noteChanged ? serverWrite(() => saveDayNote(n)) : null,
         ])
         setSaving(false)
         setSaved((prev) => ({
