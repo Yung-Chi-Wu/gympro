@@ -1,9 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { Icon, type IconName } from './Icon'
 import { useKeyboardOpen } from '@/lib/keyboard'
+import { markNavigation, useShownPath } from '@/lib/nav-target'
 
 export interface NavLink {
     href: string
@@ -14,9 +14,10 @@ export interface NavLink {
 export const isActiveLink = (href: string, pathname: string) =>
     href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(href)
 
-// The phone's tab bar (below md). It hides while the on-screen keyboard is open.
+// The phone's tab bar (below md). It hides while the on-screen keyboard is open. A tapped tab
+// is marked at once, while its page loads (lib/nav-target.ts).
 export function BottomNav({ links }: { links: NavLink[] }) {
-    const pathname = usePathname()
+    const pathname = useShownPath()
     const keyboardOpen = useKeyboardOpen()
 
     if (keyboardOpen) return null
@@ -29,6 +30,7 @@ export function BottomNav({ links }: { links: NavLink[] }) {
                     <Link
                         key={link.href}
                         href={link.href}
+                        onNavigate={() => markNavigation(link.href)}
                         aria-current={active ? 'page' : undefined}
                         className={`flex min-h-14 flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-xs font-medium transition-transform active:scale-90 ${active ? 'text-ink' : 'text-faint'}`}
                     >

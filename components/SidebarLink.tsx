@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { Icon } from './Icon'
+import { markNavigation, useShownPath } from '@/lib/nav-target'
 import { isActiveLink, type NavLink } from './BottomNav'
 import { useRonnie } from './RonnieWidget'
 
@@ -12,12 +12,13 @@ import { useRonnie } from './RonnieWidget'
 const ITEM = 'flex items-center gap-2.5 rounded-[9px] px-2.5 py-2.5 text-sm font-medium transition-colors max-lg:justify-center'
 
 export function SidebarLink({ href, label, icon }: NavLink) {
-    const pathname = usePathname()
-    const active = isActiveLink(href, pathname)
+    // A clicked item is marked at once, while its page loads (lib/nav-target.ts)
+    const active = isActiveLink(href, useShownPath())
 
     return (
         <Link
             href={href}
+            onNavigate={() => markNavigation(href)}
             title={label}
             aria-current={active ? 'page' : undefined}
             className={`${ITEM} ${active

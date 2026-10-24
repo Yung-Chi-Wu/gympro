@@ -20,6 +20,7 @@ import {
     type HistoryDay, type HistoryRange, type PeriodRange, type PeriodReportStatus,
 } from '@/lib/history'
 import { closeSubPage, openSubPage } from '@/lib/sub-page'
+import { markNavigation, usePendingHref } from '@/lib/nav-target'
 import { reportClientError, responseError } from '@/lib/report-client-error'
 import { compactSet, SummaryLine } from './set-format'
 import { Icon } from './Icon'
@@ -74,10 +75,13 @@ const TABS: { tab: HistoryTab; href: string }[] = [
 ]
 
 /** 訓練 / 體重 / 報告. Each is its own link, so a tab loads only its own data. */
-export function HistoryTabs({ current }: { current: HistoryTab }) {
+export function HistoryTabs({ current: loaded }: { current: HistoryTab }) {
     const t = useTranslations('history')
     // A day's page on a phone has the top bar's back button instead
     const onDayPage = useSearchParams().has('day')
+    // A tapped tab is marked at once, while its records load (lib/nav-target.ts)
+    const pending = usePendingHref()
+    const current = TABS.find((tab) => tab.href === pending)?.tab ?? loaded
 
     return (
         <nav aria-label={t('title')} className={`gap-1 border-b border-line ${onDayPage ? 'hidden @split:flex' : 'flex'}`}>
@@ -85,6 +89,7 @@ export function HistoryTabs({ current }: { current: HistoryTab }) {
                 <Link
                     key={tab}
                     href={href}
+                    onNavigate={() => markNavigation(href)}
                     scroll={false}
                     aria-current={tab === current ? 'page' : undefined}
                     className={`-mb-px flex min-h-11 items-center border-b-2 px-4 text-[15px] font-medium transition-colors md:min-h-0 md:px-3 md:py-2 md:text-sm ${tab === current ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink'}`}
