@@ -70,3 +70,6 @@ evals/ronnie/.cache/
 # Git worktrees made by Claude Code agents, each a checkout of another branch
 .claude/worktrees/
 evals/knowledge/.cache/
+
+# Drafts of eval replays from real conversations (npm run trace:to-case): reviewed, never committed as they are
+evals/ronnie/drafts/
