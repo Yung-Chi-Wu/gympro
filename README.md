@@ -217,7 +217,10 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
   - the user taps Report a mistake under it;
   - the daily review finds a problem in it.
 
-  A flagged trace is kept 365 days. These are the conversations that become eval cases.
+  A flagged trace is kept 365 days. These are the conversations that become eval cases:
+  - `npm run trace:to-case` drafts a replay from each flagged turn of one account, outside the repo. It moves the turn onto the fixture user: exercise IDs become fixture exercises and the user's name becomes Alex.
+  - A person reviews each draft before it's committed, since the repo is public.
+  - CI refuses a replay that still has its review notes, or an exercise the fixture doesn't have.
 - **Daily review.** Each morning a Lambda reads every Ronnie conversation from a day that has ended in its user's time zone ([`lambda/ai-worker/src/audit`](lambda/ai-worker/src/audit)). The reviewer is Opus, the eval judge's model. It reads the system prompt and each turn's tool results, with no rubric, and flags a reply that:
   - states something no tool result supports;
   - claims an action no tool took;

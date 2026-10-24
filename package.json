@@ -22,6 +22,7 @@
     "check:limits": "lambda/ai-worker/node_modules/.bin/esbuild scripts/check-limits.ts --bundle --platform=node --target=node20 --format=cjs --outfile=scripts/dist/check-limits.cjs --log-level=warning && node scripts/dist/check-limits.cjs",
     "check:exercise-picker": "lambda/ai-worker/node_modules/.bin/esbuild scripts/check-exercise-picker.ts --bundle --platform=node --target=node20 --format=cjs --outfile=scripts/dist/check-exercise-picker.cjs --log-level=warning && node scripts/dist/check-exercise-picker.cjs",
     "index:exercises": "lambda/ai-worker/node_modules/.bin/esbuild scripts/index-exercise-embeddings.ts --bundle --platform=node --target=node20 --format=cjs --outfile=scripts/dist/index-exercise-embeddings.cjs --log-level=warning && AWS_REGION=${AWS_REGION:-us-east-1} node --experimental-websocket scripts/dist/index-exercise-embeddings.cjs",
+    "trace:to-case": "lambda/ai-worker/node_modules/.bin/esbuild scripts/trace-to-case.ts --bundle --platform=node --target=node20 --format=cjs --outfile=scripts/dist/trace-to-case.cjs --log-level=warning && AWS_REGION=${AWS_REGION:-us-east-1} node scripts/dist/trace-to-case.cjs",
     "exercise-attributes": "lambda/ai-worker/node_modules/.bin/esbuild scripts/exercise-attributes.ts --bundle --platform=node --target=node20 --format=cjs --outfile=scripts/dist/exercise-attributes.cjs --log-level=warning && node scripts/dist/exercise-attributes.cjs"
   },
   "dependencies": {
