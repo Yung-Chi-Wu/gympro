@@ -69,6 +69,8 @@ jobs:
         run: npm run check:data-writes
       - name: Every model call asks the spend limits first
         run: npm run check:ai-spend
+      - name: A new set starts as a copy of the last, and logged sets read in the column's unit
+        run: npm run check:set-entry
       - name: Ronnie's tools, turn loop, recorded conversations and grader (offline)
         run: |
           npm run eval:ronnie:build

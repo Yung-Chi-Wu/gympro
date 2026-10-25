@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { useTranslations } from 'next-intl'
 import type { LogType } from '@/lib/exercise-attributes'
-import { fieldValue, fitsLogType, isWeightField, LOG_FIELDS, summarize, type FieldKey, type SetValues, type SummaryPart, type Units } from '@/lib/set-log'
+import { fieldValue, fitsLogType, LOG_FIELDS, summarize, type FieldKey, type SetValues, type SummaryPart, type Units } from '@/lib/set-log'
 import type { Target } from '@/lib/today-workout'
 
 // How sets read in the user's language (messages: sets): the logging table's headers and
@@ -18,17 +18,15 @@ export function fieldLabel(t: SetsT, key: FieldKey, units: Units): string {
 }
 
 /**
- * A logged value as its cell shows it: bodyweight alone reads BW, added weight has a plus. A
- * weight shows in the unit it was typed in, so 80 lb reads 80 again; when that isn't the
- * column's unit the cell says which it is.
+ * A logged value as its cell shows it, in the column's unit like the rest of the table:
+ * bodyweight alone reads BW, added weight has a plus. 63 kg reads 138.9 under lb. The set keeps
+ * what was typed and in which unit, so under kg it reads 63 again.
  */
 export function cellText(t: SetsT, key: FieldKey, s: SetValues, units: Units): string {
-    const own = isWeightField(key) && s.inputUnit && s.inputUnit !== units.weight ? s.inputUnit : null
-    const v = fieldValue(key, s, own ? { ...units, weight: own } : units)
+    const v = fieldValue(key, s, units)
     if (v == null) return ''
-    const suffix = own ? ` ${own}` : ''
-    if (key === 'added') return v === 0 ? t('bodyweight') : `+${v}${suffix}`
-    return `${v}${suffix}`
+    if (key === 'added') return v === 0 ? t('bodyweight') : `+${v}`
+    return String(v)
 }
 
 /**

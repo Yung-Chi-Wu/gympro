@@ -243,9 +243,16 @@ export function toStoredSet(logType: LogType, typed: (number | null)[], units: U
     return s
 }
 
-/** The units a set's values read in: the kg/lb it was typed in when it kept one, else the ones shown */
-export function unitsOfSet(s: SetValues, units: Units): Units {
-    return s.inputUnit && s.inputUnit !== units.weight ? { ...units, weight: s.inputUnit } : units
+/**
+ * What the next set's fields start with, as text in the units shown: the set before it today, so
+ * one like it is a tap of ＋. Empty when there is none yet, or it was logged another way; then
+ * last time's values are only hints.
+ */
+export function nextSetDraft(logType: LogType, loggedSets: SetValues[], units: Units): string[] {
+    const last = loggedSets.at(-1)
+    const fields = LOG_FIELDS[logType]
+    if (!last || !fitsLogType(logType, last)) return fields.map(() => '')
+    return fields.map((key) => String(fieldValue(key, last, units) ?? ''))
 }
 
 /**
