@@ -110,16 +110,16 @@ check('no aim for an exercise not done lately, cardio, a timed hold or a core ex
     const line = reportLine('zh-TW')
     check('the report\'s line for the same lift has Today\'s numbers: the weight, the range and the next weight',
         line.includes('80 kg') && line.includes(`${a.low}–${a.top}`) && line.includes('82.5 kg') && a.weightKg === 80 && a.nextKg === 82.5, `${line} | ${JSON.stringify(a)}`)
-    check('under the exercise, Today says how the aim moves on: the next weight is for the next session, not the next set', aimText(a, 'zh-TW', 'week', 'kg') === '每組都做到 8 下，下次練再換 82.5 kg' && aimText(a, 'en', 'week', 'kg') === 'at 8 on every set, 82.5 kg next session',
+    check('under the exercise, Today says how the aim moves on: the next weight is for the next session, not the next set', aimText(a, 'zh-TW', 'week', 'kg') === '今天每組都做到 8 下，下次練這個動作就換 82.5\u00a0kg' && aimText(a, 'en', 'week', 'kg') === 'if every set reaches 8 today, 82.5\u00a0kg next time you do this exercise',
         `${aimText(a, 'zh-TW', 'week', 'kg')} | ${aimText(a, 'en', 'week', 'kg')}`)
     const up = aimOf(bench, [...lastWeek, ...session(bench, '2026-10-27', [[80, 8], [80, 8], [80, 8]])])!
     // 135 lb, logged in pounds
     const upLb = aimOf(bench, [...session(bench, '2026-10-21', [[61.235, 8]]), ...session(bench, '2026-10-27', [[61.235, 10]])], { unit: 'lb' })!
     check('a step up says why, with the new weight in the unit it is logged in',
-        aimText(up, 'zh-TW', 'week', 'kg') === '上次每組都做到 8 下，所以換 82.5 kg' && aimText(upLb, 'en', 'week', 'lb') === 'every set reached 10 last time, so 140 lb',
+        aimText(up, 'zh-TW', 'week', 'kg') === '上次每組都做到 8 下，今天換 82.5\u00a0kg' && aimText(upLb, 'en', 'week', 'lb') === 'every set reached 10 last time, so 140\u00a0lb today',
         `${aimText(up, 'zh-TW', 'week', 'kg')} | ${aimText(upLb, 'en', 'week', 'lb')}`)
     const hold = aimOf(bench, lastWeek, { findings: [finding('pain_hold', { how: 'load', weightKg: 80, low: 6, top: 8 })] })!
-    check('a hold says it for the cycle when there is one', aimText(hold, 'zh-TW', 'cycle', 'kg') === '這輪先不加重，80 kg × 6 下就好', aimText(hold, 'zh-TW', 'cycle', 'kg'))
+    check('a hold says it for the cycle when there is one', aimText(hold, 'zh-TW', 'cycle', 'kg') === '這輪先不加重，80\u00a0kg × 6 下就好', aimText(hold, 'zh-TW', 'cycle', 'kg'))
     for (const language of ['zh-TW', 'en']) {
         const all = [a, up, hold, aimOf(pushUp, session(pushUp, '2026-10-22', [[0, 12]]))!, aimOf(assisted, session(assisted, '2026-10-21', [[0, 6, 30]]))!,
             aimOf(bench, lastWeek, { findings: [finding('next_session', { how: 'deload', weightKg: 72.5, low: 6, sets: 2, usualSets: 3, usualKg: 80 })] })!,

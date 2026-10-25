@@ -207,13 +207,14 @@ export function planItems(findings: Finding[], language: string, unit: 'week' | 
  */
 export function aimText(a: Aim, language: string, unit: 'week' | 'cycle', weightUnit: WeightUnit): string {
     const t = labelIn(language)
-    const w = (kg: number | null) => `${toDisplayWeight(Number(kg), weightUnit)} ${weightUnit}`
+    // A weight and its unit stay on one line on a narrow phone
+    const w = (kg: number | null) => `${toDisplayWeight(Number(kg), weightUnit)}\u00a0${weightUnit}`
     const n = { weight: w(a.weightKg), next: w(a.nextKg), assist: w(a.assistKg), low: String(a.low), top: String(a.top ?? ''), unit }
     switch (a.how) {
         case 'load': return t('plan.aimLoad', n)
         case 'step_up': return t('plan.aimStepUp', n)
         case 'reps': return t('plan.lineReps', n)
-        case 'assist': return t('plan.lineAssist', n)
+        case 'assist': return t('plan.aimAssist', n)
         case 'assist_down': return t('plan.aimAssistDown', n)
         case 'reset': return t('plan.aimReset', n)
         case 'hold': return t(a.assistKg != null ? 'plan.aimHoldAssist' : a.weightKg != null ? 'plan.aimHold' : 'plan.aimHoldReps', n)
