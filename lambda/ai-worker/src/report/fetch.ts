@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { addDays, daysBetween } from '../../../../lib/periods'
+import { addDays, cycleDayOf, daysBetween } from '../../../../lib/periods'
 import { ageOn } from '../../../../lib/report/cardio-intensity'
 import { SUGGESTED_NAMES } from '../../../../lib/report/volume'
 import { isCardio, logTypeOf } from '../../../../lib/set-log'
@@ -194,8 +194,7 @@ export async function fetchSchedule(supabase: SupabaseClient, userId: string, pe
     return Array.from({ length: days }, (_, i) => {
         const date = addDays(periodStart, i)
         const since = daysBetween(cycle.start_date, date)
-        const dayIndex = (((since % cycle.cycle_length) + cycle.cycle_length) % cycle.cycle_length) + 1
-        const routine = since < 0 ? null : routineFor.get(dayIndex) ?? null
+        const routine = since < 0 ? null : routineFor.get(cycleDayOf({ cycleLength: cycle.cycle_length, startDate: cycle.start_date }, date)) ?? null
         return {
             date,
             routine: routine?.name ?? null,

@@ -24,6 +24,12 @@
   --color-good-soft: #E2EEE4;
   --color-miss: #B4553A;
 
+  /* 課表日曆上前三個課表各自的顏色（lib/cycle-calendar.ts），色盲模擬下兩兩都分得開；
+     第四個以後用 muted，靠圖例和名稱分辨 */
+  --color-routine-1: #2a78d6;
+  --color-routine-2: #eda100;
+  --color-routine-3: #d55181;
+
   /* 中文字：裝了 Noto Sans TC 就用，否則蘋果用蘋方、Windows 用微軟正黑 */
   --font-sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
 
@@ -130,6 +136,9 @@ html.dark {
   --color-good: #7FBF8E;
   --color-good-soft: #1F2D22;
   --color-miss: #E08A6D;
+  --color-routine-1: #3987e5;
+  --color-routine-2: #c98500;
+  --color-routine-3: #d55181;
   color-scheme: dark;
   background-color: #1A1814;
   color: #EAE7E0;

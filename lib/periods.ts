@@ -55,6 +55,16 @@ export function lastCompletedPeriod(timeZone: string, cycle: CycleSettings | nul
     return { periodStart, periodEnd: addDays(periodStart, cycle.cycleLength - 1) }
 }
 
+/**
+ * Which day of a training cycle a date is, 1 to cycleLength. Before the cycle's start it
+ * counts backwards, so every date has one; whether a day that early has a plan is the
+ * caller's to say (a report and the calendar give it none).
+ */
+export function cycleDayOf(cycle: CycleSettings, date: string): number {
+    const since = daysBetween(cycle.startDate, date)
+    return (((since % cycle.cycleLength) + cycle.cycleLength) % cycle.cycleLength) + 1
+}
+
 /** Last day of the period that starts on periodStart. */
 export function periodEndFor(periodStart: string, cycle: CycleSettings | null): string {
     return addDays(periodStart, (cycle?.cycleLength ?? 7) - 1)

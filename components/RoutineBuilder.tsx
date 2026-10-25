@@ -6,7 +6,8 @@ import { useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { MuscleGroupExercisePicker } from './MuscleGroupExercisePicker'
-import { CycleScheduler, type CycleDayState } from './CycleScheduler'
+import { CycleScheduler, type CycleDayState, type CycleRow } from './CycleScheduler'
+import { CycleCalendar } from './CycleCalendar'
 import { CoachGEntry } from './CoachGEntry'
 import { Icon } from './Icon'
 import { MoreMenu } from './MoreMenu'
@@ -18,22 +19,32 @@ import { MAX_ROUTINE_NAME_CHARS } from '@/lib/text-limits'
 import { isTarget, TARGET_REPS, TARGET_SETS } from '@/lib/targets'
 import { MUSCLE_GROUPS, type ExerciseOption } from './log-types'
 import type { RoutineWithExercises, RoutineExerciseRow } from '@/app/(app)/routines/page'
+import type { CalendarCycle } from '@/lib/cycle-calendar'
+import type { HistoryDay, HistoryRange, PeriodReportStatus } from '@/lib/history'
+import type { Units } from '@/lib/set-log'
 
-// The 課表 page. Side by side (@split): the training cycle as one strip on top, then the
-// routines on the left and the chosen routine's editor on the right. On a phone: a
-// 循環 / 課表 switch, the list of routines, and a routine opens as a page of its own
-// (?routine=, see lib/sub-page.ts) that the top bar's back button closes.
+// The 課表 page. Side by side (@split): the cycle's calendar on top, then the routines on the
+// left and the chosen routine's editor on the right. On a phone: a 日曆 / 課表 switch, and a
+// routine opens as a page of its own (?routine=, see lib/sub-page.ts) that the top bar's back
+// button closes. 編輯循環 opens the cycle's editor the same way (?routine=cycle), in the
+// calendar's place; with no cycle yet, that place has the editor's form to make one.
 
 interface RoutineBuilderProps {
     userId: string
     exercises: ExerciseOption[]
     initialRoutines: RoutineWithExercises[]
     language: string
-    initialCycle: { id: string; cycleLength: number; startDate: string } | null
+    initialCycle: CycleRow | null
     initialCycleDays: CycleDayState[]
+    /** The calendar's first month, read with the page: what was trained and the rounds' reports */
+    calendar: { range: HistoryRange; days: HistoryDay[]; reports: PeriodReportStatus[]; firstDate: string | null } | null
+    units: Units
     /** Today in the user's time zone, YYYY-MM-DD */
     today: string
 }
+
+/** ?routine= this opens the cycle's editor; no routine has it as its id */
+const CYCLE_PAGE = 'cycle'
 
 interface RawRoutineExercise {
     id: string
@@ -63,6 +74,8 @@ export function RoutineBuilder({
     language,
     initialCycle,
     initialCycleDays,
+    calendar,
+    units,
     today,
 }: RoutineBuilderProps) {
     const supabase = createClient()
@@ -75,8 +88,9 @@ export function RoutineBuilder({
             ? initialCycleDays
             : Array.from({ length: initialCycle?.cycleLength ?? 0 }, (_, i) => ({ dayIndex: i + 1, routineId: null }))
     )
-    // The phone's 循環 / 課表 switch
-    const [view, setView] = useState<'routines' | 'cycle'>('routines')
+    const [cycle, setCycle] = useState(initialCycle)
+    // The phone's 日曆 / 課表 switch: the calendar first once there is a cycle to show
+    const [view, setView] = useState<'routines' | 'calendar'>(initialCycle ? 'calendar' : 'routines')
     const [isCreating, setIsCreating] = useState(false)
     const [newRoutineName, setNewRoutineName] = useState('')
     const [error, setError] = useState<string | null>(null)
@@ -98,6 +112,18 @@ export function RoutineBuilder({
     }, [coachGOnArrival])
 
     const opened = routines.find((r) => r.id === searchParams.get('routine')) ?? null
+    const editingCycle = searchParams.get('routine') === CYCLE_PAGE
+    const calendarCycle: CalendarCycle | null = cycle && {
+        cycleLength: cycle.cycleLength,
+        startDate: cycle.startDate,
+        routineByDay: Object.fromEntries(days.map((d) => [d.dayIndex, d.routineId])),
+    }
+
+    // A cycle made here goes on to its editor, which picks the days' routines next
+    function changeCycle(next: CycleRow | null) {
+        if (!cycle && next) openSubPage('routine', CYCLE_PAGE)
+        setCycle(next)
+    }
     // Side by side, the editor shows the first routine until another is picked
     const shown = opened ?? routines[0] ?? null
     const daysOf = (routineId: string) => days.filter((d) => d.routineId === routineId).map((d) => d.dayIndex)
@@ -428,11 +454,11 @@ export function RoutineBuilder({
             {error && <p role="alert" className="text-sm text-miss">{error}</p>}
             {coachGOnArrival && coachG('auto')}
 
-            {/* Phone: 循環 or 課表, one at a time */}
-            {!opened && (
+            {/* Phone: 日曆 or 課表, one at a time */}
+            {!opened && !editingCycle && (
                 <div className="flex items-center justify-between gap-3 @split:hidden">
                     <div role="tablist" aria-label={t('title')} className="inline-flex overflow-hidden rounded-[9px] border border-line bg-card">
-                        {(['cycle', 'routines'] as const).map((v) => (
+                        {(['calendar', 'routines'] as const).map((v) => (
                             <button
                                 key={v}
                                 type="button"
@@ -441,7 +467,7 @@ export function RoutineBuilder({
                                 onClick={() => setView(v)}
                                 className={`min-h-11 px-5 text-[15px] font-medium ${view === v ? 'bg-ink text-card' : 'text-muted'}`}
                             >
-                                {v === 'cycle' ? t('cycleTab') : t('routinesTab')}
+                                {v === 'calendar' ? t('calendarTab') : t('routinesTab')}
                             </button>
                         ))}
                     </div>
@@ -454,19 +480,46 @@ export function RoutineBuilder({
                 </div>
             )}
 
-            <div className={`${view === 'cycle' && !opened ? '' : 'hidden'} @split:block`}>
-                <CycleScheduler
-                    userId={userId}
-                    routines={routines.map((r) => ({ id: r.id, name: r.name }))}
-                    initialCycle={initialCycle}
-                    days={days}
-                    setDays={setDays}
-                    today={today}
-                    language={language}
-                />
+            <div className={`${(view === 'calendar' && !opened) || editingCycle ? '' : 'hidden'} space-y-3 @split:block`}>
+                {/* One editor for making a cycle and for changing it, so a new one goes on to its days */}
+                {!calendarCycle || editingCycle ? (
+                    <>
+                        {calendarCycle && (
+                            <button type="button" onClick={() => closeSubPage('routine')} className="hidden min-h-9 items-center gap-0.5 text-sm font-medium text-accent md:flex">
+                                <Icon name="back" className="size-4" />
+                                {t('calendarTab')}
+                            </button>
+                        )}
+                        <CycleScheduler
+                            userId={userId}
+                            routines={routines.map((r) => ({ id: r.id, name: r.name }))}
+                            cycle={cycle}
+                            setCycle={changeCycle}
+                            days={days}
+                            setDays={setDays}
+                            today={today}
+                            language={language}
+                        />
+                    </>
+                ) : (
+                    <CycleCalendar
+                        today={today}
+                        cycle={calendarCycle}
+                        routines={routines}
+                        exercises={exercises}
+                        initialRange={calendar?.range ?? { start: today, end: today }}
+                        initialDays={calendar?.days ?? []}
+                        initialReports={calendar?.reports ?? []}
+                        firstDate={calendar?.firstDate ?? null}
+                        language={language}
+                        units={units}
+                        onEditCycle={() => openSubPage('routine', CYCLE_PAGE)}
+                        onOpenRoutine={(id) => openSubPage('routine', id)}
+                    />
+                )}
             </div>
 
-            <div className={`${view === 'routines' || opened ? '' : 'hidden'} items-start gap-4 @split:grid @split:grid-cols-[minmax(220px,300px)_minmax(0,1fr)]`}>
+            <div className={`${(view === 'routines' && !editingCycle) || opened ? '' : 'hidden'} items-start gap-4 @split:grid @split:grid-cols-[minmax(220px,300px)_minmax(0,1fr)]`}>
 
                 {/* The routines */}
                 <div className={`space-y-5 md:space-y-3 ${opened ? 'hidden @split:block' : ''}`}>
