@@ -25,6 +25,7 @@ const check = (name: string, ok: boolean, detail = '') => {
 const NOT_PAGE_DATA: Record<string, string> = {
     '/api/errors': 'an error report, kept in app_errors',
     '/api/ai/coach/feedback': "a flag on one of Ronnie's answers, kept in ai_trace_flags",
+    '/api/feedback': 'feedback for the owner, kept in app_feedback',
     '/api/ai/routine-chat': "Coach G's chat, which writes only its trace",
     '/api/ai/generate-routine': "Coach G's draft, which writes only its trace (saving it is /api/ai/save-routine)",
 }
