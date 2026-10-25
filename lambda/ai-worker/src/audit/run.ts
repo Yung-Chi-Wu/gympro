@@ -1,16 +1,15 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { costOf, errorText, flagTrace, recordTrace, usageOfError, type FlagKind } from '../../../../lib/ai/trace'
+import { costOf, errorText, flagTrace, recordTrace, usageOfError } from '../../../../lib/ai/trace'
 import { timeZoneOf } from '../../../../lib/time-zone'
 import { AUDIT_MODEL, REQUEST_TIMEOUT_MS, reviewConversation, type Problem } from './auditor'
-import { digestOf, type Digest, type ReviewedDay, type AuditRun } from './digest'
 import { conversationsToReview, lastTurnsThatFit, type Conversation, type RonnieTraceRow } from './turns'
 
 // One daily review: the Ronnie turns not read yet, from the past few days, grouped into each
-// user's days that have ended; one model call per day; a flag on each reply with a problem; the
-// day's traces marked read; and one email when anything is worth a look. Each day is marked read
-// only after its review is saved, so a run that fails or stops partway leaves the rest for the
-// next one, and a second run reads nothing twice.
+// user's days that have ended; one model call per day; a flag on each reply with a problem; and
+// the day's traces marked read. Each day is marked read only after its review is saved, so a run
+// that fails or stops partway leaves the rest for the next one, and a second run reads nothing
+// twice. The flags reach the owner in the weekly email (digest.ts).
 
 /** Turns older than this are left unread: a review that was down for days doesn't catch up on all of them at once */
 export const LOOKBACK_DAYS = 4
@@ -20,14 +19,28 @@ export const MAX_RUN_COST_USD = 0.5
 /** No new day starts with less than this left of the Lambda's time: the call's wait, and time to save */
 export const KEEP_BACK_MS = REQUEST_TIMEOUT_MS + 60_000
 
-/** .in() lists go in the URL, so long ones are sent in parts */
-const IN_CHUNK = 100
-const chunks = <T>(items: T[]) => Array.from({ length: Math.ceil(items.length / IN_CHUNK) }, (_, i) => items.slice(i * IN_CHUNK, (i + 1) * IN_CHUNK))
+/** .in() lists go in the URL, so long ones are sent in parts; reads are paged by the same size */
+export const IN_CHUNK = 100
+export const chunks = <T>(items: T[]) => Array.from({ length: Math.ceil(items.length / IN_CHUNK) }, (_, i) => items.slice(i * IN_CHUNK, (i + 1) * IN_CHUNK))
+
+export interface ReviewedDay {
+    conversation: Conversation
+    problems: Problem[]
+}
+
+export interface AuditRun {
+    at: number
+    reviewed: ReviewedDay[]
+    /** Days the review stopped before: the run's cap or time ran out */
+    later: Conversation[]
+    /** Days whose review failed, read again next run */
+    failed: Conversation[]
+    costUsd: number
+}
 
 export interface RunDeps {
     supabase: SupabaseClient
     client: Anthropic
-    publish: (digest: Digest) => Promise<void>
     now?: number
     /** What is left of the Lambda's time */
     remainingMs?: () => number
@@ -51,7 +64,7 @@ async function unreadTurns(supabase: SupabaseClient, now: number): Promise<Ronni
     }
 }
 
-async function zonesOf(supabase: SupabaseClient, userIds: string[]): Promise<Map<string, string>> {
+export async function zonesOf(supabase: SupabaseClient, userIds: string[]): Promise<Map<string, string>> {
     const zones = new Map<string, string>()
     for (const part of chunks(userIds)) {
         const { data, error } = await supabase.from('user_profiles').select('user_id, timezone').in('user_id', part)
@@ -61,22 +74,10 @@ async function zonesOf(supabase: SupabaseClient, userIds: string[]): Promise<Map
     return zones
 }
 
-/** The flags already on these traces: what the user did around each reply */
-async function flagsOn(supabase: SupabaseClient, traceIds: string[]): Promise<{ traceId: string; kind: FlagKind }[]> {
-    const flags: { traceId: string; kind: FlagKind }[] = []
-    for (const part of chunks(traceIds)) {
-        const { data, error } = await supabase.from('ai_trace_flags').select('trace_id, kind').in('trace_id', part)
-        // The email still goes out, without them
-        if (error) console.error(`Flags not read for the review: ${error.message}`)
-        for (const f of data ?? []) flags.push({ traceId: f.trace_id, kind: f.kind })
-    }
-    return flags
-}
-
 async function markRead(supabase: SupabaseClient, traceIds: string[], now: number): Promise<void> {
     for (const part of chunks(traceIds)) {
         const { error } = await supabase.from('ai_traces').update({ audited_at: new Date(now).toISOString() }).in('id', part)
-        // Read again next run: its flags are kept once, the email may say it twice
+        // Read again next run: its flags are kept once
         if (error) console.error(`Reviewed traces not marked read: ${error.message}`)
     }
 }
@@ -91,11 +92,10 @@ async function flagProblems(supabase: SupabaseClient, c: Conversation, problems:
     }
 }
 
-export async function runAudit({ supabase, client, publish, now = Date.now(), remainingMs = () => Infinity }: RunDeps): Promise<AuditRun & { emailed: boolean }> {
+export async function runAudit({ supabase, client, now = Date.now(), remainingMs = () => Infinity }: RunDeps): Promise<AuditRun> {
     const rows = await unreadTurns(supabase, now)
     const zones = await zonesOf(supabase, [...new Set(rows.map((r) => r.user_id))])
     const days = conversationsToReview(rows, (userId) => zones.get(userId) ?? timeZoneOf(null), now)
-    const flags = await flagsOn(supabase, days.flatMap((d) => d.traceIds))
 
     const run: AuditRun = { at: now, reviewed: [], later: [], failed: [], costUsd: 0 }
     for (const day of days) {
@@ -121,8 +121,7 @@ export async function runAudit({ supabase, client, publish, now = Date.now(), re
             })
             await flagProblems(supabase, day, review.problems, review.model, auditTraceId)
             await markRead(supabase, day.traceIds, now)
-            const dayFlags: ReviewedDay['flags'] = flags.filter((f) => day.traceIds.includes(f.traceId))
-            run.reviewed.push({ conversation: day, problems: review.problems, flags: dayFlags })
+            run.reviewed.push({ conversation: day, problems: review.problems })
         } catch (err) {
             const usage = usageOfError(err)
             run.costUsd += costOf(AUDIT_MODEL, usage) ?? 0
@@ -135,8 +134,6 @@ export async function runAudit({ supabase, client, publish, now = Date.now(), re
         }
     }
 
-    const digest = digestOf(run)
-    if (digest) await publish(digest)
     console.log(JSON.stringify({
         event: 'ronnie_audit',
         days: run.reviewed.length,
@@ -145,7 +142,6 @@ export async function runAudit({ supabase, client, publish, now = Date.now(), re
         later: run.later.length,
         failed: run.failed.length,
         costUsd: Math.round(run.costUsd * 10_000) / 10_000,
-        emailed: !!digest,
     }))
-    return { ...run, emailed: !!digest }
+    return run
 }

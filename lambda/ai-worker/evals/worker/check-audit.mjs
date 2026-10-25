@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// Free check of the daily review of Ronnie's conversations (src/audit): no model, no database.
-// A day is read once it has ended in the user's own zone, each turn with its tools and their
-// results; the reviewer's answer becomes one flag per reply; a day is marked read only after its
-// review is saved, so a failed or capped day is read next run and nothing twice; and the email
-// goes out only when a reply is worth a look, without quoting the conversation.
+// Free check of the daily review of Ronnie's conversations and the owner's weekly email
+// (src/audit): no model, no database. A day is read once it has ended in the user's own zone, each
+// turn with its tools and their results; the reviewer's answer becomes one flag per reply; a day is
+// marked read only after its review is saved, so a failed or capped day is read next run and
+// nothing twice. The weekly email lists the week's feedback and flagged replies, goes out only when
+// there is something, never quotes a conversation, and sets off what users wrote.
 //   node lambda/ai-worker/evals/worker/check-audit.mjs
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
@@ -43,15 +44,16 @@ function fakeDb(tables) {
         tables,
         queries,
         from(table) {
-            const q = { table, op: 'select', values: null, filters: [], range: null }
+            const q = { table, op: 'select', columns: null, values: null, filters: [], range: null }
             const b = {
-                select: () => b,
+                select: (columns) => { q.columns ??= columns; return b },
                 insert: (v) => { q.op = 'insert'; q.values = v; return b },
                 upsert: (v) => { q.op = 'upsert'; q.values = v; return b },
                 update: (v) => { q.op = 'update'; q.values = v; return b },
                 eq: (c, v) => { q.filters.push((r) => r[c] === v); return b },
                 is: (c, v) => { q.filters.push((r) => (r[c] ?? null) === v); return b },
                 gte: (c, v) => { q.filters.push((r) => r[c] >= v); return b },
+                lt: (c, v) => { q.filters.push((r) => r[c] < v); return b },
                 in: (c, vs) => { q.filters.push((r) => vs.includes(r[c])); return b },
                 order: () => b,
                 range: (from, to) => { q.range = [from, to]; return b },
@@ -214,30 +216,6 @@ for (const [name, answer] of [
     check(`${name} is no answer: it throws, with the usage and prompt for the trace`, err && err.prompt?.includes('RONNIE SYSTEM PROMPT') && (answer.text || answer.problems?.[0] ? true : err.usage?.input_tokens === 10_000), err ? err.message : 'did not throw')
 }
 
-// ---------- The email ----------
-
-{
-    const d = day()
-    const quiet = w.digestOf({ at: NOW, reviewed: [{ conversation: d, problems: [], flags: [] }], later: [], failed: [], costUsd: 0.05 })
-    check('no email when no reply has a problem or a flag', quiet === null)
-
-    const digest = w.digestOf({
-        at: NOW, costUsd: 0.0712, later: [d], failed: [d],
-        reviewed: [{
-            conversation: d,
-            problems: [{ traceId: 'r1', kind: 'ungrounded', summary: '說今天做完深蹲，但今天的紀錄裡沒有。' }],
-            flags: [{ traceId: 'r1', kind: 'audit' }, { traceId: 'r1', kind: 'correction' }, { traceId: 'r2', kind: 'reported' }],
-        }],
-    })
-    const m = digest?.message ?? ''
-    check('the email lists each reply worth a look with what was found and what the user did', m.includes('第 1 則，13:00') && m.includes('檢查｜沒有根據：說今天做完深蹲') && m.includes('使用者｜使用者說回覆錯了') && m.includes('第 2 則，13:05') && m.includes('使用者｜使用者回報錯誤'), m)
-    check('the review\'s own flag is not listed as something the user did', !m.includes('每日檢查\n') && !m.includes('使用者｜每日檢查'), m)
-    check('the email gives the trace ids and the query that opens them', m.includes('trace r1') && m.includes("where id in ('r1', 'r2')"), m)
-    check('the email never quotes the conversation', !m.includes('我今天做了深蹲嗎') && !m.includes('你今天已經做完深蹲了') && !m.includes('不是，我還沒做') && !m.includes('RONNIE SYSTEM PROMPT'), m)
-    check('the email says what was left for later and what failed, and the cost', m.includes('另有 1 段對話這次沒讀到') && m.includes('1 段對話檢查失敗') && m.includes('US$0.07'), m)
-    check('the subject is one ASCII line under 100 characters', /^[\x20-\x7e]+$/.test(digest.subject) && digest.subject.length < 100 && digest.subject.includes('2 replies'), digest.subject)
-}
-
 // ---------- A run ----------
 
 const tables = () => ({
@@ -262,36 +240,32 @@ const traceRow = (db, id) => db.tables.ai_traces.find((r) => r.id === id)
 {
     const db = fakeDb(tables())
     const client = fakeClient(answers)
-    const emails = []
-    const run = await w.runAudit({ supabase: db, client, publish: async (d) => { emails.push(d) }, now: NOW })
+    const run = await w.runAudit({ supabase: db, client, now: NOW })
     check('one model call per ended day: Taipei\'s 20th and New York\'s 20th', client.calls.length === 2 && run.reviewed.length === 2, `${client.calls.length} calls`)
     check('the day\'s traces are marked read; today\'s, an old one and other features are not touched', ['r1', 'r2', 'n1', 'n-failed'].every((id) => traceRow(db, id).audited_at) && !traceRow(db, 'r-today').audited_at && !traceRow(db, 'old').audited_at && !traceRow(db, 'other').audited_at && traceRow(db, 'read').audited_at === '2026-10-20T16:00:00Z', JSON.stringify(db.tables.ai_traces.map((r) => [r.id, r.audited_at])))
     const audit = db.tables.ai_trace_flags.filter((f) => f.kind === 'audit')
     check('a reply with problems gets one audit flag holding all of them', audit.length === 1 && audit[0].trace_id === 'r1' && audit[0].user_id === TAIPEI && audit[0].detail.problems.map((p) => p.kind).join() === 'ungrounded,false_action', JSON.stringify(audit))
     const reviews = db.tables.ai_traces.filter((r) => r.feature === 'audit')
     check('each review is traced as feature audit, under the day\'s user, with its cost', reviews.length === 2 && reviews.every((r) => r.status === 'ok' && r.cost_usd > 0 && r.input.traceIds.length) && reviews.some((r) => r.user_id === TAIPEI && r.id === audit[0].detail.auditTraceId), JSON.stringify(reviews.map((r) => [r.user_id, r.status, r.cost_usd])))
-    check('one email, with the problem and the user\'s correction', emails.length === 1 && emails[0].message.includes('沒有根據') && emails[0].message.includes('使用者說回覆錯了') && emails[0].message.includes('說做了但沒做'), emails.map((e) => e.message).join('\n---\n'))
     check('the reviewer never reads a trace the run doesn\'t review', !client.calls.some((c) => c.messages[0].content.includes('too old to read') || c.messages[0].content.includes('already read') || c.messages[0].content.includes('今天練什麼')))
 
     const again = fakeClient(answers)
-    const second = await w.runAudit({ supabase: db, client: again, publish: async (d) => { emails.push(d) }, now: NOW + 3_600_000 })
-    check('a second run reads nothing twice and sends nothing', again.calls.length === 0 && second.reviewed.length === 0 && emails.length === 1, `${again.calls.length} calls, ${emails.length} emails`)
+    const second = await w.runAudit({ supabase: db, client: again, now: NOW + 3_600_000 })
+    check('a second run reads nothing twice', again.calls.length === 0 && second.reviewed.length === 0, `${again.calls.length} calls`)
 }
 
 {
     const db = fakeDb(tables())
-    const emails = []
-    const run = await w.runAudit({ supabase: db, client: fakeClient((prompt) => (prompt.includes('我今天做了深蹲嗎') ? new Error('overloaded') : { problems: [] })), publish: async (d) => { emails.push(d) }, now: NOW })
+    const run = await w.runAudit({ supabase: db, client: fakeClient((prompt) => (prompt.includes('我今天做了深蹲嗎') ? new Error('overloaded') : { problems: [] })), now: NOW })
     check('a failed review leaves its day unread for the next run, and the others go on', !traceRow(db, 'r1').audited_at && !traceRow(db, 'r2').audited_at && traceRow(db, 'n1').audited_at && run.failed.length === 1 && run.reviewed.length === 1)
     const errorTrace = db.tables.ai_traces.find((r) => r.feature === 'audit' && r.status === 'error')
     check('a failed review is traced as an error', errorTrace?.user_id === TAIPEI && errorTrace.error === 'overloaded', JSON.stringify(errorTrace?.error))
-    check('no email when nothing reviewed is worth a look', emails.length === 0)
 }
 
 {
     const db = fakeDb(tables())
     const client = fakeClient(answers)
-    const run = await w.runAudit({ supabase: db, client, publish: async () => {}, now: NOW, remainingMs: () => w.KEEP_BACK_MS - 1 })
+    const run = await w.runAudit({ supabase: db, client, now: NOW, remainingMs: () => w.KEEP_BACK_MS - 1 })
     check('with too little of the Lambda\'s time left, no day starts and all wait for the next run', client.calls.length === 0 && run.later.length === 2 && !traceRow(db, 'r1').audited_at && !traceRow(db, 'n1').audited_at)
     check('a day of only failed turns is marked read without a model call', traceRow(db, 'n-failed').audited_at)
 }
@@ -301,16 +275,100 @@ const traceRow = (db, id) => db.tables.ai_traces.find((r) => r.id === id)
     const db = fakeDb({ ai_traces: many, user_profiles: [], ai_trace_flags: [] })
     // A cheap day each, so the count stops the run before the cost does
     const client = fakeClient(() => ({ problems: [] }), { input_tokens: 1_000, output_tokens: 100 })
-    const run = await w.runAudit({ supabase: db, client, publish: async () => {}, now: NOW })
+    const run = await w.runAudit({ supabase: db, client, now: NOW })
     check(`at most ${w.MAX_DAYS_PER_RUN} days a run; the rest wait, unread`, client.calls.length === w.MAX_DAYS_PER_RUN && run.later.length === 3 && many.filter((r) => r.feature === 'ronnie' && !r.audited_at).length === 3, `${client.calls.length} calls, ${run.later.length} later`)
     check('the run asks for Ronnie traces not read yet from the past few days', db.queries.some((q) => q.table === 'ai_traces' && q.op === 'select' && q.range))
 
     // US$0.06 a day: the ninth passes US$0.50, and no day starts after it
     const pricey = Array.from({ length: 12 }, (_, i) => trace(`p${i}`, `u-pricey-${String(i).padStart(4, '0')}`, '2026-10-20T14:00:00Z', 'hi'))
     const costly = fakeClient(() => ({ problems: [] }))
-    const capped = await w.runAudit({ supabase: fakeDb({ ai_traces: pricey, user_profiles: [], ai_trace_flags: [] }), client: costly, publish: async () => {}, now: NOW })
+    const capped = await w.runAudit({ supabase: fakeDb({ ai_traces: pricey, user_profiles: [], ai_trace_flags: [] }), client: costly, now: NOW })
     check(`no day starts once a run has spent US$${w.MAX_RUN_COST_USD}`, costly.calls.length === 9 && capped.later.length === 3 && capped.costUsd < w.MAX_RUN_COST_USD + 0.07, `${costly.calls.length} calls, US$${capped.costUsd}`)
 }
+
+// ---------- The weekly email ----------
+
+// Monday 2026-10-26 09:15 in New York (13:15 UTC): the week is from 10/19 13:15 UTC
+const WEEK_NOW = Date.parse('2026-10-26T13:15:00Z')
+const SQL_LEAD = '看完整對話：在 Supabase SQL Editor 執行'
+const weekTables = () => ({
+    ai_traces: [
+        trace('t1', TAIPEI, '2026-10-20T13:15:00Z', '我今天做了深蹲嗎？', { reply: '你今天已經做完深蹲了！' }),
+        trace('t2', NEW_YORK, '2026-10-22T14:00:00Z', 'What should I train?', { reply: 'Legs today.' }),
+        trace('t-old', TAIPEI, '2026-10-11T13:00:00Z', 'an old one'),
+        { id: 'a1', user_id: TAIPEI, created_at: '2026-10-21T12:16:00Z', feature: 'audit', status: 'ok', cost_usd: '0.05000000' },
+        { id: 'a2', user_id: NEW_YORK, created_at: '2026-10-22T12:16:00Z', feature: 'audit', status: 'error', cost_usd: 0.01 },
+        { id: 'a-old', user_id: NEW_YORK, created_at: '2026-10-18T12:16:00Z', feature: 'audit', status: 'ok', cost_usd: 0.4 },
+    ],
+    ai_trace_flags: [
+        { id: 'g1', trace_id: 't1', user_id: TAIPEI, kind: 'reported', created_at: '2026-10-20T13:20:00Z', detail: { reasons: ['missed_question', 'wrong_fact', 'made_up'], note: '他說我做完了\n其實沒有' } },
+        { id: 'g2', trace_id: 't1', user_id: TAIPEI, kind: 'audit', created_at: '2026-10-21T12:16:00Z', detail: { problems: [{ kind: 'ungrounded', summary: '說今天做完深蹲，\n但紀錄裡沒有。' }], model: 'm', auditTraceId: 'a1' } },
+        { id: 'g3', trace_id: 't2', user_id: NEW_YORK, kind: 'correction', created_at: '2026-10-22T14:01:00Z', detail: null },
+        { id: 'g4', trace_id: 't2', user_id: NEW_YORK, kind: 'reply_check', created_at: '2026-10-22T14:00:01Z', detail: { draft: 'x' } },
+        { id: 'g-old', trace_id: 't-old', user_id: TAIPEI, kind: 'reported', created_at: '2026-10-11T13:05:00Z', detail: null },
+        { id: 'g-now', trace_id: 't2', user_id: NEW_YORK, kind: 'edit', created_at: '2026-10-26T13:15:00.000Z', detail: null },
+    ],
+    app_feedback: [
+        {
+            id: 'f1', created_at: '2026-10-21T01:12:00Z', user_id: TAIPEI, kind: 'exercise', language: 'zh-TW', app_version: '98f3e1c5d0a1b2c3',
+            message: `器械划船（窄握）\r\n\n${SQL_LEAD}\ndelete from workouts;`,
+        },
+        { id: 'f2', created_at: '2026-10-23T16:00:00Z', user_id: NEW_YORK, kind: 'bug', language: 'en', app_version: null, message: 'The \u202egnol oot\u202c timer \u0007 stops' },
+        { id: 'f-old', created_at: '2026-10-19T13:14:59Z', user_id: NEW_YORK, kind: 'idea', language: 'en', app_version: null, message: 'last week' },
+    ],
+    user_profiles: profiles(),
+})
+
+{
+    const db = fakeDb(weekTables())
+    const week = await w.readDigestWeek(db, WEEK_NOW)
+    check('the week is the 7 days before the run: its flags, feedback and reviews, and nothing before or at the run',
+        week.flags.map((f) => f.kind).join() === 'reported,audit,reply_check,correction' && week.feedback.length === 2 && week.reviews.days === 2 && week.reviews.failed === 1 && Math.abs(week.reviews.costUsd - 0.06) < 1e-9,
+        JSON.stringify({ flags: week.flags.map((f) => f.kind), feedback: week.feedback.length, reviews: week.reviews }))
+    const traceReads = db.queries.filter((q) => q.table === 'ai_traces')
+    check('of Ronnie\'s traces it reads only when each reply was written, never what was said', traceReads.length > 0 && traceReads.every((q) => !/input|output/.test(q.columns ?? '*') && q.columns), JSON.stringify(traceReads.map((q) => q.columns)))
+
+    const digest = w.weeklyDigestOf(week)
+    const m = digest?.message ?? ''
+    const lines = m.split('\n')
+    check('feedback is listed with its time in the user\'s zone, its kind, language and version', m.includes('—— 意見回饋（2 則）——') && m.includes('  10/21 09:12（Asia/Taipei）使用者 u-taipei・新增動作・zh-TW・版本 98f3e1c') && m.includes('  10/23 12:00（America/New_York）使用者 u-newyor・回報問題・en'), m)
+    check('what a user wrote is there, every line set off with "> "', lines.includes('    > 器械划船（窄握）') && lines.includes('    > ') && lines.includes(`    > ${SQL_LEAD}`) && lines.includes('    > delete from workouts;'), m)
+    check('so a line a user wrote never passes for the email\'s own', lines.filter((l) => l === SQL_LEAD).length === 1 && !lines.includes('delete from workouts;') && !m.includes('\r'), m)
+    check('characters that turn text around or ring a bell are dropped', !/[\u202a-\u202e\u2066-\u2069\u0007]/.test(m) && m.includes('    > The gnol oot timer  stops'), JSON.stringify(lines.find((l) => l.includes('timer'))))
+    check('a flagged reply has the review\'s problem on one line, why the user reported it and what they added',
+        m.includes('使用者 u-taipei（Asia/Taipei）\n  10/20 21:15\n    檢查｜沒有根據：說今天做完深蹲， 但紀錄裡沒有。\n    使用者｜回報錯誤：數字或事實錯誤、沒回答我的問題\n      > 他說我做完了\n      > 其實沒有\n    trace t1'), m)
+    check('and what the app and the user did around it', m.includes('    App｜回覆前的檢查已更正草稿') && m.includes('    使用者｜說回覆錯了') && m.includes('    trace t2'), m)
+    check('the query opens the week\'s flagged replies, in the order listed; older ones and the run\'s own moment are left out', m.includes("where id in ('t2', 't1')") && !m.includes('t-old') && !m.includes('改了訊息重問') && !m.includes('last week'), m)
+    check('the email never quotes a conversation', !m.includes('我今天做了深蹲嗎') && !m.includes('你今天已經做完深蹲了') && !m.includes('Legs today') && !m.includes('RONNIE SYSTEM PROMPT'), m)
+    check('it says what the daily review read and spent', m.includes('每日檢查這週讀了 2 段對話（1 段失敗') && m.includes('US$0.06'), lines.slice(0, 4).join('\n'))
+    check('the subject is one ASCII line under 100 characters', /^[\x20-\x7e]+$/.test(digest.subject) && digest.subject.length < 100 && digest.subject.includes('2 feedback, 2 replies') && digest.subject.includes('2026-10-26'), digest.subject)
+
+    const emails = []
+    await w.runWeeklyDigest({ supabase: fakeDb(weekTables()), publish: async (d) => { emails.push(d) }, now: WEEK_NOW })
+    check('the weekly run sends that one email', emails.length === 1 && emails[0].message === m)
+
+    const quiet = []
+    const empty = { ...weekTables(), ai_trace_flags: [], app_feedback: [] }
+    const run = await w.runWeeklyDigest({ supabase: fakeDb(empty), publish: async (d) => { quiet.push(d) }, now: WEEK_NOW })
+    check('a week with no feedback and no flagged reply sends nothing', !run.emailed && quiet.length === 0)
+}
+
+{
+    // 150 notes of 2000 characters, about 900 KB: more than an email takes
+    const long = Array.from({ length: 150 }, (_, i) => ({
+        id: `f${i}`, created_at: new Date(WEEK_NOW - 86_400_000 + i * 1000).toISOString(), user_id: TAIPEI, kind: 'idea', language: 'zh-TW', app_version: null, message: '長'.repeat(2000),
+    }))
+    const digest = w.weeklyDigestOf(await w.readDigestWeek(fakeDb({ ...weekTables(), app_feedback: long }), WEEK_NOW))
+    const size = Buffer.byteLength(digest.message, 'utf8')
+    const left = digest.message.match(/還有 (\d+) 則放不下/g) ?? []
+    check(`a week too long for one email keeps it under ${w.MAX_MESSAGE_BYTES} bytes and says how many it left out, with the query`,
+        size <= w.MAX_MESSAGE_BYTES + 4_000 && left.length === 1 && left[0] !== '還有 0 則放不下' && digest.message.includes('from app_feedback where created_at >='), `${size} bytes, ${left.join(' | ')}`)
+    // Feedback goes first; the flagged replies fit in what is left here, so none is counted out
+    check('the flagged replies still listed after it', digest.message.includes('trace t1') && digest.message.includes('trace t2') && !digest.message.includes('from ai_trace_flags where created_at >='))
+}
+
+check('the weekly schedule\'s input runs the email, anything else the daily review',
+    w.isWeeklyDigest({ digest: 'weekly' }) && !w.isWeeklyDigest({}) && !w.isWeeklyDigest(null) && !w.isWeeklyDigest({ digest: 'daily' }) && !w.isWeeklyDigest('weekly'))
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed')
 process.exit(failed ? 1 : 0)

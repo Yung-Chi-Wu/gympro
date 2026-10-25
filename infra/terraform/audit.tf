@@ -1,9 +1,10 @@
-# ---------- The daily review of Ronnie's conversations ----------
+# ---------- The daily review of Ronnie's conversations, and the weekly email ----------
 # Once a day a Lambda reads each user's Ronnie conversation from a day that has ended in their
-# time zone, asks a model which replies got something wrong, flags them (ai_trace_flags, kind
-# audit, kept a year) and emails the owner when anything is worth a look
-# (lambda/ai-worker/src/audit.ts). The model calls cost about US$0.05 a conversation day and are
-# capped per run in the code; they show in ai_usage_daily and the AI cost alarm as feature audit.
+# time zone, asks a model which replies got something wrong and flags them (ai_trace_flags, kind
+# audit, kept a year). On Monday the same Lambda emails the owner the week's feedback from
+# Settings and its flagged replies, when there is any (lambda/ai-worker/src/audit.ts). The model
+# calls cost about US$0.05 a conversation day and are capped per run in the code; they show in
+# ai_usage_daily and the AI cost alarm as feature audit. The email calls no model.
 
 resource "aws_cloudwatch_log_group" "ronnie_audit_logs" {
   name              = "/aws/lambda/gympro-ronnie-audit"
@@ -16,7 +17,7 @@ resource "aws_cloudwatch_log_group" "ronnie_audit_logs" {
 
 # ---------- Where the email goes ----------
 # Its own topic, so the alarms stay alarms. AWS emails a confirmation link after the first apply,
-# and nothing is delivered until it has been clicked.
+# and nothing is delivered until it has been clicked. Named for the review, which first sent it.
 resource "aws_sns_topic" "ronnie_audit" {
   name = "gympro-ronnie-audit"
 
@@ -119,7 +120,7 @@ resource "aws_lambda_function_event_invoke_config" "ronnie_audit" {
   maximum_retry_attempts = 0
 }
 
-# ---------- The daily schedule ----------
+# ---------- The schedules ----------
 resource "aws_iam_role" "ronnie_audit_schedule_role" {
   name               = "gympro-ronnie-audit-schedule-role"
   assume_role_policy = data.aws_iam_policy_document.scheduler_assume_role.json
@@ -163,12 +164,37 @@ resource "aws_scheduler_schedule" "daily_ronnie_audit" {
   }
 }
 
-# ---------- Alarm: the daily review failed ----------
+resource "aws_scheduler_schedule" "weekly_owner_digest" {
+  name        = "gympro-weekly-owner-digest"
+  description = "Email the owner the past week's feedback and flagged Ronnie replies"
+
+  # An hour after Monday's review, so its flags are in
+  schedule_expression          = "cron(15 9 ? * MON *)"
+  schedule_expression_timezone = "America/New_York"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  target {
+    arn      = aws_lambda_function.ronnie_audit.arn
+    role_arn = aws_iam_role.ronnie_audit_schedule_role.arn
+    input    = jsonencode({ digest = "weekly" })
+
+    # A failed one raises the alarm below; the week's rows stay in their tables
+    retry_policy {
+      maximum_retry_attempts       = 0
+      maximum_event_age_in_seconds = 3600
+    }
+  }
+}
+
+# ---------- Alarm: the daily review or the weekly email failed ----------
 # A day it couldn't read is logged (gympro-lambda-logged-errors); this one is the run itself
 # failing, such as a bad key or the email not sent.
 resource "aws_cloudwatch_metric_alarm" "ronnie_audit_errors" {
   alarm_name        = "gympro-ronnie-audit-errors"
-  alarm_description = "The daily Ronnie review Lambda threw an error. Unread days wait for the next run. Check /aws/lambda/gympro-ronnie-audit."
+  alarm_description = "The Ronnie review Lambda threw an error: the daily review (unread days wait for the next run) or Monday's email. Check /aws/lambda/gympro-ronnie-audit."
 
   namespace   = "AWS/Lambda"
   metric_name = "Errors"
