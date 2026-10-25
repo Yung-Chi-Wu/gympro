@@ -454,7 +454,7 @@ export function TodayWorkoutCard({
 
             {toast && (
                 // Above the phone's tab bar
-                <div role="status" className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-md bg-plate px-4 py-2 text-sm text-chalk shadow-lg md:bottom-6">
+                <div role="status" className="fixed bottom-[calc(var(--tab-bar-top)+1.5rem)] left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-md bg-plate px-4 py-2 text-sm text-chalk shadow-lg md:bottom-6">
                     <span>{toast.message}</span>
                     {toast.undo && (
                         <button type="button" onClick={toast.undo} className="-my-2 min-h-11 px-2 font-bold text-accent md:min-h-9">

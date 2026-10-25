@@ -82,14 +82,32 @@ h3 {
   font-family: var(--font-display);
 }
 
-.bottom-nav {
-  padding-bottom: env(safe-area-inset-bottom);
+/* 手機版的分頁列浮在底部（components/BottomNav.tsx）：離螢幕底邊的距離，和它的上緣。
+   Ronnie 的視窗和按鈕、提示訊息、頁面底部的留白都從這兩個值算 */
+:root {
+  --tab-bar-bottom: max(env(safe-area-inset-bottom), 12px);
+  --tab-bar-top: calc(var(--tab-bar-bottom) + 56px);
 }
 
-/* 手機版：最後一項能捲到底部分頁列和 Ronnie 按鈕（預設在分頁列上方）的上面 */
+/* 分頁列後面的內容會透出來；系統要求「降低透明度」或「增加對比」時改成實心
+   （Safari 還不支援 prefers-reduced-transparency，所以平常的樣子本身就要看得清楚） */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .bottom-nav {
+    background-color: var(--color-card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (prefers-contrast: more) {
+  .bottom-nav {
+    border-color: var(--color-muted);
+  }
+}
+
+/* 手機版：最後一項能捲到分頁列和 Ronnie 按鈕（預設在分頁列上方）的上面 */
 @media (width < 48rem) {
   .main-content {
-    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--tab-bar-top) + 3.5rem);
   }
 }
 

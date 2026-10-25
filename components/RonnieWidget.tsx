@@ -821,11 +821,11 @@ function windowStyle(side: ButtonSpot['side'], viewport: VisibleViewport | null)
         const height = Math.min(WINDOW_MAX_HEIGHT, viewport.height - 2 * GAP)
         return { ...base, top: viewport.offsetTop + viewport.height - GAP - height, height }
     }
-    // 53px: the top bar with its line; 56px: the tab bar; a gap above and below
+    // 53px: the top bar with its line; --tab-bar-top: the tab bar's top edge (globals.css); a gap above and below
     return {
         ...base,
-        bottom: `calc(56px + ${GAP}px + env(safe-area-inset-bottom))`,
-        height: `min(${WINDOW_MAX_HEIGHT}px, calc(100dvh - 53px - 56px - ${2 * GAP}px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))`,
+        bottom: `calc(var(--tab-bar-top) + ${GAP}px)`,
+        height: `min(${WINDOW_MAX_HEIGHT}px, calc(100dvh - 53px - var(--tab-bar-top) - ${2 * GAP}px - env(safe-area-inset-top)))`,
     }
 }
 
@@ -974,8 +974,8 @@ function RonnieButton({ label, onOpen }: { label: string; onOpen: () => void }) 
         ? { left: dragAt.x, top: dragAt.y, transition: 'none' }
         : {
             left: spot.side === 'left' ? `${EDGE}px` : `calc(100% - ${EDGE + BUTTON_SIZE}px)`,
-            // 60px: the top bar and a gap; 116px: the tab bar, a gap and the button
-            top: `clamp(calc(60px + env(safe-area-inset-top)), ${spot.top}px, calc(100dvh - 116px - env(safe-area-inset-bottom)))`,
+            // 60px: the top bar and a gap; at the bottom, the tab bar's top edge, a gap and the button
+            top: `clamp(calc(60px + env(safe-area-inset-top)), ${spot.top}px, calc(100dvh - var(--tab-bar-top) - ${8 + BUTTON_SIZE}px))`,
         }
 
     return (
