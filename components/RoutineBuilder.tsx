@@ -514,10 +514,12 @@ export function RoutineBuilder({
                         language={language}
                         units={units}
                         onEditCycle={() => openSubPage('routine', CYCLE_PAGE)}
-                        routineEditor={(routine) => (
+                        routineEditor={(routine, changeNote) => (
                             <RoutineExercises
                                 key={routine.id}
                                 routine={routine}
+                                oneAtATime
+                                changeNote={changeNote}
                                 exercises={exercises}
                                 language={language}
                                 onAdd={(exercise, sets, reps) => handleAddExercise(routine.id, exercise, sets, reps)}
@@ -634,6 +636,12 @@ export function RoutineBuilder({
 
 interface RoutineExercisesProps {
     routine: RoutineWithExercises
+    /**
+     * The calendar's day: each exercise is a line with a ✎, and only the one tapped opens to change
+     * (no dragging; the order is changed in the routine's editor). changeNote shows while one is open.
+     */
+    oneAtATime?: boolean
+    changeNote?: string
     exercises: ExerciseOption[]
     language: string
     onAdd: (exercise: ExerciseOption, targetSets: number, targetReps: number) => Promise<boolean>
@@ -738,6 +746,8 @@ function RoutineEditor({ dayIndexes, onRename, onDelete, ...list }: RoutineEdito
  */
 export function RoutineExercises({
     routine,
+    oneAtATime = false,
+    changeNote,
     exercises,
     language,
     onAdd,
@@ -749,6 +759,8 @@ export function RoutineExercises({
     const t = useTranslations('routines')
     // The new row, until its exercise is picked
     const [adding, setAdding] = useState(false)
+    // One at a time: the line opened with its ✎
+    const [openId, setOpenId] = useState<string | null>(null)
     // While a row is being dragged: which one, and the order on screen
     const [dragging, setDragging] = useState<{ id: string; order: string[] } | null>(null)
     const drag = useRef<{ pointerId: number; id: string; from: number; mids: number[]; order: string[] } | null>(null)
@@ -760,6 +772,68 @@ export function RoutineExercises({
     // A new row starts in the group of the exercise above it
     const lastGroup = visible.at(-1)?.muscle_group
     const newRowGroup = lastGroup && (MUSCLE_GROUPS as readonly string[]).includes(lastGroup) ? lastGroup : MUSCLE_GROUPS[0]
+
+    if (oneAtATime) {
+        const nameOf = (ex: RoutineExerciseRow) =>
+            (language === 'zh-TW' && exercises.find((e) => e.id === ex.exercise_id)?.name_zh_tw) || ex.exercise_name
+        const open = visible.some((ex) => ex.id === openId) || adding
+        return (
+            <div className="space-y-3">
+                {open && changeNote && <p className="text-[13px] text-muted md:text-xs">{changeNote}</p>}
+                {visible.length === 0 && !adding && <p className="text-[15px] text-muted md:text-sm">{t('emptyRoutine')}</p>}
+                {visible.length > 0 && (
+                    <ul className="divide-y divide-line border-t border-line">
+                        {visible.map((ex) => ex.id === openId ? (
+                            <ExerciseRow
+                                key={ex.id}
+                                exercise={ex}
+                                language={language}
+                                exercises={exercises}
+                                onPick={(picked) => onChangeExercise(ex.id, picked)}
+                                onUpdateTarget={(sets, reps) => onUpdateTarget(ex.id, sets, reps)}
+                                onRemove={() => onRemove(ex.id)}
+                                onDone={() => setOpenId(null)}
+                            />
+                        ) : (
+                            <li key={ex.id} className="flex items-center gap-3 py-1 md:py-0.5">
+                                <span className="min-w-0 flex-1 truncate font-bold">{nameOf(ex)}</span>
+                                <span className="shrink-0 text-[13px] tabular-nums text-muted">
+                                    {ex.target_reps
+                                        ? t('calendar.target', { sets: ex.target_sets ?? DEFAULT_SETS, reps: ex.target_reps })
+                                        : t('calendar.targetSets', { sets: ex.target_sets ?? DEFAULT_SETS })}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => { setAdding(false); setOpenId(ex.id) }}
+                                    aria-label={t('editExercise', { name: nameOf(ex) })}
+                                    className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-[9px] text-faint hover:bg-done hover:text-ink md:size-8"
+                                >
+                                    <Icon name="pencil" className="size-[18px] md:size-4" />
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+                {adding ? (
+                    <div className={visible.length > 0 ? 'border-t border-line' : ''}>
+                        <ExerciseRow
+                            exercise={null}
+                            language={language}
+                            exercises={exercises}
+                            startGroup={newRowGroup}
+                            onPick={async (picked, sets, reps) => { if (await onAdd(picked, sets, reps)) setAdding(false) }}
+                            onRemove={() => setAdding(false)}
+                        />
+                    </div>
+                ) : (
+                    <button type="button" onClick={() => { setOpenId(null); setAdding(true) }} className={BUTTON}>
+                        <Icon name="plus" className="size-4" />
+                        {t('addExercise')}
+                    </button>
+                )}
+            </div>
+        )
+    }
 
     function handleGripDown(e: ReactPointerEvent<HTMLButtonElement>, index: number) {
         if (e.button !== 0 || !listRef.current) return
@@ -887,10 +961,12 @@ interface ExerciseRowProps {
     onPick: (exercise: ExerciseOption, targetSets: number, targetReps: number) => void
     onUpdateTarget?: (targetSets: number, targetReps: number) => void
     onRemove: () => void
+    /** Opened on its own (the calendar's day, RoutineExercises oneAtATime): 完成 closes it, and it has no handle */
+    onDone?: () => void
 }
 
 /** One exercise: its group and exercise, sets × reps, and 刪除; on a phone the numbers go on a second line */
-function ExerciseRow({ exercise, language, exercises, startGroup, dragging = false, gripProps, onPick, onUpdateTarget, onRemove }: ExerciseRowProps) {
+function ExerciseRow({ exercise, language, exercises, startGroup, dragging = false, gripProps, onPick, onUpdateTarget, onRemove, onDone }: ExerciseRowProps) {
     const t = useTranslations('routines')
     const [targetSets, setTargetSets] = useState(String(exercise ? exercise.target_sets ?? '' : DEFAULT_SETS))
     const [targetReps, setTargetReps] = useState(String(exercise ? exercise.target_reps ?? '' : DEFAULT_REPS))
@@ -947,8 +1023,10 @@ function ExerciseRow({ exercise, language, exercises, startGroup, dragging = fal
     const Row = exercise ? 'li' : 'div'
     return (
         <Row className={`py-3 md:py-2 ${dragging ? 'rounded-[10px] bg-accent-soft' : ''}`}>
-            <div className="grid grid-cols-[32px_minmax(0,1fr)] items-center gap-x-2 gap-y-2 md:grid-cols-[28px_minmax(0,1fr)_auto_32px]">
-                {gripProps ? (
+            <div className={`grid items-center gap-x-2 gap-y-2 ${onDone
+                ? 'grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_auto_32px]'
+                : 'grid-cols-[32px_minmax(0,1fr)] md:grid-cols-[28px_minmax(0,1fr)_auto_32px]'}`}>
+                {onDone ? null : gripProps ? (
                     <button
                         type="button"
                         {...gripProps}
@@ -977,11 +1055,11 @@ function ExerciseRow({ exercise, language, exercises, startGroup, dragging = fal
                 </div>
 
                 {/* Phone: under the exercise, with 刪除 at the end; from md, in their own columns */}
-                <div className="col-start-2 flex items-center gap-1 md:col-start-auto">
+                <div className={`${onDone ? '' : 'col-start-2'} flex items-center gap-1 md:col-start-auto`}>
                     {input(targetSets, setTargetSets, t('sets'))}
                     <span className="text-faint">×</span>
                     {input(targetReps, setTargetReps, t('reps'))}
-                    <span aria-hidden="true" className="ml-1 text-[13px] text-faint md:hidden">{t('setsByReps')}</span>
+                    {!onDone && <span aria-hidden="true" className="ml-1 text-[13px] text-faint md:hidden">{t('setsByReps')}</span>}
                     <button
                         type="button"
                         onClick={onRemove}
@@ -990,6 +1068,11 @@ function ExerciseRow({ exercise, language, exercises, startGroup, dragging = fal
                     >
                         {t('removeShort')}
                     </button>
+                    {onDone && (
+                        <button type="button" onClick={onDone} className="min-h-11 px-2 text-[15px] font-semibold text-accent md:ml-1 md:min-h-8 md:text-sm">
+                            {t('doneEditing')}
+                        </button>
+                    )}
                 </div>
                 <button
                     type="button"

@@ -18,7 +18,7 @@ import { Icon } from './Icon'
 
 // 課表's calendar: the month with what the training cycle plans for each day (lib/cycle-calendar.ts)
 // and what was trained, and the picked day under it (beside it when there is room). A day still
-// ahead lists its routine's exercises, and 編輯 opens the routine editor's list right there. A day's round
+// ahead lists its routine's exercises, each with a ✎ that opens it to change right there. A day's round
 // is lightly filled across the month: a round is one report's period, and the report is linked
 // from the day. Past days come from the same reads as 紀錄, and a trained day links to its page
 // there. Months load as the user moves (use-history-records.ts).
@@ -55,8 +55,8 @@ interface CycleCalendarProps {
     language: string
     units: Units
     onEditCycle: () => void
-    /** The routine's exercises to change in place (RoutineExercises): it is the routine's, so every day it is on changes */
-    routineEditor: (routine: RoutineWithExercises) => ReactNode
+    /** The routine's exercises, each to change in place (RoutineExercises): it is the routine's, so every day it is on changes */
+    routineEditor: (routine: RoutineWithExercises, changeNote?: string) => ReactNode
 }
 
 export function CycleCalendar({
@@ -220,8 +220,6 @@ export function CycleCalendar({
             </section>
 
             <DayPanel
-                // A new day opens as a list again, not still being edited
-                key={picked.date}
                 day={picked}
                 slot={colorOf(picked)}
                 trained={days[picked.date]}
@@ -267,7 +265,7 @@ interface DayPanelProps {
     report: PeriodReportStatus | null
     language: string
     units: Units
-    routineEditor: (routine: RoutineWithExercises) => ReactNode
+    routineEditor: (routine: RoutineWithExercises, changeNote?: string) => ReactNode
 }
 
 /**
@@ -285,7 +283,6 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
     const shownExercises = (routine?.exercises ?? []).filter((ex) => ex.exercise_name && ex.exercise_name !== 'Unknown exercise')
     // Ahead, or today before its first set: what is changed here is what Today will show
     const editable = !!routine && (day.status === 'planned' || day.status === 'today')
-    const [editing, setEditing] = useState(false)
     const routineDays = routine
         ? Object.entries(cycle.routineByDay).filter(([, id]) => id === routine.id).map(([d]) => Number(d)).sort((a, b) => a - b)
         : []
@@ -326,25 +323,14 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
                 <span><span className="font-mono tracking-wider">{formatDay(day.date, language)}</span>{day.date === today ? `${th('separator')}${t('calendar.today')}` : ''}</span>
                 {day.cycleDay && <span>{t('calendar.dayOf', { day: day.cycleDay, length: cycle.cycleLength })}</span>}
             </div>
-            <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 space-y-0.5">
-                    <h2 className="flex items-center gap-2 text-xl font-bold">
-                        {(day.status === 'done' || day.routineId) && (
-                            <span className={`size-2.5 shrink-0 rounded-full ${slot === null ? PLAIN_FILL : FILL[slot]}`} />
-                        )}
-                        {title}
-                    </h2>
-                    {status && <p className="text-[15px] text-muted md:text-sm">{status}</p>}
-                </div>
-                {editable && (
-                    <button
-                        type="button"
-                        onClick={() => setEditing((on) => !on)}
-                        className="-mr-2 min-h-11 shrink-0 px-2 text-[15px] font-semibold text-accent md:min-h-8 md:text-sm"
-                    >
-                        {editing ? t('calendar.editDone') : t('calendar.edit')}
-                    </button>
-                )}
+            <div className="space-y-0.5">
+                <h2 className="flex items-center gap-2 text-xl font-bold">
+                    {(day.status === 'done' || day.routineId) && (
+                        <span className={`size-2.5 shrink-0 rounded-full ${slot === null ? PLAIN_FILL : FILL[slot]}`} />
+                    )}
+                    {title}
+                </h2>
+                {status && <p className="text-[15px] text-muted md:text-sm">{status}</p>}
             </div>
 
             {day.status === 'done' && trained ? (
@@ -358,15 +344,10 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
                         </li>
                     ))}
                 </ul>
-            ) : editable && editing ? (
-                <div className="space-y-2">
-                    {routineDays.length > 1 && (
-                        <p className="text-[13px] text-muted md:text-xs">
-                            {t('calendar.editsRoutine', { name: routine.name, days: routineDays.join(zh ? '、' : ', ') })}
-                        </p>
-                    )}
-                    {routineEditor(routine)}
-                </div>
+            ) : editable ? (
+                routineEditor(routine, routineDays.length > 1
+                    ? t('calendar.editsRoutine', { name: routine.name, days: routineDays.join(zh ? '、' : ', ') })
+                    : undefined)
             ) : routine && day.status !== 'rest' && shownExercises.length === 0 ? (
                 <p className="text-[15px] text-muted md:text-sm">{t('emptyRoutine')}</p>
             ) : routine && day.status !== 'rest' && (
