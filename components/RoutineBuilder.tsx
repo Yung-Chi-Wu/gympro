@@ -514,7 +514,19 @@ export function RoutineBuilder({
                         language={language}
                         units={units}
                         onEditCycle={() => openSubPage('routine', CYCLE_PAGE)}
-                        onOpenRoutine={(id) => openSubPage('routine', id)}
+                        routineEditor={(routine) => (
+                            <RoutineExercises
+                                key={routine.id}
+                                routine={routine}
+                                exercises={exercises}
+                                language={language}
+                                onAdd={(exercise, sets, reps) => handleAddExercise(routine.id, exercise, sets, reps)}
+                                onChangeExercise={(id, exercise) => handleChangeExercise(routine.id, id, exercise)}
+                                onRemove={(id) => handleRemoveExercise(routine.id, id)}
+                                onUpdateTarget={(id, sets, reps) => handleUpdateTarget(routine.id, id, sets, reps)}
+                                onReorder={(ids) => handleReorder(routine.id, ids)}
+                            />
+                        )}
                     />
                 )}
             </div>
@@ -620,18 +632,21 @@ export function RoutineBuilder({
     )
 }
 
-interface RoutineEditorProps {
+interface RoutineExercisesProps {
     routine: RoutineWithExercises
-    dayIndexes: number[]
     exercises: ExerciseOption[]
     language: string
-    onRename: (name: string) => void
-    onDelete: () => void
     onAdd: (exercise: ExerciseOption, targetSets: number, targetReps: number) => Promise<boolean>
     onChangeExercise: (routineExerciseId: string, exercise: ExerciseOption) => void
     onRemove: (routineExerciseId: string) => void
     onUpdateTarget: (routineExerciseId: string, targetSets: number, targetReps: number) => void
     onReorder: (orderedIds: string[]) => void
+}
+
+interface RoutineEditorProps extends RoutineExercisesProps {
+    dayIndexes: number[]
+    onRename: (name: string) => void
+    onDelete: () => void
 }
 
 function moveItem<T>(list: T[], from: number, to: number): T[] {
@@ -641,29 +656,97 @@ function moveItem<T>(list: T[], from: number, to: number): T[] {
     return next
 }
 
+/** One routine: its name, renaming and deleting it, and its exercises (RoutineExercises) */
+function RoutineEditor({ dayIndexes, onRename, onDelete, ...list }: RoutineEditorProps) {
+    const { routine, language } = list
+    const t = useTranslations('routines')
+    const zh = language === 'zh-TW'
+    const [renaming, setRenaming] = useState(false)
+    const [name, setName] = useState(routine.name)
+
+    function startRenaming() {
+        setName(routine.name)
+        setRenaming(true)
+    }
+
+    function commitRename() {
+        if (name.trim() && name.trim() !== routine.name) onRename(name.trim())
+        else setName(routine.name)
+        setRenaming(false)
+    }
+
+    return (
+        <section className={`${CARD} space-y-3`}>
+            {/* Back to the list when the page is too narrow for both and there is no phone top bar */}
+            <button
+                type="button"
+                onClick={() => closeSubPage('routine')}
+                className="hidden min-h-9 items-center gap-0.5 text-sm font-medium text-accent md:@max-split:flex"
+            >
+                <Icon name="back" className="size-4" />
+                {t('title')}
+            </button>
+
+            <div className="flex items-start justify-between gap-3 md:flex-wrap">
+                <div className="min-w-0 flex-1">
+                    {dayIndexes.length > 0 && (
+                        <p className="text-[13px] tracking-wider text-faint md:text-xs">{t('onDays', { days: dayIndexes.join(zh ? '、' : ', ') })}</p>
+                    )}
+                    {renaming ? (
+                        <input
+                            type="text"
+                            autoFocus
+                            value={name}
+                            maxLength={MAX_ROUTINE_NAME_CHARS}
+                            onChange={(e) => setName(e.target.value)}
+                            onBlur={commitRename}
+                            onKeyDown={(e) => {
+                                if (isSubmitEnter(e)) commitRename()
+                                if (e.key === 'Escape') { setName(routine.name); setRenaming(false) }
+                            }}
+                            aria-label={t('rename')}
+                            className="h-11 w-full max-w-xs rounded-[9px] border border-line bg-card px-2 text-lg font-bold md:h-auto md:py-1"
+                        />
+                    ) : (
+                        <h2 className="truncate text-xl font-bold">{routine.name}</h2>
+                    )}
+                </div>
+                <div className="hidden gap-2 md:flex">
+                    <button type="button" onClick={startRenaming} className={BUTTON}>{t('rename')}</button>
+                    <button type="button" onClick={onDelete} className={`${BUTTON} hover:text-miss`}>{t('delete')}</button>
+                </div>
+                <MoreMenu
+                    label={t('routineActions', { name: routine.name })}
+                    className="-mr-2 -mt-1 md:hidden"
+                    items={[
+                        { label: t('rename'), onSelect: startRenaming },
+                        { label: t('delete'), onSelect: onDelete, danger: true },
+                    ]}
+                />
+            </div>
+
+            <RoutineExercises {...list} />
+        </section>
+    )
+}
+
 /**
- * One routine: its name, its exercises with sets × reps, and adding, renaming and deleting.
- * Every row's exercise and sets × reps change in place and save at once. 加動作 opens a new
- * row, saved as soon as its exercise is picked. The order changes by dragging a row's ⋮⋮
- * handle (mouse or finger), or with the arrow keys on the handle.
+ * A routine's exercises with sets × reps, for its editor here and for a planned day in the
+ * calendar (CycleCalendar). Every row's exercise and sets × reps change in place and save at
+ * once. 加動作 opens a new row, saved as soon as its exercise is picked. The order changes by
+ * dragging a row's ⋮⋮ handle (mouse or finger), or with the arrow keys on the handle.
  */
-function RoutineEditor({
+export function RoutineExercises({
     routine,
-    dayIndexes,
     exercises,
     language,
-    onRename,
-    onDelete,
     onAdd,
     onChangeExercise,
     onRemove,
     onUpdateTarget,
     onReorder,
-}: RoutineEditorProps) {
+}: RoutineExercisesProps) {
     const t = useTranslations('routines')
-    const zh = language === 'zh-TW'
-    const [renaming, setRenaming] = useState(false)
-    const [name, setName] = useState(routine.name)
     // The new row, until its exercise is picked
     const [adding, setAdding] = useState(false)
     // While a row is being dragged: which one, and the order on screen
@@ -677,17 +760,6 @@ function RoutineEditor({
     // A new row starts in the group of the exercise above it
     const lastGroup = visible.at(-1)?.muscle_group
     const newRowGroup = lastGroup && (MUSCLE_GROUPS as readonly string[]).includes(lastGroup) ? lastGroup : MUSCLE_GROUPS[0]
-
-    function startRenaming() {
-        setName(routine.name)
-        setRenaming(true)
-    }
-
-    function commitRename() {
-        if (name.trim() && name.trim() !== routine.name) onRename(name.trim())
-        else setName(routine.name)
-        setRenaming(false)
-    }
 
     function handleGripDown(e: ReactPointerEvent<HTMLButtonElement>, index: number) {
         if (e.button !== 0 || !listRef.current) return
@@ -741,55 +813,7 @@ function RoutineEditor({
     }
 
     return (
-        <section className={`${CARD} space-y-3`}>
-            {/* Back to the list when the page is too narrow for both and there is no phone top bar */}
-            <button
-                type="button"
-                onClick={() => closeSubPage('routine')}
-                className="hidden min-h-9 items-center gap-0.5 text-sm font-medium text-accent md:@max-split:flex"
-            >
-                <Icon name="back" className="size-4" />
-                {t('title')}
-            </button>
-
-            <div className="flex items-start justify-between gap-3 md:flex-wrap">
-                <div className="min-w-0 flex-1">
-                    {dayIndexes.length > 0 && (
-                        <p className="text-[13px] tracking-wider text-faint md:text-xs">{t('onDays', { days: dayIndexes.join(zh ? '、' : ', ') })}</p>
-                    )}
-                    {renaming ? (
-                        <input
-                            type="text"
-                            autoFocus
-                            value={name}
-                            maxLength={MAX_ROUTINE_NAME_CHARS}
-                            onChange={(e) => setName(e.target.value)}
-                            onBlur={commitRename}
-                            onKeyDown={(e) => {
-                                if (isSubmitEnter(e)) commitRename()
-                                if (e.key === 'Escape') { setName(routine.name); setRenaming(false) }
-                            }}
-                            aria-label={t('rename')}
-                            className="h-11 w-full max-w-xs rounded-[9px] border border-line bg-card px-2 text-lg font-bold md:h-auto md:py-1"
-                        />
-                    ) : (
-                        <h2 className="truncate text-xl font-bold">{routine.name}</h2>
-                    )}
-                </div>
-                <div className="hidden gap-2 md:flex">
-                    <button type="button" onClick={startRenaming} className={BUTTON}>{t('rename')}</button>
-                    <button type="button" onClick={onDelete} className={`${BUTTON} hover:text-miss`}>{t('delete')}</button>
-                </div>
-                <MoreMenu
-                    label={t('routineActions', { name: routine.name })}
-                    className="-mr-2 -mt-1 md:hidden"
-                    items={[
-                        { label: t('rename'), onSelect: startRenaming },
-                        { label: t('delete'), onSelect: onDelete, danger: true },
-                    ]}
-                />
-            </div>
-
+        <div className="space-y-3">
             {rows.length === 0 ? (
                 !adding && <p className="py-2 text-[15px] text-muted md:text-sm">{t('emptyRoutine')}</p>
             ) : (
@@ -839,7 +863,7 @@ function RoutineEditor({
                     {rows.length > 1 && <span className="text-[13px] text-faint md:text-xs">{t('reorderHint')}</span>}
                 </div>
             )}
-        </section>
+        </div>
     )
 }
 

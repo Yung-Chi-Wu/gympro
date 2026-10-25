@@ -282,7 +282,7 @@
             "targetSets": "{sets, plural, one {# set} other {# sets}}",
             "startLogging": "Start logging",
             "openDay": "See this day in History",
-            "editRoutine": "Edit {name}",
+            "editsRoutine": "This changes the {name} routine, so days {days} all change.",
             "nextTime": "Next: {when}, {name}",
             "tomorrow": "tomorrow",
             "round": "This round:",

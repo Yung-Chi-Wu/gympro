@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { RoutineWithExercises } from '@/app/(app)/routines/page'
@@ -17,7 +17,8 @@ import { useHistoryRecords } from './use-history-records'
 import { Icon } from './Icon'
 
 // 課表's calendar: the month with what the training cycle plans for each day (lib/cycle-calendar.ts)
-// and what was trained, and the picked day under it (beside it when there is room). A day's round
+// and what was trained, and the picked day under it (beside it when there is room). A day still
+// ahead has its routine's exercises to change right there, with the routine editor's list. A day's round
 // is lightly filled across the month: a round is one report's period, and the report is linked
 // from the day. Past days come from the same reads as 紀錄, and a trained day links to its page
 // there. Months load as the user moves (use-history-records.ts).
@@ -54,7 +55,8 @@ interface CycleCalendarProps {
     language: string
     units: Units
     onEditCycle: () => void
-    onOpenRoutine: (routineId: string) => void
+    /** The routine's exercises to change in place (RoutineExercises): it is the routine's, so every day it is on changes */
+    routineEditor: (routine: RoutineWithExercises) => ReactNode
 }
 
 export function CycleCalendar({
@@ -69,7 +71,7 @@ export function CycleCalendar({
     language,
     units,
     onEditCycle,
-    onOpenRoutine,
+    routineEditor,
 }: CycleCalendarProps) {
     const t = useTranslations('routines')
     const th = useTranslations('history')
@@ -228,7 +230,7 @@ export function CycleCalendar({
                 report={picked.round.end < today ? reportFor(picked.round) : null}
                 language={language}
                 units={units}
-                onOpenRoutine={onOpenRoutine}
+                routineEditor={routineEditor}
             />
         </div>
     )
@@ -263,11 +265,14 @@ interface DayPanelProps {
     report: PeriodReportStatus | null
     language: string
     units: Units
-    onOpenRoutine: (routineId: string) => void
+    routineEditor: (routine: RoutineWithExercises) => ReactNode
 }
 
-/** The picked day: what was trained, or what the cycle plans; then its round and the round's report */
-function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, report, language, units, onOpenRoutine }: DayPanelProps) {
+/**
+ * The picked day: what was trained, or what the cycle plans, with the routine to change when the
+ * day is still ahead; then its round and the round's report
+ */
+function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, report, language, units, routineEditor }: DayPanelProps) {
     const t = useTranslations('routines')
     const th = useTranslations('history')
     const ts = useTranslations('sets')
@@ -276,6 +281,11 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
     const nameOf = (exerciseId: string, fallback: string) =>
         (zh && exercises.find((ex) => ex.id === exerciseId)?.name_zh_tw) || fallback
     const shownExercises = (routine?.exercises ?? []).filter((ex) => ex.exercise_name && ex.exercise_name !== 'Unknown exercise')
+    // Ahead, or today before its first set: what is changed here is what Today will show
+    const editable = !!routine && (day.status === 'planned' || day.status === 'today')
+    const routineDays = routine
+        ? Object.entries(cycle.routineByDay).filter(([, id]) => id === routine.id).map(([d]) => Number(d)).sort((a, b) => a - b)
+        : []
 
     let title: string
     let status: React.ReactNode = null
@@ -334,6 +344,15 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
                         </li>
                     ))}
                 </ul>
+            ) : editable ? (
+                <div className="space-y-2">
+                    {routineDays.length > 1 && (
+                        <p className="text-[13px] text-muted md:text-xs">
+                            {t('calendar.editsRoutine', { name: routine.name, days: routineDays.join(zh ? '、' : ', ') })}
+                        </p>
+                    )}
+                    {routineEditor(routine)}
+                </div>
             ) : routine && day.status !== 'rest' && shownExercises.length > 0 && (
                 <ul className="divide-y divide-line border-y border-line">
                     {shownExercises.map((ex) => (
@@ -359,12 +378,6 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
                 <Link href="/dashboard" onNavigate={() => markNavigation('/dashboard')} className={PRIMARY}>
                     {t('calendar.startLogging')}
                 </Link>
-            )}
-            {day.status === 'planned' && routine && (
-                <button type="button" onClick={() => onOpenRoutine(routine.id)} className={LINK}>
-                    {t('calendar.editRoutine', { name: routine.name })}
-                    <Icon name="forward" className="size-4" />
-                </button>
             )}
 
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-[13px] text-muted md:text-xs">
