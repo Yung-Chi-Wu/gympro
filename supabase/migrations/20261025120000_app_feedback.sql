@@ -1,5 +1,5 @@
 -- Feedback: what a user sends the owner from Settings (lib/feedback.ts), one row each.
---   kind         bug, idea or other, as the user picked it
+--   kind         bug, idea or exercise (one they want added), as the user picked it
 --   message      what they wrote, 1 to 2000 characters
 --   language     the app's language when they sent it
 --   user_agent   their browser, cut to 300 characters: an iPhone's home-screen app or a desktop browser
@@ -18,12 +18,17 @@ begin
         id uuid primary key default gen_random_uuid(),
         created_at timestamptz not null default now(),
         user_id uuid not null references auth.users (id) on delete cascade,
-        kind text not null check (kind in ('bug', 'idea', 'other')),
+        kind text not null,
         message text not null check (char_length(message) between 1 and 2000),
         language text check (language in ('en', 'zh-TW')),
         user_agent text check (char_length(user_agent) <= 300),
         app_version text check (char_length(app_version) <= 64)
     );
+
+    -- The kinds the form offers (lib/feedback.ts). Dropped and added again, so a second run sets
+    -- them even on a table made before they changed
+    alter table public.app_feedback drop constraint if exists app_feedback_kind_check;
+    alter table public.app_feedback add constraint app_feedback_kind_check check (kind in ('bug', 'idea', 'exercise'));
 
     create index if not exists app_feedback_created_idx on public.app_feedback (created_at desc);
     -- The route counts a user's day
@@ -35,6 +40,11 @@ begin
     -- ---------- Checks ----------
     if exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'app_feedback') then
         raise exception 'app_feedback should have no policies: only the service role reads and writes it';
+    end if;
+    if (select pg_get_constraintdef(oid) from pg_constraint
+        where conrelid = 'public.app_feedback'::regclass and conname = 'app_feedback_kind_check') is distinct from
+        'CHECK ((kind = ANY (ARRAY[''bug''::text, ''idea''::text, ''exercise''::text])))' then
+        raise exception 'app_feedback does not take exactly the kinds bug, idea and exercise';
     end if;
     if not (select relrowsecurity from pg_class where oid = 'public.app_feedback'::regclass) then
         raise exception 'app_feedback does not have row level security on';

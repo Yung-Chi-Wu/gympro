@@ -3,7 +3,8 @@
 // forms and the routes read them with the same rules, and the labels are here so the daily
 // review's email can say them too.
 
-export const FEEDBACK_KINDS = ['bug', 'idea', 'other'] as const
+/** What a user can send from Settings, in the order the form shows them: exercise is one they want added */
+export const FEEDBACK_KINDS = ['bug', 'idea', 'exercise'] as const
 export type FeedbackKind = (typeof FEEDBACK_KINDS)[number]
 export const MAX_FEEDBACK_CHARS = 2000
 const MAX_USER_AGENT_CHARS = 300

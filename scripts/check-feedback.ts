@@ -1,7 +1,9 @@
 // Free check of what users can send the owner (lib/feedback.ts): feedback from Settings, and the
-// reasons and note with a report of one of Ronnie's replies. What the routes take and refuse, and
-// that every reason the form shows has its words in both languages.
+// reasons and note with a report of one of Ronnie's replies. What the routes take and refuse, that
+// every kind and reason the forms show has its words in both languages, and that the database
+// takes the same kinds as the form.
 //   npm run check:feedback
+import { readFileSync } from 'node:fs'
 import { FEEDBACK_KINDS, MAX_FEEDBACK_CHARS, MAX_REPORT_NOTE_CHARS, parseFeedback, parseReport, REPORT_REASON_LABELS, REPORT_REASONS, userAgentOf } from '../lib/feedback'
 
 let failed = 0
@@ -51,6 +53,18 @@ for (const [what, body] of [
 {
     const missing = (['zh-TW', 'en'] as const).flatMap((lang) => REPORT_REASONS.filter((r) => !REPORT_REASON_LABELS[lang][r]?.trim()).map((r) => `${lang} ${r}`))
     check('every reason has its words in Chinese and English', missing.length === 0, missing.join(', '))
+}
+{
+    const missing = (['zh-TW', 'en'] as const).flatMap((lang) => {
+        const words = JSON.parse(readFileSync(`messages/${lang}.json`, 'utf8')).settings.feedback
+        return FEEDBACK_KINDS.flatMap((k) => (['kinds', 'placeholders'] as const).filter((key) => !words[key]?.[k]?.trim()).map((key) => `${lang} ${key}.${k}`))
+    })
+    check('every kind has its name and its hint in Chinese and English', missing.length === 0, missing.join(', '))
+}
+{
+    const sql = readFileSync('supabase/migrations/20261025120000_app_feedback.sql', 'utf8')
+    const kinds = sql.match(/app_feedback_kind_check check \(kind in \(([^)]*)\)\)/)?.[1].split(',').map((k) => k.trim().replace(/'/g, ''))
+    check('the database takes the same kinds as the form', same(kinds, FEEDBACK_KINDS), `${kinds} vs ${FEEDBACK_KINDS}`)
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')

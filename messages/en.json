@@ -342,16 +342,19 @@
         },
         "feedback": {
             "title": "Send feedback",
-            "intro": "Found a problem, or want something the app doesn't do? Tell us here.",
             "kindLabel": "Type",
             "kinds": {
-                "bug": "Something is wrong",
-                "idea": "An idea",
-                "other": "Other"
+                "bug": "Problem",
+                "idea": "Idea",
+                "exercise": "Exercise"
             },
             "messageLabel": "Your feedback",
-            "placeholder": "For example: I want to see my routines on a calendar",
-            "note": "Sent with the app version, your language and your browser type. Your training log isn't included.",
+            "placeholders": {
+                "bug": "What went wrong, and on which screen?",
+                "idea": "For example: I want to see my routines on a calendar",
+                "exercise": "For example: Machine Row, close grip"
+            },
+            "note": "Sent with the app version, language and browser type. Not your training log.",
             "send": "Send",
             "sending": "Sending…",
             "sent": "Got it. Thank you!",
