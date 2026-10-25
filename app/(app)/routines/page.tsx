@@ -78,7 +78,7 @@ export default async function RoutinesPage() {
             .order('created_at'),
         supabase
             .from('training_cycles')
-            .select('id, cycle_length, start_date, cycle_days ( day_index, routine_id )')
+            .select('id, cycle_length, start_date, cycle_days ( day_index, routine_id ), cycle_rest_days ( rest_date )')
             .eq('user_id', user.id)
             .order('day_index', { referencedTable: 'cycle_days' })
             .maybeSingle(),
@@ -133,6 +133,7 @@ export default async function RoutinesPage() {
                 language={language}
                 initialCycle={cycle ? { id: cycle.id, cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null}
                 initialCycleDays={cycleDays}
+                initialRestDates={cycle?.cycle_rest_days.map((r) => r.rest_date) ?? []}
                 calendar={calendar}
                 units={{ weight: weightUnit, distance: distanceUnit }}
                 today={today}

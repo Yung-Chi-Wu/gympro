@@ -12,7 +12,7 @@ import { OnboardingGuard } from '@/components/OnboardingGuard'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
-import { currentPeriod, cycleDayOf, localDate } from '@/lib/periods'
+import { addDays, currentPeriod, cycleDayOf, localDate, plannedCycleDay } from '@/lib/periods'
 import { localDayToUtcRange, timeZoneOf } from '@/lib/time-zone'
 import { loadTodayWorkout } from '@/lib/today-workout'
 import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
@@ -110,28 +110,33 @@ export default async function DashboardPage() {
 // The user's day, by their time zone and cycle, and what's logged in it. It waits only for the
 // profile and the cycle, so its round goes out while the page's other first reads are still out.
 async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
+  // Today in some time zone is within a day of today in UTC: the rest days around it come with the cycle
+  const utcToday = new Date().toISOString().slice(0, 10)
   const [{ profile }, cycleResult] = await Promise.all([
     getFrameProfile(),
     supabase
       .from('training_cycles')
       // Each routine's exercises too: last time's sets for today's go out with today's workout
-      .select('id, cycle_length, start_date, cycle_days ( day_index, routine_id, routines ( name, routine_exercises ( exercise_id ) ) )')
+      .select('id, cycle_length, start_date, cycle_days ( day_index, routine_id, routines ( name, routine_exercises ( exercise_id ) ) ), cycle_rest_days ( rest_date )')
       .eq('user_id', userId)
+      .gte('cycle_rest_days.rest_date', addDays(utcToday, -1))
+      .lte('cycle_rest_days.rest_date', addDays(utcToday, 1))
       .maybeSingle(),
   ])
   const cycle = cycleResult.data
+  const cycleSettings = cycle ? { cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null
 
   const language = await getEffectiveLanguage(profile)
   const timezone = timeZoneOf(profile?.timezone)
-  const period = currentPeriod(
-    timezone,
-    cycle ? { cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null
-  )
+  const period = currentPeriod(timezone, cycleSettings)
   const todayIso = localDate(timezone, new Date())
   const todayRange = localDayToUtcRange(todayIso, timezone)
 
-  const dayIndex = cycle ? cycleDayOf({ cycleLength: cycle.cycle_length, startDate: cycle.start_date }, todayIso) : 0
-  const cycleDay = cycle?.cycle_days.find((d) => d.day_index === dayIndex)
+  const dayIndex = cycleSettings ? cycleDayOf(cycleSettings, todayIso) : 0
+  // Nothing before the cycle starts, or on a rest day the user made
+  const restDates = new Set(cycle?.cycle_rest_days.map((r) => r.rest_date))
+  const plannedDay = cycleSettings ? plannedCycleDay(cycleSettings, todayIso, restDates) : null
+  const cycleDay = cycle?.cycle_days.find((d) => d.day_index === plannedDay)
   const routineIdForToday = cycleDay?.routine_id ?? null
 
   const [periodNoteResult, dayNoteResult, todayWeightResult, lastWeightResult, today] = await Promise.all([

@@ -324,13 +324,22 @@ const client = (answers, delayMs = 0) => {
     check(`the brief's ${w.ZH_TERMS.length} Chinese words are the app's`, !problems.length, problems.join('; '))
 }
 
-// The plan: a cycle that started after the period planned nothing in it
+// The plan: a cycle that started after the period planned nothing in it, and a day the user made a
+// rest day plans nothing either
 {
-    const fake = (startDate, owner = 'u1') => ({
+    const fake = (startDate, owner = 'u1', restDates = []) => ({
         from(table) {
-            const data = table === 'training_cycles' ? { id: 'c1', cycle_length: 7, start_date: startDate }
+            // The rest days the read asks for: those in the period
+            const range = {}
+            const rest = () => restDates.filter((d) => (!range.gte || d >= range.gte) && (!range.lte || d <= range.lte)).map((rest_date) => ({ rest_date }))
+            const data = () => table === 'training_cycles' ? { id: 'c1', cycle_length: 7, start_date: startDate, cycle_rest_days: rest() }
                 : [{ day_index: 1, routines: { user_id: owner, name: 'Push', routine_exercises: [{ exercise_id: 'e1', target_sets: 4 }] } }]
-            const b = { select: () => b, eq: () => b, maybeSingle: () => b, then: (r) => r({ data, error: null }) }
+            const b = {
+                select: () => b, eq: () => b, maybeSingle: () => b,
+                gte: (column, value) => { if (column === 'cycle_rest_days.rest_date') range.gte = value; return b },
+                lte: (column, value) => { if (column === 'cycle_rest_days.rest_date') range.lte = value; return b },
+                then: (r) => r({ data: data(), error: null }),
+            }
             return b
         },
     })
@@ -342,6 +351,13 @@ const client = (answers, delayMs = 0) => {
     const theirs = await w.fetchSchedule(fake('2026-09-01', 'u2'), 'u1', '2026-10-05', 7)
     check("a day pointing at another user's routine plans nothing from it", theirs?.length === 7 && theirs.every((d) => d.routine === null && !d.plan.length), JSON.stringify(theirs?.map((d) => d.routine)))
     check('a cycle that started during the period plans from its first day', midway?.length === 7 && midway.slice(0, 3).every((d) => d.routine === null) && midway[3].routine === 'Push', JSON.stringify(midway?.map((d) => d.routine)))
+    // Push is on 10/6; the user made that day a rest day, and one in the next period too
+    const rested = await w.fetchSchedule(fake('2026-09-01', 'u1', ['2026-10-06', '2026-10-13']), 'u1', '2026-10-05', 7)
+    check('a day the user made a rest day plans nothing: not a missed session, and no sets it would have added',
+        before?.find((d) => d.date === '2026-10-06')?.routine === 'Push' && rested?.length === 7 && rested.every((d) => d.routine === null && !d.plan.length),
+        JSON.stringify(rested?.map((d) => [d.date, d.routine])))
+    const nextWeek = await w.fetchSchedule(fake('2026-09-01', 'u1', ['2026-10-06']), 'u1', '2026-10-12', 7)
+    check("a rest day in another period leaves this one's plan alone", nextWeek?.find((d) => d.date === '2026-10-13')?.routine === 'Push', JSON.stringify(nextWeek?.map((d) => [d.date, d.routine])))
 }
 
 // The AI error alarms count failures: a Ronnie turn the user stopped is traced as an error, and isn't one

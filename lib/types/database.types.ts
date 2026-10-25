@@ -80,6 +80,32 @@ export type Database = {
           },
         ]
       }
+      cycle_rest_days: {
+        Row: {
+          created_at: string
+          rest_date: string
+          training_cycle_id: string
+        }
+        Insert: {
+          created_at?: string
+          rest_date: string
+          training_cycle_id: string
+        }
+        Update: {
+          created_at?: string
+          rest_date?: string
+          training_cycle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cycle_rest_days_training_cycle_id_fkey"
+            columns: ["training_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "training_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       day_notes: {
         Row: {
           note: string

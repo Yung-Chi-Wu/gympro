@@ -26,7 +26,7 @@ import { compactSet, SummaryLine } from './set-format'
 import { Icon } from './Icon'
 import { ReportTrendChip } from './ReportTrendChip'
 import { formatDay, formatMonth, formatRange, weekdayLetters } from '@/lib/date-labels'
-import { monthWeeks } from '@/lib/cycle-calendar'
+import { monthWeeks, plannedSessions, type CalendarCycle } from '@/lib/cycle-calendar'
 import { useHistoryRecords } from './use-history-records'
 import { isReportV3, ReportView } from './report/ReportView'
 import { FailedReport } from './report/FailedReport'
@@ -84,8 +84,8 @@ interface HistoryTrainingProps {
     /** The calendar's first month: this one, or the month of a linked day */
     initialMonth: string
     cycle: CycleSettings | null
-    /** Training days in one round of the cycle; null without a cycle */
-    plannedPerPeriod: number | null
+    /** The cycle's routine on each of its days and the dates made rest days, for each round's "3 of 4 planned"; null without a cycle */
+    plan: { routineByDay: Record<number, string | null>; restDates: string[] } | null
     initialRange: HistoryRange
     initialDays: HistoryDay[]
     initialReports: PeriodReportStatus[]
@@ -99,7 +99,7 @@ export function HistoryTraining({
     today,
     initialMonth,
     cycle,
-    plannedPerPeriod,
+    plan,
     initialRange,
     initialDays,
     initialReports,
@@ -148,10 +148,12 @@ export function HistoryTraining({
         if (await ensureLoaded(rangeOf(periods))) setList({ from, count: periods.length, month: target })
     }
 
+    const planned: CalendarCycle | null = cycle && plan && { ...cycle, routineByDay: plan.routineByDay, restDates: new Set(plan.restDates) }
     const sessions = (period: PeriodRange) => {
         if (!isLoaded(period)) return '…'
         const done = trainedIn(period).length
-        return plannedPerPeriod ? t('sessionsOfPlan', { done, planned: plannedPerPeriod }) : t('sessions', { count: done })
+        const count = planned ? plannedSessions(planned, period) : 0
+        return count ? t('sessionsOfPlan', { done, planned: count }) : t('sessions', { count: done })
     }
 
     return (

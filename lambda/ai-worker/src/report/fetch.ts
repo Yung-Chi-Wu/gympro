@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { addDays, cycleDayOf, daysBetween } from '../../../../lib/periods'
+import { addDays, daysBetween, plannedCycleDay } from '../../../../lib/periods'
 import { ageOn } from '../../../../lib/report/cardio-intensity'
 import { SUGGESTED_NAMES } from '../../../../lib/report/volume'
 import { isCardio, logTypeOf } from '../../../../lib/set-log'
@@ -171,16 +171,21 @@ async function fetchExercises(supabase: SupabaseClient, ids: string[]): Promise<
 /** The cycle's routine for each day of the period, or null without a cycle. */
 /**
  * Each day's planned routine, from the cycle as it is now. A cycle that started after the period
- * planned nothing in it: no schedule, not a week of rest days that read "3 of 0 planned".
+ * planned nothing in it: no schedule, not a week of rest days that read "3 of 0 planned". A day the
+ * user made a rest day plans nothing either (lib/periods.ts, plannedCycleDay): it isn't missed,
+ * and the period has its sets fewer.
  */
 export async function fetchSchedule(supabase: SupabaseClient, userId: string, periodStart: string, days: number): Promise<ScheduledDay[] | null> {
+    const periodEnd = addDays(periodStart, days - 1)
     const { data: cycle, error } = await supabase
         .from('training_cycles')
-        .select('id, cycle_length, start_date')
+        .select('id, cycle_length, start_date, cycle_rest_days ( rest_date )')
         .eq('user_id', userId)
+        .gte('cycle_rest_days.rest_date', periodStart)
+        .lte('cycle_rest_days.rest_date', periodEnd)
         .maybeSingle()
     if (error) throw new Error(`Failed to fetch training cycle: ${error.message}`)
-    if (!cycle || daysBetween(cycle.start_date, addDays(periodStart, days - 1)) < 0) return null
+    if (!cycle || daysBetween(cycle.start_date, periodEnd) < 0) return null
     const { data: cycleDays, error: daysError } = await supabase
         .from('cycle_days')
         .select('day_index, routines ( user_id, name, routine_exercises ( exercise_id, target_sets ) )')
@@ -191,10 +196,12 @@ export async function fetchSchedule(supabase: SupabaseClient, userId: string, pe
     // user's routine would put that routine in this user's report (the policies refuse such a row
     // now, migration 20261015130000; this keeps one written before them out)
     const routineFor = new Map(((cycleDays ?? []) as unknown as Row[]).map((d) => [d.day_index, d.routines?.user_id === userId ? d.routines : null]))
+    const settings = { cycleLength: cycle.cycle_length, startDate: cycle.start_date }
+    const restDates = new Set(cycle.cycle_rest_days.map((r: { rest_date: string }) => r.rest_date))
     return Array.from({ length: days }, (_, i) => {
         const date = addDays(periodStart, i)
-        const since = daysBetween(cycle.start_date, date)
-        const routine = since < 0 ? null : routineFor.get(cycleDayOf({ cycleLength: cycle.cycle_length, startDate: cycle.start_date }, date)) ?? null
+        const day = plannedCycleDay(settings, date, restDates)
+        const routine = day === null ? null : routineFor.get(day) ?? null
         return {
             date,
             routine: routine?.name ?? null,
