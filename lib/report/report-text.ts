@@ -201,9 +201,9 @@ export function planItems(findings: Finding[], language: string, unit: 'week' | 
 }
 
 /**
- * The line under an exercise on Today (progression.ts todayAim): how its aim moves on, since the
- * weight and reps themselves are in its summary; what the report decided for this period in the
- * report's own words.
+ * The line under an exercise on Today (progression.ts todayAim): what to do today, and why when
+ * the weight changed; what the report decided for this period in the report's own words. Never
+ * what comes after today: beside the + it read as the next set's (owner, 2026-10-25).
  */
 export function aimText(a: Aim, language: string, unit: 'week' | 'cycle', weightUnit: WeightUnit): string {
     const t = labelIn(language)

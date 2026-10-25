@@ -533,14 +533,14 @@
             "deloadLoad": "{weight} × {low}, {sets} {count, select, one {set} other {sets}} (usually {usual}, {usualSets} {usualCount, select, one {set} other {sets}})",
             "deloadReps": "{low} reps, {sets} {count, select, one {set} other {sets}} (usually {usualSets} {usualCount, select, one {set} other {sets}})",
             "deloadAssist": "{assist} assist × {low}, {sets} {count, select, one {set} other {sets}} (usually {usualSets} {usualCount, select, one {set} other {sets}})",
-            "aimLoad": "if every set reaches {top} today, {next} next time you do this exercise",
+            "aimLoad": "{top} reps on every set",
             "aimStepUp": "every set reached {top} last time, so {weight} today",
-            "aimAssist": "if every set reaches {top} today, one step less assist next time you do this exercise",
+            "aimAssist": "{assist} assist, {top} reps on every set",
             "aimAssistDown": "every set reached {top} last time, so one step less assist today (it was {assist})",
             "aimHold": "no more weight this {unit, select, week {week} other {cycle}}; {weight} × {low} is enough",
             "aimHoldReps": "no more reps this {unit, select, week {week} other {cycle}}; {low} is enough",
             "aimHoldAssist": "keep the assist this {unit, select, week {week} other {cycle}}; {assist} assist × {low} is enough",
-            "aimReset": "drop to {weight} for {low}–{top} and build back up"
+            "aimReset": "drop to {weight} for {low}–{top}"
         },
         "advised": {
             "lift_stalled": "Add reps on {lift}",

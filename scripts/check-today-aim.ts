@@ -110,7 +110,7 @@ check('no aim for an exercise not done lately, cardio, a timed hold or a core ex
     const line = reportLine('zh-TW')
     check('the report\'s line for the same lift has Today\'s numbers: the weight, the range and the next weight',
         line.includes('80 kg') && line.includes(`${a.low}–${a.top}`) && line.includes('82.5 kg') && a.weightKg === 80 && a.nextKg === 82.5, `${line} | ${JSON.stringify(a)}`)
-    check('under the exercise, Today says how the aim moves on: the next weight is for the next session, not the next set', aimText(a, 'zh-TW', 'week', 'kg') === '今天每組都做到 8 下，下次練這個動作就換 82.5\u00a0kg' && aimText(a, 'en', 'week', 'kg') === 'if every set reaches 8 today, 82.5\u00a0kg next time you do this exercise',
+    check('under the exercise, Today says what to do today', aimText(a, 'zh-TW', 'week', 'kg') === '每組做到 8 下' && aimText(a, 'en', 'week', 'kg') === '8 reps on every set',
         `${aimText(a, 'zh-TW', 'week', 'kg')} | ${aimText(a, 'en', 'week', 'kg')}`)
     const up = aimOf(bench, [...lastWeek, ...session(bench, '2026-10-27', [[80, 8], [80, 8], [80, 8]])])!
     // 135 lb, logged in pounds
@@ -126,6 +126,8 @@ check('no aim for an exercise not done lately, cardio, a timed hold or a core ex
             aimOf(bench, lastWeek, { findings: [finding('goal_path', { path: 'stalled', dropKg: 72.5 })] })!]
         const texts = all.map((x) => aimText(x, language, 'week', 'kg'))
         check(`every kind of aim has its words in ${language}, with no placeholder left`, texts.every((t) => t.length > 3 && !/[{}]|NaN|undefined/.test(t)), texts.join(' | '))
+        // Beside the +, a word about later read as the next set's (owner, 2026-10-25)
+        check(`no aim says what comes after today, in ${language}`, texts.every((t) => !/下次|下一次|next time|next session|build back/i.test(t)), texts.join(' | '))
     }
 }
 
