@@ -216,7 +216,7 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
   - the user's next message says it was wrong;
   - the user edits the message it answered;
   - the user cancels its card or clears the chat within two minutes;
-  - the user taps Report a mistake under it;
+  - the user reports it, picking what was wrong (a wrong fact, a missed question, unsuitable advice, a wrong change, length or tone) and adding a note if they want;
   - the daily review finds a problem in it.
 
   A flagged trace is kept 365 days. These are the conversations that become eval cases:
@@ -235,6 +235,7 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
   - it flagged 14 of the 16 with a real problem, and 1 of the 16 without one;
   - on 20 held-out conversations it flagged none;
   - it found two mistakes in the eval judge's own grades.
+- **Feedback.** Users send feedback from Settings: a bug, an idea or something else, in their own words. It is kept in `app_feedback` with the app version, language and browser, never their training log, and a user can send 10 a day.
 - **Errors.** Server and browser errors go to an `app_errors` table.
 - **Alarms.** 13 CloudWatch alarms send email when:
   - AI calls fail, or half of an hour's calls fail (a dead key);

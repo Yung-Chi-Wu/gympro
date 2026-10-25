@@ -17,11 +17,12 @@ import { LogoutButton } from '@/components/LogoutButton'
 import { ThemeSelector } from '@/components/ThemeSelector'
 import { Icon } from '@/components/Icon'
 import { InstallGuide } from '@/components/InstallGuide'
+import { FeedbackForm } from '@/components/FeedbackForm'
 import { CHOSEN_UTC } from '@/lib/time-zone'
 import { MAX_DISPLAY_NAME_CHARS, MAX_TRAINING_GOAL_CHARS } from '@/lib/text-limits'
 
 // Settings. Side by side (@split): the sections on the left (個人資料, 訓練目標, 單位與語言,
-// 外觀, 帳號), the chosen section's form on the right. On a phone: one grouped list with
+// 外觀, 意見回饋, 帳號), the chosen section's form on the right. On a phone: one grouped list with
 // each setting's current value; a setting opens as a page of its own (?item=, see
 // lib/sub-page.ts) with its own save button.
 
@@ -41,15 +42,16 @@ export interface ProfileValues {
 /** The profile plus the theme, which lives in the browser (next-themes), not the database */
 type Values = ProfileValues & { theme: string }
 type Field = keyof Values
-type Section = 'profile' | 'goal' | 'units' | 'appearance' | 'account'
-/** What a phone row opens: a setting, or the add-to-home-screen steps */
-type Item = Field | 'install'
+type Section = 'profile' | 'goal' | 'units' | 'appearance' | 'feedback' | 'account'
+/** What a phone row opens: a setting, the add-to-home-screen steps, or the feedback form */
+type Item = Field | 'install' | 'feedback'
 
 const SECTIONS: { key: Section; fields: Field[] }[] = [
     { key: 'profile', fields: ['displayName', 'heightCm', 'dateOfBirth', 'sex', 'timezone'] },
     { key: 'goal', fields: ['trainingGoal'] },
     { key: 'units', fields: ['weightUnit', 'distanceUnit', 'language'] },
     { key: 'appearance', fields: ['theme'] },
+    { key: 'feedback', fields: [] },
     { key: 'account', fields: [] },
 ]
 // The phone's list groups the same settings more coarsely, like a phone's own settings
@@ -60,7 +62,7 @@ const PHONE_GROUPS: { key: string; fields: Field[] }[] = [
     { key: 'account', fields: [] },
 ]
 const FIELDS = SECTIONS.flatMap((s) => s.fields)
-const isItem = (s: string | null): s is Item => s === 'install' || FIELDS.includes(s as Field)
+const isItem = (s: string | null): s is Item => s === 'install' || s === 'feedback' || FIELDS.includes(s as Field)
 
 // UTC as Etc/UTC: a choice, which TimeZoneSync leaves alone, unlike the column's default 'UTC'
 const COMMON_TIMEZONES = [
@@ -181,6 +183,13 @@ export function ProfileSettingsForm({ userId, initial }: { userId: string; initi
             <li className="hidden py-3 @split:block">
                 <InstallSteps />
             </li>
+            {/* Side by side, 意見回饋 is a section of its own */}
+            <li className="@split:hidden">
+                <button type="button" onClick={() => openSubPage('item', 'feedback')} className={ROW}>
+                    <span className="flex-1">{t('feedback.title')}</span>
+                    <Icon name="forward" className="size-4 text-faint" />
+                </button>
+            </li>
             <li>
                 <LogoutButton className={`${ROW} justify-between`} />
             </li>
@@ -218,6 +227,11 @@ export function ProfileSettingsForm({ userId, initial }: { userId: string; initi
                         <section className={`${CARD} space-y-1`}>
                             <h2 className="text-lg font-bold">{t('sections.account')}</h2>
                             <ul className="divide-y divide-line">{accountRows}</ul>
+                        </section>
+                    ) : section === 'feedback' ? (
+                        <section className={`${CARD} space-y-3`}>
+                            <h2 className="text-lg font-bold">{t('feedback.title')}</h2>
+                            <FeedbackForm />
                         </section>
                     ) : (
                         <SettingsForm
@@ -259,6 +273,12 @@ export function ProfileSettingsForm({ userId, initial }: { userId: string; initi
                                 <BackToSettings />
                                 <h2 className="text-xl font-bold">{t('install')}</h2>
                                 <InstallSteps showTitle={false} />
+                            </section>
+                        ) : item === 'feedback' ? (
+                            <section className={`${CARD} space-y-3`}>
+                                <BackToSettings />
+                                <h2 className="text-xl font-bold">{t('feedback.title')}</h2>
+                                <FeedbackForm />
                             </section>
                         ) : (
                             <SettingsForm key={item} title={t(`fields.${item}`)} fields={[item]} values={values} onSave={save} isZhTW={isZhTW} single />

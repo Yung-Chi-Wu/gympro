@@ -296,7 +296,8 @@
             "goal": "Training goal",
             "units": "Units & language",
             "appearance": "Appearance",
-            "account": "Account"
+            "account": "Account",
+            "feedback": "Feedback"
         },
         "fields": {
             "displayName": "Display name",
@@ -338,6 +339,25 @@
             "training": "Training",
             "preferences": "Preferences",
             "account": "Account"
+        },
+        "feedback": {
+            "title": "Send feedback",
+            "intro": "Found a problem, or want something the app doesn't do? Tell us here.",
+            "kindLabel": "Type",
+            "kinds": {
+                "bug": "Something is wrong",
+                "idea": "An idea",
+                "other": "Other"
+            },
+            "messageLabel": "Your feedback",
+            "placeholder": "For example: I want to see my routines on a calendar",
+            "note": "Sent with the app version, your language and your browser type. Your training log isn't included.",
+            "send": "Send",
+            "sending": "Sending…",
+            "sent": "Got it. Thank you!",
+            "another": "Write another",
+            "failed": "It wasn't sent. Try again.",
+            "tooMany": "You've sent a lot today. Please write again tomorrow."
         }
     },
     "history": {

@@ -71,6 +71,8 @@ jobs:
         run: npm run check:ai-spend
       - name: A new set starts as a copy of the last, and logged sets read in the column's unit
         run: npm run check:set-entry
+      - name: Feedback and reports take only what the forms send
+        run: npm run check:feedback
       - name: Ronnie's tools, turn loop, recorded conversations and grader (offline)
         run: |
           npm run eval:ronnie:build

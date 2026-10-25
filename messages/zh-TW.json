@@ -296,7 +296,8 @@
             "goal": "訓練目標",
             "units": "單位與語言",
             "appearance": "外觀",
-            "account": "帳號"
+            "account": "帳號",
+            "feedback": "意見回饋"
         },
         "fields": {
             "displayName": "顯示名稱",
@@ -338,6 +339,25 @@
             "training": "訓練",
             "preferences": "偏好",
             "account": "帳號"
+        },
+        "feedback": {
+            "title": "意見回饋",
+            "intro": "發現問題、想要什麼功能，都可以直接告訴我們。",
+            "kindLabel": "類型",
+            "kinds": {
+                "bug": "錯誤回報",
+                "idea": "功能建議",
+                "other": "其他"
+            },
+            "messageLabel": "內容",
+            "placeholder": "例如：希望課表可以用日曆看",
+            "note": "會附上你使用的 App 版本、語言和瀏覽器類型，不會附上你的訓練紀錄。",
+            "send": "送出",
+            "sending": "送出中…",
+            "sent": "收到了，謝謝！",
+            "another": "再寫一則",
+            "failed": "沒有送出，請再試一次。",
+            "tooMany": "今天已經送出很多則了，明天再寫給我們。"
         }
     },
     "history": {

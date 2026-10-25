@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { MAX_MESSAGE_CHARS, withoutCitationNumbers, type DisplayItem, type PlanCard, type ProposalCard, type ProposalStatus, type RecommendationCard } from '@/lib/ronnie/conversation'
 import { describeProposal } from '@/lib/ronnie/events'
 import { reportClientError, responseError } from '@/lib/report-client-error'
+import { MAX_REPORT_NOTE_CHARS, REPORT_REASON_LABELS, REPORT_REASONS, type ReportReason } from '@/lib/feedback'
 import { dataChanged, serverWrite } from '@/lib/data-version'
 import { isSubmitEnter, useKeyboardOpen, useVisibleViewport, type VisibleViewport } from '@/lib/keyboard'
 import { CoachGResult } from './CoachGResult'
@@ -78,6 +79,8 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     const [editingIndex, setEditingIndex] = useState<number | null>(null)
     // Replies the user reported this session; the server keeps the flag on the reply's trace
     const [reported, setReported] = useState<Set<string>>(() => new Set())
+    // The reply being reported, with what the user picked and wrote about it so far
+    const [reporting, setReporting] = useState<{ traceId: string; reasons: ReportReason[]; note: string; sending: boolean; failed: boolean } | null>(null)
     const [editingText, setEditingText] = useState('')
     const [busyCard, setBusyCard] = useState<string | null>(null)
     // The removal waiting for its second confirmation
@@ -450,22 +453,31 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         )
     }
 
-    // "Report a mistake" under a reply: it only flags the reply for review, so one tap and no confirm
-    const report = async (traceId: string) => {
-        setReported((prev) => new Set(prev).add(traceId))
+    // "Report a mistake" under a reply opens a short form: what was wrong (any of the reasons, or
+    // words of their own, or both), sent with the reply's trace (lib/feedback.ts)
+    const sendReport = async () => {
+        if (!reporting || reporting.sending) return
+        const { traceId, reasons, note } = reporting
+        setReporting({ ...reporting, sending: true, failed: false })
         const res = await fetch('/api/ai/coach/feedback', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ traceId }),
+            body: JSON.stringify({ traceId, reasons, note: note.trim() || null }),
         }).catch(() => null)
-        if (!res?.ok) setReported((prev) => { const next = new Set(prev); next.delete(traceId); return next })
+        if (res?.ok) {
+            setReported((prev) => new Set(prev).add(traceId))
+            setReporting(null)
+        } else {
+            setReporting((r) => (r ? { ...r, sending: false, failed: true } : r))
+        }
     }
     const renderReport = (traceId: string) => (
         <div className="mt-0.5 flex justify-start px-1 text-[11px]">
             {reported.has(traceId) ? (
                 <span className="text-ink/40 dark:text-white/40">{zh ? '已回報，對話將保留一年' : 'Reported; kept a year for review'}</span>
             ) : (
-                <button type="button" onClick={() => report(traceId)} className="-my-1 py-1 text-red-500/70 hover:text-red-500">
+                <button type="button" onClick={() => setReporting({ traceId, reasons: [], note: '', sending: false, failed: false })}
+                    className="-my-1 py-1 text-red-500/70 hover:text-red-500">
                     {zh ? '回報錯誤' : 'Report a mistake'}
                 </button>
             )}
@@ -703,6 +715,54 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                     <button type="button" onClick={() => resolve(confirming, 'confirm')}
                                         className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs">
                                         {zh ? '確定移除' : 'Remove'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Report a mistake: what was wrong with the reply */}
+                    {reporting && (
+                        <div className="absolute inset-0 flex items-end bg-black/40 p-3" role="dialog" aria-modal="true" aria-labelledby="report-title"
+                            onKeyDown={(e) => { if (e.key === 'Escape') setReporting(null) }}>
+                            <div className="w-full space-y-3 rounded-2xl bg-white p-4 shadow-xl dark:bg-[#2C2923]">
+                                <p id="report-title" className="text-sm font-semibold">{zh ? '這則回覆哪裡有問題？' : 'What was wrong with this reply?'}</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {REPORT_REASONS.map((reason) => {
+                                        const picked = reporting.reasons.includes(reason)
+                                        return (
+                                            <button key={reason} type="button" aria-pressed={picked}
+                                                onClick={() => setReporting({ ...reporting, reasons: picked ? reporting.reasons.filter((r) => r !== reason) : [...reporting.reasons, reason] })}
+                                                className={`min-h-9 rounded-full border px-3 text-xs ${picked ? 'border-transparent bg-ink text-card dark:bg-white dark:text-[#2C2923]' : 'border-ink/20 dark:border-white/20'}`}>
+                                                {REPORT_REASON_LABELS[zh ? 'zh-TW' : 'en'][reason]}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                                <textarea
+                                    value={reporting.note}
+                                    onChange={(e) => setReporting({ ...reporting, note: e.target.value })}
+                                    maxLength={MAX_REPORT_NOTE_CHARS}
+                                    rows={3}
+                                    aria-label={zh ? '補充說明' : 'Details'}
+                                    placeholder={zh ? '想補充什麼？（選填）' : 'Anything to add? (optional)'}
+                                    className="w-full rounded-xl border border-ink/20 bg-transparent px-3 py-2 text-sm dark:border-white/20"
+                                />
+                                <p className="text-[11px] text-ink/50 dark:text-white/50">
+                                    {zh ? '送出後，這段對話會保留一年，讓我們檢查哪裡出錯。' : "This conversation is kept for a year, so we can check what went wrong."}
+                                </p>
+                                {reporting.failed && (
+                                    <p role="alert" className="text-xs text-red-500">{zh ? '沒有送出，請再試一次。' : "It wasn't sent. Try again."}</p>
+                                )}
+                                <div className="flex justify-end gap-2">
+                                    <button type="button" onClick={() => setReporting(null)}
+                                        className="min-h-9 rounded-lg border border-ink/20 px-3 text-xs dark:border-white/20">
+                                        {zh ? '取消' : 'Cancel'}
+                                    </button>
+                                    <button type="button" onClick={sendReport}
+                                        disabled={reporting.sending || (!reporting.reasons.length && !reporting.note.trim())}
+                                        className="min-h-9 rounded-lg px-3 text-xs font-medium text-white disabled:opacity-50" style={{ backgroundColor: ACCENT }}>
+                                        {reporting.sending ? (zh ? '送出中…' : 'Sending…') : (zh ? '送出' : 'Send')}
                                     </button>
                                 </div>
                             </div>
