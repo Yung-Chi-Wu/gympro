@@ -65,6 +65,17 @@ export function cycleDayOf(cycle: CycleSettings, date: string): number {
     return (((since % cycle.cycleLength) + cycle.cycleLength) % cycle.cycleLength) + 1
 }
 
+/**
+ * The day of the cycle whose routine a date trains, or null when it plans none: before the cycle
+ * starts, or a date the user made a rest day (cycle_rest_days). Today, Ronnie, 課表's calendar,
+ * 紀錄's counts and the report all ask this, so a rest day is one everywhere: nothing is planned,
+ * so nothing is missed, and the round has that many fewer sets.
+ */
+export function plannedCycleDay(cycle: CycleSettings, date: string, restDates: ReadonlySet<string>): number | null {
+    if (date < cycle.startDate || restDates.has(date)) return null
+    return cycleDayOf(cycle, date)
+}
+
 /** Last day of the period that starts on periodStart. */
 export function periodEndFor(periodStart: string, cycle: CycleSettings | null): string {
     return addDays(periodStart, (cycle?.cycleLength ?? 7) - 1)

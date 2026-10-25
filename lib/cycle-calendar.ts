@@ -1,19 +1,22 @@
-import { addDays, cycleDayOf, type CycleSettings } from './periods'
+import { addDays, cycleDayOf, plannedCycleDay, type CycleSettings } from './periods'
 import { datesIn, isTrained, monthRange, periodOf, type HistoryDay, type HistoryRange } from './history'
 
 // 課表's calendar (components/CycleCalendar.tsx): a month, Monday first, each day with what the
 // training cycle plans for it and whether it was trained. A round of the cycle is a report's
-// period (lib/periods.ts), so each day also knows its round. Plans follow the cycle as it is now
-// and start on its start date, the way a report counts them (lambda/ai-worker/src/report/fetch.ts).
+// period (lib/periods.ts), so each day also knows its round. Plans follow the cycle as it is now,
+// start on its start date and skip the days the user made rest days, the way a report counts them
+// (lambda/ai-worker/src/report/fetch.ts).
 
 export interface CalendarCycle extends CycleSettings {
     /** The routine on each day of the cycle, by day index (1 to cycleLength); none is a rest day */
     routineByDay: Record<number, string | null>
+    /** The dates the user made rest days (cycle_rest_days): nothing is planned on them */
+    restDates: ReadonlySet<string>
 }
 
 /**
  * done: trained. missed: planned, past, not trained. today: planned for today, not trained yet.
- * planned: planned, still ahead. rest: a rest day in the cycle. none: before the cycle starts.
+ * planned: planned, still ahead. rest: a rest day, in the cycle or made one. none: before the cycle starts.
  */
 export type DayStatus = 'done' | 'missed' | 'today' | 'planned' | 'rest' | 'none'
 
@@ -23,6 +26,8 @@ export interface CalendarDay {
     cycleDay: number | null
     /** The routine the cycle plans for the day */
     routineId: string | null
+    /** On a day the user made a rest day, the routine the cycle had for it */
+    skippedRoutineId: string | null
     status: DayStatus
     /** The cycle's round the day is in: a report's period */
     round: HistoryRange
@@ -31,17 +36,29 @@ export interface CalendarDay {
 /** Routines in their own color, in the order the cycle first reaches them; the rest share a plain one */
 export const ROUTINE_COLORS = 3
 
+/** The routine the cycle plans for a date: none before it starts, on its rest days or on one the user made */
+export function plannedRoutine(cycle: CalendarCycle, date: string): string | null {
+    const day = plannedCycleDay(cycle, date, cycle.restDates)
+    return day === null ? null : cycle.routineByDay[day] ?? null
+}
+
 export function calendarDay(date: string, cycle: CalendarCycle, today: string, day: HistoryDay | undefined): CalendarDay {
     const round = periodOf(date, cycle)
     const trained = isTrained(day)
-    if (date < cycle.startDate) return { date, cycleDay: null, routineId: null, status: trained ? 'done' : 'none', round }
+    if (date < cycle.startDate) return { date, cycleDay: null, routineId: null, skippedRoutineId: null, status: trained ? 'done' : 'none', round }
     const cycleDay = cycleDayOf(cycle, date)
-    const routineId = cycle.routineByDay[cycleDay] ?? null
+    const routineId = plannedRoutine(cycle, date)
+    const skippedRoutineId = cycle.restDates.has(date) ? cycle.routineByDay[cycleDay] ?? null : null
     let status: DayStatus
     if (trained) status = 'done'
     else if (!routineId) status = 'rest'
     else status = date < today ? 'missed' : date === today ? 'today' : 'planned'
-    return { date, cycleDay, routineId, status, round }
+    return { date, cycleDay, routineId, skippedRoutineId, status, round }
+}
+
+/** The sessions the cycle plans in a range: 紀錄's "3 of 4 planned", counted the way the report counts them */
+export function plannedSessions(cycle: CalendarCycle, range: HistoryRange): number {
+    return datesIn(range).filter((date) => plannedRoutine(cycle, date)).length
 }
 
 /** The month's weeks, Monday to Sunday, from the week of the 1st to the week of the last day */
@@ -60,10 +77,11 @@ export function calendarRange(month: string, cycle: CycleSettings): HistoryRange
 
 /** The first day after `date` the cycle plans a routine for, or null when it plans none */
 export function nextPlanned(cycle: CalendarCycle, date: string): { date: string; routineId: string } | null {
-    for (let i = 1; i <= cycle.cycleLength; i++) {
+    // Within a cycle, and a cycle more for each rest day the user made after it: each can take one
+    const restAfter = [...cycle.restDates].filter((d) => d > date).length
+    for (let i = 1; i <= cycle.cycleLength * (restAfter + 1); i++) {
         const next = addDays(date, i)
-        if (next < cycle.startDate) continue
-        const routineId = cycle.routineByDay[cycleDayOf(cycle, next)]
+        const routineId = plannedRoutine(cycle, next)
         if (routineId) return { date: next, routineId }
     }
     return null

@@ -36,6 +36,8 @@ interface RoutineBuilderProps {
     language: string
     initialCycle: CycleRow | null
     initialCycleDays: CycleDayState[]
+    /** The dates made rest days in the calendar (cycle_rest_days) */
+    initialRestDates: string[]
     /** The calendar's first month, read with the page: what was trained and the rounds' reports */
     calendar: { range: HistoryRange; days: HistoryDay[]; reports: PeriodReportStatus[]; firstDate: string | null } | null
     units: Units
@@ -74,6 +76,7 @@ export function RoutineBuilder({
     language,
     initialCycle,
     initialCycleDays,
+    initialRestDates,
     calendar,
     units,
     today,
@@ -89,6 +92,7 @@ export function RoutineBuilder({
             : Array.from({ length: initialCycle?.cycleLength ?? 0 }, (_, i) => ({ dayIndex: i + 1, routineId: null }))
     )
     const [cycle, setCycle] = useState(initialCycle)
+    const [restDates, setRestDates] = useState<ReadonlySet<string>>(() => new Set(initialRestDates))
     // The phone's 日曆 / 課表 switch: the calendar first once there is a cycle to show
     const [view, setView] = useState<'routines' | 'calendar'>(initialCycle ? 'calendar' : 'routines')
     const [isCreating, setIsCreating] = useState(false)
@@ -117,12 +121,38 @@ export function RoutineBuilder({
         cycleLength: cycle.cycleLength,
         startDate: cycle.startDate,
         routineByDay: Object.fromEntries(days.map((d) => [d.dayIndex, d.routineId])),
+        restDates,
     }
 
-    // A cycle made here goes on to its editor, which picks the days' routines next
+    // A cycle made here goes on to its editor, which picks the days' routines next. A deleted
+    // cycle took its rest days with it, so a new one has none.
     function changeCycle(next: CycleRow | null) {
         if (!cycle && next) openSubPage('routine', CYCLE_PAGE)
+        if (next?.id !== cycle?.id) setRestDates(new Set())
         setCycle(next)
+    }
+
+    // A day made a rest day in the calendar, or given back: shown at once, and put back as it
+    // was if the save fails. The message to show then, or null.
+    async function handleRestDay(date: string, rest: boolean): Promise<string | null> {
+        if (!cycle) return null
+        const toggle = (dates: ReadonlySet<string>, add: boolean) => {
+            const next = new Set(dates)
+            if (add) next.add(date)
+            else next.delete(date)
+            return next
+        }
+        setRestDates((dates) => toggle(dates, rest))
+        const { error: saveError } = rest
+            ? await supabase
+                .from('cycle_rest_days')
+                .upsert({ training_cycle_id: cycle.id, rest_date: date }, { onConflict: 'training_cycle_id,rest_date', ignoreDuplicates: true })
+            : await supabase.from('cycle_rest_days').delete().eq('training_cycle_id', cycle.id).eq('rest_date', date)
+        if (!saveError) return null
+        if (rest) reportClientError('client/cycle/rest-day', saveError)
+        else reportClientError('client/cycle/undo-rest-day', saveError)
+        setRestDates((dates) => toggle(dates, !rest))
+        return toFriendlyError(saveError, language)
     }
     // Side by side, the editor shows the first routine until another is picked
     const shown = opened ?? routines[0] ?? null
@@ -514,6 +544,7 @@ export function RoutineBuilder({
                         language={language}
                         units={units}
                         onEditCycle={() => openSubPage('routine', CYCLE_PAGE)}
+                        onRestDay={handleRestDay}
                         routineEditor={(routine, changeNote) => (
                             <RoutineExercises
                                 key={routine.id}
