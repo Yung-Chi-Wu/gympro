@@ -75,6 +75,8 @@ jobs:
         run: npm run check:feedback
       - name: The calendar shows each day's plan the way Today and the report count it
         run: npm run check:cycle-calendar
+      - name: Today aims each lift the way the report plans it
+        run: npm run check:today-aim
       - name: Ronnie's tools, turn loop, recorded conversations and grader (offline)
         run: |
           npm run eval:ronnie:build

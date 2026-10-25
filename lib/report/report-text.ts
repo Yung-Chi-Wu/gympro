@@ -3,6 +3,7 @@ import zh from '../../messages/zh-TW.json'
 import { toDisplayWeight, type WeightUnit } from '../weight-unit'
 import { unitLabel } from './volume'
 import { CODE_RULES, type Finding, type NarrativeItem, type NarrativeLine, type ReportFacts, type ReportNarrative, type RuleId } from './types'
+import type { Aim } from './progression'
 
 export { CODE_RULES }
 
@@ -197,6 +198,31 @@ export function planItems(findings: Finding[], language: string, unit: 'week' | 
         else if (f.rule === 'few_days') items.push({ rule: 'few_days', action: plan('fewDays', { n: f.data.target, unit }) })
     }
     return items
+}
+
+/**
+ * The line under an exercise on Today (progression.ts todayAim): what to do today, and why when
+ * the weight changed; what the report decided for this period in the report's own words. Never
+ * what comes after today: beside the + it read as the next set's (owner, 2026-10-25).
+ */
+export function aimText(a: Aim, language: string, unit: 'week' | 'cycle', weightUnit: WeightUnit): string {
+    const t = labelIn(language)
+    // A weight and its unit stay on one line on a narrow phone
+    const w = (kg: number | null) => `${toDisplayWeight(Number(kg), weightUnit)}\u00a0${weightUnit}`
+    const n = { weight: w(a.weightKg), next: w(a.nextKg), assist: w(a.assistKg), low: String(a.low), top: String(a.top ?? ''), unit }
+    switch (a.how) {
+        case 'load': return t('plan.aimLoad', n)
+        case 'step_up': return t('plan.aimStepUp', n)
+        case 'reps': return t('plan.lineReps', n)
+        case 'assist': return t('plan.aimAssist', n)
+        case 'assist_down': return t('plan.aimAssistDown', n)
+        case 'reset': return t('plan.aimReset', n)
+        case 'hold': return t(a.assistKg != null ? 'plan.aimHoldAssist' : a.weightKg != null ? 'plan.aimHold' : 'plan.aimHoldReps', n)
+        case 'lighter': {
+            const values = { ...n, usual: w(a.usualKg), sets: String(a.sets), count: a.sets === 1 ? 'one' : 'other', usualSets: String(a.usualSets), usualCount: a.usualSets === 1 ? 'one' : 'other' }
+            return t(a.assistKg != null ? 'plan.deloadAssist' : a.weightKg != null ? 'plan.deloadLoad' : 'plan.deloadReps', values)
+        }
+    }
 }
 
 /** A lighter week's numbers, a line for each main lift, from plan.ts deloadOf */

@@ -1,5 +1,6 @@
 import { addDays, daysBetween } from '../../../../lib/periods'
 import { hasTarget, setWeights, VOLUME_UNIT_IDS } from '../../../../lib/report/volume'
+import { isLowerBodyLift, NOT_LIFTS, STRENGTH_LOG_TYPES } from '../../../../lib/report/progression'
 import { isCardio } from '../../../../lib/set-log'
 import type { LogType } from '../../../../lib/exercise-attributes'
 import { intensityOf, maxHeartRate, moderateEquivalent } from '../../../../lib/report/cardio-intensity'
@@ -17,9 +18,6 @@ export const FLAT_BAND = 0.015
 /** Hard sets per muscle per week where growth is well supported. Which muscles it applies to,
  *  and how a set counts toward them, is in lib/report/volume.ts. */
 export const VOLUME_RANGE = { low: 10, high: 20 } as const
-const NOT_LIFTS = new Set(['cardio', 'core'])
-/** Log types a main lift can have: a timed hold or a cardio machine has no best set to compare */
-const STRENGTH_LOG_TYPES = new Set<LogType>(['weight_reps', 'bodyweight', 'assisted'])
 const MAIN_LIFTS = 5
 
 /** Estimated one-rep max (Epley). */
@@ -28,15 +26,6 @@ const round1 = (n: number) => Math.round(n * 10) / 10
 
 /** Cardio: a cardio log type, or a custom exercise in the cardio category. Its sets aren't working sets. */
 export const isCardioExercise = (e: ExerciseInfo | undefined) => !!e && (isCardio(e.logType) || e.muscleGroup === 'cardio')
-
-/** The units a lower-body lift mainly trains: the ones cardio before it interferes with */
-const LOWER_BODY_UNITS = new Set(['quads', 'hamstrings', 'glutes'])
-/** A strength lift that mainly trains the legs; a custom exercise, by its legs or glutes category. */
-export function isLowerBodyLift(e: ExerciseInfo): boolean {
-    if (!STRENGTH_LOG_TYPES.has(e.logType) || NOT_LIFTS.has(e.muscleGroup)) return false
-    if (!e.primaryMuscles.length) return e.muscleGroup === 'legs' || e.muscleGroup === 'glutes'
-    return setWeights(e.primaryMuscles, [], e.muscleGroup).some(([unit]) => LOWER_BODY_UNITS.has(unit))
-}
 
 /**
  * The sets that count for a lift, and how they compare. An assisted lift counts only sets that

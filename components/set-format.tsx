@@ -3,6 +3,7 @@ import type { useTranslations } from 'next-intl'
 import type { LogType } from '@/lib/exercise-attributes'
 import { fieldValue, fitsLogType, LOG_FIELDS, summarize, type FieldKey, type SetValues, type SummaryPart, type Units } from '@/lib/set-log'
 import type { Target } from '@/lib/today-workout'
+import { toDisplayWeight } from '@/lib/weight-unit'
 
 // How sets read in the user's language (messages: sets): the logging table's headers and
 // cells, the summary under an exercise's name, and the compact sets in the history list.
@@ -70,10 +71,23 @@ const COUNTS_REPS = new Set<LogType>(['weight_reps', 'bodyweight', 'assisted'])
  * routine's target (nothing for an exercise added just for today); after, the sets
  * logged, out of the target when there is one.
  */
-export function SummaryLine({ t, logType, sets, units, target = null }: { t: SetsT; logType: LogType; sets: SetValues[]; units: Units; target?: Target | null }) {
+export function SummaryLine({ t, logType, sets, units, target = null, aim = null }: {
+    t: SetsT
+    logType: LogType
+    sets: SetValues[]
+    units: Units
+    target?: Target | null
+    /** Today's weight and reps to aim for (lib/report/progression.ts), before a set is logged; sets when a lighter week has fewer */
+    aim?: { weightKg: number; reps: string; sets: number | null } | null
+}) {
     const parts = summarize(logType, sets, units)
     const b = (chunks: ReactNode) => <b className="font-mono font-bold text-ink">{chunks}</b>
     if (!parts.length) {
+        if (aim) {
+            const values = { weight: toDisplayWeight(aim.weightKg, units.weight), unit: units.weight, reps: aim.reps, b }
+            const sets = aim.sets ?? target?.sets
+            return <>{sets ? t.rich('summary.aimSets', { ...values, sets }) : t.rich('summary.aim', values)}</>
+        }
         if (!target) return null
         return target.reps && COUNTS_REPS.has(logType)
             ? <>{t.rich('summary.targetReps', { sets: target.sets, reps: target.reps, b })}</>

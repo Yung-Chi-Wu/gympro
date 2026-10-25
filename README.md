@@ -38,7 +38,7 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
 
 | | |
 |---|---|
-| **Log** | One set table for strength and cardio, with 8 log types: weight × reps, bodyweight plus added weight, assisted, timed, treadmill, machine level, rower, time only. A cardio set can also take its average heart rate, which may be left empty. Units are per exercise (kg or lb, km or mi). There is also a daily note and body weight. |
+| **Log** | One set table for strength and cardio, with 8 log types: weight × reps, bodyweight plus added weight, assisted, timed, treadmill, machine level, rower, time only. A cardio set can also take its average heart rate, which may be left empty. Units are per exercise (kg or lb, km or mi). Each lift shows what to aim for today by the weekly report's own rule: the weight and reps, moved on after every session. There is also a daily note and body weight. |
 | **Plan** | Routines, and a training cycle of 1 to 28 days that puts one on each day. A month calendar shows what the cycle plans for each day, ahead and past, and what was done. Each round of the cycle is one report's period, linked from its days. |
 | **Ronnie** | A chat coach. *"My elbow hurts, what instead of pushdowns?"*, *"What's left today?"*, *"Plan me a 4-day week."*, *"Will creatine make my hair fall out?"* It remembers injuries, likes and dislikes, equipment and schedule across conversations, and answers fitness questions from research notes, with the papers listed under the reply. |
 | **Coach G** | The user answers a few questions and gets a week of routines built from a 169-exercise library, rated for muscles and joint load. |

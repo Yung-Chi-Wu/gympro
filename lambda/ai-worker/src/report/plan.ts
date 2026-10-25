@@ -1,6 +1,6 @@
-import { toDisplayWeight, toStorageKg } from '../../../../lib/weight-unit'
-import { e1rm, isLowerBodyLift, liftFor, windowOfFor } from './facts'
-import type { ExerciseInfo, Finding, GoalProgress, GoalTarget, LiftFacts, LoggedSet, ReportFacts, ReportInputs, RuleId, WeekSignal } from './types'
+import { display, kgOf, prescribe, roundToStep, stepOf, type Prescription } from '../../../../lib/report/progression'
+import { e1rm, liftFor, windowOfFor } from './facts'
+import type { ExerciseInfo, Finding, GoalProgress, GoalTarget, LiftFacts, ReportFacts, ReportInputs, RuleId, WeekSignal } from './types'
 
 // What to do next session, worked out by code and written by code (lib/report/report-text.ts
 // planItems): the model never writes these numbers. The owner's report said only "add sets",
@@ -21,17 +21,6 @@ import type { ExerciseInfo, Finding, GoalProgress, GoalTarget, LiftFacts, Logged
 // deload's advice, and nothing says to add weight. A plan the user isn't keeping up with (under
 // 3 in 4 sessions done two periods running) offers no extra day.
 
-/** The smallest jump on each kind of equipment, in the unit the user logs in */
-const STEP = {
-    kg: { upper: 2.5, lower: 5, dumbbell: 2 },
-    lb: { upper: 5, lower: 10, dumbbell: 5 },
-} as const
-/** A step bigger than this share of the weight is too big a jump (ACSM 2009: 2-10%), so the range goes higher first */
-const MAX_STEP_SHARE = 0.1
-const REP_SPAN = 2
-const WIDE_REP_SPAN = 4
-/** Past this many reps a set is endurance work: add the weight now */
-const MAX_TOP = 15
 /** Heavier sets for a strength goal: above about 80% of 1RM (Currier 2023), here 85% for 4-6 reps */
 const HEAVY_SHARE = 0.85
 /** A second, lighter day of a lift trained once: 3 sets of 5 at 75% of its estimated 1RM */
@@ -55,22 +44,6 @@ const PRIORITY: Partial<Record<RuleId, number>> = { pain_hold: 90, goal_path: 65
 const PULL_UP = /pull-?up|chin-?up/i
 const PULLDOWN = /pulldown|pull-down/i
 
-/** How a lift's next session goes, in the user's unit */
-export interface Prescription {
-    /** load: add reps, then weight; load_now: the reps are high, add the weight now; reps: a bodyweight lift; assist: less assist */
-    how: 'load' | 'load_now' | 'reps' | 'assist'
-    /** The heaviest working weight this period (kg), or the added weight on the body */
-    weightKg: number
-    /** The fewest reps at that weight, and the top of the range */
-    low: number
-    top: number
-    /** The weight after the step (kg); for an assisted lift, the assist stays and the step is the machine's */
-    nextKg: number | null
-    assistKg: number | null
-    /** Sets at that weight in the last session that had them */
-    sets: number
-}
-
 interface Context {
     inputs: ReportInputs
     facts: ReportFacts
@@ -83,50 +56,6 @@ interface Context {
     pains: WeekSignal[]
     /** Under 3 in 4 planned sessions done two periods running (rules.ts): no option that adds a day */
     shrink: boolean
-}
-
-/** The weight step for an exercise, in the user's unit */
-function stepOf(e: ExerciseInfo, unit: 'kg' | 'lb'): number {
-    if (e.equipment === 'dumbbell') return STEP[unit].dumbbell
-    return isLowerBodyLift(e) ? STEP[unit].lower : STEP[unit].upper
-}
-/** A weight (kg) as the user reads it, then moved to a multiple of the step */
-const display = (kg: number, unit: 'kg' | 'lb') => toDisplayWeight(kg, unit)
-const roundToStep = (value: number, step: number) => Math.max(step, Math.round(value / step) * step)
-const kgOf = (value: number, unit: 'kg' | 'lb') => toStorageKg(Math.round(value * 10) / 10, unit)
-
-/** The next session for one exercise from this period's sets; null when it had none */
-export function prescribe(e: ExerciseInfo, sets: LoggedSet[], unit: 'kg' | 'lb', windowOf: (date: string) => number): Prescription | null {
-    const now = sets.filter((s) => s.exerciseId === e.id && windowOf(s.date) === 0)
-    const assisted = e.logType === 'assisted'
-    const counted = assisted ? now.filter((s) => s.assistKg != null) : now
-    if (!counted.length) return null
-    const lastSession = (at: LoggedSet[]) => {
-        const byWorkout = new Map<string, number>()
-        for (const s of at) byWorkout.set(s.workoutId, (byWorkout.get(s.workoutId) ?? 0) + 1)
-        const latest = [...at].sort((a, b) => b.date.localeCompare(a.date) || b.loggedAt.localeCompare(a.loggedAt))[0]
-        return byWorkout.get(latest.workoutId) ?? at.length
-    }
-    if (assisted) {
-        // Less assist is stronger: the sets at the least assist
-        const assist = Math.min(...counted.map((s) => s.assistKg!))
-        const at = counted.filter((s) => s.assistKg === assist)
-        const low = Math.min(...at.map((s) => s.reps))
-        return { how: 'assist', weightKg: 0, low, top: low + REP_SPAN, nextKg: null, assistKg: assist, sets: lastSession(at) }
-    }
-    const weighted = counted.filter((s) => s.weightKg > 0)
-    if (!weighted.length) {
-        const low = Math.min(...counted.map((s) => s.reps))
-        return { how: 'reps', weightKg: 0, low, top: low + REP_SPAN, nextKg: null, assistKg: null, sets: lastSession(counted) }
-    }
-    const weightKg = Math.max(...weighted.map((s) => s.weightKg))
-    const at = weighted.filter((s) => s.weightKg === weightKg)
-    const low = Math.min(...at.map((s) => s.reps))
-    const step = stepOf(e, unit)
-    const shown = display(weightKg, unit)
-    const top = Math.min(MAX_TOP, low + (step / shown > MAX_STEP_SHARE ? WIDE_REP_SPAN : REP_SPAN))
-    const nextKg = kgOf(shown + step, unit)
-    return { how: low >= MAX_TOP ? 'load_now' : 'load', weightKg, low, top, nextKg, assistKg: null, sets: lastSession(at) }
 }
 
 const rxData = (rx: Prescription) => ({

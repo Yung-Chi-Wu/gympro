@@ -103,6 +103,11 @@
         "switchUnit": "切換單位",
         "dayOf": "第 {day} 天 / 共 {total} 天",
         "removeExercise": "移除這個動作",
+        "aim": {
+            "report": "週報",
+            "lighter": "減量週",
+            "separator": "："
+        },
         "newDay": "已經是新的一天，已重新載入今天的課表。",
         "removeWithSets": "這個動作今天已經記了 {count} 組，移除會一起刪掉這些組。要移除嗎？",
         "setDeleted": "已刪除第 {n} 組",
@@ -133,6 +138,8 @@
         "summary": {
             "target": "目標 <b>{sets}</b> 組",
             "targetReps": "目標 <b>{sets}</b> 組 × <b>{reps}</b> 下",
+            "aim": "目標 <b>{weight}</b> {unit} × <b>{reps}</b>",
+            "aimSets": "目標 <b>{sets}</b> 組・<b>{weight}</b> {unit} × <b>{reps}</b>",
             "setsOf": "<b>{count}</b>/{target} 組",
             "separator": "・",
             "sets": "<b>{count}</b> 組",
@@ -525,7 +532,15 @@
             "fewDays": "每週排 {n} 天肌力訓練，每次都練到全身主要肌群",
             "deloadLoad": "{weight} × {low} 下，{sets} 組（平常 {usual}、{usualSets} 組）",
             "deloadReps": "{low} 下，{sets} 組（平常 {usualSets} 組）",
-            "deloadAssist": "輔助 {assist} × {low} 下，{sets} 組（平常 {usualSets} 組）"
+            "deloadAssist": "輔助 {assist} × {low} 下，{sets} 組（平常 {usualSets} 組）",
+            "aimLoad": "每組做到 {top} 下",
+            "aimStepUp": "上次每組都做到 {top} 下，今天換 {weight}",
+            "aimAssist": "輔助 {assist}，每組做到 {top} 下",
+            "aimAssistDown": "上次每組都做到 {top} 下，今天減一格輔助（上次輔助 {assist}）",
+            "aimHold": "這{unit, select, week {週} other {輪}}先不加重，{weight} × {low} 下就好",
+            "aimHoldReps": "這{unit, select, week {週} other {輪}}先不加次數，{low} 下就好",
+            "aimHoldAssist": "這{unit, select, week {週} other {輪}}先不減輔助，輔助 {assist} × {low} 下就好",
+            "aimReset": "先降到 {weight}，做 {low}–{top} 下"
         },
         "advised": {
             "lift_stalled": "{lift}先加次數再加重",
