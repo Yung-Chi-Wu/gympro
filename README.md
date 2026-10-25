@@ -68,10 +68,10 @@ flowchart LR
     worker --> db
     worker -->|"report text"| claude
     schedfn -->|"AI health metrics"| cw["CloudWatch alarms → SNS email"]
-    daily["EventBridge Scheduler, daily"] --> reviewfn["Review Lambda"]
+    daily["EventBridge Scheduler, daily + Monday"] --> reviewfn["Review Lambda"]
     reviewfn -->|"each ended day of Ronnie chats"| db
     reviewfn -->|"review"| claude
-    reviewfn -->|"one digest"| mail["SNS email"]
+    reviewfn -->|"weekly digest"| mail["SNS email"]
 ```
 
 - **App:** Next.js 16 (App Router, server actions and route handlers) on Vercel. The UI strings are in English and Traditional Chinese, using next-intl.
@@ -197,7 +197,7 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
 - Ronnie's tools, turn loop and grader, offline.
 - **Replays of recorded conversations** ([`evals/ronnie/replays`](evals/ronnie/replays)). The recorded model output is fed through the current code, so a fixed mistake can't come back.
 - The report's rules, goal and message reading, next-session advice, grader and queue behavior, offline.
-- The daily review's grouping by local day, its flags and its email, offline.
+- The daily review's grouping by local day and its flags, and the weekly email, offline.
 - Research citations resolve, by DOI.
 - Day boundaries are right in every time zone.
 - The app and the database enforce the same input limits.
@@ -230,20 +230,21 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
   - does the wrong thing, or misses the request;
   - gives unsafe advice.
 
-  One email lists the flagged replies, with what the user did around each. It never quotes the conversation. A day is marked read only after its review is saved. Each run is capped at 20 days and US$0.50.
+  A day is marked read only after its review is saved. Each run is capped at 20 days and US$0.50.
 
   Before shipping, the reviewer read 32 eval conversations whose outcome was already graded ([record](.claude/hillclimb/ronnie-audit/v1/change.md)):
   - it flagged 14 of the 16 with a real problem, and 1 of the 16 without one;
   - on 20 held-out conversations it flagged none;
   - it found two mistakes in the eval judge's own grades.
 - **Feedback.** Users send feedback from Settings: a problem, an idea, or an exercise they want added, in their own words. It is kept in `app_feedback` with the app version, language and browser, never their training log, and a user can send 10 a day.
+- **Weekly email.** Each Monday the owner gets one email with the week's feedback and the Ronnie replies that were flagged, by the review or by the user, with the reasons a user gave for reporting one. It is sent only when there is something in it. It never quotes a conversation, and every line a user wrote starts with "> ", so none of it can pass for the email's own text.
 - **Errors.** Server and browser errors go to an `app_errors` table.
 - **Alarms.** 13 CloudWatch alarms send email when:
   - AI calls fail, or half of an hour's calls fail (a dead key);
   - a day's AI spend runs high;
   - the scheduler goes silent;
   - a report is stuck, or reaches the dead-letter queue;
-  - a Lambda nears its timeout, or the daily review fails;
+  - a Lambda nears its timeout, or the daily review or weekly email fails;
   - the app logs an error.
 - **Data integrity.** Today's workout and its plan are created in one transaction, under a per-user lock. Limits on sets, targets and amounts are enforced in both the app and the database.
 

@@ -1,7 +1,7 @@
 // What users tell the owner: feedback sent from Settings (app_feedback, migration 20261025120000),
 // and why they reported one of Ronnie's replies (the reported flag's detail on its trace). The
-// forms and the routes read them with the same rules, and the labels are here so the daily
-// review's email can say them too.
+// forms and the routes read them with the same rules, and the labels are here so the owner's
+// weekly email (lambda/ai-worker/src/audit/digest.ts) can say them too.
 
 /** What a user can send from Settings, in the order the form shows them: exercise is one they want added */
 export const FEEDBACK_KINDS = ['bug', 'idea', 'exercise'] as const
