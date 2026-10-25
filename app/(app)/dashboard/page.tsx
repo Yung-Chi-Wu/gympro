@@ -12,7 +12,7 @@ import { OnboardingGuard } from '@/components/OnboardingGuard'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
-import { currentPeriod, daysBetween, localDate } from '@/lib/periods'
+import { currentPeriod, cycleDayOf, localDate } from '@/lib/periods'
 import { localDayToUtcRange, timeZoneOf } from '@/lib/time-zone'
 import { loadTodayWorkout } from '@/lib/today-workout'
 import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
@@ -130,9 +130,7 @@ async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
   const todayIso = localDate(timezone, new Date())
   const todayRange = localDayToUtcRange(todayIso, timezone)
 
-  const dayIndex = cycle
-    ? (((daysBetween(cycle.start_date, todayIso) % cycle.cycle_length) + cycle.cycle_length) % cycle.cycle_length) + 1
-    : 0
+  const dayIndex = cycle ? cycleDayOf({ cycleLength: cycle.cycle_length, startDate: cycle.start_date }, todayIso) : 0
   const cycleDay = cycle?.cycle_days.find((d) => d.day_index === dayIndex)
   const routineIdForToday = cycleDay?.routine_id ?? null
 

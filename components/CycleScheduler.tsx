@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { toFriendlyError } from '@/lib/friendly-error'
 import { reportClientError } from '@/lib/report-client-error'
-import { addDays, daysBetween, MAX_CYCLE_DAYS } from '@/lib/periods'
+import { addDays, cycleDayOf, MAX_CYCLE_DAYS } from '@/lib/periods'
 import { MoreMenu } from './MoreMenu'
 
 // The training cycle: how many days one round lasts and which routine each day trains.
@@ -32,13 +32,21 @@ export interface CycleDayState {
 interface CycleSchedulerProps {
     userId: string
     routines: RoutineOption[]
-    initialCycle: { id: string; cycleLength: number; startDate: string } | null
+    /** The cycle, kept by the routines page with its days, so its calendar follows what is changed here */
+    cycle: CycleRow | null
+    setCycle: (cycle: CycleRow | null) => void
     /** The cycle's days; the routines page keeps them, so its list can say which days each routine is on */
     days: CycleDayState[]
     setDays: Dispatch<SetStateAction<CycleDayState[]>>
     /** Today in the user's time zone, YYYY-MM-DD */
     today: string
     language: string
+}
+
+export interface CycleRow {
+    id: string
+    cycleLength: number
+    startDate: string
 }
 
 type PendingLengthChange = {
@@ -53,7 +61,8 @@ const PRIMARY = 'min-h-11 rounded-[9px] bg-accent px-5 text-[15px] font-bold tex
 export function CycleScheduler({
     userId,
     routines,
-    initialCycle,
+    cycle,
+    setCycle,
     days,
     setDays,
     today,
@@ -63,10 +72,10 @@ export function CycleScheduler({
     const zh = language === 'zh-TW'
     const t = useTranslations('routines')
 
-    const [cycleId, setCycleId] = useState<string | null>(initialCycle?.id ?? null)
-    const [cycleLength, setCycleLength] = useState<number>(initialCycle?.cycleLength ?? 7)
-    const [startDate, setStartDate] = useState<string | null>(initialCycle?.startDate ?? null)
-    const [lengthInput, setLengthInput] = useState(String(initialCycle?.cycleLength ?? 7))
+    const cycleId = cycle?.id ?? null
+    const cycleLength = cycle?.cycleLength ?? 7
+    const startDate = cycle?.startDate ?? null
+    const [lengthInput, setLengthInput] = useState(String(cycle?.cycleLength ?? 7))
     const [todayDayInput, setTodayDayInput] = useState('1')
     const [pending, setPending] = useState<PendingLengthChange | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -74,9 +83,7 @@ export function CycleScheduler({
     const [editing, setEditing] = useState(false)
 
     // Which day of the cycle today is, counted the way the dashboard counts it
-    const todayIndex = cycleId && startDate
-        ? (((daysBetween(startDate, today) % cycleLength) + cycleLength) % cycleLength) + 1
-        : null
+    const todayIndex = cycleId && startDate ? cycleDayOf({ cycleLength, startDate }, today) : null
     const routineName = (id: string | null) => routines.find((r) => r.id === id)?.name ?? null
 
     async function handleCreateCycle(e: React.FormEvent) {
@@ -99,26 +106,24 @@ export function CycleScheduler({
         setIsSaving(true)
         try {
             const startDateIso = addDays(today, -(todayDay - 1))
-            const { data: cycle, error: cycleError } = await supabase
+            const { data: created, error: cycleError } = await supabase
                 .from('training_cycles')
                 .insert({ user_id: userId, cycle_length: length, start_date: startDateIso })
                 .select('id')
                 .single()
 
             // The user sees the friendly message; the report gets what failed, its cause
-            if (cycleError || !cycle) throw new Error(toFriendlyError(cycleError, language), { cause: cycleError })
+            if (cycleError || !created) throw new Error(toFriendlyError(cycleError, language), { cause: cycleError })
 
             const newDays = Array.from({ length }, (_, i) => ({
-                training_cycle_id: cycle.id,
+                training_cycle_id: created.id,
                 day_index: i + 1,
                 routine_id: null,
             }))
             const { error: daysError } = await supabase.from('cycle_days').insert(newDays)
             if (daysError) throw new Error(toFriendlyError(daysError, language), { cause: daysError })
 
-            setCycleId(cycle.id)
-            setCycleLength(length)
-            setStartDate(startDateIso)
+            setCycle({ id: created.id, cycleLength: length, startDate: startDateIso })
             setDays(newDays.map((d) => ({ dayIndex: d.day_index, routineId: null })))
             // A new cycle's days are all rest days: go straight to picking routines
             setEditing(true)
@@ -147,8 +152,7 @@ export function CycleScheduler({
             if (deleteError) throw new Error(toFriendlyError(deleteError, language), { cause: deleteError })
 
             await clearEmptyTodayWorkout(userId)
-            setCycleId(null)
-            setStartDate(null)
+            setCycle(null)
             setDays([])
             setLengthInput('7')
             setTodayDayInput('1')
@@ -244,8 +248,7 @@ export function CycleScheduler({
                 setDays((prev) => prev.filter((d) => d.dayIndex <= pending.newLength))
             }
 
-            setCycleLength(pending.newLength)
-            if (resetStartDate) setStartDate(today)
+            setCycle({ id: cycleId, cycleLength: pending.newLength, startDate: resetStartDate ? today : startDate ?? today })
             setPending(null)
         } catch (err) {
             reportClientError('client/cycle/change-length', err)

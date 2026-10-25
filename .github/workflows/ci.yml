@@ -73,6 +73,8 @@ jobs:
         run: npm run check:set-entry
       - name: Feedback and reports take only what the forms send
         run: npm run check:feedback
+      - name: The calendar shows each day's plan the way Today and the report count it
+        run: npm run check:cycle-calendar
       - name: Ronnie's tools, turn loop, recorded conversations and grader (offline)
         run: |
           npm run eval:ronnie:build

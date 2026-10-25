@@ -3,6 +3,7 @@ import type { Database } from '../types/database.types'
 import type { LogType } from '../exercise-attributes'
 import { logTypeOf, setValuesOf, type SetValues } from '../set-log'
 import { SET_COLUMNS } from '../today-workout'
+import { cycleDayOf } from '../periods'
 import { isMemoryKind, type MemoryNote } from './memory'
 import { localDateStr, localDateToUtcRange } from './time'
 
@@ -146,11 +147,7 @@ export function createSupabaseRonnieData(
 
     async function getTodayRoutineId(): Promise<string | null> {
         if (!cycle) return null
-        const todayStr = localDateStr(now(), timeZone)
-        const startDate = new Date(cycle.start_date + 'T12:00:00Z')
-        const todayDate = new Date(todayStr + 'T12:00:00Z')
-        const daysSince = Math.floor((todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-        const dayIndex = ((daysSince % cycle.cycle_length) + cycle.cycle_length) % cycle.cycle_length + 1
+        const dayIndex = cycleDayOf({ cycleLength: cycle.cycle_length, startDate: cycle.start_date }, localDateStr(now(), timeZone))
         const { data: cycleDay } = await supabase
             .from('cycle_days')
             .select('routine_id')

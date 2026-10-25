@@ -24,6 +24,10 @@ import { markNavigation, usePendingHref } from '@/lib/nav-target'
 import { reportClientError, responseError } from '@/lib/report-client-error'
 import { compactSet, SummaryLine } from './set-format'
 import { Icon } from './Icon'
+import { ReportTrendChip } from './ReportTrendChip'
+import { formatDay, formatMonth, formatRange, weekdayLetters } from '@/lib/date-labels'
+import { monthWeeks } from '@/lib/cycle-calendar'
+import { useHistoryRecords } from './use-history-records'
 import { isReportV3, ReportView } from './report/ReportView'
 import { FailedReport } from './report/FailedReport'
 import { shownStatus } from '@/lib/report/queue'
@@ -38,35 +42,6 @@ export type HistoryTab = 'training' | 'weight' | 'reports'
 // Phone sizes first (44px targets, 15px text), the denser desktop ones from md
 const CARD = 'rounded-[14px] border border-line bg-card p-4'
 const BUTTON = 'inline-flex min-h-11 items-center justify-center gap-1 whitespace-nowrap rounded-[9px] border border-line bg-card px-4 text-[15px] font-bold transition-colors hover:bg-done disabled:opacity-50 md:min-h-9 md:px-3 md:text-[13px]'
-
-// ---------- Dates ----------
-
-const locale = (language: string) => (language === 'zh-TW' ? 'zh-TW' : 'en-US')
-// A YYYY-MM-DD date at noon UTC, formatted in UTC: the same on the server and in any browser
-const noonUtc = (date: string) => new Date(`${date}T12:00:00Z`)
-
-/** 10/8 週四, or Thu, Oct 8 */
-function formatDay(date: string, language: string): string {
-    const d = noonUtc(date)
-    if (language !== 'zh-TW') {
-        return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
-    }
-    const weekday = d.toLocaleDateString('zh-TW', { weekday: 'short', timeZone: 'UTC' })
-    return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${weekday}`
-}
-
-/** 10/5–10/11 */
-const formatRange = ({ start, end }: HistoryRange) =>
-    `${Number(start.slice(5, 7))}/${Number(start.slice(8))}–${Number(end.slice(5, 7))}/${Number(end.slice(8))}`
-
-/** 2026 年 10 月, or October 2026 */
-function formatMonth(month: string, language: string): string {
-    const [y, m] = month.split('-').map(Number)
-    if (language === 'zh-TW') return `${y} 年 ${m} 月`
-    return noonUtc(`${month}-01`).toLocaleDateString('en-US', { year: 'numeric', month: 'long', timeZone: 'UTC' })
-}
-
-// ---------- Tabs ----------
 
 const TABS: { tab: HistoryTab; href: string }[] = [
     { tab: 'training', href: '/history' },
@@ -134,54 +109,13 @@ export function HistoryTraining({
 }: HistoryTrainingProps) {
     const t = useTranslations('history')
     const searchParams = useSearchParams()
-    const [days, setDays] = useState<Record<string, HistoryDay>>(() => Object.fromEntries(initialDays.map((d) => [d.date, d])))
-    const [reports, setReports] = useState<Record<string, PeriodReportStatus>>(() =>
-        Object.fromEntries(initialReports.map((r) => [r.periodStart, r])))
-    const [loaded, setLoaded] = useState<HistoryRange[]>([initialRange])
-    const [loading, setLoading] = useState(false)
-    const [loadError, setLoadError] = useState(false)
+    const { days, reportFor, loading, loadError, isLoaded, ensureLoaded } = useHistoryRecords({ initialRange, initialDays, initialReports })
     // Side by side: the calendar's month
     const [month, setMonth] = useState(initialMonth)
     // The phone's list: `count` periods back from the one containing `from`; `month` after a jump
     const [list, setList] = useState<{ from: string; count: number; month: string | null }>(
         { from: today, count: PERIODS_PER_PAGE, month: null })
 
-    const isLoaded = (range: HistoryRange) =>
-        datesIn(range).every((d) => loaded.some((l) => l.start <= d && d <= l.end))
-
-    /** Loads a range unless it is already here. False when it couldn't be loaded. */
-    async function ensureLoaded(range: HistoryRange): Promise<boolean> {
-        if (isLoaded(range)) return true
-        setLoading(true)
-        setLoadError(false)
-        try {
-            const res = await fetch(`/api/history/workouts?start=${range.start}&end=${range.end}`)
-            const data = await res.json().catch(() => null)
-            if (!res.ok || !Array.isArray(data?.days)) throw responseError(`History request failed: ${res.status}`, res.status, data)
-            setDays((prev) => {
-                const next = { ...prev }
-                for (const d of datesIn(range)) delete next[d]
-                for (const day of data.days as HistoryDay[]) next[day.date] = day
-                return next
-            })
-            setReports((prev) => ({
-                ...prev,
-                ...Object.fromEntries((data.reports as PeriodReportStatus[]).map((r) => [r.periodStart, r])),
-            }))
-            setLoaded((prev) => [...prev, range])
-            return true
-        } catch (err) {
-            console.error(err)
-            reportClientError('client/history/load-days', err)
-            setLoadError(true)
-            return false
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const reportFor = (period: HistoryRange) =>
-        Object.values(reports).find((r) => period.start <= r.periodStart && r.periodStart <= period.end) ?? null
     /** The period's training days, newest first */
     const trainedIn = (period: HistoryRange) => datesIn(period).filter((d) => isTrained(days[d])).reverse()
 
@@ -274,7 +208,7 @@ export function HistoryTraining({
                                         className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 py-2.5 text-left disabled:cursor-default"
                                     >
                                         <span className="font-mono text-sm font-bold">{formatRange(period)}</span>
-                                        <span className="row-span-2"><TrendChip report={reportFor(period)} /></span>
+                                        <span className="row-span-2"><ReportTrendChip report={reportFor(period)} /></span>
                                         <span className="text-xs text-muted">
                                             {sessions(period)}
                                             {period.current && `${t('separator')}${t('inProgress')}`}
@@ -340,7 +274,7 @@ export function HistoryTraining({
                                 <span className="font-mono">{formatRange(period)}</span>
                                 <span aria-hidden="true">·</span>
                                 <span>{sessions(period)}</span>
-                                <TrendChip report={reportFor(period)} />
+                                <ReportTrendChip report={reportFor(period)} />
                             </h2>
                             <div className="rounded-[14px] border border-line bg-card px-4 md:px-3">
                                 {trained.length === 0 ? (
@@ -394,22 +328,6 @@ function LoadError({ onRetry }: { onRetry: () => void }) {
 }
 
 /** The verdict of a period's report, as a small label */
-function TrendChip({ report }: { report: PeriodReportStatus | null }) {
-    const t = useTranslations('history')
-    const tV3 = useTranslations('reportV3')
-    if (!report) return null
-    if (report.status === 'pending') return <span className="whitespace-nowrap rounded-full bg-done px-2 text-[13px] text-muted md:text-xs">{t('reportPending')}</span>
-    if (!report.trend) return null
-    const tone = report.trend === 'progressing'
-        ? 'bg-good-soft text-good'
-        : report.trend === 'regressing' ? 'bg-accent-soft text-miss' : 'bg-done text-muted'
-    return (
-        <span className={`whitespace-nowrap rounded-full px-2 text-[13px] font-medium md:text-xs ${tone}`}>
-            {t('reportTrend', { trend: tV3(`status.${report.trend}`) })}
-        </span>
-    )
-}
-
 /** One day in the phone's list: the date and routine, its sets, and its first exercise's best set */
 function DayRow({ day, language, units, onOpen }: { day: HistoryDay; language: string; units: Units; onOpen: () => void }) {
     const t = useTranslations('history')
@@ -445,12 +363,8 @@ interface MonthCalendarProps {
 function MonthCalendar({ month, today, selected, days, language, dimmed, onSelect }: MonthCalendarProps) {
     const { start, end } = monthRange(month)
     // From the Monday before the 1st to the Sunday after the last day
-    const lead = (noonUtc(start).getUTCDay() + 6) % 7
-    const trail = 6 - ((noonUtc(end).getUTCDay() + 6) % 7)
-    const cells = datesIn({ start: addDays(start, -lead), end: addDays(end, trail) })
-    // 2024-01-01 was a Monday
-    const weekdays = datesIn({ start: '2024-01-01', end: '2024-01-07' }).map((d) =>
-        noonUtc(d).toLocaleDateString(locale(language), { weekday: 'narrow', timeZone: 'UTC' }))
+    const cells = monthWeeks(month).flat()
+    const weekdays = weekdayLetters(language)
 
     return (
         <div className={`grid grid-cols-7 gap-1 text-center transition-opacity ${dimmed ? 'opacity-50' : ''}`}>
@@ -739,7 +653,7 @@ function ReportItem({ report, startOpen = false, periodEnd, language, weightUnit
             >
                 <span className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-[15px] font-bold md:text-sm">{formatRange({ start: report.period_start, end: periodEnd })}</span>
-                    <TrendChip report={{ periodStart: report.period_start, status, trend: v3?.facts.status ?? null }} />
+                    <ReportTrendChip report={{ periodStart: report.period_start, status, trend: v3?.facts.status ?? null }} />
                 </span>
                 <Icon name="forward" className={`size-4 text-faint transition-transform ${isOpen ? 'rotate-90' : ''}`} />
             </button>

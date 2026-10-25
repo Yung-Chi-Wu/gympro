@@ -9,6 +9,10 @@ import { timeZoneOf } from '@/lib/time-zone'
 import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
 import { ServerTimingMark } from '@/components/ServerTimingMark'
 import { ReadYourWrites } from '@/components/ReadYourWrites'
+import { calendarRange } from '@/lib/cycle-calendar'
+import { loadFirstTrainedDate, loadHistoryDays, loadReportStatuses } from '@/lib/history-data'
+import type { WeightUnit } from '@/lib/weight-unit'
+import type { DistanceUnit } from '@/lib/distance-unit'
 
 export interface RoutineExerciseRow {
     id: string
@@ -46,7 +50,9 @@ interface RawRoutineRow {
     routine_exercises: RawRoutineExerciseRow[]
 }
 
-// One round: the profile, the exercise list, the routines and the cycle with its days
+// One round: the profile, the exercise list, the routines and the cycle with its days. With a
+// cycle, a second for its calendar's month: what was trained, the rounds' reports, and the first
+// day ever trained.
 export default async function RoutinesPage() {
     const user = await getSessionUser()
     if (!user) redirect('/login')
@@ -79,6 +85,8 @@ export default async function RoutinesPage() {
     ])
     const language = await getEffectiveLanguage(profile)
     const cycle = cycleResult.data
+    const timeZone = timeZoneOf(profile?.timezone)
+    const today = localDate(timeZone, new Date())
 
     const routineList: RoutineWithExercises[] = ((routinesResult.data as RawRoutineRow[]) ?? []).map((r) => ({
         id: r.id,
@@ -98,6 +106,19 @@ export default async function RoutinesPage() {
 
     const cycleDays: CycleDayInfo[] = (cycle?.cycle_days ?? []).map((d) => ({ dayIndex: d.day_index, routineId: d.routine_id }))
 
+    let calendar = null
+    if (cycle) {
+        const range = calendarRange(today.slice(0, 7), { cycleLength: cycle.cycle_length, startDate: cycle.start_date })
+        const [days, reports, firstDate] = await Promise.all([
+            loadHistoryDays(supabase, { userId: user.id, range, timeZone, language }),
+            loadReportStatuses(supabase, user.id, range),
+            loadFirstTrainedDate(supabase, user.id, timeZone),
+        ])
+        calendar = { range, days, reports, firstDate }
+    }
+    const weightUnit: WeightUnit = profile?.weight_unit === 'lb' ? 'lb' : 'kg'
+    const distanceUnit: DistanceUnit = profile?.distance_unit === 'mi' ? 'mi' : 'km'
+
     return (
         <>
             <ServerTimingMark />
@@ -112,7 +133,9 @@ export default async function RoutinesPage() {
                 language={language}
                 initialCycle={cycle ? { id: cycle.id, cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null}
                 initialCycleDays={cycleDays}
-                today={localDate(timeZoneOf(profile?.timezone), new Date())}
+                calendar={calendar}
+                units={{ weight: weightUnit, distance: distanceUnit }}
+                today={today}
             />
         </>
     )
