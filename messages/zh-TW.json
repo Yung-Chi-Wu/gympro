@@ -282,6 +282,8 @@
             "targetSets": "{sets} 組",
             "startLogging": "開始記錄",
             "openDay": "看這天的完整紀錄",
+            "edit": "編輯",
+            "editDone": "完成",
             "editsRoutine": "改的是「{name}」課表，第 {days} 天都會跟著變。",
             "nextTime": "下一次：{when}，{name}",
             "tomorrow": "明天",

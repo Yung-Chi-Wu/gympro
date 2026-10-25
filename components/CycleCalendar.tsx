@@ -18,7 +18,7 @@ import { Icon } from './Icon'
 
 // 課表's calendar: the month with what the training cycle plans for each day (lib/cycle-calendar.ts)
 // and what was trained, and the picked day under it (beside it when there is room). A day still
-// ahead has its routine's exercises to change right there, with the routine editor's list. A day's round
+// ahead lists its routine's exercises, and 編輯 opens the routine editor's list right there. A day's round
 // is lightly filled across the month: a round is one report's period, and the report is linked
 // from the day. Past days come from the same reads as 紀錄, and a trained day links to its page
 // there. Months load as the user moves (use-history-records.ts).
@@ -220,6 +220,8 @@ export function CycleCalendar({
             </section>
 
             <DayPanel
+                // A new day opens as a list again, not still being edited
+                key={picked.date}
                 day={picked}
                 slot={colorOf(picked)}
                 trained={days[picked.date]}
@@ -283,6 +285,7 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
     const shownExercises = (routine?.exercises ?? []).filter((ex) => ex.exercise_name && ex.exercise_name !== 'Unknown exercise')
     // Ahead, or today before its first set: what is changed here is what Today will show
     const editable = !!routine && (day.status === 'planned' || day.status === 'today')
+    const [editing, setEditing] = useState(false)
     const routineDays = routine
         ? Object.entries(cycle.routineByDay).filter(([, id]) => id === routine.id).map(([d]) => Number(d)).sort((a, b) => a - b)
         : []
@@ -323,18 +326,29 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
                 <span><span className="font-mono tracking-wider">{formatDay(day.date, language)}</span>{day.date === today ? `${th('separator')}${t('calendar.today')}` : ''}</span>
                 {day.cycleDay && <span>{t('calendar.dayOf', { day: day.cycleDay, length: cycle.cycleLength })}</span>}
             </div>
-            <div className="space-y-0.5">
-                <h2 className="flex items-center gap-2 text-xl font-bold">
-                    {(day.status === 'done' || day.routineId) && (
-                        <span className={`size-2.5 shrink-0 rounded-full ${slot === null ? PLAIN_FILL : FILL[slot]}`} />
-                    )}
-                    {title}
-                </h2>
-                {status && <p className="text-[15px] text-muted md:text-sm">{status}</p>}
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 space-y-0.5">
+                    <h2 className="flex items-center gap-2 text-xl font-bold">
+                        {(day.status === 'done' || day.routineId) && (
+                            <span className={`size-2.5 shrink-0 rounded-full ${slot === null ? PLAIN_FILL : FILL[slot]}`} />
+                        )}
+                        {title}
+                    </h2>
+                    {status && <p className="text-[15px] text-muted md:text-sm">{status}</p>}
+                </div>
+                {editable && (
+                    <button
+                        type="button"
+                        onClick={() => setEditing((on) => !on)}
+                        className="-mr-2 min-h-11 shrink-0 px-2 text-[15px] font-semibold text-accent md:min-h-8 md:text-sm"
+                    >
+                        {editing ? t('calendar.editDone') : t('calendar.edit')}
+                    </button>
+                )}
             </div>
 
             {day.status === 'done' && trained ? (
-                <ul className="divide-y divide-line border-y border-line">
+                <ul className="divide-y divide-line border-t border-line">
                     {trained.exercises.map((ex) => (
                         <li key={ex.exerciseId} className="space-y-0.5 py-2.5 md:py-2">
                             <p className="font-bold">{ex.name}</p>
@@ -344,7 +358,7 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
                         </li>
                     ))}
                 </ul>
-            ) : editable ? (
+            ) : editable && editing ? (
                 <div className="space-y-2">
                     {routineDays.length > 1 && (
                         <p className="text-[13px] text-muted md:text-xs">
@@ -353,8 +367,10 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
                     )}
                     {routineEditor(routine)}
                 </div>
-            ) : routine && day.status !== 'rest' && shownExercises.length > 0 && (
-                <ul className="divide-y divide-line border-y border-line">
+            ) : routine && day.status !== 'rest' && shownExercises.length === 0 ? (
+                <p className="text-[15px] text-muted md:text-sm">{t('emptyRoutine')}</p>
+            ) : routine && day.status !== 'rest' && (
+                <ul className="divide-y divide-line border-t border-line">
                     {shownExercises.map((ex) => (
                         <li key={ex.id} className="flex items-baseline justify-between gap-3 py-2.5 md:py-2">
                             <span className="font-bold">{nameOf(ex.exercise_id, ex.exercise_name)}</span>
