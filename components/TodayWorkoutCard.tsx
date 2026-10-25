@@ -9,11 +9,13 @@ import { MuscleGroupExercisePicker } from './MuscleGroupExercisePicker'
 import { toFriendlyError } from '@/lib/friendly-error'
 import { reportClientError } from '@/lib/report-client-error'
 import { exerciseSections, getMuscleGroupLabel } from '@/lib/exercise-display'
-import type { WeightUnit } from '@/lib/weight-unit'
+import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
 import { fieldValue, fitsLogType, isOptionalField, isValidField, isWeightField, LOG_FIELDS, logNoteOf, logTypeOf, nextSetDraft, toSetRow, toStoredSet, typedValue, withField, type FieldKey, type SetValues, type Units } from '@/lib/set-log'
 import { MUSCLE_GROUPS, type ExerciseOption } from './log-types'
-import { dayIsOver, DayOverError, exerciseLogUnits, lastSessionSets, loadTodayWorkout, startTodayWorkout, type TodayExercise } from '@/lib/today-workout'
+import { dayIsOver, DayOverError, exerciseLogUnits, lastSessionSets, loadTodayWorkout, recentSets, startTodayWorkout, type TodayAims, type TodayExercise } from '@/lib/today-workout'
+import { todayAim, type Aim } from '@/lib/report/progression'
+import { aimText } from '@/lib/report/report-text'
 import { cellText, compactSet, fieldLabel, SummaryLine } from './set-format'
 import { DayLogFields } from './DayLogFields'
 
@@ -38,10 +40,14 @@ interface TodayWorkoutCardProps {
     initialWeightKg: number | null
     /** The last weigh-in before today, the weight box's hint */
     lastWeightKg: number | null
+    /** What each exercise's aim for today is worked out with; null: none shown */
+    aims: TodayAims | null
 }
 
 // Today's log: every exercise, strength or cardio, is a table of sets whose columns come from
-// its log type (lib/set-log.ts). Last time's sets show as grey hints in the empty cells. A
+// its log type (lib/set-log.ts). A lift says what to aim for today, by the report's rule
+// (lib/report/progression.ts todayAim), and its first set's empty cells hint at it; other
+// exercises hint at last time's sets. A
 // logged set's numbers can be typed over where they are. An exercise folds to its name and
 // summary; logging a set in another one folds the one before, so usually only the exercise in
 // progress is open.
@@ -78,6 +84,7 @@ export function TodayWorkoutCard({
     initialDayNote,
     initialWeightKg,
     lastWeightKg,
+    aims,
 }: TodayWorkoutCardProps) {
     const t = useTranslations('today')
     const supabase = createClient()
@@ -92,19 +99,31 @@ export function TodayWorkoutCard({
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [openState, setOpenState] = useState(() => initialOpen(initialExercises))
     const unitsFor = (ex: TodayExercise): Units => ({ weight: ex.logUnit ?? readingUnit, distance: distanceUnit })
+    const recentFrom = aims?.recentFrom ?? null
+    const aimOf = (ex: TodayExercise): Aim | null => aims && todayAim({
+        exercise: {
+            id: ex.exerciseId, name: ex.name, nameZh: null, muscleGroup: ex.muscleGroup, primaryMuscles: ex.primaryMuscles,
+            secondaryMuscles: [], logType: ex.logType, equipment: ex.equipment,
+        },
+        sets: ex.recent,
+        unit: unitsFor(ex).weight,
+        today: aims.today,
+        lastPeriod: aims.lastPeriod,
+        findings: aims.findings,
+    })
 
     // Ronnie changed today's workout or a routine: reload today the way the page does,
     // which also finds a workout Ronnie started before the user logged anything
     useEffect(() => {
         async function reload() {
-            const today = await loadTodayWorkout(supabase, { userId, range: todayRange, routineId: routineIdForToday, language })
+            const today = await loadTodayWorkout(supabase, { userId, range: todayRange, routineId: routineIdForToday, language, recentFrom })
             setWorkoutId(today.workoutId)
             setExercises(today.exercises)
         }
 
         window.addEventListener('ronnie-workout-changed', reload)
         return () => window.removeEventListener('ronnie-workout-changed', reload)
-    }, [userId, todayRange, routineIdForToday, language])
+    }, [userId, todayRange, routineIdForToday, language, recentFrom])
 
     // A page left open overnight still holds yesterday: once the day is over, reload today when the
     // page is seen again or a minute passes. Once per day, in case this device's clock runs ahead.
@@ -180,7 +199,7 @@ export function TodayWorkoutCard({
             if (err instanceof DayOverError) throw err
             throw new Error(toFriendlyError((err as { cause?: { message: string; code?: string } }).cause ?? null, language), { cause: err })
         }
-        const today = await loadTodayWorkout(supabase, { userId, range: todayRange, routineId: routineIdForToday, language })
+        const today = await loadTodayWorkout(supabase, { userId, range: todayRange, routineId: routineIdForToday, language, recentFrom })
         if (!today.workoutId) throw new Error("Today's workout was started but could not be read")
         setWorkoutId(today.workoutId)
         setExercises(today.exercises)
@@ -342,9 +361,10 @@ export function TodayWorkoutCard({
         try {
             const { id: wId, exercises: current } = await ensureWorkout()
             if (!current.some((ex) => ex.exerciseId === exercise.id)) {
-                const [previous, logUnits] = await Promise.all([
+                const [previous, logUnits, recent] = await Promise.all([
                     lastSessionSets(supabase, userId, [exercise.id], todayRange.start),
                     exerciseLogUnits(supabase, userId, [exercise.id]),
+                    recentFrom ? recentSets(supabase, userId, [exercise.id], { ...recentFrom, before: todayRange.start }) : null,
                 ])
                 setExercises(await planExercise(wId, current, {
                     exerciseId: exercise.id,
@@ -354,6 +374,10 @@ export function TodayWorkoutCard({
                     logNote: logNoteOf(exercise),
                     logUnit: logUnits.get(exercise.id) ?? null,
                     previous: previous.get(exercise.id) ?? [],
+                    recent: recent?.get(exercise.id) ?? [],
+                    // The library row as the picker has it: by its group, for the weight step
+                    primaryMuscles: [],
+                    equipment: exercise.equipment ?? null,
                     // Added just for today: the routine has no target for it
                     target: null,
                 }))
@@ -417,6 +441,8 @@ export function TodayWorkoutCard({
                                 onToggle={() => toggleOpen(exercise.exerciseId)}
                                 language={language}
                                 units={unitsFor(exercise)}
+                                aim={aimOf(exercise)}
+                                periodUnit={aims?.unit ?? 'week'}
                                 onUnitChange={(unit) => handleExerciseUnit(exercise.exerciseId, unit)}
                                 onDistanceUnitChange={handleDistanceUnit}
                                 onAddSet={handleAddSet}
@@ -538,6 +564,10 @@ interface ExerciseBlockProps {
     language: string
     /** This exercise's kg/lb, and km/mi */
     units: Units
+    /** What to aim for today, by the report's rule; null when there is nothing to go on */
+    aim: Aim | null
+    /** A week or a cycle, for the report's words */
+    periodUnit: 'week' | 'cycle'
     onUnitChange: (unit: WeightUnit) => void
     onDistanceUnitChange: (unit: DistanceUnit) => void
     onAddSet: (exerciseId: string, values: SetValues) => Promise<boolean>
@@ -547,9 +577,18 @@ interface ExerciseBlockProps {
 }
 
 /** One exercise: its name and one line (the target, then the sets), which fold the table away */
-function ExerciseBlock({ exercise, isOpen, onToggle, language, units, onUnitChange, onDistanceUnitChange, onAddSet, onUpdateSet, onDeleteSet, onRemove }: ExerciseBlockProps) {
+function ExerciseBlock({ exercise, isOpen, onToggle, language, units, aim, periodUnit, onUnitChange, onDistanceUnitChange, onAddSet, onUpdateSet, onDeleteSet, onRemove }: ExerciseBlockProps) {
     const t = useTranslations('today')
     const ts = useTranslations('sets')
+    // The reps to aim for: the top of the range while the weight stays, its bottom on a new weight
+    const aimReps = !aim ? null
+        : aim.how === 'load' || aim.how === 'reps' || aim.how === 'assist' ? aim.top
+        : aim.low
+    const aimRange = aim && (aim.how === 'load' || aim.how === 'step_up' || aim.how === 'reset') && aim.top != null && aim.low < aim.top
+        ? `${aim.low}–${aim.top}` : String(aimReps ?? '')
+    // What the report decided for this period says so; the rest is the rule moving on
+    const aimLabel = !aim ? null : aim.how === 'lighter' ? t('aim.lighter') : aim.how === 'hold' || aim.how === 'reset' ? t('aim.report') : null
+    const aimLine = aim && aimText(aim, language, periodUnit, units.weight)
 
     return (
         <div className="grid gap-3 border-t border-line py-3 first:border-t-0 first:pt-0">
@@ -562,13 +601,31 @@ function ExerciseBlock({ exercise, isOpen, onToggle, language, units, onUnitChan
                         <span className="hidden shrink-0 text-xs text-faint md:inline">{getMuscleGroupLabel(exercise.muscleGroup, language)}</span>
                     </span>
                     <span className="block text-sm text-muted empty:hidden">
-                        <SummaryLine t={ts} logType={exercise.logType} sets={exercise.loggedSets} units={units} target={exercise.target} />
+                        <SummaryLine
+                            t={ts}
+                            logType={exercise.logType}
+                            sets={exercise.loggedSets}
+                            units={units}
+                            target={exercise.target}
+                            aim={aim?.weightKg != null ? { weightKg: aim.weightKg, reps: aimRange, sets: aim.sets } : null}
+                        />
                     </span>
                 </span>
             </button>
 
             {/* Folded away, not unmounted, so a set being typed waits for the exercise to open again */}
             <div className={isOpen ? 'contents' : 'hidden'}>
+                    {aimLine && (
+                        <p className="-mt-1 text-[13px] leading-snug text-muted">
+                            {aimLabel ? (
+                                <>
+                                    <b className="font-semibold text-accent">{aimLabel}</b>
+                                    {t('aim.separator')}
+                                    {aimLine}
+                                </>
+                            ) : aimLine.charAt(0).toUpperCase() + aimLine.slice(1)}
+                        </p>
+                    )}
                     {/* Said in words where the sets are typed: one side, or one dumbbell (lib/set-log.ts logNoteOf) */}
                     {exercise.logNote && (
                         <p className="-mt-1 text-[13px] text-muted">
@@ -582,6 +639,11 @@ function ExerciseBlock({ exercise, isOpen, onToggle, language, units, onUnitChan
                         key={`${units.weight}-${units.distance}`}
                         exercise={exercise}
                         units={units}
+                        aimed={aim && {
+                            weight: aim.weightKg != null ? toDisplayWeight(aim.weightKg, units.weight) : null,
+                            assist: aim.assistKg != null && aim.how !== 'assist_down' ? toDisplayWeight(aim.assistKg, units.weight) : null,
+                            reps: aimReps,
+                        }}
                         onUnitChange={onUnitChange}
                         onDistanceUnitChange={onDistanceUnitChange}
                         onAddSet={onAddSet}
@@ -616,9 +678,11 @@ const ROW = 'grid items-center gap-x-1.5 md:gap-x-2'
 const OPTIONAL_HINT = 'placeholder:font-sans placeholder:text-xs'
 
 /** The sets as a table: set number, the log type's columns, and delete or add */
-function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSet, onUpdateSet, onDeleteSet }: {
+function SetTable({ exercise, units, aimed = null, onUnitChange, onDistanceUnitChange, onAddSet, onUpdateSet, onDeleteSet }: {
     exercise: TodayExercise
     units: Units
+    /** Today's aim, in the units shown: the first set's hints instead of last time's */
+    aimed?: { weight: number | null; assist: number | null; reps: number | null } | null
     onUnitChange: (unit: WeightUnit) => void
     onDistanceUnitChange: (unit: DistanceUnit) => void
     onAddSet: (exerciseId: string, values: SetValues) => Promise<boolean>
@@ -643,8 +707,16 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
     const hint = exercise.previous[next] && fitsLogType(exercise.logType, exercise.previous[next]) ? exercise.previous[next] : null
     const ready = fields.every((key, i) => isValidField(key, draft[i], units))
     const lastValue = (key: FieldKey) => (hint ? fieldValue(key, hint, units) : null)
+    // The first set hints at today's aim where it has the number
+    const aimedValue = (key: FieldKey) => {
+        if (next > 0 || !aimed) return null
+        if (key === 'weight' || key === 'added') return aimed.weight
+        if (key === 'assist') return aimed.assist
+        if (key === 'reps') return aimed.reps
+        return null
+    }
     const placeholderOf = (key: FieldKey) => {
-        const v = lastValue(key)
+        const v = aimedValue(key) ?? lastValue(key)
         return v != null ? String(v) : isOptionalField(key) ? ts('optional') : hint ? '' : undefined
     }
 

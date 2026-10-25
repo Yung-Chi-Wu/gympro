@@ -103,6 +103,11 @@
         "switchUnit": "Switch unit",
         "dayOf": "Day {day} of {total}",
         "removeExercise": "Remove this exercise",
+        "aim": {
+            "report": "Report",
+            "lighter": "Lighter week",
+            "separator": ": "
+        },
         "newDay": "It's a new day: today's plan has been reloaded.",
         "removeWithSets": "{count, plural, one {This exercise has # set logged today, and removing it deletes it.} other {This exercise has # sets logged today, and removing it deletes them.}} Remove it?",
         "setDeleted": "Set {n} deleted",
@@ -133,6 +138,8 @@
         "summary": {
             "target": "target <b>{sets}</b> {sets, plural, one {set} other {sets}}",
             "targetReps": "target <b>{sets}</b> × <b>{reps}</b>",
+            "aim": "target <b>{weight}</b> {unit} × <b>{reps}</b>",
+            "aimSets": "target <b>{sets}</b> {sets, plural, one {set} other {sets}} · <b>{weight}</b> {unit} × <b>{reps}</b>",
             "setsOf": "<b>{count}</b>/{target} sets",
             "separator": " · ",
             "sets": "<b>{count}</b> {count, plural, one {set} other {sets}}",
@@ -525,7 +532,14 @@
             "fewDays": "Strength train on {n} days a week, working the major muscle groups each time",
             "deloadLoad": "{weight} × {low}, {sets} {count, select, one {set} other {sets}} (usually {usual}, {usualSets} {usualCount, select, one {set} other {sets}})",
             "deloadReps": "{low} reps, {sets} {count, select, one {set} other {sets}} (usually {usualSets} {usualCount, select, one {set} other {sets}})",
-            "deloadAssist": "{assist} assist × {low}, {sets} {count, select, one {set} other {sets}} (usually {usualSets} {usualCount, select, one {set} other {sets}})"
+            "deloadAssist": "{assist} assist × {low}, {sets} {count, select, one {set} other {sets}} (usually {usualSets} {usualCount, select, one {set} other {sets}})",
+            "aimLoad": "at {top} on every set, {next} next time",
+            "aimStepUp": "every set reached {top} last time, so {weight}",
+            "aimAssistDown": "every set reached {top} last time, so one step less assist (it was {assist})",
+            "aimHold": "no more weight this {unit, select, week {week} other {cycle}}; {weight} × {low} is enough",
+            "aimHoldReps": "no more reps this {unit, select, week {week} other {cycle}}; {low} is enough",
+            "aimHoldAssist": "keep the assist this {unit, select, week {week} other {cycle}}; {assist} assist × {low} is enough",
+            "aimReset": "drop to {weight} for {low}–{top} and build back up"
         },
         "advised": {
             "lift_stalled": "Add reps on {lift}",

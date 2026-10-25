@@ -12,11 +12,12 @@ import { OnboardingGuard } from '@/components/OnboardingGuard'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
-import { addDays, currentPeriod, cycleDayOf, localDate, plannedCycleDay } from '@/lib/periods'
+import { addDays, currentPeriod, cycleDayOf, lastCompletedPeriod, localDate, plannedCycleDay } from '@/lib/periods'
 import { localDayToUtcRange, timeZoneOf } from '@/lib/time-zone'
 import { loadTodayWorkout } from '@/lib/today-workout'
 import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
-import { loadLatestReport } from '@/lib/report/latest'
+import { loadLatestReport, type LatestReport } from '@/lib/report/latest'
+import type { AimFinding } from '@/lib/report/progression'
 import { ServerTimingMark } from '@/components/ServerTimingMark'
 import { ReadYourWrites } from '@/components/ReadYourWrites'
 
@@ -42,7 +43,7 @@ export default async function DashboardPage() {
     getTranslations('report'),
     getTranslations('periodLog'),
   ])
-  const { profile, cycle, language, period, todayIso, todayRange, dayIndex, routineIdForToday, routineName, today, periodNote } = day
+  const { profile, cycle, language, period, todayIso, todayRange, dayIndex, routineIdForToday, routineName, today, periodNote, lastPeriod, recentFrom } = day
 
   const greetingName = profile?.display_name || user.email || ''
   const onboardingCompleted = profile?.onboarding_completed ?? false
@@ -88,6 +89,7 @@ export default async function DashboardPage() {
           initialDayNote={day.dayNote}
           initialWeightKg={day.todayWeightKg}
           lastWeightKg={day.lastWeightKg}
+          aims={{ today: todayIso, lastPeriod, findings: aimFindings(latestReport, lastPeriod), unit: cycle ? 'cycle' : 'week', recentFrom }}
         />
 
         <section className="space-y-3">
@@ -131,6 +133,10 @@ async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
   const period = currentPeriod(timezone, cycleSettings)
   const todayIso = localDate(timezone, new Date())
   const todayRange = localDayToUtcRange(todayIso, timezone)
+  // Today's aims work from the period the newest report is of, and the days since
+  const ended = lastCompletedPeriod(timezone, cycleSettings)
+  const lastPeriod = ended && { start: ended.periodStart, end: ended.periodEnd }
+  const recentFrom = { from: localDayToUtcRange(lastPeriod?.start ?? addDays(todayIso, -AIM_LOOKBACK_DAYS), timezone).start, timeZone: timezone }
 
   const dayIndex = cycleSettings ? cycleDayOf(cycleSettings, todayIso) : 0
   // Nothing before the cycle starts, or on a rest day the user made
@@ -180,6 +186,7 @@ async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
       routineId: routineIdForToday,
       routineExerciseIds: cycleDay?.routines?.routine_exercises.map((re) => re.exercise_id) ?? [],
       language,
+      recentFrom,
     }),
   ])
 
@@ -198,7 +205,22 @@ async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
     dayNote: dayNoteResult.data?.note ?? '',
     todayWeightKg: todayWeightResult.data?.weight_kg ?? null,
     lastWeightKg: lastWeightResult.data?.weight_kg ?? null,
+    lastPeriod,
+    recentFrom,
   }
+}
+
+/** Without a period that has ended (a cycle in its first round), today's aims look this far back */
+const AIM_LOOKBACK_DAYS = 28
+/** What today's aims take from the report: a lift held for pain, a lighter week, a goal lift taken down */
+const AIM_RULES = new Set(['pain_hold', 'next_session', 'goal_path'])
+
+/** The newest report's findings that speak to today's aims, when it is of the period that just ended */
+function aimFindings(report: LatestReport | null, lastPeriod: { start: string } | null): AimFinding[] {
+  const findings = (report?.recommendation as { version?: number; findings?: unknown } | null)?.findings
+  if (report?.status !== 'completed' || !lastPeriod || report.periodStart !== lastPeriod.start || !Array.isArray(findings)) return []
+  return (findings as AimFinding[]).filter((f) => AIM_RULES.has(f.rule) && typeof f.subject === 'string' && typeof f.data === 'object' && f.data !== null)
+    .map(({ rule, subject, data }) => ({ rule, subject, data }))
 }
 
 function formatPeriodDate(dateIso: string, language: string): string {

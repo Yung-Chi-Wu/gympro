@@ -3,6 +3,9 @@ import type { Database } from './types/database.types'
 import type { LogType } from './exercise-attributes'
 import type { WeightUnit } from './weight-unit'
 import { logNoteOf, logTypeOf, setValuesOf, type LogNote, type SetValues } from './set-log'
+import { localDate } from './periods'
+import type { LoggedSet } from './report/types'
+import type { AimFinding } from './report/progression'
 
 // Today's workout as the dashboard shows it: the workout started today with its sets,
 // or, before there is one, today's routine as the plan. The page renders it and the
@@ -28,6 +31,11 @@ export interface TodayExercise {
     loggedSets: LoggedSetRow[]
     /** The sets of the last earlier workout with this exercise, in order: grey hints in the empty cells */
     previous: SetValues[]
+    /** Its sets before today, since the start of the period the newest report is of: what today's aim is worked out from (lib/report/progression.ts todayAim) */
+    recent: LoggedSet[]
+    /** What it trains and how it is loaded, for the size of a weight step */
+    primaryMuscles: string[]
+    equipment: string | null
     /** What the routine asks for (routine_exercises); null for an exercise added just for today */
     target: Target | null
 }
@@ -37,7 +45,20 @@ export interface Target {
     reps: number | null
 }
 
-type ExerciseInfo = { name: string; name_zh_tw: string | null; muscle_group: string; log_type: string | null; per_side: boolean | null; equipment: string | null } | null
+/** What today's aims are worked out with (lib/report/progression.ts todayAim) */
+export interface TodayAims {
+    today: string
+    /** The period the newest report is of: the last one that ended; null when none has */
+    lastPeriod: { start: string; end: string } | null
+    /** What that report decided for this period (a lift held for pain, a lighter week, a goal lift taken down), when it is of lastPeriod */
+    findings: AimFinding[]
+    /** A week or a cycle, for the report's words */
+    unit: 'week' | 'cycle'
+    /** Where the sets they work from start (UTC), and the zone to date them in */
+    recentFrom: { from: string; timeZone: string }
+}
+
+type ExerciseInfo = { name: string; name_zh_tw: string | null; muscle_group: string; log_type: string | null; per_side: boolean | null; equipment: string | null; primary_muscles: string[] | null } | null
 type PlannedRow = { id: string; exercise_id: string; exercises: ExerciseInfo }
 type TargetRow = { exercise_id: string; target_sets: number | null; target_reps: number | null }
 type RoutineRow = TargetRow & { exercises: ExerciseInfo }
@@ -50,14 +71,17 @@ type WorkoutRow = {
     routines: { routine_exercises: TargetRow[] } | null
 }
 type PreviousRow = Parameters<typeof setValuesOf>[0] & { workout_id: string; exercise_id: string; set_number: number; workouts: { performed_at: string } }
+type RecentRow = { workout_id: string; exercise_id: string; reps: number; weight_kg: number | null; assist_kg: number | null; created_at: string; workouts: { performed_at: string } }
 
-const EXERCISE_COLUMNS = 'name, name_zh_tw, muscle_group, log_type, per_side, equipment'
+const EXERCISE_COLUMNS = 'name, name_zh_tw, muscle_group, log_type, per_side, equipment, primary_muscles'
 const TARGET_COLUMNS = 'exercise_id, target_sets, target_reps'
 const targetOf = (re: { target_sets: number | null; target_reps: number | null } | undefined): Target | null =>
     re?.target_sets ? { sets: re.target_sets, reps: re.target_reps } : null
 export const SET_COLUMNS = 'reps, weight_kg, duration_s, speed_kmh, incline_pct, level, distance_m, assist_kg, avg_hr, input_unit'
 /** Enough earlier sets to find the last session of every exercise done in the past few months */
 const PREVIOUS_ROWS = 500
+/** The API's most rows a request: two periods of today's exercises fit in it many times over */
+const RECENT_ROWS = 1000
 
 /** Thrown when the page's day has ended: the caller reloads today instead of logging into yesterday */
 export class DayOverError extends Error {
@@ -133,9 +157,40 @@ export async function lastSessionSets(
     return out
 }
 
+/**
+ * For each exercise, its strength sets from `from` up to `before`, dated in the user's time zone,
+ * as the report reads sets: what today's aim works from. Cardio and timed sets aren't read.
+ */
+export async function recentSets(
+    supabase: SupabaseClient<Database>,
+    userId: string,
+    exerciseIds: string[],
+    { from, before, timeZone }: { from: string; before: string; timeZone: string },
+): Promise<Map<string, LoggedSet[]>> {
+    const out = new Map<string, LoggedSet[]>()
+    if (!exerciseIds.length) return out
+    const { data } = await supabase
+        .from('workout_sets')
+        .select('workout_id, exercise_id, reps, weight_kg, assist_kg, created_at, workouts!inner ( performed_at )')
+        .eq('user_id', userId)
+        .in('exercise_id', exerciseIds)
+        .gte('workouts.performed_at', from)
+        .lt('workouts.performed_at', before)
+        .order('created_at', { ascending: false })
+        .limit(RECENT_ROWS)
+    for (const r of (data as unknown as RecentRow[] | null) ?? []) {
+        const set: LoggedSet = {
+            date: localDate(timeZone, new Date(r.workouts.performed_at)), workoutId: r.workout_id, exerciseId: r.exercise_id,
+            reps: r.reps, weightKg: r.weight_kg ?? 0, assistKg: r.assist_kg, durationS: null, speedKmh: null, distanceM: null, loggedAt: r.created_at,
+        }
+        out.set(r.exercise_id, [...(out.get(r.exercise_id) ?? []), set])
+    }
+    return out
+}
+
 export async function loadTodayWorkout(
     supabase: SupabaseClient<Database>,
-    { userId, range, routineId, routineExerciseIds, language }: {
+    { userId, range, routineId, routineExerciseIds, language, recentFrom }: {
         userId: string
         /** Today in the user's time zone, as UTC timestamps */
         range: { start: string; end: string }
@@ -146,6 +201,8 @@ export async function loadTodayWorkout(
          */
         routineExerciseIds?: string[]
         language: string
+        /** Where the sets for today's aims start (UTC), and the user's time zone to date them in; none: no aims */
+        recentFrom?: { from: string; timeZone: string } | null
     },
 ): Promise<{ workoutId: string | null; exercises: TodayExercise[] }> {
     const nameOf = (e: ExerciseInfo) => (language === 'zh-TW' && e?.name_zh_tw ? e.name_zh_tw : e?.name ?? 'Unknown exercise')
@@ -159,12 +216,19 @@ export async function loadTodayWorkout(
         plannedRowId,
         loggedSets,
         previous: [],
+        recent: [],
+        primaryMuscles: e?.primary_muscles ?? [],
+        equipment: e?.equipment ?? null,
         target,
     })
-    // Last time's sets and the exercise's own kg/lb
+    // Last time's sets, the exercise's own kg/lb, and the sets today's aim works from
     const hintsOf = async (ids: string[]) => {
-        const [previous, logUnits] = await Promise.all([lastSessionSets(supabase, userId, ids, range.start), exerciseLogUnits(supabase, userId, ids)])
-        return { previous, logUnits }
+        const [previous, logUnits, recent] = await Promise.all([
+            lastSessionSets(supabase, userId, ids, range.start),
+            exerciseLogUnits(supabase, userId, ids),
+            recentFrom ? recentSets(supabase, userId, ids, { from: recentFrom.from, before: range.start, timeZone: recentFrom.timeZone }) : new Map<string, LoggedSet[]>(),
+        ])
+        return { previous, logUnits, recent }
     }
     const known = new Set(routineExerciseIds ?? [])
     // Hints for today's routine come with the workout (early); the rest of the card (an exercise
@@ -177,6 +241,7 @@ export async function loadTodayWorkout(
         return exercises.map((ex) => ({
             ...ex,
             previous: hintsFor(ex.exerciseId)?.previous.get(ex.exerciseId) ?? [],
+            recent: hintsFor(ex.exerciseId)?.recent.get(ex.exerciseId) ?? [],
             logUnit: hintsFor(ex.exerciseId)?.logUnits.get(ex.exerciseId) ?? null,
         }))
     }
