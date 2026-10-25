@@ -110,7 +110,7 @@ check('no aim for an exercise not done lately, cardio, a timed hold or a core ex
     const line = reportLine('zh-TW')
     check('the report\'s line for the same lift has Today\'s numbers: the weight, the range and the next weight',
         line.includes('80 kg') && line.includes(`${a.low}–${a.top}`) && line.includes('82.5 kg') && a.weightKg === 80 && a.nextKg === 82.5, `${line} | ${JSON.stringify(a)}`)
-    check('under the exercise, Today says how the aim moves on', aimText(a, 'zh-TW', 'week', 'kg') === '每組都做到 8 下，下次換 82.5 kg' && aimText(a, 'en', 'week', 'kg') === 'at 8 on every set, 82.5 kg next time',
+    check('under the exercise, Today says how the aim moves on: the next weight is for the next session, not the next set', aimText(a, 'zh-TW', 'week', 'kg') === '每組都做到 8 下，下次練再換 82.5 kg' && aimText(a, 'en', 'week', 'kg') === 'at 8 on every set, 82.5 kg next session',
         `${aimText(a, 'zh-TW', 'week', 'kg')} | ${aimText(a, 'en', 'week', 'kg')}`)
     const up = aimOf(bench, [...lastWeek, ...session(bench, '2026-10-27', [[80, 8], [80, 8], [80, 8]])])!
     // 135 lb, logged in pounds

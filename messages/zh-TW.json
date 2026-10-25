@@ -533,7 +533,7 @@
             "deloadLoad": "{weight} × {low} 下，{sets} 組（平常 {usual}、{usualSets} 組）",
             "deloadReps": "{low} 下，{sets} 組（平常 {usualSets} 組）",
             "deloadAssist": "輔助 {assist} × {low} 下，{sets} 組（平常 {usualSets} 組）",
-            "aimLoad": "每組都做到 {top} 下，下次換 {next}",
+            "aimLoad": "每組都做到 {top} 下，下次練再換 {next}",
             "aimStepUp": "上次每組都做到 {top} 下，所以換 {weight}",
             "aimAssistDown": "上次每組都做到 {top} 下，所以減一格輔助（上次輔助 {assist}）",
             "aimHold": "這{unit, select, week {週} other {輪}}先不加重，{weight} × {low} 下就好",

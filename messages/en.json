@@ -533,7 +533,7 @@
             "deloadLoad": "{weight} × {low}, {sets} {count, select, one {set} other {sets}} (usually {usual}, {usualSets} {usualCount, select, one {set} other {sets}})",
             "deloadReps": "{low} reps, {sets} {count, select, one {set} other {sets}} (usually {usualSets} {usualCount, select, one {set} other {sets}})",
             "deloadAssist": "{assist} assist × {low}, {sets} {count, select, one {set} other {sets}} (usually {usualSets} {usualCount, select, one {set} other {sets}})",
-            "aimLoad": "at {top} on every set, {next} next time",
+            "aimLoad": "at {top} on every set, {next} next session",
             "aimStepUp": "every set reached {top} last time, so {weight}",
             "aimAssistDown": "every set reached {top} last time, so one step less assist (it was {assist})",
             "aimHold": "no more weight this {unit, select, week {week} other {cycle}}; {weight} × {low} is enough",
