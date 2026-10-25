@@ -11,7 +11,7 @@ import { reportClientError } from '@/lib/report-client-error'
 import { exerciseSections, getMuscleGroupLabel } from '@/lib/exercise-display'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
-import { fieldValue, fitsLogType, isOptionalField, isValidField, isWeightField, LOG_FIELDS, logNoteOf, logTypeOf, toSetRow, toStoredSet, typedValue, unitsOfSet, withField, type FieldKey, type SetValues, type Units } from '@/lib/set-log'
+import { fieldValue, fitsLogType, isOptionalField, isValidField, isWeightField, LOG_FIELDS, logNoteOf, logTypeOf, nextSetDraft, toSetRow, toStoredSet, typedValue, withField, type FieldKey, type SetValues, type Units } from '@/lib/set-log'
 import { MUSCLE_GROUPS, type ExerciseOption } from './log-types'
 import { dayIsOver, DayOverError, exerciseLogUnits, lastSessionSets, loadTodayWorkout, startTodayWorkout, type TodayExercise } from '@/lib/today-workout'
 import { cellText, compactSet, fieldLabel, SummaryLine } from './set-format'
@@ -628,7 +628,9 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
     const t = useTranslations('today')
     const ts = useTranslations('sets')
     const fields = LOG_FIELDS[exercise.logType]
-    const [draft, setDraft] = useState<string[]>(() => fields.map(() => ''))
+    // What the user typed in the next set's fields; until then (null) they hold a copy of the set before
+    const [typed, setTyped] = useState<string[] | null>(null)
+    const draft = typed ?? nextSetDraft(exercise.logType, exercise.loggedSets, units)
     const [saving, setSaving] = useState(false)
     const firstInput = useRef<HTMLInputElement>(null)
     // When the last set was added: its × takes the place where ＋ was, so a quick second tap on ＋
@@ -654,7 +656,7 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
         setSaving(false)
         if (saved) {
             addedAt.current = Date.now()
-            setDraft(fields.map(() => ''))
+            setTyped(null)
             firstInput.current?.focus()
         }
     }
@@ -707,8 +709,8 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
                                 set={s}
                                 units={units}
                                 label={ts('fieldOfSet', { n: i + 1, field: fieldLabel(ts, key, units) })}
-                                // In the kg/lb the set was typed in, so 80 lb stays 80 lb
-                                onSave={(typed) => onUpdateSet(exercise.exerciseId, s.id, withField(s, key, typed, unitsOfSet(s, units)))}
+                                // In the units shown: a weight changed under lb is kept as typed in lb
+                                onSave={(value) => onUpdateSet(exercise.exerciseId, s.id, withField(s, key, value, units))}
                             />
                         ))
                         // Logged before this exercise had its columns: shown the way it was logged
@@ -736,7 +738,12 @@ function SetTable({ exercise, units, onUnitChange, onDistanceUnitChange, onAddSe
                         type="text"
                         inputMode={WHOLE_NUMBERS.has(key) ? 'numeric' : 'decimal'}
                         value={draft[i]}
-                        onChange={(e) => setDraft((d) => d.map((v, j) => (j === i ? e.target.value : v)))}
+                        onChange={(e) => setTyped(draft.map((v, j) => (j === i ? e.target.value : v)))}
+                        // Selected, so typing replaces the copied value
+                        onFocus={(e) => {
+                            const input = e.currentTarget
+                            requestAnimationFrame(() => input.select())
+                        }}
                         // Last time's value as a hint; an optional field says so while it has none
                         placeholder={placeholderOf(key)}
                         aria-label={ts('fieldOfSet', { n: next + 1, field: fieldLabel(ts, key, units) })}
@@ -764,14 +771,14 @@ function LoggedCell({ field, set, units, label, onSave }: {
     onSave: (typed: number | null) => void
 }) {
     const ts = useTranslations('sets')
-    const typedAs = String(fieldValue(field, set, unitsOfSet(set, units)) ?? '')
+    const typedAs = String(fieldValue(field, set, units) ?? '')
     // What is being typed; null while the cell isn't being edited
     const [draft, setDraft] = useState<string | null>(null)
     const cancelled = useRef(false)
 
     function finish() {
         // An optional field emptied is saved as empty
-        if (!cancelled.current && draft != null && draft.trim() !== typedAs && isValidField(field, draft, unitsOfSet(set, units))) onSave(typedValue(draft))
+        if (!cancelled.current && draft != null && draft.trim() !== typedAs && isValidField(field, draft, units)) onSave(typedValue(draft))
         cancelled.current = false
         setDraft(null)
     }
@@ -798,7 +805,7 @@ function LoggedCell({ field, set, units, label, onSave }: {
                 }
             }}
             aria-label={label}
-            aria-invalid={draft != null && !isValidField(field, draft, unitsOfSet(set, units))}
+            aria-invalid={draft != null && !isValidField(field, draft, units)}
             data-logged=""
             className={isOptionalField(field) ? `${LOGGED} ${OPTIONAL_HINT}` : LOGGED}
         />
