@@ -87,17 +87,13 @@ check('a cycle of rest days has none', nextPlanned({ cycleLength: 3, startDate: 
 {
     // The old way: (since % length + length) % length + 1, written wherever a cycle day was needed
     const copy = /%\s*[\w.]*cycle_?[lL]ength\s*\)\s*\+\s*[\w.]*cycle_?[lL]ength/
-    const roots = ['app', 'components', 'lib', 'lambda/ai-worker/src']
-    const found: string[] = []
-    const walk = (dir: string) => {
-        for (const name of readdirSync(dir)) {
-            const path = join(dir, name)
-            if (name === 'node_modules' || name === 'dist' || name.startsWith('preview-')) continue
-            if (statSync(path).isDirectory()) walk(path)
-            else if (/\.tsx?$/.test(name) && path !== join('lib', 'periods.ts') && copy.test(readFileSync(path, 'utf8'))) found.push(path)
-        }
-    }
-    roots.forEach(walk)
+    const walk = (dir: string): string[] => readdirSync(dir).flatMap((name) => {
+        const path = join(dir, name)
+        if (statSync(path).isDirectory()) return name === 'node_modules' || name === 'dist' || name.startsWith('preview-') ? [] : walk(path)
+        return /\.tsx?$/.test(name) ? [path] : []
+    })
+    const found = ['app', 'components', 'lib', 'lambda/ai-worker/src'].flatMap(walk)
+        .filter((path) => path !== join('lib', 'periods.ts') && copy.test(readFileSync(path, 'utf8')))
     check('the cycle day is worked out only by cycleDayOf in lib/periods.ts', found.length === 0, found.join(', '))
 }
 
