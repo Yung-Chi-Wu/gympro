@@ -130,6 +130,18 @@ export const RONNIE_TOOLS: Anthropic.Tool[] = [
         },
     },
     {
+        name: 'request_exercise',
+        description: "Ask the app's owner to add an exercise the library doesn't have: one the user names that search_exercises can't find under any wording. It goes in the owner's weekly email, and the app tells the user it was sent. Not for one the library has under another name: use that one.",
+        input_schema: {
+            type: 'object',
+            properties: {
+                name: { type: 'string', description: "The exercise's name, as the user says it" },
+                detail: { type: 'string', description: 'What it is, in a few words: the machine or equipment, how it moves, what it trains' },
+            },
+            required: ['name'],
+        },
+    },
+    {
         name: 'remember',
         description: "Save a note about the user that lasts: your notes are in every later conversation. One note per slot (an injury per body part, a preference per exercise, one for equipment, one for schedule), and saving a slot again replaces it: an injury that's better is saved as resolved, a disliked exercise they now want as like. Anything else lasting is other, free text: to change one, pass its note_id. The app shows the user each note saved.",
         input_schema: {

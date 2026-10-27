@@ -4,6 +4,7 @@ import type { LogType } from '../exercise-attributes'
 import { logTypeOf, setValuesOf, type SetValues } from '../set-log'
 import { SET_COLUMNS } from '../today-workout'
 import { plannedRoutineId } from '../periods'
+import { MAX_FEEDBACK_PER_DAY, MAX_RONNIE_REQUESTS_PER_DAY, sameExerciseName } from '../feedback'
 import { isMemoryKind, type MemoryNote } from './memory'
 import { localDateStr, localDateToUtcRange } from './time'
 
@@ -110,7 +111,20 @@ export interface RonnieData {
     saveMemory(note: MemoryNote): Promise<string | null>
     /** Deletes a slot's note; an error message, or null */
     deleteMemory(slot: Pick<MemoryNote, 'kind' | 'subject'>): Promise<string | null>
+
+    // ---------- requests for the owner (lib/feedback.ts) ----------
+    /**
+     * Asks the owner to add an exercise to the library: app_feedback, kind exercise, source ronnie,
+     * in their weekly email. duplicate: the user asked for this name in the last 30 days (from
+     * Settings too), so nothing is sent again; limit: their feedback, or Ronnie's requests, for the
+     * last 24 hours are used up.
+     */
+    requestExercise(request: { name: string; message: string; language: 'en' | 'zh-TW' }): Promise<{ status: 'sent' | 'duplicate' | 'limit' } | { error: string }>
 }
+
+/** How far back an exercise request counts as asked already */
+const REQUEST_MEMORY_DAYS = 30
+const DAY_MS = 86_400_000
 
 /** Workouts per sets request (their IDs go in the URL) and rows per page (the API's cap) */
 const WORKOUTS_PER_REQUEST = 100
@@ -372,6 +386,30 @@ export function createSupabaseRonnieData(
                 user_id: userId, kind: note.kind, subject: note.subject, state: note.state, note: note.text, updated_at: note.updatedAt,
             }, { onConflict: 'user_id,kind,subject' })
             return error?.message ?? null
+        },
+
+        async requestExercise({ name, message, language }) {
+            if (!admin) return { error: 'Requests are not available' }
+            const at = now().getTime()
+            const { data: recent, error } = await admin
+                .from('app_feedback')
+                .select('created_at, kind, source, message')
+                .eq('user_id', userId)
+                .gte('created_at', new Date(at - REQUEST_MEMORY_DAYS * DAY_MS).toISOString())
+            if (error) return { error: error.message }
+            const rows = recent ?? []
+            if (rows.some((r) => r.kind === 'exercise' && sameExerciseName(r.message.split('\n')[0], name))) return { status: 'duplicate' }
+            const day = rows.filter((r) => Date.parse(r.created_at) >= at - DAY_MS)
+            if (day.length >= MAX_FEEDBACK_PER_DAY || day.filter((r) => r.source === 'ronnie').length >= MAX_RONNIE_REQUESTS_PER_DAY) return { status: 'limit' }
+            const { error: saveError } = await admin.from('app_feedback').insert({
+                user_id: userId,
+                kind: 'exercise',
+                source: 'ronnie',
+                message,
+                language,
+                app_version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 64) ?? null,
+            })
+            return saveError ? { error: saveError.message } : { status: 'sent' }
         },
 
         async deleteMemory({ kind, subject }) {

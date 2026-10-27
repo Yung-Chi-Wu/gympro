@@ -1,13 +1,44 @@
 // What users tell the owner: feedback sent from Settings (app_feedback, migration 20261025120000),
-// and why they reported one of Ronnie's replies (the reported flag's detail on its trace). The
-// forms and the routes read them with the same rules, and the labels are here so the owner's
-// weekly email (lambda/ai-worker/src/audit/digest.ts) can say them too.
+// an exercise Ronnie asks to add for a user (source ronnie, migration 20261027140000), and why
+// they reported one of Ronnie's replies (the reported flag's detail on its trace). The forms and
+// the routes read them with the same rules, and the labels are here so the owner's weekly email
+// (lambda/ai-worker/src/audit/digest.ts) can say them too.
 
 /** What a user can send from Settings, in the order the form shows them: exercise is one they want added */
 export const FEEDBACK_KINDS = ['bug', 'idea', 'exercise'] as const
 export type FeedbackKind = (typeof FEEDBACK_KINDS)[number]
 export const MAX_FEEDBACK_CHARS = 2000
 const MAX_USER_AGENT_CHARS = 300
+/** Where feedback came from: the form in Settings, or Ronnie asking to add an exercise */
+export const FEEDBACK_SOURCES = ['settings', 'ronnie'] as const
+export type FeedbackSource = (typeof FEEDBACK_SOURCES)[number]
+/** A user's feedback in 24 hours, from both sources: past it, more is refused */
+export const MAX_FEEDBACK_PER_DAY = 10
+/** Of those, the exercises Ronnie can ask to add */
+export const MAX_RONNIE_REQUESTS_PER_DAY = 3
+/** An exercise request's name, and what it is */
+export const MAX_REQUEST_NAME_CHARS = 80
+export const MAX_REQUEST_DETAIL_CHARS = 300
+
+/**
+ * The message of an exercise Ronnie asks to add: its name on the first line, as the user says it,
+ * then what it is. The name is what tells two requests apart (sameRequest).
+ */
+export function exerciseRequestMessage(name: string, detail: string): string {
+    const clean = (text: string, max: number) => text.replace(/\s+/g, ' ').trim().slice(0, max)
+    return [clean(name, MAX_REQUEST_NAME_CHARS), clean(detail, MAX_REQUEST_DETAIL_CHARS)].filter(Boolean).join('\n')
+}
+
+/** The line under Ronnie's reply when it asked for an exercise, written by code, never by the model */
+export function exerciseRequestReceipt(name: string, zh: boolean): string {
+    return zh ? `📮 已幫你回報新增動作：${name}` : `📮 Asked to add to the library: ${name}`
+}
+
+/** Whether two names are one exercise, whatever the case, spacing and punctuation */
+export function sameExerciseName(a: string, b: string): boolean {
+    const key = (name: string) => name.toLowerCase().replace(/[\s\-_.,()（）、，·・/]+/g, '')
+    return key(a) === key(b)
+}
 
 /** Why a reply was reported, in the order the form shows them */
 export const REPORT_REASONS = ['wrong_fact', 'missed_question', 'unsuitable_advice', 'wrong_change', 'too_long', 'other'] as const

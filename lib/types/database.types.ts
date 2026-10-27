@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_feedback: {
+        Row: {
+          app_version: string | null
+          created_at: string
+          id: string
+          kind: string
+          language: string | null
+          message: string
+          source: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          app_version?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          language?: string | null
+          message: string
+          source?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          language?: string | null
+          message?: string
+          source?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       body_metrics: {
         Row: {
           body_fat_pct: number | null

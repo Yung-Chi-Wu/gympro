@@ -304,6 +304,50 @@ const valid = (messages) => messages.every((m, i) => {
     check(prompt.split(` ${MEDICINE_RULE}`).length === 2 && seven.includes(MEDICINE_RULE) && /doctor or pharmacist/.test(MEDICINE_RULE), 'the medicine rule is in principle 7, once, and sends them to a doctor or pharmacist')
 }
 
+// ---------- exercise requests ----------
+
+// An exercise the library doesn't have is asked for once, in the owner's weekly email; one it has,
+// under either name, is never asked for; the line under the reply is the code's
+{
+    const { data, requests, writes } = createFixtureData()
+    const ex = executorFor(data)
+    const sent = await ex.executeTool('request_exercise', { name: 'Wide-Grip Lat Pulldown', detail: 'cable pulldown,  wide overhand grip' })
+    check(sent.startsWith('Sent') && requests.length === 1 && requests[0].message === 'Wide-Grip Lat Pulldown\ncable pulldown, wide overhand grip' && requests[0].language === 'zh-TW',
+        `a missing exercise is sent with its name first, then what it is: ${sent.slice(0, 40)} / ${JSON.stringify(requests[0])}`)
+    check(ex.requested[0] === '📮 已幫你回報新增動作：Wide-Grip Lat Pulldown' && /don't say it yourself/.test(sent), `the line under the reply is written by code: ${ex.requested[0]}`)
+    const again = await ex.executeTool('request_exercise', { name: 'wide grip  lat-pulldown' })
+    check(/^Not sent again/.test(again) && ex.requested.length === 1 && writes.filter((w) => w.op === 'request_exercise' && w.effective).length === 1, `the same name, however written, isn't sent twice: ${again}`)
+    for (const name of ['lat pulldown', '滑輪下拉', 'Lat  Pull-down']) {
+        const had = await ex.executeTool('request_exercise', { name })
+        check(had.startsWith('Not sent: the library has it, 滑輪下拉 (ID ' + id('Lat Pulldown')), `one the library has (${name}) is not asked for: ${had.slice(0, 50)}`)
+    }
+    check(requests.length === 1 && ex.requested.length === 1, 'and nothing more was sent or shown')
+    for (const [what, input] of [['an empty name', { name: '  ' }], ['a name past 80 characters', { name: 'x'.repeat(81) }]]) {
+        check((await ex.executeTool('request_exercise', input)).startsWith('Not sent'), `${what} is not sent`)
+    }
+    const used = executorFor({ ...data, requestExercise: async () => ({ status: 'limit' }) })
+    const limit = await used.executeTool('request_exercise', { name: 'Close-Grip Lat Pulldown' })
+    check(/used up/.test(limit) && !used.requested.length, `past the day's requests, nothing is sent or shown: ${limit}`)
+    const broken = executorFor({ ...data, requestExercise: async () => ({ error: 'timeout' }) })
+    const failed = await broken.executeTool('request_exercise', { name: 'Close-Grip Lat Pulldown' })
+    check(failed === 'Not sent: timeout' && !broken.requested.length, `a failed save says so and shows nothing: ${failed}`)
+    const en = executorFor(createFixtureData().data, 'en')
+    await en.executeTool('request_exercise', { name: 'Close-Grip Lat Pulldown' })
+    check(en.requested[0] === '📮 Asked to add to the library: Close-Grip Lat Pulldown', `in English: ${en.requested[0]}`)
+}
+
+// The line comes first in the reply, as a saved note's does, and survives a failure
+{
+    const { data } = createFixtureData()
+    const t = await turn(scripted([toolUse(['request_exercise', { name: '寬握滑輪下拉' }]), reply('先用滑輪下拉，握寬一點。')]), data)
+    check(t.message === '📮 已幫你回報新增動作：寬握滑輪下拉\n\n先用滑輪下拉，握寬一點。', `the line, then the reply: ${t.message.replace(/\n/g, ' / ')}`)
+    const { data: d2 } = createFixtureData()
+    const failed = await turn(scripted([toolUse(['request_exercise', { name: '寬握滑輪下拉' }]), () => { throw new Error('Overloaded') }]), d2)
+    check(failed.interrupted?.reason === 'error' && failed.message.startsWith('📮 已幫你回報新增動作：寬握滑輪下拉'), `a failed turn still says it was sent: ${failed.message.replace(/\n/g, ' / ')}`)
+    const prompt = buildSystemPrompt('zh-TW', FIXTURE_USER)
+    check(prompt.split('\n').find((l) => l.startsWith('3. ')).includes('request_exercise'), 'the prompt says when to ask for an exercise, in principle 3')
+}
+
 // ---------- memory ----------
 
 function note(kind, subject, state, text, updatedAt = '2026-10-01T02:00:00.000Z') {
@@ -797,6 +841,37 @@ const op = (q, name) => q.ops.find(([k]) => k === name)?.[1]
     const swapped = await run(null, 'r2')
     check(swapped.id === 'w-new' && swapped.call?.args.p_routine_id === 'r2' && swapped.call.args.p_exercise_ids.length === 3,
         `on a day the user gave another routine, today's workout starts with that one (${JSON.stringify(swapped.call?.args ?? null).slice(0, 160)})`)
+}
+
+// An exercise request goes through the service-role client, for this user: kind exercise, source
+// ronnie; the same name asked for in 30 days (from Settings too) isn't sent again, and a day holds
+// 10 pieces of feedback, 3 of them Ronnie's
+{
+    const at = (hoursAgo) => new Date(FIXTURE_NOW.getTime() - hoursAgo * 3_600_000).toISOString()
+    const run = async (rows, name = '寬握滑輪下拉') => {
+        const admin = fakeSupabase((q) => (op(q, 'select') ? { data: rows, error: null } : { data: null, error: null }))
+        const userClient = fakeSupabase(() => ({ data: null, error: null }))
+        const data = createSupabaseRonnieData(userClient, 'u1', FIXTURE_TIME_ZONE, null, { admin, now: () => FIXTURE_NOW })
+        const result = await data.requestExercise({ name, message: `${name}\n滑輪下拉機，寬握`, language: 'zh-TW' })
+        return { result, admin, userClient, insert: op(admin.requests.find((q) => op(q, 'insert')) ?? { ops: [] }, 'insert')?.[0] }
+    }
+    const fresh = await run([])
+    const read = fresh.admin.requests[0]
+    check(fresh.result.status === 'sent' && fresh.insert?.user_id === 'u1' && fresh.insert.kind === 'exercise' && fresh.insert.source === 'ronnie' && fresh.insert.message === '寬握滑輪下拉\n滑輪下拉機，寬握' && fresh.insert.language === 'zh-TW' && !fresh.userClient.requests.length,
+        `it is kept as the user's exercise request from Ronnie, never through their own client: ${JSON.stringify(fresh.insert)}`)
+    check(op(read, 'eq')?.join() === 'user_id,u1' && op(read, 'gte')?.[1] === new Date(FIXTURE_NOW.getTime() - 30 * 86_400_000).toISOString(), "the check reads this user's last 30 days")
+    const asked = await run([{ created_at: at(24 * 20), kind: 'exercise', source: 'settings', message: '寬握 滑輪下拉\n我想要寬握的' }])
+    check(asked.result.status === 'duplicate' && !asked.insert, 'asked for from Settings 20 days ago, it is not sent again')
+    const other = await run([{ created_at: at(1), kind: 'idea', source: 'settings', message: '寬握滑輪下拉' }])
+    check(other.result.status === 'sent', 'an idea that happens to say the name is not a request for it')
+    const busy = await run(Array.from({ length: 10 }, (_, i) => ({ created_at: at(i + 1), kind: 'bug', source: 'settings', message: `bug ${i}` })))
+    check(busy.result.status === 'limit' && !busy.insert, 'after 10 pieces of feedback in a day, nothing more')
+    const ronnie = await run(Array.from({ length: 3 }, (_, i) => ({ created_at: at(i + 1), kind: 'exercise', source: 'ronnie', message: `exercise ${i}` })))
+    check(ronnie.result.status === 'limit' && !ronnie.insert, "after Ronnie's 3 requests in a day, nothing more")
+    const yesterday = await run(Array.from({ length: 3 }, (_, i) => ({ created_at: at(25 + i), kind: 'exercise', source: 'ronnie', message: `exercise ${i}` })))
+    check(yesterday.result.status === 'sent', 'the day is the last 24 hours: yesterday\'s 3 leave room')
+    const none = createSupabaseRonnieData(fakeSupabase(() => ({ data: null, error: null })), 'u1', FIXTURE_TIME_ZONE, null)
+    check(JSON.stringify(await none.requestExercise({ name: 'x', message: 'x', language: 'en' })) === '{"error":"Requests are not available"}', 'without the service-role client, it says so')
 }
 
 // Memory notes go through the service-role client, always for this user; without it there is no memory
