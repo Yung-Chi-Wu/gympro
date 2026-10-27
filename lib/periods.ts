@@ -65,15 +65,26 @@ export function cycleDayOf(cycle: CycleSettings, date: string): number {
     return (((since % cycle.cycleLength) + cycle.cycleLength) % cycle.cycleLength) + 1
 }
 
+/** The dates the user changed in 課表's calendar (cycle_date_changes): the routine each trains instead, or null for a rest day */
+export type DateChanges = ReadonlyMap<string, string | null>
+
 /**
- * The day of the cycle whose routine a date trains, or null when it plans none: before the cycle
- * starts, or a date the user made a rest day (cycle_rest_days). Today, Ronnie, 課表's calendar,
- * 紀錄's counts and the report all ask this, so a rest day is one everywhere: nothing is planned,
- * so nothing is missed, and the round has that many fewer sets.
+ * The routine a date trains, or null when it plans none: before the cycle starts, on the cycle's
+ * rest days, or on a date the user made a rest day. A date the user changed trains the routine
+ * they picked, and the days around it keep the cycle's: nothing moves. Today, Ronnie, 課表's
+ * calendar, 紀錄's counts and the report all ask this, so a changed day is the same everywhere:
+ * its routine is the plan, and the one it replaced isn't missed, the round just has its sets fewer.
  */
-export function plannedCycleDay(cycle: CycleSettings, date: string, restDates: ReadonlySet<string>): number | null {
-    if (date < cycle.startDate || restDates.has(date)) return null
-    return cycleDayOf(cycle, date)
+export function plannedRoutineId(
+    cycle: CycleSettings,
+    routineByDay: Readonly<Record<number, string | null>>,
+    date: string,
+    changes: DateChanges
+): string | null {
+    if (date < cycle.startDate) return null
+    const changed = changes.get(date)
+    if (changed !== undefined) return changed
+    return routineByDay[cycleDayOf(cycle, date)] ?? null
 }
 
 /** Last day of the period that starts on periodStart. */

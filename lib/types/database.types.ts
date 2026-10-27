@@ -80,25 +80,35 @@ export type Database = {
           },
         ]
       }
-      cycle_rest_days: {
+      cycle_date_changes: {
         Row: {
+          change_date: string
           created_at: string
-          rest_date: string
+          routine_id: string | null
           training_cycle_id: string
         }
         Insert: {
+          change_date: string
           created_at?: string
-          rest_date: string
+          routine_id?: string | null
           training_cycle_id: string
         }
         Update: {
+          change_date?: string
           created_at?: string
-          rest_date?: string
+          routine_id?: string | null
           training_cycle_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "cycle_rest_days_training_cycle_id_fkey"
+            foreignKeyName: "cycle_date_changes_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cycle_date_changes_training_cycle_id_fkey"
             columns: ["training_cycle_id"]
             isOneToOne: false
             referencedRelation: "training_cycles"
