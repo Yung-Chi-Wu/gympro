@@ -39,6 +39,18 @@
   /* 歡迎頁對話範例逐句浮現（只在 motion-safe 下使用） */
   --animate-rise: rise 0.5s ease-out both;
 
+  /* The calendar's 換課表 sheet slides up (CycleCalendar, motion-safe only) */
+  --animate-sheet: sheet 0.2s ease-out both;
+
+  @keyframes sheet {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: none;
+    }
+  }
+
   @keyframes rise {
     from {
       opacity: 0;

@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { RoutineWithExercises } from '@/app/(app)/routines/page'
@@ -19,7 +20,8 @@ import { Icon } from './Icon'
 // 課表's calendar: the month with what the training cycle plans for each day (lib/cycle-calendar.ts)
 // and what was trained, and the picked day under it (beside it when there is room). A day still
 // ahead lists its routine's exercises, each with a ✎ that opens it to change right there, and can
-// be given another routine or made a rest day, or a rest day a routine: the cycle doesn't move, and
+// be given another routine or made a rest day, or a rest day a routine, from 換課表 by its title (a
+// sheet of what it can become): the cycle doesn't move, and
 // the routine the day had isn't done that round, so the round has its sets fewer. A day's round
 // is lightly filled across the month: a round is one report's period, and the report is linked
 // from the day. Past days come from the same reads as 紀錄, and a trained day links to its page
@@ -39,9 +41,6 @@ const RING = [
 ]
 const PLAIN_FILL = 'bg-muted'
 const PLAIN_RING = 'shadow-[inset_0_0_0_1.5px_var(--color-muted)]'
-
-/** The day picker's value for a rest day; routines go by their ids */
-const REST = 'rest'
 
 /** How many months ahead the calendar goes */
 const MONTHS_AHEAD = 12
@@ -243,6 +242,7 @@ export function CycleCalendar({
             <DayPanel
                 day={picked}
                 slot={colorOf(picked)}
+                colors={colors}
                 trained={days[picked.date]}
                 today={today}
                 cycle={cycle}
@@ -280,6 +280,8 @@ function Dot({ day, slot }: { day: CalendarDay; slot: number | null }) {
 interface DayPanelProps {
     day: CalendarDay
     slot: number | null
+    /** Each routine's color slot, for the dots of what the day can become */
+    colors: Map<string, number>
     trained: HistoryDay | undefined
     today: string
     cycle: CalendarCycle
@@ -301,11 +303,12 @@ interface DayPanelProps {
  * The picked day: what was trained, or what it plans, with the routine to change and the day's
  * routine to pick (or a rest day) when it is still ahead; then its round and the round's report
  */
-function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, report, language, units, routines, routineEditor, dayChange, onChangeDay }: DayPanelProps) {
+function DayPanel({ day, slot, colors, trained, today, cycle, routineById, exercises, report, language, units, routines, routineEditor, dayChange, onChangeDay }: DayPanelProps) {
     const t = useTranslations('routines')
     const th = useTranslations('history')
     const ts = useTranslations('sets')
     const zh = language === 'zh-TW'
+    const [changing, setChanging] = useState(false)
     const routine = day.routineId ? routineById.get(day.routineId) ?? null : null
     const nameOf = (exerciseId: string, fallback: string) =>
         (zh && exercises.find((ex) => ex.id === exerciseId)?.name_zh_tw) || fallback
@@ -315,10 +318,10 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
     // Ahead, or today before its first set, a day can be given another routine or a rest day
     const changeable = day.status === 'planned' || day.status === 'today' || (day.status === 'rest' && day.cycleDay !== null && day.date >= today)
     // The routines and the rest day it can be changed to: all but what it has, the cycle's own marked
-    const changeTo = [
-        ...routines.filter((r) => r.id !== day.routineId).map((r) => ({ id: r.id as string | null, value: r.id, name: r.name })),
-        ...(day.routineId ? [{ id: null, value: REST, name: t('restDay') }] : []),
-    ].map(({ id, value, name }) => ({ value, label: day.changed && id === day.cycleRoutineId ? t('calendar.original', { name }) : name }))
+    const changeTo: ChangeOption[] = [
+        ...routines.filter((r) => r.id !== day.routineId).map((r) => ({ id: r.id as string | null, name: r.name, slot: colors.get(r.id) ?? null })),
+        ...(day.routineId ? [{ id: null, name: t('restDay'), slot: null }] : []),
+    ].map((o) => ({ ...o, original: day.changed && o.id === day.cycleRoutineId }))
     // What the cycle had for a day the user changed
     const instead = day.changed && day.cycleRoutineId !== day.routineId
         ? day.cycleRoutineId
@@ -369,12 +372,25 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
                 {day.cycleDay && <span>{t('calendar.dayOf', { day: day.cycleDay, length: cycle.cycleLength })}</span>}
             </div>
             <div className="space-y-0.5">
-                <h2 className="flex items-center gap-2 text-xl font-bold">
-                    {(day.status === 'done' || day.routineId) && (
-                        <span className={`size-2.5 shrink-0 rounded-full ${slot === null ? PLAIN_FILL : FILL[slot]}`} />
+                <div className="flex items-center justify-between gap-3">
+                    <h2 className="flex min-w-0 items-center gap-2 text-xl font-bold">
+                        {(day.status === 'done' || day.routineId) && (
+                            <span className={`size-2.5 shrink-0 rounded-full ${slot === null ? PLAIN_FILL : FILL[slot]}`} />
+                        )}
+                        {title}
+                    </h2>
+                    {changeable && changeTo.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setChanging(true)}
+                            disabled={dayChange?.saving}
+                            aria-haspopup="dialog"
+                            className="-my-2 inline-flex min-h-11 shrink-0 items-center text-[15px] font-semibold text-accent disabled:opacity-50 md:min-h-8 md:text-sm"
+                        >
+                            {t('calendar.change')}
+                        </button>
                     )}
-                    {title}
-                </h2>
+                </div>
                 {status && <p className="text-[15px] text-muted md:text-sm">{status}</p>}
             </div>
 
@@ -421,22 +437,13 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
                     {t('calendar.startLogging')}
                 </Link>
             )}
-            {changeable && changeTo.length > 0 && (
-                <label className="flex items-center gap-3">
-                    <span className="shrink-0 text-[15px] text-muted md:text-sm">{t('calendar.changeTo')}</span>
-                    {/* What the day can become, never what it is: picking the cycle's own gives the day back */}
-                    <select
-                        value=""
-                        onChange={(e) => onChangeDay(e.target.value === REST ? null : e.target.value)}
-                        disabled={dayChange?.saving}
-                        className="h-11 min-w-0 flex-1 rounded-[9px] border border-line bg-card px-3 text-base disabled:opacity-50 md:h-auto md:max-w-60 md:px-2 md:py-1.5 md:text-sm"
-                    >
-                        <option value="" disabled>{t('calendar.choose')}</option>
-                        {changeTo.map((o) => (
-                            <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                    </select>
-                </label>
+            {changing && (
+                <ChangeDaySheet
+                    title={t('calendar.changeTitle', { date: formatDay(day.date, language) })}
+                    options={changeTo}
+                    onPick={onChangeDay}
+                    onClose={() => setChanging(false)}
+                />
             )}
             {dayChange?.error && <p role="alert" className="text-sm text-miss">{dayChange.error}</p>}
 
@@ -457,5 +464,73 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
                 ) : null}
             </div>
         </section>
+    )
+}
+
+interface ChangeOption {
+    /** The routine, or null for a rest day */
+    id: string | null
+    name: string
+    slot: number | null
+    /** What the cycle has for the day, which the user changed: picking it gives the day back */
+    original: boolean
+}
+
+/**
+ * What a day can become, never what it is, from the bottom on a phone and centered from md. A
+ * native modal dialog: it sits over the tab bar, keeps focus inside, closes on Escape and gives
+ * focus back to 換課表. It also closes on a pick, Cancel or a tap outside. It is put under body, out
+ * of the panel's aria-live, so a screen reader reads it once, as the dialog
+ */
+function ChangeDaySheet({ title, options, onPick, onClose }: {
+    title: string
+    options: ChangeOption[]
+    onPick: (routineId: string | null) => void
+    onClose: () => void
+}) {
+    const t = useTranslations('routines')
+    const ref = useRef<HTMLDialogElement>(null)
+    const titleId = useId()
+    useEffect(() => {
+        ref.current?.showModal()
+    }, [])
+    const close = () => ref.current?.close()
+
+    return createPortal(
+        <dialog
+            ref={ref}
+            onClose={onClose}
+            onClick={(e) => { if (e.target === e.currentTarget) close() }}
+            aria-labelledby={titleId}
+            className="mx-0 mt-auto mb-0 w-full max-w-full overscroll-contain bg-transparent p-0 backdrop:bg-black/40 motion-safe:animate-sheet md:m-auto md:max-w-sm"
+        >
+            <div className="rounded-t-[18px] bg-card px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-ink md:rounded-[14px] md:p-5">
+                <h3 id={titleId} className="text-base font-bold">{title}</h3>
+                <p className="text-[13px] text-muted">{t('calendar.changeNote')}</p>
+                <ul className="mt-3 border-b border-line">
+                    {options.map((o) => (
+                        <li key={o.id ?? 'rest'} className="border-t border-line">
+                            <button
+                                type="button"
+                                onClick={() => { close(); onPick(o.id) }}
+                                className="flex min-h-12 w-full items-center gap-2.5 text-left text-base transition-colors hover:text-accent md:min-h-10 md:text-[15px]"
+                            >
+                                <span className={`size-2.5 shrink-0 rounded-full ${o.id === null ? '' : o.slot === null ? PLAIN_FILL : FILL[o.slot]}`} />
+                                <span className="min-w-0 flex-1">{o.name}</span>
+                                {o.original && <span className="shrink-0 text-[13px] text-muted">{t('calendar.originalTag')}</span>}
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+                <button
+                    type="button"
+                    onClick={close}
+                    className="mt-4 min-h-11 w-full rounded-[9px] border border-line bg-done text-[15px] font-semibold md:min-h-9 md:text-sm"
+                >
+                    {t('cancel')}
+                </button>
+            </div>
+        </dialog>,
+        document.body,
     )
 }
