@@ -9,8 +9,8 @@ import { timeZoneOf } from '@/lib/time-zone'
 import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
 import { ServerTimingMark } from '@/components/ServerTimingMark'
 import { ReadYourWrites } from '@/components/ReadYourWrites'
-import { calendarRange } from '@/lib/cycle-calendar'
-import { loadFirstTrainedDate, loadHistoryDays, loadReportStatuses } from '@/lib/history-data'
+import { calendarRange, calendarReadAhead } from '@/lib/cycle-calendar'
+import { historyDaysOf, loadReportStatuses, readFirstTrainedAt, readHistoryRowsSplit } from '@/lib/history-data'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
 
@@ -50,15 +50,18 @@ interface RawRoutineRow {
     routine_exercises: RawRoutineExerciseRow[]
 }
 
-// One round: the profile, the exercise list, the routines and the cycle with its days. With a
-// cycle, a second for its calendar's month: what was trained, the rounds' reports, and the first
-// day ever trained.
+// One round: the profile, the exercise list, the routines, the cycle with its days, and the
+// calendar's month: what was trained, the rounds' reports, and the first day ever trained. The
+// month's range needs the user's zone and cycle, so it is read as wide as any of them can make it
+// (calendarReadAhead) and cut to the calendar's range after; a user with no cycle has no calendar,
+// and these reads cost them nothing, being in the same round.
 export default async function RoutinesPage() {
     const user = await getSessionUser()
     if (!user) redirect('/login')
     const supabase = await createClient()
+    const ahead = calendarReadAhead(new Date().toISOString().slice(0, 10))
 
-    const [{ profile }, exercisesResult, recentIds, routinesResult, cycleResult] = await Promise.all([
+    const [{ profile }, exercisesResult, recentIds, routinesResult, cycleResult, historyRows, reports, firstTrainedAt] = await Promise.all([
         getFrameProfile(),
         supabase
             .from('exercises')
@@ -82,6 +85,9 @@ export default async function RoutinesPage() {
             .eq('user_id', user.id)
             .order('day_index', { referencedTable: 'cycle_days' })
             .maybeSingle(),
+        readHistoryRowsSplit(supabase, user.id, ahead.range, ahead.weeksStart),
+        loadReportStatuses(supabase, user.id, ahead.range),
+        readFirstTrainedAt(supabase, user.id),
     ])
     const language = await getEffectiveLanguage(profile)
     const cycle = cycleResult.data
@@ -109,12 +115,12 @@ export default async function RoutinesPage() {
     let calendar = null
     if (cycle) {
         const range = calendarRange(today.slice(0, 7), { cycleLength: cycle.cycle_length, startDate: cycle.start_date })
-        const [days, reports, firstDate] = await Promise.all([
-            loadHistoryDays(supabase, { userId: user.id, range, timeZone, language }),
-            loadReportStatuses(supabase, user.id, range),
-            loadFirstTrainedDate(supabase, user.id, timeZone),
-        ])
-        calendar = { range, days, reports, firstDate }
+        calendar = {
+            range,
+            days: historyDaysOf(historyRows, { range, timeZone, language }),
+            reports: reports.filter((r) => r.periodStart >= range.start && r.periodStart <= range.end),
+            firstDate: firstTrainedAt && localDate(timeZone, new Date(firstTrainedAt)),
+        }
     }
     const weightUnit: WeightUnit = profile?.weight_unit === 'lb' ? 'lb' : 'kg'
     const distanceUnit: DistanceUnit = profile?.distance_unit === 'mi' ? 'mi' : 'km'
