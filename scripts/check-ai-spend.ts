@@ -3,6 +3,8 @@
 // - asking for a slot, against a fake database: a refusal says why and until when, a busy user
 //   waits a while for their last request, a slot is let go once, and when the limits themselves
 //   fail the request goes ahead and the failure is reported;
+// - a request's cost is saved even when what was said can't be (U+0000, a lone surrogate): the
+//   routes refuse such text first, and a trace the database refuses for it is saved without it;
 // - in the app's code, only lib/ai/model-client.ts makes a model client or reads the API key, so
 //   every model call has asked first, and every feature the app traces is one the limits count.
 // The code is read as syntax (the TypeScript parser), not text; a known bad file is checked first
@@ -12,6 +14,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, normalize } from 'node:path'
 import ts from 'typescript'
 import { askForSlot, LIMITED_FEATURES, NEW_ACCOUNT_DAYS, SLOT_SECONDS, spendLimitsFrom, type SlotDeps } from '../lib/ai/spend-limits'
+import { recordTrace, type Trace } from '../lib/ai/trace'
+import { isStorableText } from '../lib/text-limits'
 
 let failed = 0
 const check = (name: string, ok: boolean, detail = '') => {
@@ -243,7 +247,48 @@ check('only lib/ai/model-client.ts makes model clients or reads the key, and eve
     check('each of them asks for a slot', unasked.length === 0, unasked.join(', '))
 }
 
-checkSlots().then(() => {
+// ---------- A request's cost is always saved ----------
+{
+    const kept = ['練背 lat pulldown', '💪 emoji pairs', '']
+    const refused = ['a\u0000b', 'a\ud800b', 'a\udc00b', '\udc00\ud800', 'end\ud83d', '\udc00start', '💪\udcaa']
+    check('text the database keeps passes: Chinese, English, emoji (surrogate pairs), empty', kept.every(isStorableText))
+    check('text it refuses is caught: U+0000, a lone high or low surrogate, a pair the wrong way round, an extra low after a pair',
+        refused.every((t) => !isStorableText(t)), refused.filter(isStorableText).map((t) => JSON.stringify(t)).join(', '))
+}
+
+async function checkTraces() {
+    const usage = [{ input_tokens: 1000, output_tokens: 100 }] as Trace['usage']
+    const trace: Trace = { userId: 'u1', feature: 'ronnie', model: 'claude-sonnet-5-5', status: 'ok', latencyMs: 10, usage, input: { message: 'a\u0000b' }, output: { reply: 'ok' } }
+    // A fake ai_traces: each insert takes the next answer, and the rows it was given are kept
+    const fake = (answers: ({ message: string; code: string } | null)[]) => {
+        const rows: Record<string, unknown>[] = []
+        const supabase = { from: () => ({ insert: async (row: Record<string, unknown>) => { rows.push(row); return { error: answers[rows.length - 1] ?? null } } }) }
+        return { rows, supabase: supabase as unknown as Parameters<typeof recordTrace>[0] }
+    }
+    const refusedText = { message: 'unsupported Unicode escape sequence', code: '22P05' }
+
+    const saved = fake([null])
+    check('a trace that saves is written once and says nothing', (await recordTrace(saved.supabase, trace)) === null && saved.rows.length === 1)
+
+    const retried = fake([refusedText, null])
+    const said = await recordTrace(retried.supabase, trace)
+    const [first, second] = retried.rows
+    check('a trace refused for its text is saved again without input and output, with the same cost',
+        retried.rows.length === 2 && JSON.stringify(second.input) === JSON.stringify({ unsaved: refusedText.message }) && JSON.stringify(second.output) === JSON.stringify({ unsaved: refusedText.message })
+            && typeof first.cost_usd === 'number' && first.cost_usd > 0 && second.cost_usd === first.cost_usd && second.user_id === 'u1',
+        JSON.stringify(retried.rows.map((r) => ({ input: r.input, cost: r.cost_usd }))))
+    check('and says so, so it is still reported', !!said && said.startsWith('Saved without input and output'), String(said))
+
+    const twice = fake([refusedText, { message: 'still refused', code: '22P05' }])
+    const both = await recordTrace(twice.supabase, trace)
+    check('when the second insert fails too, both errors are said', twice.rows.length === 2 && !!both?.includes('still refused'), String(both))
+
+    // Another error (the network, a conflict) may mean the row is there: a second insert could count it twice
+    const other = fake([{ message: 'fetch failed', code: '' }])
+    check('any other error is not retried', (await recordTrace(other.supabase, trace)) === 'fetch failed' && other.rows.length === 1)
+}
+
+Promise.all([checkSlots(), checkTraces()]).then(() => {
     console.log(failed ? `\n${failed} failed` : '\nall passed')
     process.exit(failed ? 1 : 0)
 })

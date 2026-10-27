@@ -74,12 +74,12 @@ function capped(value: unknown): unknown {
 
 /**
  * Writes one trace. Never throws: a trace that fails to save must not break the feature it records.
- * Says why it wasn't saved, or null.
+ * Says what went wrong, or null; a trace saved without its input and output says so too.
  */
 export async function recordTrace(supabase: SupabaseClient, trace: Trace): Promise<string | null> {
     try {
         const totals = usageTotals(trace.usage)
-        const { error } = await supabase.from('ai_traces').insert({
+        const row = {
             ...(trace.id ? { id: trace.id } : {}),
             user_id: trace.userId,
             feature: trace.feature,
@@ -97,9 +97,17 @@ export async function recordTrace(supabase: SupabaseClient, trace: Trace): Promi
             app_version: trace.appVersion ?? null,
             input: capped(trace.input),
             output: capped(trace.output),
-        })
-        if (error) console.error(`AI trace not saved (${trace.feature}): ${error.message}`)
-        return error?.message ?? null
+        }
+        const { error } = await supabase.from('ai_traces').insert(row)
+        if (!error) return null
+        console.error(`AI trace not saved (${trace.feature}): ${error.message}`)
+        // A value the database refuses (class 22: U+0000 or a lone surrogate in what was said) loses
+        // only what was said: the row with the cost is saved without it, because the spend limits
+        // and the cost alarm count saved traces, and a request that isn't counted could be repeated
+        if (!error.code?.startsWith('22')) return error.message
+        const unsaved = { unsaved: error.message }
+        const { error: again } = await supabase.from('ai_traces').insert({ ...row, input: unsaved, output: unsaved })
+        return again ? `${error.message}; and without input and output: ${again.message}` : `Saved without input and output: ${error.message}`
     } catch (err) {
         console.error(`AI trace not saved (${trace.feature}):`, err)
         return err instanceof Error ? err.message : String(err)

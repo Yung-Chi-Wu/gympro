@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { buildSystemPrompt } from '@/lib/ronnie/prompt'
 import { createRonnieExecutor } from '@/lib/ronnie/executor'
-import { RONNIE_MODEL, runRonnieTurn } from '@/lib/ronnie/agent'
+import { recentHistory, RONNIE_MODEL, runRonnieTurn } from '@/lib/ronnie/agent'
 import { nextKnowledgeKey } from '@/lib/ronnie/citations'
 import { loadRonnieContext, loadUserToday } from '@/lib/ronnie/context'
 import {
@@ -22,6 +22,7 @@ import { refusedResponse, takeAiSlot } from '@/lib/ai/model-client'
 import { flagAfterResponse, traceAfterResponse } from '@/lib/ai/trace-after'
 import { flagForClear, flagsForMessage } from '@/lib/ronnie/signals'
 import { reportError } from '@/lib/report-error'
+import { isStorableText } from '@/lib/text-limits'
 
 // Ronnie lives in lib/ronnie so the eval can run the same agent against fixture
 // data; this route authenticates, keeps the day's conversation on the server, and
@@ -33,6 +34,13 @@ import { reportError } from '@/lib/report-error'
 // Each reply keeps its trace's id, so what the user does next can flag it (lib/ronnie/signals.ts):
 // a correction, an edit, a clear right after it. A message past the spend limits
 // (lib/ai/spend-limits.ts) is answered 429 and not kept.
+
+// Vercel's limit for the route, which after() shares (the trace and the slot's release run in it).
+// The turn stops at TURN_MS so they have time; each model call gives up after a minute and a half
+// and retries once, so a stalled call can't hold the user's slot (lib/ai/spend-limits.ts).
+export const maxDuration = 300
+const TURN_MS = 240_000
+const RONNIE_CLIENT = { timeout: 90_000, maxRetries: 1 }
 
 async function authed() {
     const supabase = await createClient()
@@ -68,6 +76,7 @@ export async function POST(request: Request) {
     let message = typeof body?.message === 'string' ? body.message.trim() : ''
     if (!message) return NextResponse.json({ error: 'Empty message' }, { status: 400 })
     if (message.length > MAX_MESSAGE_CHARS) return NextResponse.json({ error: 'Message too long' }, { status: 413 })
+    if (!isStorableText(message)) return NextResponse.json({ error: 'Message has characters that cannot be saved' }, { status: 400 })
     message = asTypedMessage(message)
 
     // The conversation is written with the service role only (lib/ronnie/conversation.ts)
@@ -75,7 +84,7 @@ export async function POST(request: Request) {
     const ctx = await loadRonnieContext(supabase, user.id, language)
     let conv = await loadConversation(supabase, user.id, ctx.today)
     // Asked before anything is written, so a refused message changes nothing
-    const { slot, refused } = await takeAiSlot(user.id)
+    const { slot, refused } = await takeAiSlot(user.id, RONNIE_CLIENT)
     if (refused) return refusedResponse(refused)
     const editFrom = Number.isInteger(body?.editFrom) ? Number(body.editFrom) : null
     // What this message says about the replies before it: a correction, or an edit that replaces one
@@ -98,17 +107,20 @@ export async function POST(request: Request) {
         // Past the keys earlier search results today gave, which the model may still see
         knowledgeKeyStart: nextKnowledgeKey(conv.messages),
     })
-    const sent = [...conv.messages, { role: 'user' as const, content: message }]
-    // The trace keeps what Ronnie was given: the system prompt with the user's context, and today's conversation so far
-    const traceInput = { language, message, editFrom, system, history: conv.messages }
+    // Today's conversation so far, its newest turns when it is long (agent.ts)
+    const history = recentHistory(conv.messages)
+    const sent = [...history, { role: 'user' as const, content: message }]
+    // The trace keeps what Ronnie was given: the system prompt with the user's context, and the history sent
+    const traceInput = { language, message, editFrom, system, history, ...(history.length < conv.messages.length ? { olderNotSent: conv.messages.length - history.length } : {}) }
     const started = Date.now()
     // Made here, so the reply can carry it before the trace is written after the response
     const traceId = crypto.randomUUID()
 
     try {
-        // Stop in the chat window closes the request: the agent then stops between steps, and what it
-        // already changed is saved with the conversation instead of being lost
-        const turn = await runRonnieTurn({ client: slot.client, system, messages: sent, executor, language, signal: request.signal })
+        // Stop in the chat window closes the request, and TURN_MS stops it too: the agent then stops
+        // between steps, and what it already changed is saved with the conversation instead of being lost
+        const signal = AbortSignal.any([request.signal, AbortSignal.timeout(TURN_MS)])
+        const turn = await runRonnieTurn({ client: slot.client, system, messages: sent, executor, language, signal })
         const proposals = executor.proposals.map((p) => ({ ...p, status: 'pending' as const }))
         const recommendations = executor.recommendations
         const plans = executor.plans
@@ -125,7 +137,7 @@ export async function POST(request: Request) {
         }
         // Only what this turn added: the user's message and everything after it
         const error = await appendConversation(admin, user.id, ctx.today, {
-            messages: turn.messages.slice(conv.messages.length),
+            messages: turn.messages.slice(history.length),
             display: [{ kind: 'user', text: message }, reply],
         })
         if (error) reportError('ronnie/conversation-save', error, { userId: user.id })
