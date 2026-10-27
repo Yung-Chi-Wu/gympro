@@ -185,8 +185,9 @@ Output format:
       collected,
     })
   }
-  // Past the spend limits (lib/ai/spend-limits.ts), Coach G goes on without the model
-  const { slot } = await takeAiSlot(user.id)
+  // Past the spend limits (lib/ai/spend-limits.ts), Coach G goes on without the model, and so it
+  // does when the model is slow: the line is a nicety, and a stalled call would hold the slot
+  const { slot } = await takeAiSlot(user.id, { timeout: 10_000, maxRetries: 0 })
   if (!slot) return fallback()
   const started = Date.now()
   try {

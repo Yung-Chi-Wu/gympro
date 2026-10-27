@@ -15,7 +15,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..', '..')
 execFileSync(join(root, 'lambda/ai-worker/node_modules/.bin/esbuild'), ['evals/ronnie/check-entry.ts', '--bundle', '--platform=node', '--target=node20', '--format=cjs', '--outfile=evals/ronnie/dist/check.cjs', '--log-level=warning'], { cwd: root, stdio: 'inherit' })
 const {
-    runRonnieTurn, stripMarkdown, createRonnieExecutor, MAX_INCLUDE, createSupabaseRonnieData,
+    MAX_HISTORY_CHARS, recentHistory, runRonnieTurn, stripMarkdown, createRonnieExecutor, MAX_INCLUDE, createSupabaseRonnieData,
     appendConversation, replaceConversation, withoutCitationNumbers, asTypedMessage, EVENT_PREFIX,
     createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER,
     buildSystemPrompt, MEDICINE_RULE, fixtureNotes, memoryLines, MAX_NOTES, MAX_EXERCISE_NOTES_SHOWN, MAX_OTHER_NOTES,
@@ -862,6 +862,32 @@ for (const [typed, want] of [
 ]) {
     const got = asTypedMessage(typed)
     check(got === want && !got.startsWith(EVENT_PREFIX), `typed ${JSON.stringify(typed)} reads ${JSON.stringify(got)}`)
+}
+
+// How much of today's history a turn sends: the newest turns that fit, cut only where a turn starts
+{
+    const turn = (n, toolChars = 100) => [
+        { role: 'user', content: `message ${n}` },
+        { role: 'assistant', content: [{ type: 'tool_use', id: `t${n}`, name: 'get_today_workout', input: {} }] },
+        { role: 'user', content: [{ type: 'tool_result', tool_use_id: `t${n}`, content: 'x'.repeat(toolChars) }] },
+        { role: 'assistant', content: [{ type: 'text', text: `reply ${n}` }] },
+    ]
+    const day = (count, toolChars) => Array.from({ length: count }, (_, n) => turn(n, toolChars)).flat()
+    const short = day(5)
+    check(recentHistory(short).length === short.length, 'a short day goes whole')
+    // Old tool results go as a 400-character placeholder, so the size counted is what is sent
+    const bulky = day(20, 5_000)
+    check(recentHistory(bulky).length === bulky.length, `a day that fits once old tool results are compacted goes whole (${recentHistory(bulky).length} of ${bulky.length})`)
+    const long = day(400)
+    const kept = recentHistory(long)
+    const sizeOf = (messages) => messages.reduce((n, m) => n + JSON.stringify(m).length, 0)
+    check(kept.length > 0 && kept.length < long.length && sizeOf(kept) <= MAX_HISTORY_CHARS && sizeOf(long.slice(-kept.length - 4)) > MAX_HISTORY_CHARS && kept[kept.length - 1] === long[long.length - 1],
+        `a long day sends only its newest turns, as many as fit (${kept.length} of ${long.length})`)
+    check(kept[0].role === 'user' && typeof kept[0].content === 'string', 'and starts where a turn starts, so no tool result comes without its call')
+    const events = long.map((m, i) => (i % 8 === 0 ? { role: 'user', content: `${EVENT_PREFIX} added` } : m))
+    check(typeof recentHistory(events)[0].content === 'string', 'an app event starts a turn too')
+    const huge = [...short, { role: 'user', content: 'y'.repeat(MAX_HISTORY_CHARS + 1) }, { role: 'assistant', content: [{ type: 'text', text: 'ok' }] }]
+    check(recentHistory(huge).length === 0, 'when the last turn alone is over, nothing older is sent')
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll agent and data checks pass')
