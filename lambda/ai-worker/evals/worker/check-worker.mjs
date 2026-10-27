@@ -324,25 +324,31 @@ const client = (answers, delayMs = 0) => {
     check(`the brief's ${w.ZH_TERMS.length} Chinese words are the app's`, !problems.length, problems.join('; '))
 }
 
-// The plan: a cycle that started after the period planned nothing in it, and a day the user made a
-// rest day plans nothing either
+// The plan: a cycle that started after the period planned nothing in it; a day the user made a rest
+// day plans nothing either, and a day they gave another routine (or a rest day they gave one) plans that
 {
-    const fake = (startDate, owner = 'u1', restDates = []) => ({
+    const routine = (id, name, owner, exercise) => ({ id, user_id: owner, name, routine_exercises: [{ exercise_id: exercise, target_sets: 4 }] })
+    const ROUTINES = { push: routine('push', 'Push', 'u1', 'e1'), legs: routine('legs', 'Legs', 'u1', 'e2'), theirs: routine('theirs', 'Theirs', 'u2', 'e9') }
+    // The cycle has Push on its first day only; changes are [date, routine id or null]
+    const fake = (startDate, owner = 'u1', changes = []) => ({
         from(table) {
-            // The rest days the read asks for: those in the period
+            // The changes the read asks for: those in the period
             const range = {}
-            const rest = () => restDates.filter((d) => (!range.gte || d >= range.gte) && (!range.lte || d <= range.lte)).map((rest_date) => ({ rest_date }))
-            const data = () => table === 'training_cycles' ? { id: 'c1', cycle_length: 7, start_date: startDate, cycle_rest_days: rest() }
-                : [{ day_index: 1, routines: { user_id: owner, name: 'Push', routine_exercises: [{ exercise_id: 'e1', target_sets: 4 }] } }]
+            const changed = () => changes
+                .filter(([d]) => (!range.gte || d >= range.gte) && (!range.lte || d <= range.lte))
+                .map(([change_date, id]) => ({ change_date, routine_id: id, routines: id ? ROUTINES[id] : null }))
+            const data = () => table === 'training_cycles' ? { id: 'c1', cycle_length: 7, start_date: startDate, cycle_date_changes: changed() }
+                : [{ day_index: 1, routine_id: 'push', routines: { ...ROUTINES.push, user_id: owner } }]
             const b = {
                 select: () => b, eq: () => b, maybeSingle: () => b,
-                gte: (column, value) => { if (column === 'cycle_rest_days.rest_date') range.gte = value; return b },
-                lte: (column, value) => { if (column === 'cycle_rest_days.rest_date') range.lte = value; return b },
+                gte: (column, value) => { if (column === 'cycle_date_changes.change_date') range.gte = value; return b },
+                lte: (column, value) => { if (column === 'cycle_date_changes.change_date') range.lte = value; return b },
                 then: (r) => r({ data: data(), error: null }),
             }
             return b
         },
     })
+    const plans = (schedule) => JSON.stringify(schedule?.map((d) => [d.date, d.routine, d.plan.map((p) => p.exerciseId)]))
     const before = await w.fetchSchedule(fake('2026-09-01'), 'u1', '2026-10-05', 7)
     const after = await w.fetchSchedule(fake('2026-10-13'), 'u1', '2026-10-05', 7)
     const midway = await w.fetchSchedule(fake('2026-10-08'), 'u1', '2026-10-05', 7)
@@ -352,12 +358,21 @@ const client = (answers, delayMs = 0) => {
     check("a day pointing at another user's routine plans nothing from it", theirs?.length === 7 && theirs.every((d) => d.routine === null && !d.plan.length), JSON.stringify(theirs?.map((d) => d.routine)))
     check('a cycle that started during the period plans from its first day', midway?.length === 7 && midway.slice(0, 3).every((d) => d.routine === null) && midway[3].routine === 'Push', JSON.stringify(midway?.map((d) => d.routine)))
     // Push is on 10/6; the user made that day a rest day, and one in the next period too
-    const rested = await w.fetchSchedule(fake('2026-09-01', 'u1', ['2026-10-06', '2026-10-13']), 'u1', '2026-10-05', 7)
+    const rested = await w.fetchSchedule(fake('2026-09-01', 'u1', [['2026-10-06', null], ['2026-10-13', null]]), 'u1', '2026-10-05', 7)
     check('a day the user made a rest day plans nothing: not a missed session, and no sets it would have added',
         before?.find((d) => d.date === '2026-10-06')?.routine === 'Push' && rested?.length === 7 && rested.every((d) => d.routine === null && !d.plan.length),
         JSON.stringify(rested?.map((d) => [d.date, d.routine])))
-    const nextWeek = await w.fetchSchedule(fake('2026-09-01', 'u1', ['2026-10-06']), 'u1', '2026-10-12', 7)
+    const nextWeek = await w.fetchSchedule(fake('2026-09-01', 'u1', [['2026-10-06', null]]), 'u1', '2026-10-12', 7)
     check("a rest day in another period leaves this one's plan alone", nextWeek?.find((d) => d.date === '2026-10-13')?.routine === 'Push', JSON.stringify(nextWeek?.map((d) => [d.date, d.routine])))
+    // 10/6 given Legs instead of Push, and Thursday's rest day (10/8) given Push
+    const swapped = await w.fetchSchedule(fake('2026-09-01', 'u1', [['2026-10-06', 'legs'], ['2026-10-08', 'push']]), 'u1', '2026-10-05', 7)
+    const day = (date) => swapped?.find((d) => d.date === date)
+    check("a day given another routine plans that routine's sets, and not the one it replaced",
+        day('2026-10-06')?.routine === 'Legs' && JSON.stringify(day('2026-10-06')?.plan) === JSON.stringify([{ exerciseId: 'e2', sets: 4 }]), plans(swapped))
+    check('a rest day given a routine plans it, and the other days keep the cycle\'s',
+        day('2026-10-08')?.routine === 'Push' && swapped?.filter((d) => d.routine).length === 2, plans(swapped))
+    const foreign = await w.fetchSchedule(fake('2026-09-01', 'u1', [['2026-10-06', 'theirs']]), 'u1', '2026-10-05', 7)
+    check("a day changed to another user's routine plans nothing from it", foreign?.every((d) => d.routine === null && !d.plan.length), plans(foreign))
 }
 
 // The AI error alarms count failures: a Ronnie turn the user stopped is traced as an error, and isn't one

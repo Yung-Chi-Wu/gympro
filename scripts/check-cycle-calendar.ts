@@ -1,14 +1,15 @@
 // Free check of 課表's calendar (lib/cycle-calendar.ts): which day of the cycle a date is, what
-// each day shows, a day made a rest day, the month's weeks, each day's round (a report's period),
-// what the calendar reads for a month and the wider range 課表 reads it in ahead (in two at once),
-// the next workout after a rest day, the sessions a round plans and the routines' colors. Also
-// that the cycle day is worked out only in lib/periods.ts, and a date's plan read only through
-// plannedCycleDay, so the calendar, Today, Ronnie, 紀錄 and the report can't count it differently.
+// each day shows, a day given another routine or made a rest day, the month's weeks, each day's
+// round (a report's period), what the calendar reads for a month and the wider range 課表 reads it
+// in ahead (in two at once), the next workout after a rest day, the sessions a round plans and the
+// routines' colors. Also that the cycle day is worked out only in lib/periods.ts, and a date's plan
+// read only through plannedRoutineId, so the calendar, Today, Ronnie, 紀錄 and the report can't
+// count it differently.
 //   npm run check:cycle-calendar
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { calendarDay, calendarRange, calendarReadAhead, monthWeeks, nextPlanned, plannedSessions, routineColors, type CalendarCycle } from '../lib/cycle-calendar'
-import { addDays, cycleDayOf, MAX_CYCLE_DAYS, plannedCycleDay } from '../lib/periods'
+import { calendarDay, calendarRange, calendarReadAhead, isCyclesOwn, monthWeeks, nextPlanned, plannedSessions, routineColors, type CalendarCycle } from '../lib/cycle-calendar'
+import { addDays, cycleDayOf, MAX_CYCLE_DAYS, plannedRoutineId } from '../lib/periods'
 import { monthOf } from '../lib/history'
 import { historyDaysOf, readHistoryRows, readHistoryRowsSplit, type HistoryRows } from '../lib/history-data'
 import type { HistoryDay } from '../lib/history'
@@ -27,12 +28,14 @@ const seven: CalendarCycle = {
     cycleLength: 7,
     startDate: '2026-09-28',
     routineByDay: { 1: 'push', 2: 'pull', 3: 'legs', 4: 'push', 5: 'legs', 6: 'pull', 7: null },
-    restDates: new Set(),
+    changes: new Map(),
 }
 // Upper, lower, rest, full body: rounds that don't line up with weeks
-const four: CalendarCycle = { cycleLength: 4, startDate: '2026-10-01', routineByDay: { 1: 'upper', 2: 'lower', 3: null, 4: 'full' }, restDates: new Set() }
+const four: CalendarCycle = { cycleLength: 4, startDate: '2026-10-01', routineByDay: { 1: 'upper', 2: 'lower', 3: null, 4: 'full' }, changes: new Map() }
 // The 7-day cycle with tomorrow's push (10/26) and a past pull (10/24) made rest days
-const rested: CalendarCycle = { ...seven, restDates: new Set(['2026-10-26', '2026-10-24']) }
+const rested: CalendarCycle = { ...seven, changes: new Map([['2026-10-26', null], ['2026-10-24', null]]) }
+// And with Wednesday's legs (10/28) given push, and Sunday's rest (11/1) given pull
+const swapped: CalendarCycle = { ...seven, changes: new Map([['2026-10-28', 'push'], ['2026-11-01', 'pull']]) }
 const today = '2026-10-25'
 const trained = (date: string): HistoryDay => ({ date, routineNames: ['Push Day'], exercises: [{ exerciseId: 'e', name: 'Bench', logType: 'weight_reps', sets: [{ weightKg: 80, reps: 8 }] }], note: null } as unknown as HistoryDay)
 const noteOnly = (date: string): HistoryDay => ({ date, routineNames: [], exercises: [], note: 'tired' })
@@ -57,19 +60,35 @@ check('training on a rest day still counts as done', status(seven, '2026-10-18',
         before.status === 'none' && before.cycleDay === null && before.routineId === null, JSON.stringify(before))
     check('and training then is still shown', status(seven, '2026-09-25', trained('2026-09-25')) === 'done')
 }
-// ---------- A day made a rest day ----------
-check('a plan is read for a date only once the cycle has started and not on a rest day the user made',
-    plannedCycleDay(seven, '2026-10-26', new Set()) === 1 && plannedCycleDay(seven, '2026-10-26', new Set(['2026-10-26'])) === null
-    && plannedCycleDay(seven, '2026-09-27', new Set()) === null)
+// ---------- A day changed ----------
+{
+    const plan = (date: string, changes: Map<string, string | null>) => plannedRoutineId(seven, seven.routineByDay, date, changes)
+    check("a date's plan is the cycle's, once the cycle has started", plan('2026-10-26', new Map()) === 'push' && plan('2026-09-27', new Map()) === null)
+    check('a date the user changed trains their pick: another routine, a rest day, or a routine on a rest day',
+        plan('2026-10-26', new Map([['2026-10-26', 'legs']])) === 'legs' && plan('2026-10-26', new Map([['2026-10-26', null]])) === null
+        && plan('2026-11-01', new Map([['2026-11-01', 'pull']])) === 'pull')
+    check('a change before the cycle starts plans nothing still', plan('2026-09-27', new Map([['2026-09-27', 'push']])) === null)
+}
 {
     const ahead = calendarDay('2026-10-26', rested, today, undefined)
-    check('a day ahead made a rest day plans nothing, keeps its cycle day and remembers its routine',
-        ahead.status === 'rest' && ahead.routineId === null && ahead.cycleDay === 1 && ahead.skippedRoutineId === 'push', JSON.stringify(ahead))
+    check('a day ahead made a rest day plans nothing, keeps its cycle day and says what the cycle had',
+        ahead.status === 'rest' && ahead.routineId === null && ahead.cycleDay === 1 && ahead.changed && ahead.cycleRoutineId === 'push', JSON.stringify(ahead))
     const past = calendarDay('2026-10-24', rested, today, undefined)
-    check('a past one is rest, not missed', past.status === 'rest' && past.skippedRoutineId === 'pull', JSON.stringify(past))
+    check('a past one is rest, not missed', past.status === 'rest' && past.changed && past.cycleRoutineId === 'pull', JSON.stringify(past))
     check('training on it anyway is done', calendarDay('2026-10-26', rested, today, trained('2026-10-26')).status === 'done')
-    check("the cycle's own rest days have no routine to remember", calendarDay('2026-10-25', rested, today, undefined).skippedRoutineId === null)
+    const own = calendarDay('2026-10-25', rested, today, undefined)
+    check("the cycle's own rest days are not changed and have no routine", !own.changed && own.cycleRoutineId === null, JSON.stringify(own))
     check('the next day of the cycle is planned as before: nothing moves', calendarDay('2026-10-27', rested, today, undefined).routineId === 'pull')
+}
+{
+    const wed = calendarDay('2026-10-28', swapped, today, undefined)
+    check('a day given another routine plans it, and says the cycle had another',
+        wed.status === 'planned' && wed.routineId === 'push' && wed.changed && wed.cycleRoutineId === 'legs' && wed.cycleDay === 3, JSON.stringify(wed))
+    const sun = calendarDay('2026-11-01', swapped, today, undefined)
+    check('a rest day given a routine plans it, and says the cycle had none', sun.status === 'planned' && sun.routineId === 'pull' && sun.changed && sun.cycleRoutineId === null, JSON.stringify(sun))
+    check('the days around them keep the cycle\'s', calendarDay('2026-10-27', swapped, today, undefined).routineId === 'pull' && calendarDay('2026-10-29', swapped, today, undefined).routineId === 'push')
+    check("picking the cycle's own routine, or its rest, gives a day back", isCyclesOwn(swapped, '2026-10-28', 'legs') && isCyclesOwn(swapped, '2026-11-01', null)
+        && !isCyclesOwn(swapped, '2026-10-28', 'push') && !isCyclesOwn(swapped, '2026-10-28', null))
 }
 
 check("a day carries its cycle day and routine", same(
@@ -167,17 +186,19 @@ check("a month is read from the start of the round its first week opens in, so t
 // ---------- The next workout ----------
 check("after today's rest day, tomorrow's push", same(nextPlanned(seven, today), { date: '2026-10-26', routineId: 'push' }))
 check('after the 4-day cycle\'s rest day, the full-body day', same(nextPlanned(four, '2026-10-27'), { date: '2026-10-28', routineId: 'full' }))
-check('a cycle of rest days has none', nextPlanned({ cycleLength: 3, startDate: '2026-10-01', routineByDay: { 1: null, 2: null, 3: null }, restDates: new Set() }, today) === null)
+check('a cycle of rest days has none', nextPlanned({ cycleLength: 3, startDate: '2026-10-01', routineByDay: { 1: null, 2: null, 3: null }, changes: new Map() }, today) === null)
+check('but one of its days given a routine is the next', same(nextPlanned({ cycleLength: 3, startDate: '2026-10-01', routineByDay: { 1: null, 2: null, 3: null }, changes: new Map([['2026-10-30', 'push']]) }, today), { date: '2026-10-30', routineId: 'push' }))
 check("after today's rest day, with tomorrow made one, Tuesday's pull", same(nextPlanned(rested, today), { date: '2026-10-27', routineId: 'pull' }))
 {
     // A 2-day cycle, push then rest, with the next two pushes made rest days: the next one is past a whole cycle
-    const every: CalendarCycle = { cycleLength: 2, startDate: '2026-10-01', routineByDay: { 1: 'push', 2: null }, restDates: new Set(['2026-10-27', '2026-10-29']) }
+    const every: CalendarCycle = { cycleLength: 2, startDate: '2026-10-01', routineByDay: { 1: 'push', 2: null }, changes: new Map([['2026-10-27', null], ['2026-10-29', null]]) }
     check('rest days made in a row are looked past', same(nextPlanned(every, today), { date: '2026-10-31', routineId: 'push' }), JSON.stringify(nextPlanned(every, today)))
 }
 
 // ---------- Sessions a round plans ----------
-check("a week of the 7-day cycle plans 6, and 5 with a day made a rest day",
-    plannedSessions(seven, { start: '2026-10-19', end: '2026-10-25' }) === 6 && plannedSessions(rested, { start: '2026-10-19', end: '2026-10-25' }) === 5)
+check("a week of the 7-day cycle plans 6, 5 with a day made a rest day, and 7 with its rest day given a routine",
+    plannedSessions(seven, { start: '2026-10-19', end: '2026-10-25' }) === 6 && plannedSessions(rested, { start: '2026-10-19', end: '2026-10-25' }) === 5
+    && plannedSessions(swapped, { start: '2026-10-26', end: '2026-11-01' }) === 7)
 check('a round before the cycle starts plans none, and the first one only from its start',
     plannedSessions(seven, { start: '2026-09-21', end: '2026-09-27' }) === 0 && plannedSessions(four, { start: '2026-09-28', end: '2026-10-03' }) === 2)
 
@@ -185,7 +206,7 @@ check('a round before the cycle starts plans none, and the first one only from i
 {
     const colors = routineColors(seven)
     check('routines take colors in the order the cycle first reaches them', same([...colors], [['push', 0], ['pull', 1], ['legs', 2]]))
-    const many = routineColors({ cycleLength: 5, startDate: today, routineByDay: { 1: 'a', 2: 'b', 3: 'a', 4: 'c', 5: 'd' }, restDates: new Set() })
+    const many = routineColors({ cycleLength: 5, startDate: today, routineByDay: { 1: 'a', 2: 'b', 3: 'a', 4: 'c', 5: 'd' }, changes: new Map() })
     check('only the first three have one; a fourth shares the plain one', many.size === 3 && !many.has('d') && many.get('c') === 2)
 }
 
@@ -201,11 +222,11 @@ check('a round before the cycle starts plans none, and the first one only from i
     const copy = /%\s*[\w.]*cycle_?[lL]ength\s*\)\s*\+\s*[\w.]*cycle_?[lL]ength/
     const copies = sources.filter(({ path, text }) => path !== join('lib', 'periods.ts') && copy.test(text)).map(({ path }) => path)
     check('the cycle day is worked out only by cycleDayOf in lib/periods.ts', copies.length === 0, copies.join(', '))
-    // A date's routine comes from plannedCycleDay, which skips rest days the user made. cycleDayOf
+    // A date's routine comes from plannedRoutineId, which takes the days the user changed. cycleDayOf
     // alone only labels a day ("day 3 of 7"): these files do that, next to a plan read the right way
     const labels = ['lib/periods.ts', 'lib/cycle-calendar.ts', 'components/CycleCalendar.tsx', 'components/CycleScheduler.tsx', 'app/(app)/dashboard/page.tsx'].map((p) => join(...p.split('/')))
     const others = sources.filter(({ path, text }) => !labels.includes(path) && /\bcycleDayOf\(/.test(text)).map(({ path }) => path)
-    check('a plan is read only through plannedCycleDay: elsewhere cycleDayOf would plan a rest day the user made', others.length === 0, others.join(', '))
+    check('a plan is read only through plannedRoutineId: elsewhere cycleDayOf would miss a day the user changed', others.length === 0, others.join(', '))
 }
 
 void Promise.all(pending).then(() => {

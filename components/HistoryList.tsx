@@ -84,8 +84,8 @@ interface HistoryTrainingProps {
     /** The calendar's first month: this one, or the month of a linked day */
     initialMonth: string
     cycle: CycleSettings | null
-    /** The cycle's routine on each of its days and the dates made rest days, for each round's "3 of 4 planned"; null without a cycle */
-    plan: { routineByDay: Record<number, string | null>; restDates: string[] } | null
+    /** The cycle's routine on each of its days and the dates changed in 課表's calendar, for each round's "3 of 4 planned"; null without a cycle */
+    plan: { routineByDay: Record<number, string | null>; changes: Record<string, string | null> } | null
     initialRange: HistoryRange
     initialDays: HistoryDay[]
     initialReports: PeriodReportStatus[]
@@ -148,7 +148,7 @@ export function HistoryTraining({
         if (await ensureLoaded(rangeOf(periods))) setList({ from, count: periods.length, month: target })
     }
 
-    const planned: CalendarCycle | null = cycle && plan && { ...cycle, routineByDay: plan.routineByDay, restDates: new Set(plan.restDates) }
+    const planned: CalendarCycle | null = cycle && plan && { ...cycle, routineByDay: plan.routineByDay, changes: new Map(Object.entries(plan.changes)) }
     const sessions = (period: PeriodRange) => {
         if (!isLoaded(period)) return '…'
         const done = trainedIn(period).length

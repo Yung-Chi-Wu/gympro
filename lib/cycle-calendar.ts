@@ -1,17 +1,17 @@
-import { addDays, cycleDayOf, MAX_CYCLE_DAYS, plannedCycleDay, type CycleSettings } from './periods'
+import { addDays, cycleDayOf, daysBetween, MAX_CYCLE_DAYS, plannedRoutineId, type CycleSettings, type DateChanges } from './periods'
 import { datesIn, isTrained, monthOf, monthRange, periodOf, type HistoryDay, type HistoryRange } from './history'
 
 // 課表's calendar (components/CycleCalendar.tsx): a month, Monday first, each day with what the
 // training cycle plans for it and whether it was trained. A round of the cycle is a report's
 // period (lib/periods.ts), so each day also knows its round. Plans follow the cycle as it is now,
-// start on its start date and skip the days the user made rest days, the way a report counts them
-// (lambda/ai-worker/src/report/fetch.ts).
+// start on its start date and take the days the user changed (another routine, or a rest day) as
+// changed, the way a report counts them (lambda/ai-worker/src/report/fetch.ts).
 
 export interface CalendarCycle extends CycleSettings {
     /** The routine on each day of the cycle, by day index (1 to cycleLength); none is a rest day */
     routineByDay: Record<number, string | null>
-    /** The dates the user made rest days (cycle_rest_days): nothing is planned on them */
-    restDates: ReadonlySet<string>
+    /** The dates the user changed (cycle_date_changes): the routine each trains instead, or null for a rest day */
+    changes: DateChanges
 }
 
 /**
@@ -24,10 +24,12 @@ export interface CalendarDay {
     date: string
     /** Day of the cycle, 1 to cycleLength; null before the cycle starts */
     cycleDay: number | null
-    /** The routine the cycle plans for the day */
+    /** The routine the day trains: the cycle's, or the one the user changed it to */
     routineId: string | null
-    /** On a day the user made a rest day, the routine the cycle had for it */
-    skippedRoutineId: string | null
+    /** Whether the user changed the day */
+    changed: boolean
+    /** The routine the cycle itself has for the day; null on its rest days */
+    cycleRoutineId: string | null
     status: DayStatus
     /** The cycle's round the day is in: a report's period */
     round: HistoryRange
@@ -36,24 +38,29 @@ export interface CalendarDay {
 /** Routines in their own color, in the order the cycle first reaches them; the rest share a plain one */
 export const ROUTINE_COLORS = 3
 
-/** The routine the cycle plans for a date: none before it starts, on its rest days or on one the user made */
+/** The routine a date trains: none before the cycle starts or on a rest day, the user's pick on a day they changed */
 export function plannedRoutine(cycle: CalendarCycle, date: string): string | null {
-    const day = plannedCycleDay(cycle, date, cycle.restDates)
-    return day === null ? null : cycle.routineByDay[day] ?? null
+    return plannedRoutineId(cycle, cycle.routineByDay, date, cycle.changes)
 }
 
 export function calendarDay(date: string, cycle: CalendarCycle, today: string, day: HistoryDay | undefined): CalendarDay {
     const round = periodOf(date, cycle)
     const trained = isTrained(day)
-    if (date < cycle.startDate) return { date, cycleDay: null, routineId: null, skippedRoutineId: null, status: trained ? 'done' : 'none', round }
+    if (date < cycle.startDate) return { date, cycleDay: null, routineId: null, changed: false, cycleRoutineId: null, status: trained ? 'done' : 'none', round }
     const cycleDay = cycleDayOf(cycle, date)
     const routineId = plannedRoutine(cycle, date)
-    const skippedRoutineId = cycle.restDates.has(date) ? cycle.routineByDay[cycleDay] ?? null : null
+    const changed = cycle.changes.has(date)
+    const cycleRoutineId = cycle.routineByDay[cycleDay] ?? null
     let status: DayStatus
     if (trained) status = 'done'
     else if (!routineId) status = 'rest'
     else status = date < today ? 'missed' : date === today ? 'today' : 'planned'
-    return { date, cycleDay, routineId, skippedRoutineId, status, round }
+    return { date, cycleDay, routineId, changed, cycleRoutineId, status, round }
+}
+
+/** Whether a routine, or none for a rest day, is what the cycle itself has for a date: picking it gives a changed day back */
+export function isCyclesOwn(cycle: CalendarCycle, date: string, routineId: string | null): boolean {
+    return (cycle.routineByDay[cycleDayOf(cycle, date)] ?? null) === routineId
 }
 
 /** The sessions the cycle plans in a range: 紀錄's "3 of 4 planned", counted the way the report counts them */
@@ -90,9 +97,13 @@ export function calendarReadAhead(utcToday: string): { range: HistoryRange; week
 
 /** The first day after `date` the cycle plans a routine for, or null when it plans none */
 export function nextPlanned(cycle: CalendarCycle, date: string): { date: string; routineId: string } | null {
-    // Within a cycle, and a cycle more for each rest day the user made after it: each can take one
-    const restAfter = [...cycle.restDates].filter((d) => d > date).length
-    for (let i = 1; i <= cycle.cycleLength * (restAfter + 1); i++) {
+    // Within a cycle, and a cycle more for each rest day the user made after it: each can take one.
+    // A rest day given a routine can be further on still, so as far as the last day changed too.
+    const after = [...cycle.changes].filter(([d]) => d > date)
+    const restAfter = after.filter(([, routineId]) => routineId === null).length
+    const lastChanged = after.reduce((last, [d]) => (d > last ? d : last), date)
+    const days = Math.max(cycle.cycleLength * (restAfter + 1), daysBetween(date, lastChanged))
+    for (let i = 1; i <= days; i++) {
         const next = addDays(date, i)
         const routineId = plannedRoutine(cycle, next)
         if (routineId) return { date: next, routineId }

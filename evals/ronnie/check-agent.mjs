@@ -767,12 +767,16 @@ const op = (q, name) => q.ops.find(([k]) => k === name)?.[1]
 // exercise once and all-or-nothing are the function's own (tested on the migration)
 {
     const cycle = { id: 'c1', cycle_length: 3, start_date: '2026-10-01' }
-    const run = async (rpcError, restToday = false) => {
+    // today: undefined as the cycle has it, null for a rest day the user made, or the routine they gave it
+    const run = async (rpcError, today = undefined) => {
         const fake = fakeSupabase((q) => {
             if (q.rpc === 'start_today_workout') return { data: rpcError ? null : 'w-new', error: rpcError }
             if (q.table === 'cycle_days') return { data: [1, 2, 3].map((day_index) => ({ day_index, routine_id: 'r1' })), error: null }
-            // Today, when the user made it a rest day: the read asks for that date
-            if (q.table === 'cycle_rest_days') return { data: restToday ? [{ rest_date: q.ops.find(([k, [col]]) => k === 'eq' && col === 'rest_date')[1][1] }] : [], error: null }
+            // Today, when the user changed it: the read asks for that date
+            if (q.table === 'cycle_date_changes') {
+                const date = q.ops.find(([k, [col]]) => k === 'eq' && col === 'change_date')[1][1]
+                return { data: today === undefined ? [] : [{ change_date: date, routine_id: today }], error: null }
+            }
             if (q.table === 'routine_exercises') return { data: [{ exercise_id: 'squat' }, { exercise_id: 'squat' }, { exercise_id: 'rdl' }], error: null }
             return { data: null, error: null }
         })
@@ -787,9 +791,12 @@ const op = (q, name) => q.ops.find(([k]) => k === name)?.[1]
         `today's workout is started by start_today_workout with today's routine (${JSON.stringify(ok.call?.args ?? null).slice(0, 160)}, ${day})`)
     const refused = await run({ message: 'new row violates row-level security policy' })
     check(refused.id === null && !refused.writes.length, 'a refused start reports no workout and writes nothing itself')
-    const rest = await run(null, true)
+    const rest = await run(null, null)
     check(rest.id === 'w-new' && rest.call?.args.p_routine_id === null && !rest.call.args.p_exercise_ids.length,
         `on a day the user made a rest day, today's workout starts with no routine (${JSON.stringify(rest.call?.args ?? null).slice(0, 160)})`)
+    const swapped = await run(null, 'r2')
+    check(swapped.id === 'w-new' && swapped.call?.args.p_routine_id === 'r2' && swapped.call.args.p_exercise_ids.length === 3,
+        `on a day the user gave another routine, today's workout starts with that one (${JSON.stringify(swapped.call?.args ?? null).slice(0, 160)})`)
 }
 
 // Memory notes go through the service-role client, always for this user; without it there is no memory

@@ -12,7 +12,7 @@ import { OnboardingGuard } from '@/components/OnboardingGuard'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
-import { addDays, currentPeriod, cycleDayOf, lastCompletedPeriod, localDate, plannedCycleDay } from '@/lib/periods'
+import { addDays, currentPeriod, cycleDayOf, lastCompletedPeriod, localDate, plannedRoutineId } from '@/lib/periods'
 import { localDayToUtcRange, timeZoneOf } from '@/lib/time-zone'
 import { loadTodayWorkout } from '@/lib/today-workout'
 import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
@@ -112,17 +112,17 @@ export default async function DashboardPage() {
 // The user's day, by their time zone and cycle, and what's logged in it. It waits only for the
 // profile and the cycle, so its round goes out while the page's other first reads are still out.
 async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
-  // Today in some time zone is within a day of today in UTC: the rest days around it come with the cycle
+  // Today in some time zone is within a day of today in UTC: the days changed around it come with the cycle
   const utcToday = new Date().toISOString().slice(0, 10)
   const [{ profile }, cycleResult] = await Promise.all([
     getFrameProfile(),
     supabase
       .from('training_cycles')
       // Each routine's exercises too: last time's sets for today's go out with today's workout
-      .select('id, cycle_length, start_date, cycle_days ( day_index, routine_id, routines ( name, routine_exercises ( exercise_id ) ) ), cycle_rest_days ( rest_date )')
+      .select('id, cycle_length, start_date, cycle_days ( day_index, routine_id, routines ( name, routine_exercises ( exercise_id ) ) ), cycle_date_changes ( change_date, routine_id, routines ( name, routine_exercises ( exercise_id ) ) )')
       .eq('user_id', userId)
-      .gte('cycle_rest_days.rest_date', addDays(utcToday, -1))
-      .lte('cycle_rest_days.rest_date', addDays(utcToday, 1))
+      .gte('cycle_date_changes.change_date', addDays(utcToday, -1))
+      .lte('cycle_date_changes.change_date', addDays(utcToday, 1))
       .maybeSingle(),
   ])
   const cycle = cycleResult.data
@@ -139,11 +139,19 @@ async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
   const recentFrom = { from: localDayToUtcRange(lastPeriod?.start ?? addDays(todayIso, -AIM_LOOKBACK_DAYS), timezone).start, timeZone: timezone }
 
   const dayIndex = cycleSettings ? cycleDayOf(cycleSettings, todayIso) : 0
-  // Nothing before the cycle starts, or on a rest day the user made
-  const restDates = new Set(cycle?.cycle_rest_days.map((r) => r.rest_date))
-  const plannedDay = cycleSettings ? plannedCycleDay(cycleSettings, todayIso, restDates) : null
-  const cycleDay = cycle?.cycle_days.find((d) => d.day_index === plannedDay)
-  const routineIdForToday = cycleDay?.routine_id ?? null
+  // Nothing before the cycle starts or on a rest day; a day the user changed trains the routine they picked
+  const routineIdForToday = cycle && cycleSettings
+    ? plannedRoutineId(
+      cycleSettings,
+      Object.fromEntries(cycle.cycle_days.map((d) => [d.day_index, d.routine_id])),
+      todayIso,
+      new Map(cycle.cycle_date_changes.map((c) => [c.change_date, c.routine_id]))
+    )
+    : null
+  // Its name and exercises, from the cycle's day or the change that has it
+  const todayRoutine = routineIdForToday
+    ? [...(cycle?.cycle_days ?? []), ...(cycle?.cycle_date_changes ?? [])].find((d) => d.routine_id === routineIdForToday)?.routines ?? null
+    : null
 
   const [periodNoteResult, dayNoteResult, todayWeightResult, lastWeightResult, today] = await Promise.all([
     period
@@ -184,7 +192,7 @@ async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
       userId,
       range: todayRange,
       routineId: routineIdForToday,
-      routineExerciseIds: cycleDay?.routines?.routine_exercises.map((re) => re.exercise_id) ?? [],
+      routineExerciseIds: todayRoutine?.routine_exercises.map((re) => re.exercise_id) ?? [],
       language,
       recentFrom,
     }),
@@ -199,7 +207,7 @@ async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
     todayRange,
     dayIndex,
     routineIdForToday,
-    routineName: cycleDay?.routines?.name ?? null,
+    routineName: todayRoutine?.name ?? null,
     today,
     periodNote: periodNoteResult.data?.note ?? '',
     dayNote: dayNoteResult.data?.note ?? '',

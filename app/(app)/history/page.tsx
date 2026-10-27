@@ -17,7 +17,7 @@ import { ReadYourWrites } from '@/components/ReadYourWrites'
 // shows, by date range: records are kept forever and the page must not slow down as
 // they grow. Training starts with this month and the last four periods (one query
 // covers both); the rest loads from /api/history/workouts as the user goes back.
-// Two rounds: the profile and the cycle (with its days and rest days), then the tab's records.
+// Two rounds: the profile and the cycle (with its days and changed days), then the tab's records.
 export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ tab?: string; day?: string; report?: string }> }) {
     const user = await getSessionUser()
     if (!user) redirect('/login')
@@ -27,7 +27,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
         getFrameProfile(),
         supabase
             .from('training_cycles')
-            .select('id, cycle_length, start_date, cycle_days ( day_index, routine_id ), cycle_rest_days ( rest_date )')
+            .select('id, cycle_length, start_date, cycle_days ( day_index, routine_id ), cycle_date_changes ( change_date, routine_id )')
             .eq('user_id', user.id)
             .maybeSingle(),
         getTranslations('history'),
@@ -63,7 +63,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                 cycle={cycle}
                 plan={cycleRow && {
                     routineByDay: Object.fromEntries(cycleRow.cycle_days.map((d) => [d.day_index, d.routine_id])),
-                    restDates: cycleRow.cycle_rest_days.map((r) => r.rest_date),
+                    changes: Object.fromEntries(cycleRow.cycle_date_changes.map((c) => [c.change_date, c.routine_id])),
                 }}
                 initialRange={range}
                 initialDays={days}

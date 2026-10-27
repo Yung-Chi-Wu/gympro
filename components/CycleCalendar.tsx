@@ -19,7 +19,8 @@ import { Icon } from './Icon'
 // 課表's calendar: the month with what the training cycle plans for each day (lib/cycle-calendar.ts)
 // and what was trained, and the picked day under it (beside it when there is room). A day still
 // ahead lists its routine's exercises, each with a ✎ that opens it to change right there, and can
-// be made a rest day: its routine isn't done that day, and the round has fewer sets. A day's round
+// be given another routine or made a rest day, or a rest day a routine: the cycle doesn't move, and
+// the routine the day had isn't done that round, so the round has its sets fewer. A day's round
 // is lightly filled across the month: a round is one report's period, and the report is linked
 // from the day. Past days come from the same reads as 紀錄, and a trained day links to its page
 // there. Months load as the user moves (use-history-records.ts).
@@ -28,7 +29,6 @@ import { Icon } from './Icon'
 const CARD = 'rounded-[14px] border border-line bg-card p-4'
 const PRIMARY = 'inline-flex min-h-11 items-center justify-center gap-1 whitespace-nowrap rounded-[9px] bg-accent px-4 text-[15px] font-bold text-accent-ink transition-opacity hover:opacity-90 md:min-h-9 md:px-3 md:text-[13px]'
 const LINK = 'inline-flex min-h-11 items-center gap-0.5 text-[15px] font-semibold text-accent md:min-h-8 md:text-sm'
-const QUIET = 'inline-flex min-h-11 items-center text-[15px] font-semibold text-muted transition-colors hover:text-ink disabled:opacity-50 md:min-h-8 md:text-sm'
 
 // A routine's dot: its color while it has one of the first few, a plain one after
 const FILL = ['bg-routine-1', 'bg-routine-2', 'bg-routine-3']
@@ -57,8 +57,8 @@ interface CycleCalendarProps {
     language: string
     units: Units
     onEditCycle: () => void
-    /** Makes a date a rest day, or gives it back; resolves to the message to show when it couldn't */
-    onRestDay: (date: string, rest: boolean) => Promise<string | null>
+    /** Gives a date a routine, or none for a rest day; resolves to the message to show when it couldn't */
+    onChangeDay: (date: string, routineId: string | null) => Promise<string | null>
     /** The routine's exercises, each to change in place (RoutineExercises): it is the routine's, so every day it is on changes */
     routineEditor: (routine: RoutineWithExercises, changeNote?: string) => ReactNode
 }
@@ -75,7 +75,7 @@ export function CycleCalendar({
     language,
     units,
     onEditCycle,
-    onRestDay,
+    onChangeDay,
     routineEditor,
 }: CycleCalendarProps) {
     const t = useTranslations('routines')
@@ -83,8 +83,8 @@ export function CycleCalendar({
     const { days, reportFor, loading, loadError, ensureLoaded } = useHistoryRecords({ initialRange, initialDays, initialReports })
     const [month, setMonth] = useState(monthOf(today))
     const [selected, setSelected] = useState(today)
-    // The day being made a rest day or given back, and what went wrong
-    const [restChange, setRestChange] = useState<{ date: string; saving: boolean; error: string | null } | null>(null)
+    // The day being changed, and what went wrong
+    const [dayChange, setDayChange] = useState<{ date: string; saving: boolean; error: string | null } | null>(null)
 
     const colors = routineColors(cycle)
     const routineById = new Map(routines.map((r) => [r.id, r]))
@@ -113,9 +113,9 @@ export function CycleCalendar({
         setMonth(monthOf(date))
     }
 
-    async function changeRest(date: string, rest: boolean) {
-        setRestChange({ date, saving: true, error: null })
-        setRestChange({ date, saving: false, error: await onRestDay(date, rest) })
+    async function changeDay(date: string, routineId: string | null) {
+        setDayChange({ date, saving: true, error: null })
+        setDayChange({ date, saving: false, error: await onChangeDay(date, routineId) })
     }
 
     const picked = dayOf(selected)
@@ -242,9 +242,10 @@ export function CycleCalendar({
                 report={picked.round.end < today ? reportFor(picked.round) : null}
                 language={language}
                 units={units}
+                routines={routines}
                 routineEditor={routineEditor}
-                restChange={restChange?.date === picked.date ? restChange : null}
-                onRestDay={(rest) => changeRest(picked.date, rest)}
+                dayChange={dayChange?.date === picked.date ? dayChange : null}
+                onChangeDay={(routineId) => changeDay(picked.date, routineId)}
             />
         </div>
     )
@@ -279,17 +280,19 @@ interface DayPanelProps {
     report: PeriodReportStatus | null
     language: string
     units: Units
+    /** The routines a day can be given, in the cycle editor's order */
+    routines: RoutineWithExercises[]
     routineEditor: (routine: RoutineWithExercises, changeNote?: string) => ReactNode
-    /** The day being made a rest day or given back */
-    restChange: { saving: boolean; error: string | null } | null
-    onRestDay: (rest: boolean) => void
+    /** The day being changed */
+    dayChange: { saving: boolean; error: string | null } | null
+    onChangeDay: (routineId: string | null) => void
 }
 
 /**
- * The picked day: what was trained, or what the cycle plans, with the routine to change and the
- * day to make a rest day when it is still ahead; then its round and the round's report
+ * The picked day: what was trained, or what it plans, with the routine to change and the day's
+ * routine to pick (or a rest day) when it is still ahead; then its round and the round's report
  */
-function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, report, language, units, routineEditor, restChange, onRestDay }: DayPanelProps) {
+function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, report, language, units, routines, routineEditor, dayChange, onChangeDay }: DayPanelProps) {
     const t = useTranslations('routines')
     const th = useTranslations('history')
     const ts = useTranslations('sets')
@@ -300,10 +303,13 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
     const shownExercises = (routine?.exercises ?? []).filter((ex) => ex.exercise_name && ex.exercise_name !== 'Unknown exercise')
     // Ahead, or today before its first set: what is changed here is what Today will show
     const editable = !!routine && (day.status === 'planned' || day.status === 'today')
-    // A rest day the user made, still ahead or today, can be given back
-    const skipped = day.status === 'rest' && day.skippedRoutineId ? routineById.get(day.skippedRoutineId) ?? null : null
-    const restAction = editable ? { rest: true, label: t('calendar.makeRest'), look: QUIET }
-        : skipped && day.date >= today ? { rest: false, label: t('calendar.undoRest'), look: LINK }
+    // Ahead, or today before its first set, a day can be given another routine or a rest day
+    const changeable = day.status === 'planned' || day.status === 'today' || (day.status === 'rest' && day.cycleDay !== null && day.date >= today)
+    // What the cycle had for a day the user changed
+    const instead = day.changed && day.cycleRoutineId !== day.routineId
+        ? day.cycleRoutineId
+            ? t('calendar.instead', { name: routineById.get(day.cycleRoutineId)?.name ?? '' })
+            : t('calendar.insteadOfRest')
         : null
     const routineDays = routine
         ? Object.entries(cycle.routineByDay).filter(([, id]) => id === routine.id).map(([d]) => Number(d)).sort((a, b) => a - b)
@@ -319,9 +325,9 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
                 {th('separator')}{th('daySets', { count: setCount(trained) })}{th('separator')}{th('dayExercises', { count: trained.exercises.length })}
             </>
         )
-    } else if (day.status === 'rest' && skipped) {
+    } else if (day.status === 'rest' && instead) {
         title = t('calendar.rest')
-        status = t('calendar.restInstead', { name: skipped.name })
+        status = instead
     } else if (day.status === 'rest') {
         title = t('calendar.rest')
         const next = nextPlanned(cycle, day.date)
@@ -338,7 +344,7 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
         const word = day.status === 'missed' ? <b className="font-semibold text-miss">{t('calendar.missed')}</b>
             : day.status === 'today' ? <b className="font-semibold">{t('calendar.notStarted')}</b>
             : <b className="font-semibold">{t('calendar.planned')}</b>
-        status = <>{word}{th('separator')}{th('dayExercises', { count: shownExercises.length })}</>
+        status = <>{word}{th('separator')}{th('dayExercises', { count: shownExercises.length })}{instead && `${th('separator')}${instead}`}</>
     }
 
     const roundEnded = day.round.end < today
@@ -396,21 +402,29 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
                     <Icon name="forward" className="size-4" />
                 </Link>
             )}
-            {(day.status === 'today' || restAction) && (
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-                    {day.status === 'today' && (
-                        <Link href="/dashboard" onNavigate={() => markNavigation('/dashboard')} className={PRIMARY}>
-                            {t('calendar.startLogging')}
-                        </Link>
-                    )}
-                    {restAction && (
-                        <button type="button" onClick={() => onRestDay(restAction.rest)} disabled={restChange?.saving} className={restAction.look}>
-                            {restAction.label}
-                        </button>
-                    )}
-                </div>
+            {day.status === 'today' && (
+                <Link href="/dashboard" onNavigate={() => markNavigation('/dashboard')} className={PRIMARY}>
+                    {t('calendar.startLogging')}
+                </Link>
             )}
-            {restChange?.error && <p role="alert" className="text-sm text-miss">{restChange.error}</p>}
+            {changeable && routines.length > 0 && (
+                <label className="flex items-center gap-3">
+                    <span className="shrink-0 text-[15px] text-muted md:text-sm">{t('calendar.dayPlan')}</span>
+                    {/* The cycle editor's picker; picking the cycle's own routine gives the day back */}
+                    <select
+                        value={day.routineId ?? ''}
+                        onChange={(e) => onChangeDay(e.target.value || null)}
+                        disabled={dayChange?.saving}
+                        className="h-11 min-w-0 flex-1 rounded-[9px] border border-line bg-card px-3 text-base disabled:opacity-50 md:h-auto md:max-w-60 md:px-2 md:py-1.5 md:text-sm"
+                    >
+                        <option value="">{t('restDay')}</option>
+                        {routines.map((r) => (
+                            <option key={r.id} value={r.id}>{r.name}</option>
+                        ))}
+                    </select>
+                </label>
+            )}
+            {dayChange?.error && <p role="alert" className="text-sm text-miss">{dayChange.error}</p>}
 
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-[13px] text-muted md:text-xs">
                 <span>{t('calendar.round')} <span className="font-mono">{formatRange(day.round)}</span></span>

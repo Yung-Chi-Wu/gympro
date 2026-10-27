@@ -3,7 +3,7 @@ import type { Database } from '../types/database.types'
 import type { LogType } from '../exercise-attributes'
 import { logTypeOf, setValuesOf, type SetValues } from '../set-log'
 import { SET_COLUMNS } from '../today-workout'
-import { plannedCycleDay } from '../periods'
+import { plannedRoutineId } from '../periods'
 import { isMemoryKind, type MemoryNote } from './memory'
 import { localDateStr, localDateToUtcRange } from './time'
 
@@ -148,13 +148,17 @@ export function createSupabaseRonnieData(
     async function getTodayRoutineId(): Promise<string | null> {
         if (!cycle) return null
         const today = localDateStr(now(), timeZone)
-        // The cycle's days, and today if the user made it a rest day
-        const [{ data: days }, { data: rest }] = await Promise.all([
+        // The cycle's days, and today if the user changed it
+        const [{ data: days }, { data: changed }] = await Promise.all([
             supabase.from('cycle_days').select('day_index, routine_id').eq('training_cycle_id', cycle.id),
-            supabase.from('cycle_rest_days').select('rest_date').eq('training_cycle_id', cycle.id).eq('rest_date', today),
+            supabase.from('cycle_date_changes').select('change_date, routine_id').eq('training_cycle_id', cycle.id).eq('change_date', today),
         ])
-        const dayIndex = plannedCycleDay({ cycleLength: cycle.cycle_length, startDate: cycle.start_date }, today, new Set(rest?.map((r) => r.rest_date)))
-        return days?.find((d) => d.day_index === dayIndex)?.routine_id ?? null
+        return plannedRoutineId(
+            { cycleLength: cycle.cycle_length, startDate: cycle.start_date },
+            Object.fromEntries((days ?? []).map((d) => [d.day_index, d.routine_id])),
+            today,
+            new Map(changed?.map((c) => [c.change_date, c.routine_id]))
+        )
     }
 
     return {

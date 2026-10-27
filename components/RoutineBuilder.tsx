@@ -19,7 +19,7 @@ import { MAX_ROUTINE_NAME_CHARS } from '@/lib/text-limits'
 import { isTarget, TARGET_REPS, TARGET_SETS } from '@/lib/targets'
 import { MUSCLE_GROUPS, type ExerciseOption } from './log-types'
 import type { RoutineWithExercises, RoutineExerciseRow } from '@/app/(app)/routines/page'
-import type { CalendarCycle } from '@/lib/cycle-calendar'
+import { isCyclesOwn, type CalendarCycle } from '@/lib/cycle-calendar'
 import type { HistoryDay, HistoryRange, PeriodReportStatus } from '@/lib/history'
 import type { Units } from '@/lib/set-log'
 
@@ -36,8 +36,8 @@ interface RoutineBuilderProps {
     language: string
     initialCycle: CycleRow | null
     initialCycleDays: CycleDayState[]
-    /** The dates made rest days in the calendar (cycle_rest_days) */
-    initialRestDates: string[]
+    /** The dates changed in the calendar (cycle_date_changes): the routine each trains instead, or null for a rest day */
+    initialChanges: Record<string, string | null>
     /** The calendar's first month, read with the page: what was trained and the rounds' reports */
     calendar: { range: HistoryRange; days: HistoryDay[]; reports: PeriodReportStatus[]; firstDate: string | null } | null
     units: Units
@@ -76,7 +76,7 @@ export function RoutineBuilder({
     language,
     initialCycle,
     initialCycleDays,
-    initialRestDates,
+    initialChanges,
     calendar,
     units,
     today,
@@ -92,7 +92,7 @@ export function RoutineBuilder({
             : Array.from({ length: initialCycle?.cycleLength ?? 0 }, (_, i) => ({ dayIndex: i + 1, routineId: null }))
     )
     const [cycle, setCycle] = useState(initialCycle)
-    const [restDates, setRestDates] = useState<ReadonlySet<string>>(() => new Set(initialRestDates))
+    const [changes, setChanges] = useState<ReadonlyMap<string, string | null>>(() => new Map(Object.entries(initialChanges)))
     // The phone's 日曆 / 課表 switch: the calendar first once there is a cycle to show
     const [view, setView] = useState<'routines' | 'calendar'>(initialCycle ? 'calendar' : 'routines')
     const [isCreating, setIsCreating] = useState(false)
@@ -121,37 +121,40 @@ export function RoutineBuilder({
         cycleLength: cycle.cycleLength,
         startDate: cycle.startDate,
         routineByDay: Object.fromEntries(days.map((d) => [d.dayIndex, d.routineId])),
-        restDates,
+        changes,
     }
 
     // A cycle made here goes on to its editor, which picks the days' routines next. A deleted
-    // cycle took its rest days with it, so a new one has none.
+    // cycle took its changed days with it, so a new one has none.
     function changeCycle(next: CycleRow | null) {
         if (!cycle && next) openSubPage('routine', CYCLE_PAGE)
-        if (next?.id !== cycle?.id) setRestDates(new Set())
+        if (next?.id !== cycle?.id) setChanges(new Map())
         setCycle(next)
     }
 
-    // A day made a rest day in the calendar, or given back: shown at once, and put back as it
-    // was if the save fails. The message to show then, or null.
-    async function handleRestDay(date: string, rest: boolean): Promise<string | null> {
-        if (!cycle) return null
-        const toggle = (dates: ReadonlySet<string>, add: boolean) => {
-            const next = new Set(dates)
-            if (add) next.add(date)
-            else next.delete(date)
+    // A day given another routine or made a rest day in the calendar, or given back to the cycle by
+    // picking its own routine: shown at once, and put back as it was if the save fails. The message
+    // to show then, or null.
+    async function handleChangeDay(date: string, routineId: string | null): Promise<string | null> {
+        if (!cycle || !calendarCycle) return null
+        const givesBack = isCyclesOwn(calendarCycle, date, routineId)
+        const before = changes.has(date) ? changes.get(date) ?? null : undefined
+        // Only this date, so a change to another one in the meantime stays
+        const withDate = (current: ReadonlyMap<string, string | null>, value: string | null | undefined) => {
+            const next = new Map(current)
+            if (value === undefined) next.delete(date)
+            else next.set(date, value)
             return next
         }
-        setRestDates((dates) => toggle(dates, rest))
-        const { error: saveError } = rest
-            ? await supabase
-                .from('cycle_rest_days')
-                .upsert({ training_cycle_id: cycle.id, rest_date: date }, { onConflict: 'training_cycle_id,rest_date', ignoreDuplicates: true })
-            : await supabase.from('cycle_rest_days').delete().eq('training_cycle_id', cycle.id).eq('rest_date', date)
+        setChanges((current) => withDate(current, givesBack ? undefined : routineId))
+        const { error: saveError } = givesBack
+            ? await supabase.from('cycle_date_changes').delete().eq('training_cycle_id', cycle.id).eq('change_date', date)
+            : await supabase
+                .from('cycle_date_changes')
+                .upsert({ training_cycle_id: cycle.id, change_date: date, routine_id: routineId }, { onConflict: 'training_cycle_id,change_date' })
         if (!saveError) return null
-        if (rest) reportClientError('client/cycle/rest-day', saveError)
-        else reportClientError('client/cycle/undo-rest-day', saveError)
-        setRestDates((dates) => toggle(dates, !rest))
+        reportClientError('client/cycle/change-day', saveError)
+        setChanges((current) => withDate(current, before))
         return toFriendlyError(saveError, language)
     }
     // Side by side, the editor shows the first routine until another is picked
@@ -256,6 +259,8 @@ export function RoutineBuilder({
 
         setRoutines((prev) => prev.filter((r) => r.id !== routine.id))
         setDays((prev) => prev.map((d) => (d.routineId === routine.id ? { ...d, routineId: null } : d)))
+        // The days changed to it are rest days now (the database does the same)
+        setChanges((prev) => new Map([...prev].map(([date, id]) => [date, id === routine.id ? null : id])))
         if (searchParams.has('routine')) closeSubPage('routine')
     }
 
@@ -544,7 +549,7 @@ export function RoutineBuilder({
                         language={language}
                         units={units}
                         onEditCycle={() => openSubPage('routine', CYCLE_PAGE)}
-                        onRestDay={handleRestDay}
+                        onChangeDay={handleChangeDay}
                         routineEditor={(routine, changeNote) => (
                             <RoutineExercises
                                 key={routine.id}

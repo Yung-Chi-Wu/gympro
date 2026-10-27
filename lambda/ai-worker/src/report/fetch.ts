@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { addDays, daysBetween, plannedCycleDay } from '../../../../lib/periods'
+import { addDays, daysBetween, plannedRoutineId } from '../../../../lib/periods'
 import { ageOn } from '../../../../lib/report/cardio-intensity'
 import { SUGGESTED_NAMES } from '../../../../lib/report/volume'
 import { isCardio, logTypeOf } from '../../../../lib/set-log'
@@ -168,40 +168,49 @@ async function fetchExercises(supabase: SupabaseClient, ids: string[]): Promise<
     return (rows as ExerciseRow[]).map(toExercise)
 }
 
-/** The cycle's routine for each day of the period, or null without a cycle. */
+/** A planned routine's name and exercises, with its owner to check */
+const ROUTINE = 'routines ( user_id, name, routine_exercises ( exercise_id, target_sets ) )'
+
 /**
  * Each day's planned routine, from the cycle as it is now. A cycle that started after the period
  * planned nothing in it: no schedule, not a week of rest days that read "3 of 0 planned". A day the
- * user made a rest day plans nothing either (lib/periods.ts, plannedCycleDay): it isn't missed,
- * and the period has its sets fewer.
+ * user changed plans the routine they picked, or nothing for a rest day (lib/periods.ts,
+ * plannedRoutineId): the routine it replaced isn't missed, and the period has its sets fewer.
  */
 export async function fetchSchedule(supabase: SupabaseClient, userId: string, periodStart: string, days: number): Promise<ScheduledDay[] | null> {
     const periodEnd = addDays(periodStart, days - 1)
     const { data: cycle, error } = await supabase
         .from('training_cycles')
-        .select('id, cycle_length, start_date, cycle_rest_days ( rest_date )')
+        .select(`id, cycle_length, start_date, cycle_date_changes ( change_date, routine_id, ${ROUTINE} )`)
         .eq('user_id', userId)
-        .gte('cycle_rest_days.rest_date', periodStart)
-        .lte('cycle_rest_days.rest_date', periodEnd)
+        .gte('cycle_date_changes.change_date', periodStart)
+        .lte('cycle_date_changes.change_date', periodEnd)
         .maybeSingle()
     if (error) throw new Error(`Failed to fetch training cycle: ${error.message}`)
     if (!cycle || daysBetween(cycle.start_date, periodEnd) < 0) return null
     const { data: cycleDays, error: daysError } = await supabase
         .from('cycle_days')
-        .select('day_index, routines ( user_id, name, routine_exercises ( exercise_id, target_sets ) )')
+        .select(`day_index, routine_id, ${ROUTINE}`)
         .eq('training_cycle_id', cycle.id)
     if (daysError) throw new Error(`Failed to fetch cycle days: ${daysError.message}`)
-    type Row = { day_index: number; routines: { user_id: string; name: string; routine_exercises: { exercise_id: string; target_sets: number | null }[] } | null }
+    type Routine = { user_id: string; name: string; routine_exercises: { exercise_id: string; target_sets: number | null }[] }
+    type Day = { day_index: number; routine_id: string | null; routines: Routine | null }
+    type Change = { change_date: string; routine_id: string | null; routines: Routine | null }
+    const dayRows = (cycleDays ?? []) as unknown as Day[]
+    const changeRows = cycle.cycle_date_changes as unknown as Change[]
     // Only the user's own routines: this reads with the service role, so a day pointing at another
     // user's routine would put that routine in this user's report (the policies refuse such a row
-    // now, migration 20261015130000; this keeps one written before them out)
-    const routineFor = new Map(((cycleDays ?? []) as unknown as Row[]).map((d) => [d.day_index, d.routines?.user_id === userId ? d.routines : null]))
+    // now, migrations 20261015130000 and 20261027120000; this keeps one written before them out)
+    const routineById = new Map([...dayRows, ...changeRows]
+        .filter((d) => d.routine_id && d.routines?.user_id === userId)
+        .map((d) => [d.routine_id, d.routines as Routine]))
+    const routineByDay = Object.fromEntries(dayRows.map((d) => [d.day_index, d.routine_id]))
+    const changes = new Map(changeRows.map((c) => [c.change_date, c.routine_id]))
     const settings = { cycleLength: cycle.cycle_length, startDate: cycle.start_date }
-    const restDates = new Set(cycle.cycle_rest_days.map((r: { rest_date: string }) => r.rest_date))
     return Array.from({ length: days }, (_, i) => {
         const date = addDays(periodStart, i)
-        const day = plannedCycleDay(settings, date, restDates)
-        const routine = day === null ? null : routineFor.get(day) ?? null
+        const routineId = plannedRoutineId(settings, routineByDay, date, changes)
+        const routine = routineId ? routineById.get(routineId) ?? null : null
         return {
             date,
             routine: routine?.name ?? null,
