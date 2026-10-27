@@ -40,6 +40,9 @@ const RING = [
 const PLAIN_FILL = 'bg-muted'
 const PLAIN_RING = 'shadow-[inset_0_0_0_1.5px_var(--color-muted)]'
 
+/** The day picker's value for a rest day; routines go by their ids */
+const REST = 'rest'
+
 /** How many months ahead the calendar goes */
 const MONTHS_AHEAD = 12
 
@@ -305,6 +308,11 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
     const editable = !!routine && (day.status === 'planned' || day.status === 'today')
     // Ahead, or today before its first set, a day can be given another routine or a rest day
     const changeable = day.status === 'planned' || day.status === 'today' || (day.status === 'rest' && day.cycleDay !== null && day.date >= today)
+    // The routines and the rest day it can be changed to: all but what it has, the cycle's own marked
+    const changeTo = [
+        ...routines.filter((r) => r.id !== day.routineId).map((r) => ({ id: r.id as string | null, value: r.id, name: r.name })),
+        ...(day.routineId ? [{ id: null, value: REST, name: t('restDay') }] : []),
+    ].map(({ id, value, name }) => ({ value, label: day.changed && id === day.cycleRoutineId ? t('calendar.original', { name }) : name }))
     // What the cycle had for a day the user changed
     const instead = day.changed && day.cycleRoutineId !== day.routineId
         ? day.cycleRoutineId
@@ -407,19 +415,19 @@ function DayPanel({ day, slot, trained, today, cycle, routineById, exercises, re
                     {t('calendar.startLogging')}
                 </Link>
             )}
-            {changeable && routines.length > 0 && (
+            {changeable && changeTo.length > 0 && (
                 <label className="flex items-center gap-3">
-                    <span className="shrink-0 text-[15px] text-muted md:text-sm">{t('calendar.dayPlan')}</span>
-                    {/* The cycle editor's picker; picking the cycle's own routine gives the day back */}
+                    <span className="shrink-0 text-[15px] text-muted md:text-sm">{t('calendar.changeTo')}</span>
+                    {/* What the day can become, never what it is: picking the cycle's own gives the day back */}
                     <select
-                        value={day.routineId ?? ''}
-                        onChange={(e) => onChangeDay(e.target.value || null)}
+                        value=""
+                        onChange={(e) => onChangeDay(e.target.value === REST ? null : e.target.value)}
                         disabled={dayChange?.saving}
                         className="h-11 min-w-0 flex-1 rounded-[9px] border border-line bg-card px-3 text-base disabled:opacity-50 md:h-auto md:max-w-60 md:px-2 md:py-1.5 md:text-sm"
                     >
-                        <option value="">{t('restDay')}</option>
-                        {routines.map((r) => (
-                            <option key={r.id} value={r.id}>{r.name}</option>
+                        <option value="" disabled>{t('calendar.choose')}</option>
+                        {changeTo.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
                         ))}
                     </select>
                 </label>
