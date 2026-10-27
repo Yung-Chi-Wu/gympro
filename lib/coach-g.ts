@@ -3,7 +3,7 @@
 // long prompt, and a routine is saved only with library exercises, sets and reps in range, and
 // days inside its cycle. The plan itself is built by lib/coach-g-planner.ts. The offline check
 // is scripts/check-coach-g.ts.
-import { MAX_ROUTINE_NAME_CHARS } from './text-limits'
+import { isStorableText, MAX_ROUTINE_NAME_CHARS } from './text-limits'
 
 /** A typed answer, and each saved one: a sentence or a short paragraph */
 export const MAX_ANSWER_CHARS = 500
@@ -39,7 +39,7 @@ export interface PlannedRoutine {
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
-const isShortText = (v: unknown): v is string => typeof v === 'string' && v.length <= MAX_ANSWER_CHARS
+const isShortText = (v: unknown): v is string => typeof v === 'string' && v.length <= MAX_ANSWER_CHARS && isStorableText(v)
 const isIntIn = (v: unknown, min: number, max: number): v is number => Number.isInteger(v) && (v as number) >= min && (v as number) <= max
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 

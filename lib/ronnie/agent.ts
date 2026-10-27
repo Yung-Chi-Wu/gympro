@@ -76,6 +76,31 @@ export function compactHistory(messages: Anthropic.MessageParam[]): Anthropic.Me
     })
 }
 
+/**
+ * The most of today's history a turn sends, in characters of its JSON as compactHistory leaves
+ * it: up to about 60K tokens, US$0.15 or so at Sonnet 5.5's price before the cache. The history
+ * goes back on every round of every turn, so without a bound a long day, or a script adding
+ * events, makes one turn cost past the user's spend limit, which a turn may pass once.
+ */
+export const MAX_HISTORY_CHARS = 60_000
+
+/**
+ * The newest of today's turns that fit MAX_HISTORY_CHARS; older ones stay stored but aren't sent.
+ * It cuts only where a user's message or an app event starts a turn, so a tool call is never
+ * sent without its result. Empty when the last turn alone is over.
+ */
+export function recentHistory(messages: Anthropic.MessageParam[]): Anthropic.MessageParam[] {
+    const sent = compactHistory(messages)
+    let size = 0
+    let from = messages.length
+    for (let i = messages.length - 1; i >= 0; i--) {
+        size += JSON.stringify(sent[i]).length
+        if (size > MAX_HISTORY_CHARS) break
+        if (messages[i].role === 'user' && typeof messages[i].content === 'string') from = i
+    }
+    return messages.slice(from)
+}
+
 // Sonnet 5.5 thinks by default; low effort skips it on most simple turns. Its thinking blocks are
 // bound to the exact history before them, which compactHistory changes, so a mismatched block is
 // dropped rather than failing the request. Thinking counts toward max_tokens.

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { loadRonnieContext } from '@/lib/ronnie/context'
-import { appendConversation } from '@/lib/ronnie/conversation'
+import { appendConversation, loadConversation } from '@/lib/ronnie/conversation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { eventForDisplay, eventForModel, type RonnieEvent } from '@/lib/ronnie/events'
 import { localDateToUtcRange } from '@/lib/ronnie/time'
@@ -10,7 +10,9 @@ import { reportError } from '@/lib/report-error'
 // The button on one of Ronnie's recommendation cards: { exerciseId, replacesExerciseId?, language }.
 // "Add to today" adds the exercise; "Swap" also removes the one it replaces. Today's workout
 // is temporary, so this happens right away, the way Ronnie's add/remove tools do it; then
-// today's conversation records it.
+// today's conversation records it. Only for a card Ronnie showed today: each press adds an event
+// to the conversation, which goes back to the model, so any pair of exercises would let a script
+// grow it without end.
 
 export async function POST(request: Request) {
     const supabase = await createClient()
@@ -21,7 +23,10 @@ export async function POST(request: Request) {
     const zh = body?.language === 'zh-TW'
     const ctx = await loadRonnieContext(supabase, user.id, null)
     // Only an exercise the user can see (RLS limits custom exercises to their creator)
-    const library = await ctx.data.listExercises()
+    const [library, { display }] = await Promise.all([ctx.data.listExercises(), loadConversation(supabase, user.id, ctx.today)])
+    const offered = display.some((d) => d.kind === 'assistant' && d.recommendations?.some((r) =>
+        r.exerciseId === body?.exerciseId && (r.replacesExerciseId ?? null) === (body?.replacesExerciseId ?? null)))
+    if (!offered) return NextResponse.json({ error: 'Not a card from today' }, { status: 400 })
     const exercise = library.find((e) => e.id === body?.exerciseId)
     if (!exercise) return NextResponse.json({ error: 'Unknown exercise' }, { status: 400 })
     const nameOf = (e: { name: string; name_zh_tw: string | null }) => (zh && e.name_zh_tw) || e.name
