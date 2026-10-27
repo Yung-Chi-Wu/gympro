@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { RoutineWithExercises } from '@/app/(app)/routines/page'
 import type { ExerciseOption } from './log-types'
-import { calendarDay, calendarRange, monthWeeks, nextPlanned, routineColors, ROUTINE_COLORS, type CalendarCycle, type CalendarDay } from '@/lib/cycle-calendar'
+import { calendarDay, calendarRange, monthWeeks, nextPlanned, routineColors, type CalendarCycle, type CalendarDay } from '@/lib/cycle-calendar'
 import { addMonths, monthOf, setCount, type HistoryDay, type HistoryRange, type PeriodReportStatus } from '@/lib/history'
 import { addDays, cycleDayOf } from '@/lib/periods'
 import { formatDay, formatMonth, formatRange, weekdayLetters } from '@/lib/date-labels'
@@ -94,10 +94,12 @@ export function CycleCalendar({
     // A trained day is colored by the routine it was logged with, when that routine is still here
     const routineByName = new Map(routines.map((r) => [r.name, r.id]))
     const dayOf = (date: string) => calendarDay(date, cycle, today, days[date])
+    // The routine a day's dot is for: the one it was logged with, else the one it plans
+    const dotRoutine = (day: CalendarDay): string | null => (day.status === 'done'
+        ? days[day.date]?.routineNames.map((n) => routineByName.get(n)).find(Boolean) ?? day.routineId
+        : day.routineId)
     const colorOf = (day: CalendarDay): number | null => {
-        const id = day.status === 'done'
-            ? days[day.date]?.routineNames.map((n) => routineByName.get(n)).find(Boolean) ?? day.routineId
-            : day.routineId
+        const id = dotRoutine(day)
         return id ? colors.get(id) ?? null : null
     }
 
@@ -122,9 +124,13 @@ export function CycleCalendar({
     }
 
     const picked = dayOf(selected)
-    const inCycle = new Set(Object.values(cycle.routineByDay).filter(Boolean) as string[])
     const legend = [...colors.entries()].sort((a, b) => a[1] - b[1]).map(([id, slot]) => ({ id, slot, name: routineById.get(id)?.name ?? '' }))
-    const othersInCycle = inCycle.size > ROUTINE_COLORS
+    // The plain dot is in the legend when the month has one: a routine past the first few, or one
+    // a day was given that the cycle doesn't have
+    const othersShown = monthWeeks(month).flat().some((date) => {
+        const id = dotRoutine(dayOf(date))
+        return !!id && !colors.has(id)
+    })
 
     return (
         <div className="items-start gap-4 space-y-4 @split:grid @split:grid-cols-[minmax(300px,380px)_minmax(0,1fr)] @split:space-y-0">
@@ -220,7 +226,7 @@ export function CycleCalendar({
                                 {name}
                             </span>
                         ))}
-                        {othersInCycle && (
+                        {othersShown && (
                             <span className="inline-flex items-center gap-1.5">
                                 <span className={`size-2 rounded-full ${PLAIN_FILL}`} />
                                 {t('calendar.otherRoutines')}
