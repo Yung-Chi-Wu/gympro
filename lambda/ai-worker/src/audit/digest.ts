@@ -11,8 +11,9 @@ import { chunks, IN_CHUNK, zonesOf } from './run'
 // (run.ts) or by what the user did, with the reasons a user gave for reporting one. It is read
 // from the database, so a day the review failed doesn't lose its week, and goes out only when
 // there is something to read. It never quotes a conversation: the trace is a query away. What
-// users wrote is set off line by line with "> ", so none of it reads as the email's own words,
-// such as a query to run.
+// users wrote, and the daily review's words about their replies (which a user's text can steer),
+// is set off line by line with "> ", so none of it reads as the email's own words, such as a
+// query to run.
 
 export const WEEK_MS = 7 * 86_400_000
 /** SNS takes 256 KB; what doesn't fit is counted, with the query that lists it */
@@ -156,7 +157,8 @@ function replyLines(flags: WeekFlag[]): string[] {
         const problems = Array.isArray(f.detail?.problems) ? f.detail.problems : []
         for (const p of problems) {
             if (!isObject(p) || typeof p.summary !== 'string') continue
-            lines.push(`    檢查｜${PROBLEM_LABEL[p.kind as ProblemKind] ?? PROBLEM_LABEL.other}：${p.summary.replace(/\s+/g, ' ').trim()}`)
+            // The reviewer's words are set off like a user's: it read what the user wrote, which can steer them
+            lines.push(`    檢查｜${PROBLEM_LABEL[p.kind as ProblemKind] ?? PROBLEM_LABEL.other}（每日檢查的說明）`, ...quoted(p.summary.replace(/\s+/g, ' '), '      '))
         }
     }
     for (const f of flags) {

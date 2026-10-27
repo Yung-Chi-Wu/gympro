@@ -339,8 +339,8 @@ const weekTables = () => ({
     check('what a user wrote is there, every line set off with "> "', lines.includes('    > 器械划船（窄握）') && lines.includes('    > ') && lines.includes(`    > ${SQL_LEAD}`) && lines.includes('    > delete from workouts;'), m)
     check('so a line a user wrote never passes for the email\'s own', lines.filter((l) => l === SQL_LEAD).length === 1 && !lines.includes('delete from workouts;') && !m.includes('\r'), m)
     check('characters that turn text around or ring a bell are dropped', !/[\u202a-\u202e\u2066-\u2069\u0007]/.test(m) && m.includes('    > The gnol oot timer  stops'), JSON.stringify(lines.find((l) => l.includes('timer'))))
-    check('a flagged reply has the review\'s problem on one line, why the user reported it and what they added',
-        m.includes('使用者 u-taipei（Asia/Taipei）\n  10/20 21:15\n    檢查｜沒有根據：說今天做完深蹲， 但紀錄裡沒有。\n    使用者｜回報錯誤：數字或事實錯誤、沒回答我的問題\n      > 他說我做完了\n      > 其實沒有\n    trace t1'), m)
+    check('a flagged reply has the review\'s problem, its words set off with "> " like a user\'s, why the user reported it and what they added',
+        m.includes('使用者 u-taipei（Asia/Taipei）\n  10/20 21:15\n    檢查｜沒有根據（每日檢查的說明）\n      > 說今天做完深蹲， 但紀錄裡沒有。\n    使用者｜回報錯誤：數字或事實錯誤、沒回答我的問題\n      > 他說我做完了\n      > 其實沒有\n    trace t1'), m)
     check('and what the app and the user did around it', m.includes('    App｜回覆前的檢查已更正草稿') && m.includes('    使用者｜說回覆錯了') && m.includes('    trace t2'), m)
     check('the query opens the week\'s flagged replies, in the order listed; older ones and the run\'s own moment are left out', m.includes("where id in ('t2', 't1')") && !m.includes('t-old') && !m.includes('改了訊息重問') && !m.includes('last week'), m)
     check('the email never quotes a conversation', !m.includes('我今天做了深蹲嗎') && !m.includes('你今天已經做完深蹲了') && !m.includes('Legs today') && !m.includes('RONNIE SYSTEM PROMPT'), m)

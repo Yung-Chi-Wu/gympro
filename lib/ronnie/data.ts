@@ -388,28 +388,41 @@ export function createSupabaseRonnieData(
             return error?.message ?? null
         },
 
+        // Saved first, then checked against the user's last 30 days with it, the way
+        // lib/insert-under-limit.ts holds a limit: a check before the insert let the requests of a
+        // burst (one reply's tool calls run at once, a script) all count the same rows and go in.
+        // A row that breaks a rule is deleted again. Of two asking for the same name at once, the
+        // later by time, then id, goes, so exactly one stays.
         async requestExercise({ name, message, language }) {
             if (!admin) return { error: 'Requests are not available' }
-            const at = now().getTime()
-            const { data: recent, error } = await admin
-                .from('app_feedback')
-                .select('created_at, kind, source, message')
-                .eq('user_id', userId)
-                .gte('created_at', new Date(at - REQUEST_MEMORY_DAYS * DAY_MS).toISOString())
-            if (error) return { error: error.message }
-            const rows = recent ?? []
-            if (rows.some((r) => r.kind === 'exercise' && sameExerciseName(r.message.split('\n')[0], name))) return { status: 'duplicate' }
-            const day = rows.filter((r) => Date.parse(r.created_at) >= at - DAY_MS)
-            if (day.length >= MAX_FEEDBACK_PER_DAY || day.filter((r) => r.source === 'ronnie').length >= MAX_RONNIE_REQUESTS_PER_DAY) return { status: 'limit' }
-            const { error: saveError } = await admin.from('app_feedback').insert({
+            const { data: mine, error: saveError } = await admin.from('app_feedback').insert({
                 user_id: userId,
                 kind: 'exercise',
                 source: 'ronnie',
                 message,
                 language,
                 app_version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 64) ?? null,
-            })
-            return saveError ? { error: saveError.message } : { status: 'sent' }
+            }).select('id, created_at').single()
+            if (saveError || !mine) return { error: saveError?.message ?? 'Not saved' }
+            const at = now().getTime()
+            const { data: recent, error } = await admin
+                .from('app_feedback')
+                .select('id, created_at, kind, source, message')
+                .eq('user_id', userId)
+                .gte('created_at', new Date(at - REQUEST_MEMORY_DAYS * DAY_MS).toISOString())
+            const takeOut = async <T>(answer: T): Promise<T> => {
+                const { error: removeError } = await admin.from('app_feedback').delete().eq('id', mine.id)
+                return removeError ? ({ error: removeError.message } as T) : answer
+            }
+            if (error) return takeOut({ error: error.message })
+            const rows = recent ?? []
+            const mineAt = Date.parse(mine.created_at)
+            const before = (r: { id: string; created_at: string }) => Date.parse(r.created_at) < mineAt || (Date.parse(r.created_at) === mineAt && r.id < mine.id)
+            if (rows.some((r) => r.id !== mine.id && before(r) && r.kind === 'exercise' && sameExerciseName(r.message.split('\n')[0], name))) return takeOut({ status: 'duplicate' as const })
+            // The day's rows, this one included: it was read back after it was saved
+            const day = rows.filter((r) => Date.parse(r.created_at) >= at - DAY_MS)
+            if (day.length > MAX_FEEDBACK_PER_DAY || day.filter((r) => r.source === 'ronnie').length > MAX_RONNIE_REQUESTS_PER_DAY) return takeOut({ status: 'limit' as const })
+            return { status: 'sent' }
         },
 
         async deleteMemory({ kind, subject }) {
