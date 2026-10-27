@@ -333,3 +333,25 @@ resource "aws_cloudwatch_metric_alarm" "app_errors" {
   alarm_actions = [aws_sns_topic.alerts.arn]
   ok_actions    = [aws_sns_topic.alerts.arn]
 }
+
+# ---------- Alarm: the database is filling up ----------
+# Supabase's free plan turns the database read-only at 500 MB, for every user at once. The hourly
+# scheduler sends its size (database_size_bytes); this warns at 400 MB, with time to act. Each
+# account's rows have a limit (migration 20261027160000), but many accounts together still add up.
+resource "aws_cloudwatch_metric_alarm" "database_size" {
+  alarm_name        = "gympro-database-size"
+  alarm_description = "The database is past 400 MB of the free plan's 500 MB. In Supabase: select relname, pg_size_pretty(pg_total_relation_size(oid)) from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' order by pg_total_relation_size(oid) desc limit 10;"
+
+  namespace   = "GymPro/App"
+  metric_name = "DatabaseMB"
+
+  statistic           = "Maximum"
+  period              = 3600
+  evaluation_periods  = 1
+  threshold           = 400
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
+}
