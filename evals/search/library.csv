@@ -15,6 +15,7 @@ d9481455-4292-4125-90d5-f52a83266f5b,Chin-up,反握引體向上,back,bodyweight
 79fcd982-e882-48b1-8d1f-f3680de3a32b,Lat Pulldown,滑輪下拉,back,cable
 5ef07de2-5157-43f7-91d2-1f9141ce4fda,Machine High Row,器械高位划船,back,machine
 86ed85fa-c28a-45f6-a44b-90d42ec0bd65,Machine Lat Pulldown,器械下拉,back,machine
+21d12034-b65f-4199-ae42-9e16bdf29c50,Machine Low Row,器械低位划船,back,machine
 7203ed9a-a95b-4d51-ae97-c888dcab33dc,Machine Row,器械划船,back,machine
 47aaeed6-f260-4b3c-b96a-75f2a48f7fcb,Meadows Row,梅多斯划船,back,barbell
 305e4696-5b56-4c5f-96de-64650c61aa4b,Pull-up,引體向上,back,bodyweight
@@ -49,6 +50,7 @@ d60e1924-cc7a-4383-ad3a-779f2f74cee4,Spider Curl,蜘蛛彎舉,biceps,dumbbell
 64e8912e-7cdb-5abe-b6b5-4e755f5cf0c1,Jump Rope,跳繩,cardio,other
 5563965f-3d03-4e3c-bfdb-ac9e4f86bad2,Recumbent Bike,臥式健身車,cardio,machine
 88c320b8-7d2d-4e59-bca5-312e454f7916,Rowing Machine,划船機,cardio,machine
+41203124-41d8-4523-a54b-61b9b71fd521,Spin Bike,飛輪,cardio,machine
 275c314f-e01a-56d0-b139-4e1a7670a9ea,Stair Climber,爬梯機,cardio,machine
 985ce5ab-f370-4d27-86cc-7240ef87bd2c,Stationary Bike,健身車,cardio,machine
 0a07c1a1-feef-44c3-991a-b6e3dfc1e936,Treadmill,跑步機,cardio,machine
@@ -110,6 +112,7 @@ fe8ed9e9-0b54-450c-8afe-2432032a3313,Hip Abduction Machine,髖外展機,glutes,m
 4fdfcaf0-feef-4ed7-b91e-aa455795ae5b,Hip Thrust Machine,臀推機,glutes,machine
 51231e88-fb37-5348-ae6b-5c988e2ca2af,Kettlebell Swing,壺鈴擺盪,glutes,kettlebell
 9b855917-1a27-481c-a928-a44bf8e29384,Monster Walk,怪獸步,glutes,other
+5c95a6b5-7871-4929-ba77-a16991e27789,Smith Machine Hip Thrust,史密斯機臀推,glutes,machine
 cefb0269-3c0e-4d3d-9b53-ccd8c27cbdca,Barbell Back Squat,槓鈴深蹲,legs,barbell
 cc52b72a-32b7-5d0a-a273-cdadd2e7a28e,Belt Squat,腰帶深蹲,legs,machine
 298f7000-9b0a-5acc-b784-0b146831be61,Bodyweight Squat,徒手深蹲,legs,bodyweight
@@ -124,6 +127,7 @@ d1e0a931-56f6-555c-904e-01a59cc96f3c,Goblet Squat,高腳杯深蹲,legs,dumbbell
 540e71e6-f88c-4da1-a63d-7c691af30c39,Good Morning,早安式,legs,barbell
 ca7667a9-1455-478a-afa8-c8620a18a122,Hack Squat,哈克深蹲,legs,machine
 32921c6b-8fce-4763-89fa-431869057c49,Hip Adduction Machine,髖內收機,legs,machine
+156a88e3-dd1d-443b-a22a-5e7c7f03e67d,Kneeling Leg Curl,跪姿腿彎舉機,legs,machine
 506d4f6a-f877-46d5-8e7d-64b96071bd3f,Leg Extension,腿伸展機,legs,machine
 f73b69a8-15a2-4fda-8225-598c7db2940a,Leg Press,腿推機,legs,machine
 3a944a95-85da-4206-bc4e-ac6e11d52b0b,Leg Press Calf Raise,腿推機提踵,legs,machine
