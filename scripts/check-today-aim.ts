@@ -1,13 +1,16 @@
 // Free check of today's aim on each exercise (lib/report/progression.ts todayAim): the report's
 // plan for the period that ended, moved on by each session since, and what the report decided for
 // this period first. Also that Today's numbers are the report's, and that the report plans with
-// the same function, so the two can't give different numbers.
+// the same function, so the two can't give different numbers. And the target of an exercise
+// outside today's routine (lib/today-workout.ts): another routine's, else last time's sets.
 //   npm run check:today-aim
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { prescribe, todayAim, type AimFinding } from '../lib/report/progression'
 import { aimText, planItems } from '../lib/report/report-text'
 import type { ExerciseInfo, Finding, LoggedSet } from '../lib/report/types'
+import { loadTodayWorkout, targetOutsideRoutine } from '../lib/today-workout'
+import type { SetValues } from '../lib/set-log'
 
 let failed = 0
 const check = (name: string, ok: boolean, detail = '') => {
@@ -146,5 +149,81 @@ check('no aim for an exercise not done lately, cardio, a timed hold or a core ex
     check('the report plans with it', /from '\.\.\/\.\.\/\.\.\/\.\.\/lib\/report\/progression'/.test(plan) && plan.includes('prescribe('))
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed')
-process.exit(failed ? 1 : 0)
+// ---------- The target of an exercise outside today's routine ----------
+{
+    const set = (reps: number, weightKg = 50): SetValues => ({ reps, weightKg, durationS: null, speedKmh: null, inclinePct: null, level: null, distanceM: null, assistKg: null, avgHr: null, inputUnit: null })
+    check('another routine\'s target comes first', same(targetOutsideRoutine({ sets: 4, reps: 10 }, [set(8), set(8), set(8)], 'weight_reps'), { sets: 4, reps: 10 }))
+    check('else as many sets as last time, at its first set\'s reps', same(targetOutsideRoutine(undefined, [set(8), set(6), set(6)], 'weight_reps'), { sets: 3, reps: 8 }))
+    check('a timed or cardio exercise takes the sets alone', same(targetOutsideRoutine(undefined, [set(0), set(0)], 'duration'), { sets: 2, reps: null }))
+    check('never done and in no routine: no target', targetOutsideRoutine(undefined, [], 'weight_reps') === null)
+}
+
+async function checkTargets() {
+    // A stand-in Supabase: each query records its calls and is answered by table and what it asked
+    const queries: { table: string; ops: [string, unknown[]][] }[] = []
+    const info = (name: string, logType = 'weight_reps') => ({ name, name_zh_tw: null, muscle_group: 'chest', log_type: logType, per_side: false, equipment: 'barbell', primary_muscles: ['chest'] })
+    const prev = (exerciseId: string, reps: number[], day = '2026-10-20') => reps.map((r, i) => ({ workout_id: `w-${exerciseId}`, exercise_id: exerciseId, set_number: i + 1, reps: r, weight_kg: 60, duration_s: null, speed_kmh: null, incline_pct: null, level: null, distance_m: null, assist_kg: null, avg_hr: null, input_unit: null, workouts: { performed_at: `${day}T15:00:00Z` } }))
+    const answer = (q: { table: string; ops: [string, unknown[]][] }) => {
+        const has = (op: string, first?: unknown) => q.ops.some(([k, a]) => k === op && (first === undefined || a[0] === first))
+        if (q.table === 'workouts') return { data: {
+            id: 'w-today', routine_id: 'r-today',
+            workout_planned_exercises: [
+                { id: 'p1', exercise_id: 'bench', exercises: info('Bench Press') },
+                { id: 'p2', exercise_id: 'fly', exercises: info('Cable Fly') },
+                { id: 'p3', exercise_id: 'dip', exercises: info('Dip') },
+                { id: 'p4', exercise_id: 'plank', exercises: info('Plank', 'duration') },
+                { id: 'p5', exercise_id: 'new', exercises: info('Never Done') },
+            ],
+            workout_sets: [],
+            routines: { routine_exercises: [{ exercise_id: 'bench', target_sets: 3, target_reps: 5 }] },
+        }, error: null }
+        if (q.table === 'routine_exercises' && has('eq', 'routine_id')) return { data: [{ exercise_id: 'bench', target_sets: 3, target_reps: 5, exercises: info('Bench Press') }], error: null }
+        if (q.table === 'routine_exercises') return { data: [
+            { exercise_id: 'fly', target_sets: 2, target_reps: 15, routines: { created_at: '2026-09-01T00:00:00Z' } },
+            { exercise_id: 'fly', target_sets: 4, target_reps: 12, routines: { created_at: '2026-10-01T00:00:00Z' } },
+        ], error: null }
+        if (q.table === 'workout_sets' && has('gte')) return { data: [], error: null }
+        if (q.table === 'workout_sets') return { data: [...prev('fly', [10, 10]), ...prev('dip', [8, 7, 7]), ...prev('plank', [0, 0])], error: null }
+        return { data: [], error: null }
+    }
+    const supabase = {
+        from(table: string) {
+            const q = { table, ops: [] as [string, unknown[]][] }
+            queries.push(q)
+            const builder: unknown = new Proxy({}, {
+                get(_, key: string) {
+                    if (key === 'then') return (resolve: (v: unknown) => void, reject: (e: unknown) => void) => Promise.resolve().then(() => answer(q)).then(resolve, reject)
+                    return (...args: unknown[]) => { q.ops.push([key, args]); return builder }
+                },
+            })
+            return builder
+        },
+    } as unknown as Parameters<typeof loadTodayWorkout>[0]
+    const today = await loadTodayWorkout(supabase, {
+        userId: 'u1', range: { start: '2026-10-27T04:00:00Z', end: '2026-10-28T03:59:59Z' }, routineId: 'r-today', routineExerciseIds: ['bench'], language: 'en', recentFrom: null,
+    })
+    const targetOf = (id: string) => today.exercises.find((ex) => ex.exerciseId === id)?.target ?? null
+    check("today's routine keeps its own target", same(targetOf('bench'), { sets: 3, reps: 5 }))
+    check('one added from another routine takes that routine\'s, the newest one\'s', same(targetOf('fly'), { sets: 4, reps: 12 }), JSON.stringify(targetOf('fly')))
+    check('one in no routine takes last time\'s sets and reps', same(targetOf('dip'), { sets: 3, reps: 8 }), JSON.stringify(targetOf('dip')))
+    check('a timed one takes last time\'s sets', same(targetOf('plank'), { sets: 2, reps: null }), JSON.stringify(targetOf('plank')))
+    check('one never done has none', targetOf('new') === null)
+    const reloaded = await loadTodayWorkout(supabase, {
+        userId: 'u1', range: { start: '2026-10-27T04:00:00Z', end: '2026-10-28T03:59:59Z' }, routineId: 'r-today', language: 'en', recentFrom: null,
+    })
+    check('reloaded without the routine\'s exercises (after Ronnie changes the day), every target is the same',
+        same(reloaded.exercises.map((ex) => ex.target), today.exercises.map((ex) => ex.target)), JSON.stringify(reloaded.exercises.map((ex) => ex.target)))
+    queries.length = 0
+    await loadTodayWorkout(supabase, {
+        userId: 'u1', range: { start: '2026-10-27T04:00:00Z', end: '2026-10-28T03:59:59Z' }, routineId: 'r-today', routineExerciseIds: ['bench'], language: 'en', recentFrom: null,
+    })
+    const routineRead = queries.filter((q) => q.table === 'routine_exercises' && !q.ops.some(([k, a]) => k === 'eq' && a[0] === 'routine_id'))
+    const ids = routineRead[0]?.ops.find(([k]) => k === 'in')?.[1][1] as string[] | undefined
+    check("the other routines are read once, for the user's own, only for what today's routine doesn't cover",
+        routineRead.length === 1 && routineRead[0].ops.some(([k, a]) => k === 'eq' && a[0] === 'routines.user_id' && a[1] === 'u1') && !!ids && !ids.includes('bench'), JSON.stringify(routineRead.map((q) => q.ops)))
+}
+
+checkTargets().then(() => {
+    console.log(failed ? `\n${failed} failed` : '\nall passed')
+    process.exit(failed ? 1 : 0)
+})

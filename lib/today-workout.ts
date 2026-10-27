@@ -5,7 +5,7 @@ import type { WeightUnit } from './weight-unit'
 import { logNoteOf, logTypeOf, setValuesOf, type LogNote, type SetValues } from './set-log'
 import { localDate } from './periods'
 import type { LoggedSet } from './report/types'
-import type { AimFinding } from './report/progression'
+import { STRENGTH_LOG_TYPES, type AimFinding } from './report/progression'
 
 // Today's workout as the dashboard shows it: the workout started today with its sets,
 // or, before there is one, today's routine as the plan. The page renders it and the
@@ -36,7 +36,11 @@ export interface TodayExercise {
     /** What it trains and how it is loaded, for the size of a weight step */
     primaryMuscles: string[]
     equipment: string | null
-    /** What the routine asks for (routine_exercises); null for an exercise added just for today */
+    /**
+     * What the routine asks for (routine_exercises). An exercise outside today's routine takes what
+     * another of the user's routines asks of it, else as many sets as last time (targetOutsideRoutine);
+     * null when it has neither
+     */
     target: Target | null
 }
 
@@ -128,6 +132,59 @@ export async function exerciseLogUnits(
         .eq('user_id', userId)
         .in('exercise_id', exerciseIds)
     return new Map((data ?? []).filter((r) => r.unit === 'kg' || r.unit === 'lb').map((r) => [r.exercise_id, r.unit as WeightUnit]))
+}
+
+/**
+ * What the user's routines ask of each exercise (routine_exercises with a target), the newest
+ * routine's when more than one has it. For an exercise added just for today, or one in a workout
+ * that follows another routine: the user already said how much of it they do.
+ */
+export async function routineTargets(
+    supabase: SupabaseClient<Database>,
+    userId: string,
+    exerciseIds: string[],
+): Promise<Map<string, Target>> {
+    const out = new Map<string, Target>()
+    if (!exerciseIds.length) return out
+    const { data } = await supabase
+        .from('routine_exercises')
+        .select('exercise_id, target_sets, target_reps, routines!inner ( user_id, created_at )')
+        .eq('routines.user_id', userId)
+        .in('exercise_id', exerciseIds)
+        .not('target_sets', 'is', null)
+    const rows = (data as unknown as (TargetRow & { routines: { created_at: string } })[] | null) ?? []
+    for (const r of rows.sort((a, b) => b.routines.created_at.localeCompare(a.routines.created_at))) {
+        const target = targetOf(r)
+        if (target && !out.has(r.exercise_id)) out.set(r.exercise_id, target)
+    }
+    return out
+}
+
+/**
+ * The target of an exercise outside today's routine: what one of the user's routines asks of it,
+ * else as many sets as last time, at the reps of last time's first set for a lift. Without
+ * either, none: the card then shows today's weight to aim for alone.
+ */
+export function targetOutsideRoutine(fromRoutines: Target | undefined, previous: SetValues[], logType: LogType): Target | null {
+    if (fromRoutines) return fromRoutines
+    if (!previous.length) return null
+    return { sets: previous.length, reps: STRENGTH_LOG_TYPES.has(logType) && previous[0].reps > 0 ? previous[0].reps : null }
+}
+
+/** What an exercise starts the day with: last time's sets, its own kg/lb, the sets today's aim works from, and, when asked, the routines' targets */
+export async function exerciseHints(
+    supabase: SupabaseClient<Database>,
+    userId: string,
+    exerciseIds: string[],
+    { before, recentFrom, targets = false }: { before: string; recentFrom?: { from: string; timeZone: string } | null; targets?: boolean },
+) {
+    const [previous, logUnits, recent, fromRoutines] = await Promise.all([
+        lastSessionSets(supabase, userId, exerciseIds, before),
+        exerciseLogUnits(supabase, userId, exerciseIds),
+        recentFrom ? recentSets(supabase, userId, exerciseIds, { from: recentFrom.from, before, timeZone: recentFrom.timeZone }) : new Map<string, LoggedSet[]>(),
+        targets ? routineTargets(supabase, userId, exerciseIds) : new Map<string, Target>(),
+    ])
+    return { previous, logUnits, recent, fromRoutines }
 }
 
 /** For each exercise, the sets of the last workout before `before` that had it, in set order. */
@@ -222,28 +279,27 @@ export async function loadTodayWorkout(
         target,
     })
     // Last time's sets, the exercise's own kg/lb, and the sets today's aim works from
-    const hintsOf = async (ids: string[]) => {
-        const [previous, logUnits, recent] = await Promise.all([
-            lastSessionSets(supabase, userId, ids, range.start),
-            exerciseLogUnits(supabase, userId, ids),
-            recentFrom ? recentSets(supabase, userId, ids, { from: recentFrom.from, before: range.start, timeZone: recentFrom.timeZone }) : new Map<string, LoggedSet[]>(),
-        ])
-        return { previous, logUnits, recent }
-    }
+    const hintsOf = (ids: string[], targets = false) => exerciseHints(supabase, userId, ids, { before: range.start, recentFrom, targets })
     const known = new Set(routineExerciseIds ?? [])
     // Hints for today's routine come with the workout (early); the rest of the card (an exercise
     // added just for today, a workout that follows another routine, or every exercise when the
-    // caller didn't know the routine's) takes one more round
-    const withPrevious = async (exercises: TodayExercise[], early: Awaited<ReturnType<typeof hintsOf>> | null) => {
+    // caller didn't know the routine's) takes one more round. An exercise outside the routine the
+    // workout follows (`routine`: its exercise ids) is read with the routines' targets too
+    const withPrevious = async (exercises: TodayExercise[], early: Awaited<ReturnType<typeof hintsOf>> | null, routine: Set<string>) => {
         const missing = exercises.map((ex) => ex.exerciseId).filter((id) => !known.has(id))
-        const more = missing.length ? await hintsOf(missing) : null
+        const more = missing.length ? await hintsOf(missing, missing.some((id) => !routine.has(id))) : null
         const hintsFor = (id: string) => (known.has(id) ? early : more)
-        return exercises.map((ex) => ({
-            ...ex,
-            previous: hintsFor(ex.exerciseId)?.previous.get(ex.exerciseId) ?? [],
-            recent: hintsFor(ex.exerciseId)?.recent.get(ex.exerciseId) ?? [],
-            logUnit: hintsFor(ex.exerciseId)?.logUnits.get(ex.exerciseId) ?? null,
-        }))
+        return exercises.map((ex) => {
+            const hints = hintsFor(ex.exerciseId)
+            const previous = hints?.previous.get(ex.exerciseId) ?? []
+            return {
+                ...ex,
+                previous,
+                recent: hints?.recent.get(ex.exerciseId) ?? [],
+                logUnit: hints?.logUnits.get(ex.exerciseId) ?? null,
+                target: routine.has(ex.exerciseId) ? ex.target : targetOutsideRoutine(hints?.fromRoutines.get(ex.exerciseId), previous, ex.logType),
+            }
+        })
     }
 
     // One round when the caller knows today's routine, else two: today's workout with its plan, sets
@@ -296,12 +352,12 @@ export async function loadTodayWorkout(
             exercises: await withPrevious([
                 ...planned.map((p) => exerciseOf(p.exercise_id, p.exercises, p.id, setsOf(p.exercise_id), targetOf(targetRows.find((re) => re.exercise_id === p.exercise_id)))),
                 ...offPlanIds.map((id) => exerciseOf(id, sets.find((s) => s.exercise_id === id)?.exercises ?? null, null, setsOf(id), null)),
-            ], early),
+            ], early, new Set(targetRows.map((re) => re.exercise_id))),
         }
     }
 
     return {
         workoutId: null,
-        exercises: await withPrevious(routineExercises.map((re) => exerciseOf(re.exercise_id, re.exercises, null, [], targetOf(re))), early),
+        exercises: await withPrevious(routineExercises.map((re) => exerciseOf(re.exercise_id, re.exercises, null, [], targetOf(re))), early, new Set(routineExercises.map((re) => re.exercise_id))),
     }
 }
