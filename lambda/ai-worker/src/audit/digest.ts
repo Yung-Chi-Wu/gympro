@@ -34,6 +34,8 @@ export interface WeekFeedback {
     createdAt: string
     userId: string
     kind: string
+    /** settings, or ronnie for an exercise Ronnie asked for (lib/feedback.ts FEEDBACK_SOURCES) */
+    source: string
     message: string
     language: string | null
     appVersion: string | null
@@ -91,8 +93,8 @@ export async function readDigestWeek(supabase: SupabaseClient, now: number): Pro
         allRows<{ trace_id: string; user_id: string; kind: FlagKind; detail: unknown }>((a, b) => supabase
             .from('ai_trace_flags').select('trace_id, user_id, kind, detail')
             .gte('created_at', from).lt('created_at', to).order('created_at').order('id').range(a, b), 'flags'),
-        allRows<{ created_at: string; user_id: string; kind: string; message: string; language: string | null; app_version: string | null }>((a, b) => supabase
-            .from('app_feedback').select('created_at, user_id, kind, message, language, app_version')
+        allRows<{ created_at: string; user_id: string; kind: string; source: string; message: string; language: string | null; app_version: string | null }>((a, b) => supabase
+            .from('app_feedback').select('created_at, user_id, kind, source, message, language, app_version')
             .gte('created_at', from).lt('created_at', to).order('created_at').order('id').range(a, b), 'feedback'),
         allRows<{ status: string; cost_usd: number | string | null }>((a, b) => supabase
             .from('ai_traces').select('status, cost_usd').eq('feature', 'audit')
@@ -114,7 +116,7 @@ export async function readDigestWeek(supabase: SupabaseClient, now: number): Pro
         flags: flagRows.map((f) => ({ traceId: f.trace_id, userId: f.user_id, kind: f.kind, detail: isObject(f.detail) ? f.detail : null })),
         replyTimes,
         zones,
-        feedback: feedbackRows.map((f) => ({ createdAt: f.created_at, userId: f.user_id, kind: f.kind, message: f.message, language: f.language, appVersion: f.app_version })),
+        feedback: feedbackRows.map((f) => ({ createdAt: f.created_at, userId: f.user_id, kind: f.kind, source: f.source, message: f.message, language: f.language, appVersion: f.app_version })),
         reviews: {
             days: reviewRows.length,
             failed: reviewRows.filter((r) => r.status !== 'ok').length,
@@ -179,7 +181,8 @@ export function weeklyDigestOf(week: Week): Digest | null {
     // Feedback, oldest first
     const feedback = week.feedback.map((f) => {
         const kind = FEEDBACK_KINDS.find((k) => k === f.kind)
-        const about = [`使用者 ${shortId(f.userId)}`, kind ? zh.settings.feedback.kinds[kind] : f.kind, f.language, f.appVersion && `版本 ${f.appVersion.slice(0, 7)}`]
+        // An exercise Ronnie asked for (request_exercise) says so: the words are the user's as Ronnie put them
+        const about = [`使用者 ${shortId(f.userId)}`, kind ? zh.settings.feedback.kinds[kind] : f.kind, f.source === 'ronnie' && 'Ronnie 代為回報', f.language, f.appVersion && `版本 ${f.appVersion.slice(0, 7)}`]
         return [`  ${timeIn(f.createdAt, zoneOf(f.userId))}（${zoneOf(f.userId)}）${about.filter(Boolean).join('・')}`, ...quoted(f.message, '    ')]
     })
 
@@ -231,7 +234,7 @@ export function weeklyDigestOf(week: Week): Digest | null {
             ...shownFeedback.flat(),
             ...(shownFeedback.length < feedback.length ? [
                 `  還有 ${feedback.length - shownFeedback.length} 則放不下，在 Supabase SQL Editor 執行：`,
-                `  select created_at, user_id, kind, message from app_feedback where created_at >= '${sinceIso}' order by created_at;`,
+                `  select created_at, user_id, kind, source, message from app_feedback where created_at >= '${sinceIso}' order by created_at;`,
             ] : []),
         ] : []),
         ...(replies.length ? [

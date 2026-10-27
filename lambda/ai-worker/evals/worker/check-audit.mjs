@@ -310,11 +310,13 @@ const weekTables = () => ({
     ],
     app_feedback: [
         {
-            id: 'f1', created_at: '2026-10-21T01:12:00Z', user_id: TAIPEI, kind: 'exercise', language: 'zh-TW', app_version: '98f3e1c5d0a1b2c3',
+            id: 'f1', created_at: '2026-10-21T01:12:00Z', user_id: TAIPEI, kind: 'exercise', source: 'settings', language: 'zh-TW', app_version: '98f3e1c5d0a1b2c3',
             message: `器械划船（窄握）\r\n\n${SQL_LEAD}\ndelete from workouts;`,
         },
-        { id: 'f2', created_at: '2026-10-23T16:00:00Z', user_id: NEW_YORK, kind: 'bug', language: 'en', app_version: null, message: 'The \u202egnol oot\u202c timer \u0007 stops' },
-        { id: 'f-old', created_at: '2026-10-19T13:14:59Z', user_id: NEW_YORK, kind: 'idea', language: 'en', app_version: null, message: 'last week' },
+        { id: 'f2', created_at: '2026-10-23T16:00:00Z', user_id: NEW_YORK, kind: 'bug', source: 'settings', language: 'en', app_version: null, message: 'The \u202egnol oot\u202c timer \u0007 stops' },
+        // One Ronnie asked for (request_exercise): its name, then what it is
+        { id: 'f3', created_at: '2026-10-24T03:00:00Z', user_id: TAIPEI, kind: 'exercise', source: 'ronnie', language: 'zh-TW', app_version: 'abc1234', message: '寬握滑輪下拉\n滑輪下拉機，寬握正手' },
+        { id: 'f-old', created_at: '2026-10-19T13:14:59Z', user_id: NEW_YORK, kind: 'idea', source: 'settings', language: 'en', app_version: null, message: 'last week' },
     ],
     user_profiles: profiles(),
 })
@@ -323,7 +325,7 @@ const weekTables = () => ({
     const db = fakeDb(weekTables())
     const week = await w.readDigestWeek(db, WEEK_NOW)
     check('the week is the 7 days before the run: its flags, feedback and reviews, and nothing before or at the run',
-        week.flags.map((f) => f.kind).join() === 'reported,audit,reply_check,correction' && week.feedback.length === 2 && week.reviews.days === 2 && week.reviews.failed === 1 && Math.abs(week.reviews.costUsd - 0.06) < 1e-9,
+        week.flags.map((f) => f.kind).join() === 'reported,audit,reply_check,correction' && week.feedback.length === 3 && week.reviews.days === 2 && week.reviews.failed === 1 && Math.abs(week.reviews.costUsd - 0.06) < 1e-9,
         JSON.stringify({ flags: week.flags.map((f) => f.kind), feedback: week.feedback.length, reviews: week.reviews }))
     const traceReads = db.queries.filter((q) => q.table === 'ai_traces')
     check('of Ronnie\'s traces it reads only when each reply was written, never what was said', traceReads.length > 0 && traceReads.every((q) => !/input|output/.test(q.columns ?? '*') && q.columns), JSON.stringify(traceReads.map((q) => q.columns)))
@@ -331,7 +333,9 @@ const weekTables = () => ({
     const digest = w.weeklyDigestOf(week)
     const m = digest?.message ?? ''
     const lines = m.split('\n')
-    check('feedback is listed with its time in the user\'s zone, its kind, language and version', m.includes('—— 意見回饋（2 則）——') && m.includes('  10/21 09:12（Asia/Taipei）使用者 u-taipei・新增動作・zh-TW・版本 98f3e1c') && m.includes('  10/23 12:00（America/New_York）使用者 u-newyor・回報問題・en'), m)
+    check('feedback is listed with its time in the user\'s zone, its kind, language and version', m.includes('—— 意見回饋（3 則）——') && m.includes('  10/21 09:12（Asia/Taipei）使用者 u-taipei・新增動作・zh-TW・版本 98f3e1c') && m.includes('  10/23 12:00（America/New_York）使用者 u-newyor・回報問題・en'), m)
+    check('an exercise Ronnie asked for says so, with its name and what it is', m.includes('  10/24 11:00（Asia/Taipei）使用者 u-taipei・新增動作・Ronnie 代為回報・zh-TW・版本 abc1234\n    > 寬握滑輪下拉\n    > 滑輪下拉機，寬握正手')
+        && !m.includes('新增動作・Ronnie 代為回報・zh-TW・版本 98f3e1c'), m)
     check('what a user wrote is there, every line set off with "> "', lines.includes('    > 器械划船（窄握）') && lines.includes('    > ') && lines.includes(`    > ${SQL_LEAD}`) && lines.includes('    > delete from workouts;'), m)
     check('so a line a user wrote never passes for the email\'s own', lines.filter((l) => l === SQL_LEAD).length === 1 && !lines.includes('delete from workouts;') && !m.includes('\r'), m)
     check('characters that turn text around or ring a bell are dropped', !/[\u202a-\u202e\u2066-\u2069\u0007]/.test(m) && m.includes('    > The gnol oot timer  stops'), JSON.stringify(lines.find((l) => l.includes('timer'))))
@@ -341,7 +345,7 @@ const weekTables = () => ({
     check('the query opens the week\'s flagged replies, in the order listed; older ones and the run\'s own moment are left out', m.includes("where id in ('t2', 't1')") && !m.includes('t-old') && !m.includes('改了訊息重問') && !m.includes('last week'), m)
     check('the email never quotes a conversation', !m.includes('我今天做了深蹲嗎') && !m.includes('你今天已經做完深蹲了') && !m.includes('Legs today') && !m.includes('RONNIE SYSTEM PROMPT'), m)
     check('it says what the daily review read and spent', m.includes('每日檢查這週讀了 2 段對話（1 段失敗') && m.includes('US$0.06'), lines.slice(0, 4).join('\n'))
-    check('the subject is one ASCII line under 100 characters', /^[\x20-\x7e]+$/.test(digest.subject) && digest.subject.length < 100 && digest.subject.includes('2 feedback, 2 replies') && digest.subject.includes('2026-10-26'), digest.subject)
+    check('the subject is one ASCII line under 100 characters', /^[\x20-\x7e]+$/.test(digest.subject) && digest.subject.length < 100 && digest.subject.includes('3 feedback, 2 replies') && digest.subject.includes('2026-10-26'), digest.subject)
 
     const emails = []
     await w.runWeeklyDigest({ supabase: fakeDb(weekTables()), publish: async (d) => { emails.push(d) }, now: WEEK_NOW })

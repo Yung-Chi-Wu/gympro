@@ -1,16 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
-import { parseFeedback, userAgentOf } from '@/lib/feedback'
+import { MAX_FEEDBACK_PER_DAY, parseFeedback, userAgentOf } from '@/lib/feedback'
 import { reportError } from '@/lib/report-error'
 
 // Feedback from Settings (lib/feedback.ts): POST { kind, message, language }, kept in app_feedback
 // for the owner with the app version and the browser's user agent. Signed-in users only, and a few
-// a day: from MAX_PER_DAY in 24 hours on, a user's feedback is refused, so one browser can't fill
-// the table.
+// a day: from MAX_FEEDBACK_PER_DAY in 24 hours on (Ronnie's exercise requests count too), a user's
+// feedback is refused, so one browser can't fill the table.
 
 const DAY_MS = 86_400_000
-const MAX_PER_DAY = 10
 
 export async function POST(request: Request) {
     const supabase = await createClient()
@@ -35,7 +34,7 @@ export async function POST(request: Request) {
         reportError('feedback/count', countError, { userId: user.id })
         return NextResponse.json({ error: 'Unavailable' }, { status: 503 })
     }
-    if ((count ?? 0) >= MAX_PER_DAY) return NextResponse.json({ error: 'Too many' }, { status: 429 })
+    if ((count ?? 0) >= MAX_FEEDBACK_PER_DAY) return NextResponse.json({ error: 'Too many' }, { status: 429 })
 
     const { error } = await admin.from('app_feedback').insert({
         user_id: user.id,

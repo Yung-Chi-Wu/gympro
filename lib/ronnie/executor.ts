@@ -17,6 +17,7 @@ import {
     memoryReceipt, noteIdOf, sameSlot, type MemoryKind, type MemoryNote,
 } from './memory'
 import { localDateStr, localDateToUtcRange } from './time'
+import { exerciseRequestMessage, exerciseRequestReceipt, MAX_REQUEST_NAME_CHARS, sameExerciseName } from '../feedback'
 import { formatWeight, toDisplayWeight, type WeightUnit } from '../weight-unit'
 import { toDisplayDistance, type DistanceUnit } from '../distance-unit'
 import type { LogType } from '../exercise-attributes'
@@ -67,6 +68,8 @@ export interface RonnieExecutor {
      * claimed that wasn't.
      */
     readonly remembered: string[]
+    /** The exercises asked for this turn (request_exercise), as the lines shown with the reply: written here, like remembered */
+    readonly requested: string[]
     /** Today's exercises with every name each goes by and whether it has sets, to check a reply against (reply-check.ts) */
     todayLog(): Promise<LoggedToday[]>
     /**
@@ -184,6 +187,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
     const confirmations: string[] = []
     const notices: string[] = []
     const remembered: string[] = []
+    const requested: string[] = []
     const knowledge: CitedNote[] = []
     const notice = (zhLine: string, enLine: string) => notices.push(zh ? zhLine : enLine)
 
@@ -675,6 +679,23 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
             return `${was}: ${label}${kind === 'injury' || kind === 'exercise' ? `, ${state}` : ''}. The app shows the user "${line}" with your reply, so don't say it yourself.`
         },
 
+        // The library is checked here, and the line the user sees written here, so nothing is asked
+        // for that the library has, and nothing is said to be sent that wasn't
+        async request_exercise(input) {
+            const name = String(input.name ?? '').replace(/\s+/g, ' ').trim()
+            if (!name) return 'Not sent: name is empty'
+            if (name.length > MAX_REQUEST_NAME_CHARS) return `Not sent: a name is at most ${MAX_REQUEST_NAME_CHARS} characters; give just the exercise's name`
+            const found = (await data.listExercises()).find((e) => sameExerciseName(e.name, name) || (!!e.name_zh_tw && sameExerciseName(e.name_zh_tw, name)))
+            if (found) return `Not sent: the library has it, ${nameOf(found)} (ID ${found.id}). Use that one.`
+            const result = await data.requestExercise({ name, message: exerciseRequestMessage(name, String(input.detail ?? '')), language: zh ? 'zh-TW' : 'en' })
+            if ('error' in result) return `Not sent: ${result.error}`
+            if (result.status === 'duplicate') return 'Not sent again: the user asked for this exercise before, so it is on the list already. Say so.'
+            if (result.status === 'limit') return "Not sent: the user's requests for today are used up. Say it can be asked for again tomorrow, or from Settings > Feedback."
+            const line = exerciseRequestReceipt(name, zh)
+            requested.push(line)
+            return `Sent to the owner, who reads requests every week and adds exercises to the library. The app shows the user "${line}" with your reply, so don't say it yourself. Until it's there, offer the nearest exercise from search_exercises to log instead.`
+        },
+
         async forget(input) {
             if (!isMemoryKind(input.kind)) return 'Nothing forgotten: kind is injury, exercise, equipment or schedule'
             const kind = input.kind
@@ -805,6 +826,7 @@ export function createRonnieExecutor({ data, language, timeZone, todayRoutineNam
         confirmations,
         notices,
         remembered,
+        requested,
         knowledge,
         async todayLog() {
             const range = todayRange()

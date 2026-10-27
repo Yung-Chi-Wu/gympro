@@ -91,6 +91,7 @@ flowchart LR
 | Change today | `add_exercise_today`, `remove_exercise_today`, `recommend_exercise` (a swap card) |
 | Change routines | `propose_routine_change`, `plan_routines` (a plan card, built by Coach G's planner) |
 | Memory | `remember`, `forget` |
+| Requests | `request_exercise`: asks the owner to add an exercise the library doesn't have |
 
 - **Who decides a change.** A change to today's workout that the user names, Ronnie makes at once. A change Ronnie picks, and any change to a routine, is shown as a card, and code applies it after the tap. Removing an exercise from a routine asks twice. The model never makes a permanent change itself; that is enforced by code, not by the prompt.
 - **Research notes.** [`lib/ronnie/knowledge-notes.json`](lib/ronnie/knowledge-notes.json) holds one note per paper, 151 in all. Each was written from the paper's abstract and checked against it, and each DOI was resolved through LibKey. Search ranks the notes by Cohere vectors in pgvector.
@@ -236,7 +237,7 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
   - it flagged 14 of the 16 with a real problem, and 1 of the 16 without one;
   - on 20 held-out conversations it flagged none;
   - it found two mistakes in the eval judge's own grades.
-- **Feedback.** Users send feedback from Settings: a problem, an idea, or an exercise they want added, in their own words. It is kept in `app_feedback` with the app version, language and browser, never their training log, and a user can send 10 a day.
+- **Feedback.** Users send feedback from Settings: a problem, an idea, or an exercise they want added, in their own words. It is kept in `app_feedback` with the app version, language and browser, never their training log, and a user can send 10 a day. When a user names an exercise the library doesn't have, Ronnie asks for it there too (`request_exercise`, at most 3 a day): code checks the library first, the same name isn't sent twice in 30 days, and the line under the reply saying it was sent is written by code.
 - **Weekly email.** Each Monday the owner gets one email with the week's feedback and the Ronnie replies that were flagged, by the review or by the user, with the reasons a user gave for reporting one. It is sent only when there is something in it. It never quotes a conversation, and every line a user wrote starts with "> ", so none of it can pass for the email's own text.
 - **Errors.** Server and browser errors go to an `app_errors` table.
 - **Alarms.** 13 CloudWatch alarms send email when:

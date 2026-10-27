@@ -5,6 +5,7 @@ import { logTypeOf, setValuesOf } from '../../lib/set-log'
 import type { ResolvedRow } from '../../lib/ronnie/events'
 import { memoryLines, sameSlot, type MemoryNote } from '../../lib/ronnie/memory'
 import { dateGuide, localDateStr } from '../../lib/ronnie/time'
+import { sameExerciseName } from '../../lib/feedback'
 
 // One fictional user for the Ronnie eval. "Today" is Wednesday 2026-10-07 in
 // Taipei, day 1 (push) of a push/pull/legs cycle, with bench press already
@@ -135,6 +136,7 @@ const TRAINED_DATES = [
 export type FixtureWrite =
     | { op: 'add_today'; exerciseId: string; effective: boolean }
     | { op: 'remove_today'; exerciseId: string; effective: boolean }
+    | { op: 'request_exercise'; name: string; effective: boolean }
     | { op: 'delete_from_routines'; exerciseId: string; routineIds: string[]; effective: boolean }
 
 interface WorkoutRow {
@@ -167,11 +169,14 @@ export function createFixtureData({ nearest, nearestKnowledge, memories: seed = 
     applyProposal: (p: RoutineProposal) => ResolvedRow[]
     /** The user's memory notes, as they stand; the grader reads them after the conversation */
     memories: MemoryNote[]
+    /** The exercises Ronnie asked the owner to add */
+    requests: { name: string; message: string; language: string }[]
 } {
     const writes: FixtureWrite[] = []
     const memories: MemoryNote[] = seed.map((n) => ({ ...n }))
     // Proposals change nothing; they are recorded so the grader can see what was offered
     const proposals: RoutineProposal[] = []
+    const requests: { name: string; message: string; language: string }[] = []
     const routineExercises = new Map(
         ROUTINES.map((r) => [r.id, ROUTINE_PLANS[r.name].map(([ex, sets, reps]) => ({ exercise_id: exerciseId(ex), target_sets: sets, target_reps: reps }))])
     )
@@ -288,6 +293,14 @@ export function createFixtureData({ nearest, nearestKnowledge, memories: seed = 
             if (at >= 0) memories.splice(at, 1)
             return null
         },
+        // Each request is kept, so asking for the same name again is caught, as the table does
+        async requestExercise(request) {
+            const again = requests.some((r) => sameExerciseName(r.name, request.name))
+            writes.push({ op: 'request_exercise', name: request.name, effective: !again })
+            if (again) return { status: 'duplicate' }
+            requests.push(request)
+            return { status: 'sent' }
+        },
     }
 
     // What resolve_ronnie_action does when the user confirms a proposal, for the eval's
@@ -309,7 +322,7 @@ export function createFixtureData({ nearest, nearestKnowledge, memories: seed = 
         }
         return rows
     }
-    return { data, writes, proposals, applyProposal, memories }
+    return { data, writes, proposals, applyProposal, memories, requests }
 }
 
 /** What the coach route puts in the system prompt for this user. */
