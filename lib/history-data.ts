@@ -17,6 +17,7 @@ type SetRow = Parameters<typeof setValuesOf>[0] & {
 }
 
 interface WorkoutRow {
+    id: string
     performed_at: string
     routines: { name: string } | null
     workout_sets: SetRow[]
@@ -29,13 +30,27 @@ export async function loadHistoryDays(
     supabase: SupabaseClient<Database>,
     { userId, range, timeZone, language }: { userId: string; range: HistoryRange; timeZone: string; language: string },
 ): Promise<HistoryDay[]> {
+    return historyDaysOf(await readHistoryRows(supabase, userId, range), { range, timeZone, language })
+}
+
+/** What loadHistoryDays reads for a range, before it is sorted into the user's days */
+export interface HistoryRows {
+    workouts: WorkoutRow[]
+    notes: Map<string, string>
+}
+
+/**
+ * loadHistoryDays' reads, which need no time zone: a page can send them before the user's profile
+ * is in, then sort them with historyDaysOf, into any range inside this one
+ */
+export async function readHistoryRows(supabase: SupabaseClient<Database>, userId: string, range: HistoryRange): Promise<HistoryRows> {
     // performed_at is an instant and the range is in the user's dates: ask a day wider on
-    // each side, then keep the workouts whose local date falls inside
+    // each side, and historyDaysOf keeps the workouts whose local date falls inside
     const [workoutsResult, notes] = await Promise.all([
         supabase
             .from('workouts')
             .select(`
-                performed_at,
+                id, performed_at,
                 routines ( name ),
                 workout_sets ( exercise_id, set_number, created_at, ${SET_COLUMNS}, exercises ( name, name_zh_tw, log_type ) )
             `)
@@ -45,7 +60,31 @@ export async function loadHistoryDays(
             .order('performed_at', { ascending: true }),
         loadDayNotes(supabase, userId, range),
     ])
+    return { workouts: (workoutsResult.data ?? []) as unknown as WorkoutRow[], notes }
+}
 
+/**
+ * readHistoryRows in two queries at once, split at `at`: each brings half the rows, so both are back
+ * sooner than one with all of them (課表's month read ahead: about 80 ms against 105). A workout
+ * both read, as each asks a day wider, is kept once.
+ */
+export async function readHistoryRowsSplit(supabase: SupabaseClient<Database>, userId: string, range: HistoryRange, at: string): Promise<HistoryRows> {
+    const [before, after] = await Promise.all([
+        readHistoryRows(supabase, userId, { start: range.start, end: addDays(at, -1) }),
+        readHistoryRows(supabase, userId, { start: at, end: range.end }),
+    ])
+    const inAfter = new Set(after.workouts.map((w) => w.id))
+    return {
+        workouts: [...before.workouts.filter((w) => !inAfter.has(w.id)), ...after.workouts],
+        notes: new Map([...before.notes, ...after.notes]),
+    }
+}
+
+/** The days in a range, from rows read for it or for a range around it */
+export function historyDaysOf(
+    { workouts, notes }: HistoryRows,
+    { range, timeZone, language }: { range: HistoryRange; timeZone: string; language: string },
+): HistoryDay[] {
     const days = new Map<string, HistoryDay>()
     const dayOf = (date: string) => {
         let day = days.get(date)
@@ -56,7 +95,7 @@ export async function loadHistoryDays(
         return day
     }
 
-    for (const workout of (workoutsResult.data ?? []) as unknown as WorkoutRow[]) {
+    for (const workout of workouts) {
         const date = localDate(timeZone, new Date(workout.performed_at))
         if (date < range.start || date > range.end || !workout.workout_sets?.length) continue
         const day = dayOf(date)
@@ -81,7 +120,7 @@ export async function loadHistoryDays(
         }
     }
 
-    for (const [date, note] of notes) dayOf(date).note = note
+    for (const [date, note] of notes) if (date >= range.start && date <= range.end) dayOf(date).note = note
 
     return [...days.values()].sort((a, b) => a.date.localeCompare(b.date))
 }
@@ -136,6 +175,12 @@ export async function loadFirstTrainedDate(
     userId: string,
     timeZone: string,
 ): Promise<string | null> {
+    const at = await readFirstTrainedAt(supabase, userId)
+    return at && localDate(timeZone, new Date(at))
+}
+
+/** When the user first trained (an instant), for a page that reads it before it has the user's time zone */
+export async function readFirstTrainedAt(supabase: SupabaseClient<Database>, userId: string): Promise<string | null> {
     const { data } = await supabase
         .from('workouts')
         .select('performed_at, workout_sets!inner ( id )')
@@ -143,5 +188,5 @@ export async function loadFirstTrainedDate(
         .order('performed_at', { ascending: true })
         .limit(1)
         .maybeSingle()
-    return data ? localDate(timeZone, new Date(data.performed_at)) : null
+    return data?.performed_at ?? null
 }

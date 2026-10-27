@@ -1,5 +1,5 @@
-import { addDays, cycleDayOf, plannedCycleDay, type CycleSettings } from './periods'
-import { datesIn, isTrained, monthRange, periodOf, type HistoryDay, type HistoryRange } from './history'
+import { addDays, cycleDayOf, MAX_CYCLE_DAYS, plannedCycleDay, type CycleSettings } from './periods'
+import { datesIn, isTrained, monthOf, monthRange, periodOf, type HistoryDay, type HistoryRange } from './history'
 
 // 課表's calendar (components/CycleCalendar.tsx): a month, Monday first, each day with what the
 // training cycle plans for it and whether it was trained. A round of the cycle is a report's
@@ -73,6 +73,19 @@ export function monthWeeks(month: string): string[][] {
 export function calendarRange(month: string, cycle: CycleSettings): HistoryRange {
     const weeks = monthWeeks(month)
     return { start: periodOf(weeks[0][0], cycle).start, end: weeks[weeks.length - 1][6] }
+}
+
+/**
+ * A range that holds calendarRange for today's month in any time zone and any cycle: so the month
+ * is read before the user's zone and cycle are in, in the page's first round, and cut to
+ * calendarRange once they are. Today in a zone is within a day of today in UTC, and a round starts
+ * at most a cycle's length before the month's first week. weeksStart is that week's Monday, where
+ * the read splits in two (readHistoryRowsSplit).
+ */
+export function calendarReadAhead(utcToday: string): { range: HistoryRange; weeksStart: string } {
+    const first = monthWeeks(monthOf(addDays(utcToday, -1)))
+    const last = monthWeeks(monthOf(addDays(utcToday, 1)))
+    return { range: { start: addDays(first[0][0], -(MAX_CYCLE_DAYS - 1)), end: last[last.length - 1][6] }, weeksStart: first[0][0] }
 }
 
 /** The first day after `date` the cycle plans a routine for, or null when it plans none */
