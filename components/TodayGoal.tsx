@@ -3,13 +3,11 @@
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
+import { GOAL_SETTING } from '@/lib/goal-choices'
 import { unitLabel } from '@/lib/report/volume'
 import type { LatestReport } from '@/lib/report/latest'
 import type { WeightUnit } from '@/lib/weight-unit'
 import { GoalSection, isReportV3 } from './report/ReportView'
-
-/** Settings, open at the goal */
-export const GOAL_SETTING = '/settings?item=trainingGoal'
 
 /**
  * The goal, first on Today: some users didn't know to set one (owner, 2026-10-28).

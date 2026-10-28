@@ -16,7 +16,7 @@ export { MAX_MESSAGE_BYTES, quoted, readDigestWeek, runWeeklyDigest, WEEK_MS, we
 export { isWeeklyDigest } from '../../src/audit'
 export { KEEP_BACK_MS, LOOKBACK_DAYS, MAX_DAYS_PER_RUN, MAX_RUN_COST_USD, runAudit } from '../../src/audit/run'
 export { EVENT_PREFIX } from '../../../../lib/ronnie/events'
-export { checkedRead, exerciseKeys, GOAL_READER_MODEL, readGoal } from '../../src/report/goal'
+export { checkedRead, exerciseKeys, GOAL_READER_MODEL, keptRead, readGoal } from '../../src/report/goal'
 export { checkedSignals, readWeek, WEEK_READER_MODEL, weekKeys } from '../../src/report/week'
 export { computeFacts, GOAL_MAX_REPS, GOAL_TREND_POINTS } from '../../src/report/facts'
 export { getClaudeClient } from '../../src/claude'

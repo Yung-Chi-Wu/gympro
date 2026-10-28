@@ -20,7 +20,7 @@ import type { TraceFeature } from './trace'
 // lib/ai/model-client.ts wires it to the database and is the only maker of model clients.
 
 /** The features a user runs on request. The report and the daily review run on a schedule. */
-export const LIMITED_FEATURES: TraceFeature[] = ['ronnie', 'coach_chat', 'coach_routine']
+export const LIMITED_FEATURES: TraceFeature[] = ['ronnie', 'coach_chat', 'coach_routine', 'goal']
 
 /** How long an account counts as new, by user_profiles.created_at (no profile is new) */
 export const NEW_ACCOUNT_DAYS = 7

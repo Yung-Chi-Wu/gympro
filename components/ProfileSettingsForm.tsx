@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
@@ -21,11 +21,16 @@ import { FeedbackForm } from '@/components/FeedbackForm'
 import { CHOSEN_UTC } from '@/lib/time-zone'
 import { MAX_DISPLAY_NAME_CHARS, MAX_TRAINING_GOAL_CHARS } from '@/lib/text-limits'
 import { BUTTON, SEGMENTED } from '@/lib/ui'
+import { getMuscleGroupLabel } from '@/lib/exercise-display'
+import { unitLabel } from '@/lib/report/volume'
+import type { GoalRead } from '@/lib/report/types'
+import { useGoalReadLabels } from '@/components/report/goal-text'
 
 // Settings. Side by side (@split): the sections on the left (個人資料, 訓練目標, 單位與語言,
 // 外觀, 意見回饋, 帳號), the chosen section's form on the right. On a phone: one grouped list with
 // each setting's current value; a setting opens as a page of its own (?item=, see
-// lib/sub-page.ts) with its own save button.
+// lib/sub-page.ts) with its own save button. Under the goal, once saved: the goal as the report
+// will read it (app/api/ai/goal), so a goal it can't track is rewritten now, not a week later.
 
 export interface ProfileValues {
     displayName: string
@@ -39,6 +44,11 @@ export interface ProfileValues {
     distanceUnit: DistanceUnit
     language: string
 }
+
+/** The saved goal as read: being read, read, or not read this time */
+type GoalReadState = { text: string; status: 'reading' | 'done' | 'failed'; read: GoalRead | null }
+/** Reads the saved goal, once a text: Settings asks when the goal is shown */
+type ReadGoal = (text: string) => void
 
 /** The profile plus the theme, which lives in the browser (next-themes), not the database */
 type Values = ProfileValues & { theme: string }
@@ -91,7 +101,12 @@ const ROW = 'flex min-h-[52px] w-full items-center gap-3 py-2.5 text-left md:min
 // The theme is only known in the browser: the server and the first render show none
 const subscribeNothing = () => () => {}
 
-export function ProfileSettingsForm({ userId, initial }: { userId: string; initial: ProfileValues }) {
+export function ProfileSettingsForm({ userId, initial, goalRead: keptRead }: {
+    userId: string
+    initial: ProfileValues
+    /** The read kept with the saved goal, when it read that text */
+    goalRead: GoalRead | null
+}) {
     const t = useTranslations('settings')
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -100,6 +115,9 @@ export function ProfileSettingsForm({ userId, initial }: { userId: string; initi
     const [saved, setSaved] = useState<ProfileValues>(initial)
     const [section, setSection] = useState<Section>('profile')
     const [showOnboarding, setShowOnboarding] = useState(false)
+    const [goalRead, setGoalRead] = useState<GoalReadState | null>(keptRead ? { text: keptRead.text, status: 'done', read: keptRead } : null)
+    // The text last asked about: each is asked once a visit, and one that couldn't be read waits for the report
+    const askedGoal = useRef<string | null>(keptRead?.text ?? null)
 
     const values: Values = { ...saved, theme: inBrowser ? theme ?? 'system' : '' }
     const itemParam = searchParams.get('item')
@@ -146,6 +164,23 @@ export function ProfileSettingsForm({ userId, initial }: { userId: string; initi
         }
         return null
     }
+
+    const readGoal = useCallback<ReadGoal>(async (text) => {
+        if (askedGoal.current === text) return
+        askedGoal.current = text
+        setGoalRead({ text, status: 'reading', read: null })
+        let read: GoalRead | null = null
+        try {
+            // It keeps the read with the goal, which Settings shows: a write
+            const res = await serverWrite(() => fetch('/api/ai/goal', { method: 'POST' }))
+            const data = res.ok ? await res.json() : null
+            read = data?.read ?? null
+        } catch {
+            // Offline or cut off: the report reads it
+        }
+        setGoalRead((g) => (g?.text !== text ? g
+            : read?.model && read.text === text ? { text, status: 'done', read } : { text, status: 'failed', read: null }))
+    }, [])
 
     /** A setting's current value, for the phone's list */
     function shownValue(field: Field): string {
@@ -241,6 +276,8 @@ export function ProfileSettingsForm({ userId, initial }: { userId: string; initi
                             values={values}
                             onSave={save}
                             isZhTW={isZhTW}
+                            goalRead={goalRead}
+                            onReadGoal={readGoal}
                         />
                     )}
                 </div>
@@ -281,7 +318,7 @@ export function ProfileSettingsForm({ userId, initial }: { userId: string; initi
                                 <FeedbackForm />
                             </section>
                         ) : (
-                            <SettingsForm key={item} title={t(`fields.${item}`)} fields={[item]} values={values} onSave={save} isZhTW={isZhTW} single />
+                            <SettingsForm key={item} title={t(`fields.${item}`)} fields={[item]} values={values} onSave={save} isZhTW={isZhTW} goalRead={goalRead} onReadGoal={readGoal} single />
                         )}
                     </div>
                 )}
@@ -319,12 +356,14 @@ interface SettingsFormProps {
     values: Values
     onSave: (changes: Partial<Values>) => Promise<string | null>
     isZhTW: boolean
+    goalRead: GoalReadState | null
+    onReadGoal: ReadGoal
     /** One setting on its own page: the title is its label */
     single?: boolean
 }
 
 /** A section's settings, or a single one, with a save button */
-function SettingsForm({ title, fields, values, onSave, isZhTW, single = false }: SettingsFormProps) {
+function SettingsForm({ title, fields, values, onSave, isZhTW, goalRead, onReadGoal, single = false }: SettingsFormProps) {
     const t = useTranslations('settings')
     const [draft, setDraft] = useState<Values>(values)
     const [saving, setSaving] = useState(false)
@@ -353,7 +392,8 @@ function SettingsForm({ title, fields, values, onSave, isZhTW, single = false }:
             <div className="grid gap-4 @split:grid-cols-2">
                 {fields.map((field) => (
                     <div key={field} className={field === 'displayName' || field === 'trainingGoal' || single ? '@split:col-span-2' : ''}>
-                        <FieldEditor field={field} value={draft[field]} onChange={(v) => set(field, v)} hideLabel={single} isZhTW={isZhTW} />
+                        <FieldEditor field={field} value={draft[field]} onChange={(v) => set(field, v)} hideLabel={single} isZhTW={isZhTW}
+                            below={field === 'trainingGoal' && <GoalReadLine saved={values.trainingGoal} draft={draft.trainingGoal} state={goalRead} onRead={onReadGoal} weightUnit={values.weightUnit} language={values.language} />} />
                     </div>
                 ))}
             </div>
@@ -370,17 +410,18 @@ function SettingsForm({ title, fields, values, onSave, isZhTW, single = false }:
     )
 }
 
-/** One setting's control, with its label and what it is for */
-function FieldEditor({ field, value, onChange, hideLabel, isZhTW }: {
+/** One setting's control, with its label and what it is for (or, given below, what takes its place) */
+function FieldEditor({ field, value, onChange, hideLabel, isZhTW, below }: {
     field: Field
     value: string
     onChange: (value: string) => void
     hideLabel: boolean
     isZhTW: boolean
+    below?: React.ReactNode
 }) {
     const t = useTranslations('settings')
     const id = `setting-${field}`
-    const hint = field === 'weightUnit' || field === 'distanceUnit' || field === 'trainingGoal' || field === 'heightCm'
+    const hint = field === 'weightUnit' || field === 'distanceUnit' || field === 'heightCm'
         ? t(`hints.${field}`)
         : null
 
@@ -440,6 +481,61 @@ function FieldEditor({ field, value, onChange, hideLabel, isZhTW }: {
             <label htmlFor={id} className={hideLabel ? 'sr-only' : 'block text-[13px] font-medium text-muted md:text-xs'}>{t(`fields.${field}`)}</label>
             {control}
             {hint && <p className="text-[13px] text-muted md:text-xs">{hint}</p>}
+            {below}
+        </div>
+    )
+}
+
+const NOTE = 'text-[13px] text-muted text-pretty md:text-xs'
+
+/**
+ * Under the goal: how to write one the report can track, then, once saved, the goal as read. A
+ * saved goal not read yet (set in onboarding, or before reads were kept) is read when it is shown.
+ * While the text is being changed, the read is of the old text, so the hint is shown instead.
+ */
+function GoalReadLine({ saved, draft, state, onRead, weightUnit, language }: {
+    saved: string
+    draft: string
+    state: GoalReadState | null
+    onRead: ReadGoal
+    weightUnit: WeightUnit
+    language: string
+}) {
+    const t = useTranslations('settings')
+    const tGoal = useTranslations('reportV3.goal')
+    const text = saved.trim()
+    const shown = !!text && draft.trim() === text
+    useEffect(() => {
+        if (shown) onRead(text)
+    }, [shown, text, onRead])
+    const current = shown && state?.text === text ? state : null
+    const labels = useGoalReadLabels({
+        read: current?.read ?? null, zh: language === 'zh-TW', weightUnit,
+        muscle: (g) => unitLabel(g, language, (x) => getMuscleGroupLabel(x, language)),
+    })
+    // Examples in the user's unit, the number kept on the line with it
+    const lb = weightUnit === 'lb'
+    const weight = (kg: number, pounds: number) => `${lb ? pounds : kg}\u00a0${weightUnit}`
+    const lift = weight(80, 175)
+
+    if (!current) return <p className={NOTE}>{t('hints.trainingGoal', { lift: weight(140, 300), weight: weight(75, 165) })}</p>
+    if (current.status === 'reading') return <p role="status" className={NOTE}>{t('goalReading')}</p>
+    if (current.status === 'failed' || !current.read) return <p role="status" className={NOTE}>{t('goalReadFailed')}</p>
+    const { unread, targets } = current.read
+    return (
+        <div role="status" className="space-y-1.5">
+            {labels.length > 0 && (
+                <p className="flex flex-wrap items-center gap-1.5">
+                    <span className={NOTE}>{t('goalRead')}</span>
+                    {labels.map((label, i) => (
+                        <span key={i} className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[13px] font-semibold text-accent first-letter:uppercase md:text-xs">{label}</span>
+                    ))}
+                </p>
+            )}
+            {unread ? <p className="text-[13px] text-miss text-pretty md:text-xs">{tGoal('unread', { text: unread })}</p>
+                : !labels.length ? <p className={NOTE}>{t('goalReadNothing', { lift })}</p>
+                : !targets.length ? <p className={NOTE}>{t('goalNoNumber', { lift })}</p>
+                : null}
         </div>
     )
 }

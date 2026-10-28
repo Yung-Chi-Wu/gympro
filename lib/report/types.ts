@@ -76,7 +76,7 @@ export interface ReportInputs {
     previousFindings: Finding[] | null
     /** The user's notes on single days of the period (at most one a day), oldest first */
     notes: { date: string; note: string }[]
-    /** The goal as read (goal.ts), or null without a goal; absent where the goal isn't read (older evals) */
+    /** The goal as read (goal-reader.ts), or null without a goal; absent where the goal isn't read (older evals) */
     goalRead?: GoalRead | null
     /** The goal's body-fat target needs weigh-ins with a body fat */
     bodyFat?: { date: string; pct: number }[]
@@ -286,7 +286,7 @@ export interface ReportFacts {
     goal: {
         text: string | null
         direction: 'gain' | 'lose' | null
-        /** The goal as read (goal.ts); absent in reports saved before goals were read, null without a goal */
+        /** The goal as read (goal-reader.ts); absent in reports saved before goals were read, null without a goal */
         read?: GoalRead | null
         /** How far each target is, from the logged sets and weigh-ins */
         progress?: GoalProgress[]
