@@ -883,7 +883,15 @@ const op = (q, name) => q.ops.find(([k]) => k === name)?.[1]
     check(first.result.status === 'sent' && !first.removed && second.result.status === 'duplicate' && second.removed === 'id,m2', 'of two asking for the same name at once, exactly one stays')
     const later = await run([{ id: 'z', created_at: at(-0.01), kind: 'exercise', source: 'ronnie', message: '寬握滑輪下拉\nx' }])
     check(later.result.status === 'sent', 'one made after it is the one that goes, not this')
-    const none = createSupabaseRonnieData(fakeSupabase(() => ({ data: null, error: null })), 'u1', FIXTURE_TIME_ZONE, null)
+    // Saved but not checked: it is taken out again, and the model hears the fixed line
+    const told = []
+    const unread = fakeSupabase((q) => (op(q, 'insert') ? { data: { id: 'mine', created_at: at(0) }, error: null }
+        : op(q, 'select') ? { data: null, error: { message: 'canceling statement due to statement timeout' } } : { error: null }))
+    const unchecked = await createSupabaseRonnieData(fakeSupabase(() => ({ data: null, error: null })), 'u1', FIXTURE_TIME_ZONE, null, { admin: unread, now: () => FIXTURE_NOW, onWriteError: (what, err) => told.push([what, err.message]) })
+        .requestExercise({ name: 'x', message: 'x', language: 'en' })
+    check(unchecked.error === WRITE_REFUSED && op(unread.requests.find((q) => op(q, 'delete')) ?? { ops: [] }, 'eq')?.join() === 'id,mine' && told.join() === 'exercise-request-check,canceling statement due to statement timeout',
+        `a request that can't be checked is taken out, with the fixed line (${unchecked.error})`)
+    const none =createSupabaseRonnieData(fakeSupabase(() => ({ data: null, error: null })), 'u1', FIXTURE_TIME_ZONE, null)
     check(JSON.stringify(await none.requestExercise({ name: 'x', message: 'x', language: 'en' })) === '{"error":"Requests are not available"}', 'without the service-role client, it says so')
 }
 
@@ -927,9 +935,10 @@ const op = (q, name) => q.ops.find(([k]) => k === name)?.[1]
         (await refusing.createProposal({ change: 'add_exercise', exerciseId: 'e1', exerciseName: 'Squat', routineIds: ['r1'], routineNames: ['Legs'], targetSets: 3, targetReps: 8 })).error,
         await refusing.addPlannedExercise('w1', 'e1'),
         (await refusing.removePlannedExercise('w1', 'e1')).error,
+        (await refusing.requestExercise({ name: 'x', message: 'x', language: 'en' })).error,
     ]
     check(answers.every((a) => a === WRITE_REFUSED), `a refused write reads the same fixed line, never the database's words (${answers.filter((a) => a !== WRITE_REFUSED).join(' | ') || 'all fixed'})`)
-    check(told.map(([what]) => what).join() === 'memory-save,memory-delete,proposal,add-planned,remove-planned' && told.every(([, m]) => /violates/.test(m)),
+    check(told.map(([what]) => what).join() === 'memory-save,memory-delete,proposal,add-planned,remove-planned,exercise-request' && told.every(([, m]) => /violates/.test(m)),
         `each refusal is reported with the database's own error (${told.map(([what]) => what).join(', ')})`)
 }
 

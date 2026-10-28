@@ -415,7 +415,7 @@ export function createSupabaseRonnieData(
                 language,
                 app_version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 64) ?? null,
             }).select('id, created_at').single()
-            if (saveError || !mine) return { error: saveError?.message ?? 'Not saved' }
+            if (saveError || !mine) return { error: refused('exercise-request', saveError ?? { message: 'The insert returned no row' })! }
             const at = now().getTime()
             const { data: recent, error } = await admin
                 .from('app_feedback')
@@ -424,9 +424,9 @@ export function createSupabaseRonnieData(
                 .gte('created_at', new Date(at - REQUEST_MEMORY_DAYS * DAY_MS).toISOString())
             const takeOut = async <T>(answer: T): Promise<T> => {
                 const { error: removeError } = await admin.from('app_feedback').delete().eq('id', mine.id)
-                return removeError ? ({ error: removeError.message } as T) : answer
+                return removeError ? ({ error: refused('exercise-request-undo', removeError)! } as T) : answer
             }
-            if (error) return takeOut({ error: error.message })
+            if (error) return takeOut({ error: refused('exercise-request-check', error)! })
             const rows = recent ?? []
             const mineAt = Date.parse(mine.created_at)
             const before = (r: { id: string; created_at: string }) => Date.parse(r.created_at) < mineAt || (Date.parse(r.created_at) === mineAt && r.id < mine.id)
