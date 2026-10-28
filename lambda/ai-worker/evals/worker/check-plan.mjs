@@ -316,5 +316,26 @@ const braces = (items) => items.flatMap((i) => [i.action, ...(i.lines ?? []).fla
     check('a lighter week\'s numbers aren\'t followed up: the deload\'s sets are', w.followUp(lighter, facts(3), () => null).length === 0)
 }
 
+// ---------- The numbers the report opens with ----------
+// The owner's week with last week's leg day left out: sessions and sets against last week, each
+// set once in a body group so the groups add up to the sets, and the record with what it beat.
+{
+    const sc = scenario('goal-strength-owner-zh')
+    const base = inputsFor(sc)
+    const sets = base.sets.filter((x) => !(x.date < sc.periodStart && ['ex-squat', 'ex-legcurl'].includes(x.exerciseId)))
+    const f = w.analyze({ ...base, sets }).facts
+    const by = Object.fromEntries(f.groups.map((g) => [g.group, g]))
+    check('sessions this week and last', f.sessions.done === 3 && f.sessions.previousDone === 2, JSON.stringify(f.sessions.previousDone))
+    check('the groups are the six, in body order, and add up to the sets, this week and last',
+        f.groups.map((g) => g.group).join() === 'chest,back,shoulders,arms,legs,core'
+        && f.groups.reduce((a, g) => a + g.sets, 0) === f.totalSets.now && f.groups.reduce((a, g) => a + g.previous, 0) === f.totalSets.previous,
+        JSON.stringify(f.groups))
+    check('a set counts once, toward its exercise\'s category: the squat is legs, the curl arms', by.legs.sets === 6 && by.legs.previous === 0 && by.arms.sets === 2 && by.core.sets === 0, JSON.stringify(by))
+    const bench = f.records.find((r) => r.exerciseId === 'ex-bench')
+    check('a record keeps the set it beat', bench?.best.weightKg === 42.5 && bench.best.reps === 8 && bench.previous?.weightKg === 40 && bench.previous.reps === 3, JSON.stringify(bench))
+    const first = w.analyze({ ...base, sets: sets.filter((x) => x.date >= sc.periodStart) }).facts
+    check('a first report has nothing to compare with', first.sessions.previousDone === null && first.groups.every((g) => g.previous === null) && !first.records.length)
+}
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed')
 process.exit(failed ? 1 : 0)

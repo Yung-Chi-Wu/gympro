@@ -1,5 +1,5 @@
 import { addDays, daysBetween } from '../../../../lib/periods'
-import { hasTarget, setWeights, VOLUME_UNIT_IDS } from '../../../../lib/report/volume'
+import { BODY_GROUPS, bodyGroupOf, hasTarget, setWeights, VOLUME_UNIT_IDS } from '../../../../lib/report/volume'
 import { isLowerBodyLift, NOT_LIFTS, plansThrough, REPORT_WINDOWS, STRENGTH_LOG_TYPES, topSession, windowOfFor } from '../../../../lib/report/progression'
 import { isCardio } from '../../../../lib/set-log'
 import type { LogType } from '../../../../lib/exercise-attributes'
@@ -92,6 +92,7 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
         done: trainedDates.size,
         planned: inputs.schedule ? inputs.schedule.filter((d) => d.routine).length : null,
         days: dayList.map((date) => ({ date, routine: planFor.get(date) ?? null, trained: trainedDates.has(date) })),
+        previousDone: hasHistory ? new Set(inWindow(1).map((s) => s.date)).size : null,
     }
 
     // Sets per volume unit, scaled to a week: 1 for a primary muscle, 0.5 for a secondary one
@@ -156,12 +157,12 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
         const { sets, value } = liftMeasure(byId.get(lift.exerciseId)!, inputs.sets)
         const earlier = sets.filter((s) => s.date < periodStart)
         if (!earlier.length || !lift.best) continue
-        const before = Math.max(...earlier.map((s) => value(s)))
-        if (value(lift.best) > before) {
+        const was = earlier.reduce((a, b) => (value(b) > value(a) ? b : a))
+        if (value(lift.best) > value(was)) {
             const best = lift.best
             const set = sets.find((s) => s.date >= periodStart && s.reps === best.reps && s.weightKg === best.weightKg && (best.assistKg == null || s.assistKg === best.assistKg))!
             records.push({
-                exerciseId: lift.exerciseId, name: lift.name, nameZh: lift.nameZh, best, bodyweight: lift.bodyweight, assisted: !!lift.assisted,
+                exerciseId: lift.exerciseId, name: lift.name, nameZh: lift.nameZh, best, previous: bestOf(was, !!lift.assisted), bodyweight: lift.bodyweight, assisted: !!lift.assisted,
                 ...(lift.added ? { added: true } : {}), date: set.date,
             })
         }
@@ -183,6 +184,10 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
         period: { start: periodStart, end: periodEnd, days },
         sessions,
         totalSets: { now: working(current).length, previous: hasHistory ? working(inWindow(1)).length : null },
+        groups: BODY_GROUPS.map((group) => {
+            const of = (sets: LoggedSet[]) => working(sets).filter((s) => bodyGroupOf(byId.get(s.exerciseId)?.muscleGroup ?? '') === group).length
+            return { group, sets: of(current), previous: hasHistory ? of(inWindow(1)) : null }
+        }),
         muscles,
         lifts,
         records,

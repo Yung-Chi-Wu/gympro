@@ -482,12 +482,32 @@
             "allDone": "All done",
             "records": "Records",
             "noRecords": "None this {unit, select, week {week} other {cycle}}",
-            "mainLifts": "Main lifts",
-            "up": "up",
-            "rest": "{flat} flat · {down} down",
             "weight": "Weight",
             "weightChange": "{change} vs {back, plural, =1 {last {unit, select, week {week} other {cycle}}} other {# {unit, select, week {weeks} other {cycles}} ago}}",
-            "noWeight": "Not logged"
+            "noWeight": "Not logged",
+            "sessionsUnit": "",
+            "sets": "Sets",
+            "setsUnit": "",
+            "recordsUnit": "",
+            "sessionsBefore": "{n} last {unit, select, week {week} other {cycle}}",
+            "setsBefore": "{change} · {n} last {unit, select, week {week} other {cycle}}",
+            "setsSame": "Same as last {unit, select, week {week} other {cycle}}",
+            "recordsMore": " and {n} more"
+        },
+        "share": {
+            "title": "Where this {unit, select, week {week} other {cycle}}'s sets went",
+            "count": "{n} sets",
+            "sets": "{n}",
+            "now": "This {unit, select, week {week} other {cycle}}",
+            "before": "Last {unit, select, week {week} other {cycle}}",
+            "group": {
+                "chest": "Chest",
+                "back": "Back",
+                "shoulders": "Shoulders",
+                "arms": "Arms",
+                "legs": "Legs",
+                "core": "Core"
+            }
         },
         "followUpTitle": "Last time's advice",
         "followUpCount": "{done} of {total} done",
@@ -654,11 +674,9 @@
             "few_days": "WHO's 2020 guidelines suggest adults do muscle-strengthening activities that work the major muscle groups on 2 or more days a week. A meta-analysis of 16 cohort studies linked muscle-strengthening to a 10–17% lower risk of early death, heart disease, cancer and diabetes, the most at about 30–60 minutes a week. So when you train on fewer than 2 days a week, GymPro suggests 2."
         },
         "openFull": "See the full report",
-        "accordionHint": "Tap a row to open it; one opens at a time.",
         "section": {
             "muscles": "Muscles trained",
             "musclesLow": "{groups} low",
-            "musclesOk": "All in range",
             "lifts": "Records and main lifts",
             "recordsCount": "{n, plural, one {# record} other {# records}}",
             "noRecords": "Main lifts",
@@ -681,6 +699,8 @@
         "front": "Front",
         "back": "Back",
         "liftsNote": "The best set each {unit, select, week {week} other {cycle}}; the line is the estimated 1RM over 6 {unit, select, week {weeks} other {cycles}}. A lift counts as stalled after 3 flat {unit, select, week {weeks} other {cycles}}.",
+        "liftsRatio": "{total} main lifts: {up} up, {flat} flat, {down} down",
+        "recordBefore": "best before {set}",
         "trend": {
             "up": "Up",
             "flat": "Flat",
@@ -848,6 +868,8 @@
             "week": "Said this {unit, select, week {week} other {cycle}}"
         },
         "nextMore": "{n} more in the full report",
+        "nextMoreWays": "{n} more, and other ways to do each, in the full report",
+        "otherWays": "Other ways to do each are in the full report",
         "planResearchAgain": "reps first, then weight: the research above"
     }
 }
