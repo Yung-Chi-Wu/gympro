@@ -114,7 +114,7 @@ export default async function RoutinesPage() {
 
     let calendar = null
     if (cycle) {
-        const range = calendarRange(today.slice(0, 7), { cycleLength: cycle.cycle_length, startDate: cycle.start_date })
+        const range = calendarRange(today.slice(0, 7))
         calendar = {
             range,
             days: historyDaysOf(historyRows, { range, timeZone, language }),

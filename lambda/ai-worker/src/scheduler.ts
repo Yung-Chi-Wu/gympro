@@ -1,14 +1,19 @@
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseClient } from './supabase'
-import { lastCompletedPeriod, type CycleSettings } from '../../../lib/periods'
+import { lastCompletedPeriod, type Period } from '../../../lib/periods'
 import { timeZoneOf } from '../../../lib/time-zone'
 import type { AnalysisRequestMessage } from './types'
 
 // Runs every hour from EventBridge Scheduler. Each user's report is due once
-// their period has ended in their own time zone, so an hourly sweep reaches
+// their week has ended in their own time zone, so an hourly sweep reaches
 // every time zone within an hour of local midnight. It also deletes AI traces
 // past their retention and publishes the AI calls' health for the alarms.
+//
+// A period is a calendar week for everyone (lib/periods.ts); reports saved before
+// that may be one round of a training cycle. A week whose days an earlier report
+// already covered to its end gets none, so the switch from rounds to weeks makes no
+// second report of days already reported (weeksNotReported).
 //
 // Idempotent: a report row is claimed with insert-or-ignore on
 // (user_id, period_start), and only rows this run created are queued. Repeated
@@ -29,10 +34,21 @@ interface ProfileRow {
     timezone: string | null
 }
 
-interface CycleRow {
-    user_id: string
-    cycle_length: number
-    start_date: string
+/** A user's week that is due a report */
+export interface DueWeek extends Period {
+    userId: string
+}
+
+/**
+ * The due weeks not already covered to their end by an earlier report: lastEnds holds each user's
+ * latest report end. A round of a cycle that ended inside the week leaves it due, so no day goes
+ * unreported; one that ended on or after its Sunday covered it.
+ */
+export function weeksNotReported(due: DueWeek[], lastEnds: Map<string, string>): DueWeek[] {
+    return due.filter((d) => {
+        const end = lastEnds.get(d.userId)
+        return !end || end < d.periodEnd
+    })
 }
 
 /**
@@ -144,30 +160,34 @@ export async function handler(): Promise<void> {
     await deleteExpired(supabase)
     await Promise.all([publishAiMetrics(supabase), publishAppMetrics(supabase)])
 
-    const [profilesResult, cyclesResult] = await Promise.all([
-        supabase.from('user_profiles').select('user_id, timezone'),
-        supabase.from('training_cycles').select('user_id, cycle_length, start_date'),
-    ])
+    const profilesResult = await supabase.from('user_profiles').select('user_id, timezone')
     if (profilesResult.error) throw new Error(`Failed to fetch profiles: ${profilesResult.error.message}`)
-    if (cyclesResult.error) throw new Error(`Failed to fetch cycles: ${cyclesResult.error.message}`)
 
-    const cycles = new Map<string, CycleSettings>(
-        ((cyclesResult.data ?? []) as CycleRow[]).map((c) => [
-            c.user_id,
-            { cycleLength: c.cycle_length, startDate: c.start_date },
-        ])
-    )
-
-    const due: { userId: string; periodStart: string; periodEnd: string }[] = []
+    const weeks: DueWeek[] = []
     for (const profile of (profilesResult.data ?? []) as ProfileRow[]) {
         try {
-            const period = lastCompletedPeriod(timeZoneOf(profile.timezone), cycles.get(profile.user_id) ?? null)
-            if (period) due.push({ userId: profile.user_id, ...period })
+            weeks.push({ userId: profile.user_id, ...lastCompletedPeriod(timeZoneOf(profile.timezone)) })
         } catch (err) {
             // A bad time zone on one profile must not stop everyone else's reports
             console.error(`Skipping user ${profile.user_id}: ${err instanceof Error ? err.message : String(err)}`)
         }
     }
+    if (weeks.length === 0) return
+
+    // Each user's latest report end, from the reports that reach into the earliest week due
+    const earliest = weeks.reduce((min, w) => (w.periodStart < min ? w.periodStart : min), weeks[0].periodStart)
+    const { data: ends, error: endsError } = await supabase
+        .from('period_reports')
+        .select('user_id, period_end')
+        .in('user_id', weeks.map((w) => w.userId))
+        .gte('period_end', earliest)
+    if (endsError) throw new Error(`Failed to fetch report periods: ${endsError.message}`)
+    const lastEnds = new Map<string, string>()
+    for (const r of (ends ?? []) as { user_id: string; period_end: string }[]) {
+        const known = lastEnds.get(r.user_id)
+        if (!known || r.period_end > known) lastEnds.set(r.user_id, r.period_end)
+    }
+    const due = weeksNotReported(weeks, lastEnds)
     if (due.length === 0) return
 
     // Notes written during each period are kept on its report row

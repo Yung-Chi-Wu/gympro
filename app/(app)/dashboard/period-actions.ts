@@ -131,16 +131,9 @@ export async function savePeriodNote(note: string): Promise<ActionResult> {
         return { success: false, message: `Keep the note under ${MAX_NOTE_LENGTH} characters.` }
     }
 
-    // The period comes from the server's clock and the user's settings, never from the client
-    const [{ data: profile }, { data: cycle }] = await Promise.all([
-        supabase.from('user_profiles').select('timezone').eq('user_id', user.id).maybeSingle(),
-        supabase.from('training_cycles').select('cycle_length, start_date').eq('user_id', user.id).maybeSingle(),
-    ])
-    const period = currentPeriod(
-        timeZoneOf(profile?.timezone),
-        cycle ? { cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null
-    )
-    if (!period) return { success: false, message: 'Your training cycle has not started yet.' }
+    // The period comes from the server's clock and the user's time zone, never from the client
+    const { data: profile } = await supabase.from('user_profiles').select('timezone').eq('user_id', user.id).maybeSingle()
+    const period = currentPeriod(timeZoneOf(profile?.timezone))
 
     const { error } = trimmed
         ? await supabase

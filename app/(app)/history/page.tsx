@@ -48,7 +48,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
         // A link to one day opens on that day's month
         const day = isDate(params.day) && params.day <= today ? params.day : null
         const month = monthOf(day ?? today)
-        const range = rangeOf([...periodsBack(today, PERIODS_PER_PAGE, cycle, today), ...periodsInMonth(month, cycle, today)])
+        const range = rangeOf([...periodsBack(today, PERIODS_PER_PAGE, today), ...periodsInMonth(month, today)])
 
         const [days, reports, firstDate] = await Promise.all([
             loadHistoryDays(supabase, { userId: user.id, range, timeZone, language }),

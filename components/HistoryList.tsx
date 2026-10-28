@@ -84,7 +84,7 @@ interface HistoryTrainingProps {
     /** The calendar's first month: this one, or the month of a linked day */
     initialMonth: string
     cycle: CycleSettings | null
-    /** The cycle's routine on each of its days and the dates changed in 課表's calendar, for each round's "3 of 4 planned"; null without a cycle */
+    /** The cycle's routine on each of its days and the dates changed in 課表's calendar, for each week's "3 of 4 planned"; null without a cycle */
     plan: { routineByDay: Record<number, string | null>; changes: Record<string, string | null> } | null
     initialRange: HistoryRange
     initialDays: HistoryDay[]
@@ -120,7 +120,7 @@ export function HistoryTraining({
     const trainedIn = (period: HistoryRange) => datesIn(period).filter((d) => isTrained(days[d])).reverse()
 
     // ---- Side by side: the month ----
-    const monthPeriods = periodsInMonth(month, cycle, today).filter((p) => p.start <= today)
+    const monthPeriods = periodsInMonth(month, today).filter((p) => p.start <= today)
     const latestInMonth = datesIn(monthRange(month)).filter((d) => d <= today && isTrained(days[d])).pop() ?? null
     const dayParam = searchParams.get('day')
     const opened = isDate(dayParam) ? dayParam : null
@@ -128,23 +128,23 @@ export function HistoryTraining({
 
     async function showMonth(next: string) {
         setMonth(next)
-        await ensureLoaded(rangeOf(periodsInMonth(next, cycle, today)))
+        await ensureLoaded(rangeOf(periodsInMonth(next, today)))
     }
 
     // ---- Phone: the periods ----
-    const listPeriods = periodsBack(list.from, list.count, cycle, today)
+    const listPeriods = periodsBack(list.from, list.count, today)
     const oldest = listPeriods[listPeriods.length - 1]
     const hasOlder = !!firstDate && firstDate < oldest.start
 
     async function loadOlder() {
-        const more = periodsBack(addDays(oldest.start, -1), PERIODS_PER_PAGE, cycle, today)
+        const more = periodsBack(addDays(oldest.start, -1), PERIODS_PER_PAGE, today)
         if (await ensureLoaded(rangeOf(more))) setList((l) => ({ ...l, count: l.count + PERIODS_PER_PAGE }))
     }
 
     async function jumpTo(target: string) {
         const range = monthRange(target)
         const from = range.end < today ? range.end : today
-        const periods = periodsSpanning({ start: range.start, end: from }, cycle, today)
+        const periods = periodsSpanning({ start: range.start, end: from }, today)
         if (await ensureLoaded(rangeOf(periods))) setList({ from, count: periods.length, month: target })
     }
 

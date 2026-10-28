@@ -54,7 +54,7 @@
             "review": {
                 "step": "Review",
                 "title": "Get a report every period",
-                "body": "When a period ends (a week, or one full cycle), an AI Coach Report is written for you: training split, strength trend, progressive overload and what to do next, taking your notes for the period into account. History keeps past periods and your weight trend."
+                "body": "When a week ends, an AI Coach Report is written for you: training split, strength trend, progressive overload and what to do next, taking your notes for the week into account. History keeps past weeks and your weight trend."
             }
         },
         "mock": {
@@ -303,9 +303,9 @@
             "originalTag": "Original",
             "instead": "Instead of {name}",
             "insteadOfRest": "Instead of a rest day",
-            "round": "This round:",
+            "week": "Week:",
             "reportAfter": "Report after {date}",
-            "seeReport": "See this round's report",
+            "seeReport": "See this week's report",
             "beforeStart": "The cycle starts {date}",
             "noPlan": "No routines in the cycle yet"
         }

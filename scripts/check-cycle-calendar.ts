@@ -94,9 +94,9 @@ check('training on a rest day still counts as done', status(seven, '2026-10-18',
 check("a day carries its cycle day and routine", same(
     (({ cycleDay, routineId }) => ({ cycleDay, routineId }))(calendarDay('2026-10-21', seven, today, undefined)), { cycleDay: 3, routineId: 'legs' }))
 
-// ---------- Rounds ----------
-check("a 7-day cycle's round is its week", same(calendarDay('2026-10-21', seven, today, undefined).round, { start: '2026-10-19', end: '2026-10-25' }))
-check("a 4-day cycle's round crosses weeks", same(calendarDay('2026-10-27', four, today, undefined).round, { start: '2026-10-25', end: '2026-10-28' }))
+// ---------- Weeks, a report's period ----------
+check("a day's week is Monday to Sunday with a 7-day cycle", same(calendarDay('2026-10-21', seven, today, undefined).week, { start: '2026-10-19', end: '2026-10-25' }))
+check("and with a 4-day cycle, whose rounds cross weeks", same(calendarDay('2026-10-27', four, today, undefined).week, { start: '2026-10-26', end: '2026-11-01' }))
 
 // ---------- The month ----------
 {
@@ -108,28 +108,21 @@ check("a 4-day cycle's round crosses weeks", same(calendarDay('2026-10-27', four
     const aug = monthWeeks('2026-08')
     check('August 2026, Saturday the 1st to Monday the 31st, is six', aug.length === 6 && aug[0][0] === '2026-07-27' && aug[5][6] === '2026-09-06')
 }
-check("a month is read from the start of the round its first week opens in, so that round's report comes too",
-    same(calendarRange('2026-10', four), { start: '2026-09-27', end: '2026-11-01' }) && same(calendarRange('2026-10', seven), { start: '2026-09-28', end: '2026-11-01' }),
-    JSON.stringify([calendarRange('2026-10', four), calendarRange('2026-10', seven)]))
+check("a month is read as its weeks, so each week's report comes too", same(calendarRange('2026-10'), { start: '2026-09-28', end: '2026-11-01' }), JSON.stringify(calendarRange('2026-10')))
 
 // ---------- The month read ahead ----------
 {
-    // Every UTC day of two years, every zone's today within a day of it, every cycle length, and
-    // starts on each day of a round: the calendar's range is inside what was read
+    // Every UTC day of two years and every zone's today within a day of it: the calendar's range is inside what was read
     const misses: string[] = []
     for (let i = 0; i < 730; i++) {
         const utc = addDays('2026-01-01', i)
         const ahead = calendarReadAhead(utc).range
         for (const local of [addDays(utc, -1), utc, addDays(utc, 1)]) {
-            for (let length = 1; length <= MAX_CYCLE_DAYS; length++) {
-                for (const shift of [0, 1, length - 1, 200, -200]) {
-                    const range = calendarRange(monthOf(local), { cycleLength: length, startDate: addDays(utc, shift) })
-                    if (range.start < ahead.start || range.end > ahead.end) misses.push(`${utc} ${local} ${length}d from ${shift}: ${JSON.stringify(range)} not in ${JSON.stringify(ahead)}`)
-                }
-            }
+            const range = calendarRange(monthOf(local))
+            if (range.start < ahead.start || range.end > ahead.end) misses.push(`${utc} ${local}: ${JSON.stringify(range)} not in ${JSON.stringify(ahead)}`)
         }
     }
-    check("the range read ahead holds the calendar's month for any zone and cycle", misses.length === 0, misses.slice(0, 3).join('\n       '))
+    check("the range read ahead holds the calendar's month for any zone", misses.length === 0, misses.slice(0, 3).join('\n       '))
     const ahead = calendarReadAhead('2026-10-27')
     check('and is that month from the longest round before its first week, split where the weeks start',
         same(ahead, { range: { start: addDays('2026-09-28', -(MAX_CYCLE_DAYS - 1)), end: '2026-11-01' }, weeksStart: '2026-09-28' }), JSON.stringify(ahead))
