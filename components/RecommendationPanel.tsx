@@ -119,7 +119,8 @@ export function RecommendationPanel({ userId, initial, language, weightUnit, dis
 
             {status === 'completed' && recommendation && isReportV3(recommendation) && (
                 <ReportView report={recommendation} language={language} weightUnit={weightUnit} distanceUnit={distanceUnit}
-                    variant="summary" fullHref={periodStart ? `/history?tab=reports&report=${periodStart}` : undefined} />
+                    // The goal is first on Today, above this card (TodayGoal)
+                    variant="summary" fullHref={periodStart ? `/history?tab=reports&report=${periodStart}` : undefined} showGoal={false} />
             )}
 
             {status === 'completed' && recommendation && !isReportV3(recommendation) && (

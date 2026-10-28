@@ -42,7 +42,7 @@ const STATUS_TONE: Record<ReportV3['facts']['status'], string> = {
 
 const shortDate = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`
 
-export function ReportView({ report, language, weightUnit, distanceUnit = 'km', variant = 'full', fullHref }: {
+export function ReportView({ report, language, weightUnit, distanceUnit = 'km', variant = 'full', fullHref, showGoal = true }: {
     report: ReportV3
     language: string
     weightUnit: WeightUnit
@@ -50,6 +50,8 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
     variant?: 'summary' | 'full'
     /** summary: where the full report is (History, with this report open) */
     fullHref?: string
+    /** false where the page shows the goal itself: Today has it first (TodayGoal) */
+    showGoal?: boolean
 }) {
     const t = useTranslations('reportV3')
     const zh = language === 'zh-TW'
@@ -230,7 +232,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                 </section>
             )}
 
-            <GoalSection goal={facts.goal} unit={unit} zh={zh} weightUnit={weightUnit} summary={summary} muscle={muscle} />
+            {showGoal && <GoalSection goal={facts.goal} unit={unit} zh={zh} weightUnit={weightUnit} summary={summary} muscle={muscle} />}
 
             {!summary && <WeekDots days={facts.sessions.days} zh={zh} />}
 
@@ -312,10 +314,10 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
             </section>
 
             {/* No goal: one small line last, so a user who only logs isn't asked for one first thing every week */}
-            {facts.goal.read === null && (
+            {showGoal && facts.goal.read === null && (
                 <p className="text-[13px] text-ink/50 dark:text-white/50">
                     {t('goal.none')}{' '}
-                    <Link href="/settings" className="font-semibold text-ink underline underline-offset-2 dark:text-white">{t('goal.setGoal')}</Link>
+                    <Link href="/settings?item=trainingGoal" className="font-semibold text-ink underline underline-offset-2 dark:text-white">{t('goal.setGoal')}</Link>
                 </p>
             )}
 
@@ -431,7 +433,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
     )
 }
 
-type GoalSectionProps = {
+export type GoalSectionProps = {
     goal: ReportFacts['goal']
     unit: 'week' | 'cycle'
     zh: boolean
@@ -459,7 +461,7 @@ function useGoalText({ goal, zh, weightUnit, muscle }: GoalSectionProps) {
  * are in the full report's closed "How the goal is tracked" row (GoalDetail). Reports saved before
  * goals were read show nothing here.
  */
-function GoalSection(props: GoalSectionProps & { summary: boolean }) {
+export function GoalSection(props: GoalSectionProps & { summary: boolean }) {
     const { goal, unit, summary } = props
     const { t, read, u, num, name, focusLabel } = useGoalText(props)
     // Without a goal, the line asking for one is under the advice
