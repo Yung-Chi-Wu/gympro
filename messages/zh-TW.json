@@ -328,7 +328,12 @@
         "weightUnitKg": "公斤 (kg)",
         "weightUnitLb": "磅 (lb)",
         "trainingGoal": "長期訓練目標",
-        "trainingGoalPlaceholder": "例如：希望加強背部厚度，提升整體力量",
+        "trainingGoalPlaceholder": "例如：增肌、力量",
+        "goalRead": "讀到：",
+        "goalReading": "正在讀你的目標…",
+        "goalReadFailed": "現在讀不到，下一份週報會再讀一次。",
+        "goalReadNothing": "看不出要練什麼，可以寫像「增肌」「臥推 {lift}」。",
+        "goalNoNumber": "沒有數字，週報只能看大方向。加一句像「臥推 {lift}」就能追蹤。",
         "save": "儲存",
         "saving": "儲存中...",
         "saved": "已儲存！",
@@ -355,7 +360,7 @@
         },
         "hints": {
             "heightCm": "單位是公分，報告用來算 BMI。",
-            "trainingGoal": "寫下你想達成的事，報告和 Ronnie 都會參考。例如「減脂 5 公斤」「深蹲做到 1.5 倍體重」。",
+            "trainingGoal": "寫上數字，週報就會追蹤，例如「深蹲 {lift}」「減到 {weight}」。",
             "weightUnit": "報告、Ronnie 和紀錄都用這個單位顯示重量。每個動作記錄時用的 kg／lb，在今天的記錄卡片裡分開設定。",
             "distanceUnit": "跑步機的速度和距離用這個單位。"
         },

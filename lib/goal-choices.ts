@@ -1,6 +1,9 @@
 import { MAX_TRAINING_GOAL_CHARS } from './text-limits'
 
-// The kinds the report's goal reader knows (lambda/ai-worker/src/report/goal.ts GOAL_KINDS), in
+/** Settings, open at the goal */
+export const GOAL_SETTING = '/settings?item=trainingGoal'
+
+// The kinds the report's goal reader knows (lib/report/goal-reader.ts GOAL_KINDS), in
 // words it reads as them. Picked ones become the start of training_goal, which stays free text
 export const GOAL_CHOICES = [
     { key: 'muscle', zh: '增肌', en: 'Muscle' },

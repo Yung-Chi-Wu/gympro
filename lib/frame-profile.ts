@@ -23,7 +23,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
 })
 
 // Every column a page reads, so the frame and the page share one read of the row
-const PROFILE_COLUMNS = 'display_name, height_cm, date_of_birth, sex, training_goal, timezone, language, onboarding_completed, weight_unit, distance_unit'
+const PROFILE_COLUMNS = 'display_name, height_cm, date_of_birth, sex, training_goal, training_goal_read, timezone, language, onboarding_completed, weight_unit, distance_unit'
 
 // The signed-in user and their profile, once per request. The (app) layout, next-intl's request
 // config (i18n/request.ts) and the pages all need them; React's cache makes that one check and

@@ -6,6 +6,7 @@ import { ProfileSettingsForm } from '@/components/ProfileSettingsForm'
 import { CHOSEN_UTC, timeZoneOf, UNSET_TIME_ZONE } from '@/lib/time-zone'
 import { ServerTimingMark } from '@/components/ServerTimingMark'
 import { ReadYourWrites } from '@/components/ReadYourWrites'
+import { keptRead } from '@/lib/report/goal-reader'
 
 export default async function SettingsPage() {
     const user = await getSessionUser()
@@ -35,6 +36,7 @@ export default async function SettingsPage() {
                     distanceUnit: profile?.distance_unit === 'mi' ? 'mi' : 'km',
                     language: effectiveLanguage,
                 }}
+                goalRead={keptRead(profile?.training_goal_read, profile?.training_goal)}
             />
         </div>
     )

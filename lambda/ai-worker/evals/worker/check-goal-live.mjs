@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Paid check of the goal reader (src/report/goal.ts) on goals written the ways users write them:
+// Paid check of the goal reader (lib/report/goal-reader.ts) on goals written the ways users write them:
 // numbers with and without a unit, body weight, body fat, physique, a direction only, things
 // it can't track, the library's names in English and Chinese. Each case says what a right read
 // has. One Haiku call a case, under US$0.002 each.

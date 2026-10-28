@@ -328,7 +328,12 @@
         "weightUnitKg": "kg (Kilogram)",
         "weightUnitLb": "lb (Pound)",
         "trainingGoal": "Long-term training goal",
-        "trainingGoalPlaceholder": "e.g. Focus on building back thickness and overall strength",
+        "trainingGoalPlaceholder": "e.g. Muscle, Strength",
+        "goalRead": "Read as:",
+        "goalReading": "Reading your goal…",
+        "goalReadFailed": "Couldn't read it now; your next report will try again.",
+        "goalReadNothing": "Couldn't tell what you're training for. Try \"muscle\" or \"bench {lift}\".",
+        "goalNoNumber": "No number, so your report follows the direction only. Add one, like \"bench {lift}\", to track it.",
         "save": "Save",
         "saving": "Saving...",
         "saved": "Saved!",
@@ -355,7 +360,7 @@
         },
         "hints": {
             "heightCm": "In centimetres; reports use it for BMI.",
-            "trainingGoal": "Write down what you want to achieve; your reports and Ronnie take it into account. For example \"lose 5 kg\" or \"squat 1.5× bodyweight\".",
+            "trainingGoal": "Add a number and your report tracks it, like \"squat {lift}\" or \"get down to {weight}\".",
             "weightUnit": "Reports, Ronnie and your history show weights in this unit. The kg or lb each exercise is logged in is set separately, in today's logging card.",
             "distanceUnit": "Treadmill speed and distance use this unit."
         },

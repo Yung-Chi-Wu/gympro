@@ -62,7 +62,7 @@ async function processMessage(record: SQSRecord, deadline: number): Promise<void
       return
     }
 
-    // Read side by side: the goal, once per text (report/goal.ts), and what the user said this
+    // Read side by side: the goal, once per text (lib/report/goal-reader.ts), and what the user said this
     // period, in day notes and to Ronnie (report/week.ts). Either can fail and leave the report without it.
     const client = await getClaudeClient()
     const logged = new Set(inputs.sets.map((s) => s.exerciseId))
@@ -87,6 +87,11 @@ async function processMessage(record: SQSRecord, deadline: number): Promise<void
         userId, feature: 'report', model: GOAL_READER_MODEL, servedModel: goal.call.model, status: goal.call.error ? 'error' : 'ok', error: goal.call.error,
         latencyMs: goal.ms, usage: [goal.call.usage], input: { goal: inputs.goal, prompt: goal.call.prompt }, output: goal.call.error ? undefined : { read: goal.read },
       })
+      // Kept with the goal, while it is still the text read, so Settings shows it and the next report reuses it
+      if (goal.read?.model) {
+        const { error: keepError } = await supabase.from('user_profiles').update({ training_goal_read: goal.read }).eq('user_id', userId).eq('training_goal', inputs.goal)
+        if (keepError) console.warn(`Goal read not kept for user ${userId}: ${keepError.message}`)
+      }
     }
     if (week.call) {
       await recordTrace(supabase, {

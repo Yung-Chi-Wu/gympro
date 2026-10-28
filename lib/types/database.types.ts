@@ -545,6 +545,7 @@ export type Database = {
           sex: string | null
           timezone: string
           training_goal: string | null
+          training_goal_read: Json | null
           updated_at: string
           user_id: string
           weight_unit: string
@@ -561,6 +562,7 @@ export type Database = {
           sex?: string | null
           timezone?: string
           training_goal?: string | null
+          training_goal_read?: Json | null
           updated_at?: string
           user_id: string
           weight_unit?: string
@@ -577,6 +579,7 @@ export type Database = {
           sex?: string | null
           timezone?: string
           training_goal?: string | null
+          training_goal_read?: Json | null
           updated_at?: string
           user_id?: string
           weight_unit?: string

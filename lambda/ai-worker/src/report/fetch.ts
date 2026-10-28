@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { addDays, daysBetween, plannedRoutineId } from '../../../../lib/periods'
 import { ageOn } from '../../../../lib/report/cardio-intensity'
+import { keptRead } from '../../../../lib/report/goal-reader'
 import { SUGGESTED_NAMES } from '../../../../lib/report/volume'
 import { isCardio, logTypeOf } from '../../../../lib/set-log'
 import { isMemoryKind } from '../../../../lib/ronnie/memory'
@@ -50,7 +51,7 @@ export async function fetchReportInputs(
     periodEnd: string
 ): Promise<{
     inputs: ReportInputs; language: string; weightUnit: 'kg' | 'lb'; distanceUnit: 'km' | 'mi'
-    /** For reading the goal (goal.ts): the library's exercises, and the read the previous report made */
+    /** For reading the goal (lib/report/goal-reader.ts): the library's exercises, and the read before: the one kept with the goal, else the previous report's */
     library: ExerciseInfo[]; previousGoal: GoalRead | null
     /** For reading the period (week.ts): what the user typed to Ronnie in it. Not part of the inputs, so no message is saved with the report */
     messages: WeekText[]
@@ -60,7 +61,7 @@ export async function fetchReportInputs(
 
     const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
-        .select('timezone, training_goal, language, weight_unit, distance_unit, date_of_birth')
+        .select('timezone, training_goal, training_goal_read, language, weight_unit, distance_unit, date_of_birth')
         .eq('user_id', userId)
         .maybeSingle()
     if (profileError) throw new Error(`Failed to fetch profile: ${profileError.message}`)
@@ -132,7 +133,7 @@ export async function fetchReportInputs(
         weightUnit: profile?.weight_unit === 'lb' ? 'lb' : 'kg',
         distanceUnit: profile?.distance_unit === 'mi' ? 'mi' : 'km',
         library,
-        previousGoal: previous.goal,
+        previousGoal: keptRead(profile?.training_goal_read, profile?.training_goal) ?? previous.goal,
         messages,
     }
 }

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { JOINT_LABELS, type Joint } from '@/lib/exercise-attributes'
 import { getMuscleGroupLabel } from '@/lib/exercise-display'
+import { GOAL_SETTING } from '@/lib/goal-choices'
 import { unitLabel } from '@/lib/report/volume'
 import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
 import { toDisplayDistance, toDisplaySpeed, type DistanceUnit } from '@/lib/distance-unit'
@@ -12,6 +13,7 @@ import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, GOAL_EVIDENCE, MIN_EFFECTI
 import { CODE_RULES, type BestSet, type CardioFacts, type CardioTrendFacts, type ContextNote, type DayFacts, type Finding, type FollowUp, type LiftFacts, type ReportFacts, type ReportV3, type WeekSignal } from '@/lib/report/types'
 import { BodyMap } from './BodyMap'
 import { Sparkline } from './Sparkline'
+import { useGoalReadLabels, useGoalText } from './goal-text'
 
 // The weekly report (version 3). Every number and reason comes from code (report.facts,
 // findings); only the headline and each action are the model's (report.narrative).
@@ -317,7 +319,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
             {showGoal && facts.goal.read === null && (
                 <p className="text-[13px] text-ink/50 dark:text-white/50">
                     {t('goal.none')}{' '}
-                    <Link href="/settings?item=trainingGoal" className="font-semibold text-ink underline underline-offset-2 dark:text-white">{t('goal.setGoal')}</Link>
+                    <Link href={GOAL_SETTING} className="font-semibold text-ink underline underline-offset-2 dark:text-white">{t('goal.setGoal')}</Link>
                 </p>
             )}
 
@@ -441,19 +443,6 @@ export type GoalSectionProps = {
     muscle: (g: string) => string
 }
 
-/** Shared by the goal rows and their detail: names, weights in the goal's own unit */
-function useGoalText({ goal, zh, weightUnit, muscle }: GoalSectionProps) {
-    const t = useTranslations('reportV3.goal')
-    const read = goal.read ?? null
-    // One unit for the goal: the one it wrote its numbers in, else the user's
-    const u: WeightUnit = read?.targets.find((x) => x.unit)?.unit ?? weightUnit
-    const num = (kg: number) => String(toDisplayWeight(kg, u))
-    const name = (x: { name?: string; nameZh?: string | null }) => String((zh && x.nameZh) || x.name || '')
-    const sep = zh ? '、' : ', '
-    const focusLabel = (units: string[] | undefined) => (units ?? []).map(muscle).join(sep)
-    return { t, read, u, num, name, sep, focusLabel }
-}
-
 /**
  * The goal, first in the report: one row per target, its value against the target and, where
  * a number has one, a bar (report.facts.goal). Two lines a row and at most three rows, as fitness
@@ -463,7 +452,7 @@ function useGoalText({ goal, zh, weightUnit, muscle }: GoalSectionProps) {
  */
 export function GoalSection(props: GoalSectionProps & { summary: boolean }) {
     const { goal, unit, summary } = props
-    const { t, read, u, num, name, focusLabel } = useGoalText(props)
+    const { t, read, u, num, name, focusLabel } = useGoalText({ ...props, read: goal.read ?? null })
     // Without a goal, the line asking for one is under the advice
     if (!read) return null
     if (!read.model) {
@@ -544,17 +533,10 @@ export function GoalSection(props: GoalSectionProps & { summary: boolean }) {
 /** The goal's closed row in the full report: the goal as read, how each kind of target is measured, the sources, and where to change it */
 function GoalDetail(props: GoalSectionProps) {
     const { goal, unit } = props
-    const { t, read, u, num, name, sep, focusLabel } = useGoalText(props)
+    const { t, read, u, num, name, sep } = useGoalText({ ...props, read: goal.read ?? null })
+    const readText = useGoalReadLabels({ ...props, read: goal.read ?? null }).join(sep)
     if (!read?.model) return null
     const progress = goal.progress ?? []
-    const readText = [
-        ...read.kinds.map((k) => t(`kinds.${k}`)),
-        ...read.targets.map((tg) => tg.kind === 'lift'
-            ? `${name(tg)}${tg.loadKg != null ? ` ${num(tg.loadKg)} ${u}${tg.reps && tg.reps > 1 ? ` × ${tg.reps}` : ''}` : tg.reps ? ` ${t('repsTarget', { n: tg.reps })}` : ''}`
-            : tg.kind === 'body_weight' ? `${t('bodyWeight')} ${num(tg.weightKg ?? 0)} ${u}`
-            : tg.kind === 'body_fat' ? `${t('bodyFat')} ${tg.bodyFatPct}%`
-            : focusLabel(tg.units)),
-    ].join(sep)
     const proxy = progress.find((p) => p.proxy?.checkpointKg)
     const items: [string, Source[] | null][] = [
         ...(progress.some((p) => p.target.kind === 'lift' && (p.e1rmKg != null || p.proxy)) ? [[t('methodE1rm'), GOAL_EVIDENCE.e1rm] as [string, Source[]]] : []),
@@ -568,7 +550,7 @@ function GoalDetail(props: GoalSectionProps) {
         <div className="space-y-2 text-[13px] text-ink/70 dark:text-white/70">
             <p>
                 {t('read', { targets: readText || t('nothingRead') })}{read.unread && <> {t('unread', { text: read.unread })}</>}{' '}
-                <Link href="/settings" className="font-semibold text-ink underline underline-offset-2 dark:text-white">{t('edit')}</Link>
+                <Link href={GOAL_SETTING} className="font-semibold text-ink underline underline-offset-2 dark:text-white">{t('edit')}</Link>
             </p>
             <ul className="list-disc space-y-1 pl-4">
                 {items.map(([text, sources]) => <li key={text}>{text}{sources && <Sources sources={sources} />}</li>)}

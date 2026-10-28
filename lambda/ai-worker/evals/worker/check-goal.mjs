@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Free check of how the report reads the user's goal and measures it (report/goal.ts, the goal
+// Free check of how the report reads the user's goal and measures it (lib/report/goal-reader.ts, the goal
 // part of facts.ts): no model, no database. The reader's answer keeps only what checks out (an
 // exercise from the list, a number in range) and is converted to kg; a text is read once and the
 // read reused while it is the same; a read that fails leaves the report without it. A goal lift is
@@ -91,6 +91,29 @@ const LIBRARY = [BENCH, SQUAT, PULLDOWN, RAISE, PULLUP, ASSISTED, ex('ex-front',
         unread: null,
     }, byKey, 'lb', 'm')
     check('a physique goal keeps its body parts, body fat and weight', physique.targets.map((t) => t.kind).join() === 'focus,body_fat,body_weight' && physique.targets[0].units.join() === 'side_delts' && physique.targets[2].weightKg === 75 && physique.targets[2].unit === 'kg', JSON.stringify(physique.targets))
+
+    // The model sometimes gives the unit in the goal's own words: it is counted and shown in that unit
+    const words = w.checkedRead('減到 75 公斤，臥推 100 公斤，squat 300 lbs', {
+        kinds: ['fat_loss', 'strength'],
+        targets: [
+            { kind: 'body_weight', text: '減到 75 公斤', weight: 75, unit: '公斤' },
+            { kind: 'lift', text: '臥推 100 公斤', exercise: key('ex-bench'), load: 100, unit: ' KG ' },
+            { kind: 'lift', text: 'squat 300 lbs', exercise: key('ex-squat'), load: 300, unit: 'lbs' },
+            { kind: 'lift', text: 'pulldown 50', exercise: key('ex-pulldown'), load: 50, unit: 'stone' },
+        ],
+        unread: null,
+    }, byKey, 'lb', 'm')
+    check('a unit in words (公斤, KG, lbs) is that unit, and one it doesn\'t know is the user\'s', words.targets.map((t) => `${t.weightKg ?? t.loadKg}${t.unit}`).join() === '75kg,100kg,136.1lb,22.7lb', JSON.stringify(words.targets))
+}
+
+// ---------- The read kept with the goal ----------
+
+{
+    const kept = { text: '深蹲 140 kg', kinds: ['strength'], targets: [], unread: null, model: 'm' }
+    check('a kept read is used for the text it read, trimmed', w.keptRead(kept, '  深蹲 140 kg\n') === kept)
+    check('a kept read of another text, one not read (model null), no goal, or a malformed one is not used',
+        w.keptRead(kept, '深蹲 150 kg') === null && w.keptRead({ ...kept, model: null }, '深蹲 140 kg') === null && w.keptRead(kept, '  ') === null
+        && w.keptRead(null, '深蹲 140 kg') === null && w.keptRead('深蹲 140 kg', '深蹲 140 kg') === null && w.keptRead({ text: '深蹲 140 kg', model: 'm' }, '深蹲 140 kg') === null)
 }
 
 // ---------- Reading once per text ----------
