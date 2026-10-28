@@ -22,6 +22,7 @@ import type { RoutineWithExercises, RoutineExerciseRow } from '@/app/(app)/routi
 import { isCyclesOwn, type CalendarCycle } from '@/lib/cycle-calendar'
 import type { HistoryDay, HistoryRange, PeriodReportStatus } from '@/lib/history'
 import type { Units } from '@/lib/set-log'
+import { BUTTON, SEGMENTED } from '@/lib/ui'
 
 // The 課表 page. Side by side (@split): the cycle's calendar on top, then the routines on the
 // left and the chosen routine's editor on the right. On a phone: a 日曆 / 課表 switch, and a
@@ -58,12 +59,10 @@ interface RawRoutineExercise {
 }
 
 // Phone sizes first (44px targets, 15px text), the denser desktop ones from md
-const CARD = 'rounded-[14px] border border-line bg-card p-4'
-const BUTTON = 'inline-flex min-h-11 items-center justify-center gap-1 whitespace-nowrap rounded-[9px] border border-line bg-card px-4 text-[15px] font-bold transition-colors hover:bg-done disabled:opacity-50 md:min-h-9 md:px-3 md:text-[13px]'
-const PRIMARY = 'inline-flex min-h-11 items-center justify-center gap-1 whitespace-nowrap rounded-[9px] bg-accent px-4 text-[15px] font-bold text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50 md:min-h-9 md:px-3 md:text-[13px]'
-const NUMBER_INPUT = 'h-11 w-14 rounded-[7px] border border-line bg-card px-1 text-center font-mono font-bold md:h-9 md:w-12'
+const CARD = 'rounded-card border border-line bg-card p-4'
+const NUMBER_INPUT = 'h-11 w-14 rounded-field border border-line bg-card px-1 text-center font-mono font-bold md:h-9 md:w-12'
 // The group and exercise selects of MuscleGroupExercisePicker, the same height as the inputs
-const PICKER = 'min-w-0 [&_select]:h-11 [&_select]:rounded-[7px] [&_select]:border-line [&_select]:bg-card [&_select]:text-base md:[&_select]:h-9 md:[&_select]:text-sm'
+const PICKER = 'min-w-0 [&_select]:h-11 [&_select]:rounded-field [&_select]:border-line [&_select]:bg-card [&_select]:text-base md:[&_select]:h-9 md:[&_select]:text-sm'
 const DEFAULT_SETS = 3
 const DEFAULT_REPS = 10
 
@@ -479,7 +478,7 @@ export function RoutineBuilder({
                 <h1 className="text-2xl font-bold max-md:sr-only">{t('title')}</h1>
                 <div className="ml-auto hidden items-center gap-2 @split:flex">
                     {routines.length > 0 && coachG('button')}
-                    <button type="button" onClick={startCreating} className={PRIMARY}>
+                    <button type="button" onClick={startCreating} className={BUTTON.primary}>
                         <Icon name="plus" className="size-4" />
                         {t('newRoutine')}
                     </button>
@@ -492,7 +491,7 @@ export function RoutineBuilder({
             {/* Phone: 日曆 or 課表, one at a time */}
             {!opened && !editingCycle && (
                 <div className="flex items-center justify-between gap-3 @split:hidden">
-                    <div role="tablist" aria-label={t('title')} className="inline-flex overflow-hidden rounded-[9px] border border-line bg-card">
+                    <div role="tablist" aria-label={t('title')} className={SEGMENTED.track}>
                         {(['calendar', 'routines'] as const).map((v) => (
                             <button
                                 key={v}
@@ -500,14 +499,14 @@ export function RoutineBuilder({
                                 role="tab"
                                 aria-selected={view === v}
                                 onClick={() => setView(v)}
-                                className={`min-h-11 px-5 text-[15px] font-medium ${view === v ? 'bg-ink text-card' : 'text-muted'}`}
+                                className={SEGMENTED.segment}
                             >
                                 {v === 'calendar' ? t('calendarTab') : t('routinesTab')}
                             </button>
                         ))}
                     </div>
                     {view === 'routines' && (
-                        <button type="button" onClick={startCreating} className={PRIMARY}>
+                        <button type="button" onClick={startCreating} className={BUTTON.primary}>
                             <Icon name="plus" className="size-4" />
                             {t('newRoutineShort')}
                         </button>
@@ -573,9 +572,10 @@ export function RoutineBuilder({
 
                 {/* The routines */}
                 <div className={`space-y-5 md:space-y-3 ${opened ? 'hidden @split:block' : ''}`}>
-                    <section className="space-y-1 rounded-[14px] border border-line bg-card px-4 py-1 @split:p-4">
+                    <section className="space-y-1 rounded-card border border-line bg-card px-4 py-1 @split:p-4">
                         <h2 className="hidden pb-1 text-[15px] font-bold tracking-wide @split:block">{t('yourRoutines')}</h2>
 
+                        {/* The name on a line of its own: beside two pills it was squeezed to a few letters */}
                         {isCreating && (
                             <form onSubmit={handleCreateRoutine} className="flex flex-wrap gap-2 py-3 md:py-2">
                                 <input
@@ -587,11 +587,11 @@ export function RoutineBuilder({
                                     onKeyDown={(e) => { if (e.key === 'Escape') setIsCreating(false) }}
                                     placeholder={t('newRoutinePlaceholder')}
                                     aria-label={t('newRoutine')}
-                                    className="h-11 min-w-0 flex-1 rounded-[9px] border border-line bg-card px-3 text-base md:h-auto md:py-2 md:text-sm"
+                                    className="h-11 min-w-0 basis-full rounded-field border border-line bg-card px-3 text-base md:h-auto md:py-2 md:text-sm"
                                 />
                                 <div className="flex gap-2">
-                                    <button type="submit" disabled={savingRoutine} className={`${PRIMARY} disabled:opacity-50`}>{t('create')}</button>
-                                    <button type="button" onClick={() => setIsCreating(false)} className={BUTTON}>{t('cancel')}</button>
+                                    <button type="submit" disabled={savingRoutine} className={BUTTON.primary}>{t('create')}</button>
+                                    <button type="button" onClick={() => setIsCreating(false)} className={BUTTON.secondary}>{t('cancel')}</button>
                                 </div>
                             </form>
                         )}
@@ -616,7 +616,7 @@ export function RoutineBuilder({
                                             type="button"
                                             onClick={() => openSubPage('routine', routine.id)}
                                             aria-current={routine.id === shown?.id ? 'true' : undefined}
-                                            className={`-mx-2 grid min-h-16 w-[calc(100%+1rem)] grid-cols-[minmax(0,1fr)_auto] content-center items-center gap-x-2 gap-y-0.5 rounded-[10px] px-2 py-2.5 text-left md:min-h-0 md:gap-y-0 ${routine.id === shown?.id ? '@split:bg-accent-soft' : 'hover:bg-done'}`}
+                                            className={`-mx-2 grid min-h-16 w-[calc(100%+1rem)] grid-cols-[minmax(0,1fr)_auto] content-center items-center gap-x-2 gap-y-0.5 rounded-field px-2 py-2.5 text-left md:min-h-0 md:gap-y-0 ${routine.id === shown?.id ? '@split:bg-accent-soft' : 'hover:bg-done'}`}
                                         >
                                             <span className="truncate font-bold">{routine.name}</span>
                                             <Icon name="forward" className="row-span-2 size-4 text-faint" />
@@ -749,15 +749,15 @@ function RoutineEditor({ dayIndexes, onRename, onDelete, ...list }: RoutineEdito
                                 if (e.key === 'Escape') { setName(routine.name); setRenaming(false) }
                             }}
                             aria-label={t('rename')}
-                            className="h-11 w-full max-w-xs rounded-[9px] border border-line bg-card px-2 text-lg font-bold md:h-auto md:py-1"
+                            className="h-11 w-full max-w-xs rounded-field border border-line bg-card px-2 text-lg font-bold md:h-auto md:py-1"
                         />
                     ) : (
                         <h2 className="truncate text-xl font-bold">{routine.name}</h2>
                     )}
                 </div>
                 <div className="hidden gap-2 md:flex">
-                    <button type="button" onClick={startRenaming} className={BUTTON}>{t('rename')}</button>
-                    <button type="button" onClick={onDelete} className={`${BUTTON} hover:text-miss`}>{t('delete')}</button>
+                    <button type="button" onClick={startRenaming} className={BUTTON.secondary}>{t('rename')}</button>
+                    <button type="button" onClick={onDelete} className={BUTTON.danger}>{t('delete')}</button>
                 </div>
                 <MoreMenu
                     label={t('routineActions', { name: routine.name })}
@@ -842,7 +842,7 @@ export function RoutineExercises({
                                     type="button"
                                     onClick={() => { setAdding(false); setOpenId(ex.id) }}
                                     aria-label={t('editExercise', { name: nameOf(ex) })}
-                                    className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-[9px] text-faint hover:bg-done hover:text-ink md:size-8"
+                                    className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-full text-faint hover:bg-done hover:text-ink md:size-8"
                                 >
                                     <Icon name="pencil" className="size-[18px] md:size-4" />
                                 </button>
@@ -862,7 +862,7 @@ export function RoutineExercises({
                         />
                     </div>
                 ) : (
-                    <button type="button" onClick={() => { setOpenId(null); setAdding(true) }} className={BUTTON}>
+                    <button type="button" onClick={() => { setOpenId(null); setAdding(true) }} className={BUTTON.secondary}>
                         <Icon name="plus" className="size-4" />
                         {t('addExercise')}
                     </button>
@@ -966,7 +966,7 @@ export function RoutineExercises({
                 </div>
             ) : (
                 <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
-                    <button type="button" onClick={() => setAdding(true)} className={BUTTON}>
+                    <button type="button" onClick={() => setAdding(true)} className={BUTTON.secondary}>
                         <Icon name="plus" className="size-4" />
                         {t('addExercise')}
                     </button>
@@ -1058,7 +1058,7 @@ function ExerciseRow({ exercise, language, exercises, startGroup, dragging = fal
 
     const Row = exercise ? 'li' : 'div'
     return (
-        <Row className={`py-3 md:py-2 ${dragging ? 'rounded-[10px] bg-accent-soft' : ''}`}>
+        <Row className={`py-3 md:py-2 ${dragging ? 'rounded-field bg-accent-soft' : ''}`}>
             <div className={`grid items-center gap-x-2 gap-y-2 ${onDone
                 ? 'grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_auto_32px]'
                 : 'grid-cols-[32px_minmax(0,1fr)] md:grid-cols-[28px_minmax(0,1fr)_auto_32px]'}`}>
@@ -1067,7 +1067,7 @@ function ExerciseRow({ exercise, language, exercises, startGroup, dragging = fal
                         type="button"
                         {...gripProps}
                         aria-label={t('moveExercise', { name: displayName })}
-                        className="flex h-11 cursor-grab touch-none items-center justify-center rounded-[7px] text-faint hover:text-ink active:cursor-grabbing md:h-9"
+                        className="flex h-11 cursor-grab touch-none items-center justify-center rounded-full text-faint hover:text-ink active:cursor-grabbing md:h-9"
                     >
                         <Icon name="grip" className="size-5" />
                     </button>
@@ -1114,7 +1114,7 @@ function ExerciseRow({ exercise, language, exercises, startGroup, dragging = fal
                     type="button"
                     onClick={onRemove}
                     aria-label={removeLabel}
-                    className="hidden size-8 items-center justify-center rounded-[7px] text-faint hover:bg-done hover:text-miss md:flex"
+                    className="hidden size-8 items-center justify-center rounded-full text-faint hover:bg-done hover:text-miss md:flex"
                 >
                     <Icon name="close" className="size-4" />
                 </button>

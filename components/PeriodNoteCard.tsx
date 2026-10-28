@@ -4,6 +4,7 @@ import { useId, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { savePeriodNote } from '@/app/(app)/dashboard/period-actions'
 import { serverWrite } from '@/lib/data-version'
+import { BUTTON } from '@/lib/ui'
 
 type Feedback = { success: boolean; message: string } | null
 
@@ -29,7 +30,7 @@ export function PeriodNoteCard({ initialNote }: { initialNote: string }) {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-line bg-card p-4 md:p-5">
+        <form onSubmit={handleSubmit} className="space-y-3 rounded-card border border-line bg-card p-4 md:p-5">
             <label htmlFor={id} className="block text-[15px] font-semibold">{t('periodNoteLabel')}</label>
             <textarea
                 id={id}
@@ -37,14 +38,14 @@ export function PeriodNoteCard({ initialNote }: { initialNote: string }) {
                 onChange={(e) => setNote(e.target.value)}
                 rows={2}
                 maxLength={1000}
-                className="w-full rounded-lg border border-line bg-card px-3 py-2 text-base"
+                className="w-full rounded-field border border-line bg-card px-3 py-2 text-base"
             />
             <div className="flex items-center justify-between gap-3">
                 <p className="text-[13px] leading-snug text-faint">{t('periodNoteHint')}</p>
                 <button
                     type="submit"
                     disabled={saving || note.trim() === savedNote}
-                    className="h-11 shrink-0 rounded-lg bg-plate px-5 font-display uppercase tracking-wide text-chalk transition-opacity hover:opacity-90 disabled:opacity-40 dark:bg-white dark:text-[#1A1814]"
+                    className={`${BUTTON.primary} shrink-0`}
                 >
                     {saving ? t('saving') : t('saveNote')}
                 </button>

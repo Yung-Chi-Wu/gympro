@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { BUTTON } from '@/lib/ui'
 import { CoachGModal } from './CoachGModal'
 
 interface CoachGEntryProps {
@@ -40,7 +41,7 @@ export function CoachGEntry({ hasRoutines, routineCount, language, variant = 'bu
         <>
             {/* 入口按鈕 */}
             {variant === 'auto' ? null : !hasRoutines ? (
-                <div className="rounded-[14px] border-2 border-dashed border-line p-8 text-center space-y-4">
+                <div className="rounded-card border-2 border-dashed border-line p-8 text-center space-y-4">
                     <div className="text-4xl">🤖</div>
                     <div>
                         <p className="font-semibold text-lg">
@@ -52,21 +53,18 @@ export function CoachGEntry({ hasRoutines, routineCount, language, variant = 'bu
                                 : 'Tell AI your goals and Coach G will build a complete training plan for you'}
                         </p>
                     </div>
-                    <button type="button" onClick={handleOpen}
-                        className="rounded-[9px] bg-accent px-6 py-3 font-bold text-accent-ink hover:opacity-90 transition-opacity">
+                    <button type="button" onClick={handleOpen} className={BUTTON.primary}>
                         ✨ {zh ? '讓 AI 幫我設計' : 'Design with AI'}
                     </button>
                 </div>
             ) : variant === 'button' ? (
-                <button type="button" onClick={handleOpen}
-                    className="inline-flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-[9px] border border-line bg-card px-3 text-[13px] font-bold transition-colors hover:bg-done">
+                <button type="button" onClick={handleOpen} className={`${BUTTON.secondary} shrink-0`}>
                     {t('coachGButton')}
                 </button>
             ) : (
-                <div className="flex flex-col items-center gap-3 rounded-[14px] border border-line bg-card p-4 text-center md:gap-2">
+                <div className="flex flex-col items-center gap-3 rounded-card border border-line bg-card p-4 text-center md:gap-2">
                     <span className="text-[15px] text-muted md:text-[13px]">{t('coachGPrompt')}</span>
-                    <button type="button" onClick={handleOpen}
-                        className="inline-flex min-h-11 items-center rounded-[9px] border border-line bg-card px-4 text-[15px] font-bold transition-colors hover:bg-done md:min-h-9 md:px-3 md:text-[13px]">
+                    <button type="button" onClick={handleOpen} className={BUTTON.secondary}>
                         {t('coachGButton')}
                     </button>
                 </div>
@@ -75,7 +73,7 @@ export function CoachGEntry({ hasRoutines, routineCount, language, variant = 'bu
             {/* 警告 modal */}
             {showWarning && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-                    <div className="w-full max-w-sm rounded-xl bg-white dark:bg-[#2C2923] p-6 shadow-xl space-y-5">
+                    <div className="w-full max-w-sm space-y-5 rounded-sheet bg-raised p-6 shadow-float">
                         {/* Header */}
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-sm shrink-0">
@@ -99,23 +97,21 @@ export function CoachGEntry({ hasRoutines, routineCount, language, variant = 'bu
                                     ? `你目前有 ${routineCount} 份課表。重新設計會刪除所有現有課表和訓練循環，讓 Coach G 從零幫你設計一套新的。`
                                     : `You have ${routineCount} existing routine(s). Redesigning will delete all your current routines and training cycle so Coach G can build a fresh plan from scratch.`}
                             </p>
-                            <div className="rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 px-3 py-2">
-                                <p className="text-xs text-red-600 dark:text-red-400">
-                                    ⚠️ {zh ? '此操作無法復原' : 'This action cannot be undone'}
-                                </p>
-                            </div>
+                            <p className="text-sm font-medium text-miss">
+                                {zh ? '此操作無法復原' : 'This action cannot be undone'}
+                            </p>
                         </div>
 
-                        {/* 按鈕 */}
-                        <div className="flex gap-2">
+                        {/* On a phone the two are stacked full width, the confirm on top; side by side from md */}
+                        <div className="flex flex-col-reverse gap-2 md:flex-row">
                             <button type="button"
                                 onClick={() => setShowWarning(false)}
-                                className="flex-1 rounded-xl border border-ink/20 dark:border-white/20 px-4 py-2.5 text-sm font-medium hover:opacity-80 transition-opacity">
+                                className={`${BUTTON.secondary} md:flex-1`}>
                                 {zh ? '取消' : 'Cancel'}
                             </button>
                             <button type="button"
                                 onClick={() => { setShowWarning(false); setShowModal(true) }}
-                                className="flex-1 rounded-xl bg-red-600 hover:bg-red-700 px-4 py-2.5 text-sm font-medium text-white transition-colors">
+                                className={`${BUTTON.dangerConfirm} md:flex-1`}>
                                 {zh ? '確認，重新設計' : 'Confirm, redesign'}
                             </button>
                         </div>

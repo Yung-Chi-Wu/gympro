@@ -17,12 +17,24 @@
   --color-muted: #6B665C;
   --color-faint: #A8A296;
   --color-done: #F3EFE6;
-  --color-accent: #A9712F;
+  /* White on it, and it as text on white, reach 4.97:1 (WCAG AA) */
+  --color-accent: #9A6428;
   --color-accent-soft: #F4E7D6;
   --color-accent-ink: #FFFFFF;
   --color-good: #3D7A4C;
   --color-good-soft: #E2EEE4;
   --color-miss: #B4553A;
+  --color-miss-ink: #FFFFFF;
+  /* What sits above the page and its cards: sheets, menus, a segmented control's chosen segment */
+  --color-raised: #FFFFFF;
+
+  /* Corners (rounded-field, -card, -sheet): inputs, set cells and tiles inside a card; cards; sheets and dialogs */
+  --radius-field: 12px;
+  --radius-card: 20px;
+  --radius-sheet: 28px;
+
+  /* The shadow of what floats over the page: sheets, dialogs, menus */
+  --shadow-float: 0 8px 24px rgb(0 0 0 / 0.12);
 
   /* 課表日曆上前三個課表各自的顏色（lib/cycle-calendar.ts），色盲模擬下兩兩都分得開；
      第四個以後用 muted，靠圖例和名稱分辨 */
@@ -148,6 +160,10 @@ html.dark {
   --color-good: #7FBF8E;
   --color-good-soft: #1F2D22;
   --color-miss: #E08A6D;
+  --color-miss-ink: #1A1712;
+  /* A step above done (and line): a chosen segment on its done track, and a tonal button in a sheet,
+     would vanish if they were the same color */
+  --color-raised: #37322B;
   --color-routine-1: #3987e5;
   --color-routine-2: #c98500;
   --color-routine-3: #d55181;
