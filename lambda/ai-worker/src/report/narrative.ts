@@ -122,7 +122,11 @@ function liftLine(l: LiftFacts, zh: boolean, unit: string, setOf: (s: LiftFacts[
         : l.trend === 'flat' ? `flat (${l.flatWindows} ${unit}s without a new best)`
         : l.assisted ? `${l.trend} (less assist, or more reps at the same assist, is up)`
         : l.added ? `${l.trend} (more added weight, or more reps at the same weight, is up)`
-        : l.bodyweight ? `best reps ${l.trend} ${Math.abs(l.change ?? 0)}` : `estimated 1RM ${l.trend} ${Math.abs(l.change ?? 0)}%`
+        : l.bodyweight ? `best reps ${l.trend} ${Math.abs(l.change ?? 0)}`
+        // Up by the plan: the estimate may read lower after a step up, so it isn't the measure
+        : l.progress === 'heavier' && l.top && l.previousTop ? `up: moved up to ${setOf({ weightKg: l.top.weightKg, reps: Math.max(...l.top.reps) }, l)} after ${setOf({ weightKg: l.previousTop.weightKg, reps: Math.max(...l.previousTop.reps) }, l)}, within its rep range`
+        : l.progress === 'more_reps' && l.top && l.previousTop ? `up: more reps on the same weight's sets (${l.previousTop.reps.join(', ')} last ${unit}, ${l.top.reps.join(', ')} now)`
+        : `estimated 1RM ${l.trend} ${Math.abs(l.change ?? 0)}%`
     return `- ${nameOf(l, zh)}: ${setOf(l.best, l)} (last ${unit} ${setOf(l.previousBest, l)}), ${trend}, ${l.sets} sets this ${unit}${l.goalLift ? ', named in the goal' : ''}`
 }
 

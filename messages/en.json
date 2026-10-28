@@ -688,6 +688,10 @@
             "new": "New"
         },
         "flatFor": "{unit, select, week {week} other {cycle}} {n}",
+        "liftProgress": {
+            "heavier": "Heavier",
+            "more_reps": "More reps"
+        },
         "record": "Record",
         "reps": "{n} reps",
         "assisted": "{n} reps, {assist} assist",

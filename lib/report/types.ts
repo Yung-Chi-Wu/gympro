@@ -124,6 +124,12 @@ export interface LiftFacts {
     /** Trained windows in a row, ending with this one, each lower than the one before */
     downWindows: number
     goalLift: boolean
+    /** A weighted lift's heaviest weight this period, and the reps of the latest session's sets at it; absent before it was kept */
+    top?: { weightKg: number; reps: number[] }
+    /** The same, in the last trained window before this one */
+    previousTop?: { weightKg: number; reps: number[] }
+    /** Why a weighted lift is up when its estimated 1RM isn't: the next weight within its range, or more reps on the same weight's sets */
+    progress?: 'heavier' | 'more_reps'
 }
 
 export interface MuscleFacts {

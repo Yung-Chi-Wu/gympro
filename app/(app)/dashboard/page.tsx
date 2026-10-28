@@ -12,12 +12,12 @@ import { OnboardingGuard } from '@/components/OnboardingGuard'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
-import { addDays, currentPeriod, cycleDayOf, lastCompletedPeriod, localDate, plannedRoutineId } from '@/lib/periods'
+import { addDays, currentPeriod, cycleDayOf, daysBetween, lastCompletedPeriod, localDate, plannedRoutineId } from '@/lib/periods'
 import { localDayToUtcRange, timeZoneOf } from '@/lib/time-zone'
 import { loadTodayWorkout } from '@/lib/today-workout'
 import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
 import { loadLatestReport, type LatestReport } from '@/lib/report/latest'
-import type { AimFinding } from '@/lib/report/progression'
+import { REPORT_WINDOWS, type AimFinding } from '@/lib/report/progression'
 import { ServerTimingMark } from '@/components/ServerTimingMark'
 import { ReadYourWrites } from '@/components/ReadYourWrites'
 
@@ -133,10 +133,14 @@ async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
   const period = currentPeriod(timezone, cycleSettings)
   const todayIso = localDate(timezone, new Date())
   const todayRange = localDayToUtcRange(todayIso, timezone)
-  // Today's aims work from the period the newest report is of, and the days since
+  // Today's aims work from the period the newest report is of, and the days since. The plan holds
+  // its range from period to period, so the sets go back as many periods as the report reads.
   const ended = lastCompletedPeriod(timezone, cycleSettings)
   const lastPeriod = ended && { start: ended.periodStart, end: ended.periodEnd }
-  const recentFrom = { from: localDayToUtcRange(lastPeriod?.start ?? addDays(todayIso, -AIM_LOOKBACK_DAYS), timezone).start, timeZone: timezone }
+  const aimsFrom = lastPeriod
+    ? addDays(lastPeriod.start, -(REPORT_WINDOWS - 1) * (daysBetween(lastPeriod.start, lastPeriod.end) + 1))
+    : addDays(todayIso, -AIM_LOOKBACK_DAYS)
+  const recentFrom = { from: localDayToUtcRange(aimsFrom, timezone).start, timeZone: timezone }
 
   const dayIndex = cycleSettings ? cycleDayOf(cycleSettings, todayIso) : 0
   // Nothing before the cycle starts or on a rest day; a day the user changed trains the routine they picked

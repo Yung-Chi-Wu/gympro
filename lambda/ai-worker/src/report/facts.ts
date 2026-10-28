@@ -1,6 +1,6 @@
 import { addDays, daysBetween } from '../../../../lib/periods'
 import { hasTarget, setWeights, VOLUME_UNIT_IDS } from '../../../../lib/report/volume'
-import { isLowerBodyLift, NOT_LIFTS, STRENGTH_LOG_TYPES } from '../../../../lib/report/progression'
+import { isLowerBodyLift, NOT_LIFTS, plansThrough, REPORT_WINDOWS, STRENGTH_LOG_TYPES, topSession, windowOfFor } from '../../../../lib/report/progression'
 import { isCardio } from '../../../../lib/set-log'
 import type { LogType } from '../../../../lib/exercise-attributes'
 import { intensityOf, maxHeartRate, moderateEquivalent } from '../../../../lib/report/cardio-intensity'
@@ -12,7 +12,7 @@ import type { BestSet, CardioFacts, CardioIntensityFacts, CardioTrendFacts, Exer
 // The period is compared with the windows before it, each as long as the period
 // (a week, or one custom cycle): window 0 is this period, window 1 the one before.
 
-export const WINDOWS = 6
+export const WINDOWS = REPORT_WINDOWS
 /** Estimated-1RM changes within ±1.5% count as flat: rounding, or one rep at a light weight */
 export const FLAT_BAND = 0.015
 /** Hard sets per muscle per week where growth is well supported. Which muscles it applies to,
@@ -56,14 +56,8 @@ const outlifts = (a: BestSet | LoggedSet, b: BestSet | LoggedSet) =>
 const bestOf = (s: LoggedSet, assisted: boolean): BestSet =>
     assisted ? { weightKg: s.weightKg, reps: s.reps, assistKg: s.assistKg ?? 0 } : { weightKg: s.weightKg, reps: s.reps }
 
-/** Which window a date falls in: 0 for this period, 1 for the one before, -1 after it. */
-export function windowOfFor(periodStart: string, periodEnd: string) {
-    const days = daysBetween(periodStart, periodEnd) + 1
-    return (date: string) => {
-        const back = daysBetween(date, periodEnd)
-        return back < 0 ? -1 : Math.floor(back / days)
-    }
-}
+// Which window a date falls in, as the plan counts them (lib/report/progression.ts)
+export { windowOfFor }
 
 /** Every exercise the user has logged, which tells whether a goal's "squat" can only mean one of them */
 const trainedExercises = (inputs: ReportInputs) => {
@@ -76,7 +70,7 @@ export function liftFor(inputs: ReportInputs, exerciseId: string): LiftFacts | n
     const e = inputs.exercises.find((x) => x.id === exerciseId)
     if (!e) return null
     const windowOf = windowOfFor(inputs.periodStart, inputs.periodEnd)
-    return liftMeasure(e, inputs.sets).sets.some((s) => windowOf(s.date) === 0) ? liftFacts(e, inputs.sets, windowOf, inputs.goal, trainedExercises(inputs)) : null
+    return liftMeasure(e, inputs.sets).sets.some((s) => windowOf(s.date) === 0) ? liftFacts(e, inputs.sets, windowOf, inputs.goal, trainedExercises(inputs), inputs.weightUnit ?? 'kg') : null
 }
 
 export function computeFacts(inputs: ReportInputs): ReportFacts {
@@ -144,7 +138,7 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
         .filter((e) => liftMeasure(e, current).sets.length > 0)
     const userExercises = trainedExercises(inputs)
     const targeted = new Set((inputs.goalRead?.targets ?? []).flatMap((t) => (t.exerciseId ? [t.exerciseId] : [])))
-    const allLifts = trainedNow.map((e) => liftFacts(e, inputs.sets, windowOf, inputs.goal, userExercises))
+    const allLifts = trainedNow.map((e) => liftFacts(e, inputs.sets, windowOf, inputs.goal, userExercises, inputs.weightUnit ?? 'kg'))
         .map((l) => (targeted.has(l.exerciseId) ? { ...l, goalLift: true } : l))
     // Main lifts: the goal's lifts and each routine's first exercise, then the most sets over the
     // last 4 periods (so one missed session doesn't drop a lift), then the most weight moved
@@ -441,7 +435,7 @@ function cardioTrends(sets: LoggedSet[], byId: Map<string, ExerciseInfo>, window
     }).sort((a, b) => b.sessions - a.sessions || a.name.localeCompare(b.name)).slice(0, MAX_TRENDS)
 }
 
-function liftFacts(e: ExerciseInfo, allSets: LoggedSet[], windowOf: (date: string) => number, goal: string | null, userExercises: ExerciseInfo[]): LiftFacts {
+function liftFacts(e: ExerciseInfo, allSets: LoggedSet[], windowOf: (date: string) => number, goal: string | null, userExercises: ExerciseInfo[], unit: 'kg' | 'lb'): LiftFacts {
     const { sets, assisted, bodyweight, added, value } = liftMeasure(e, allSets)
     const bestIn = (k: number) => {
         const inK = sets.filter((s) => windowOf(s.date) === k)
@@ -458,33 +452,62 @@ function liftFacts(e: ExerciseInfo, allSets: LoggedSet[], windowOf: (date: strin
     // clear the band, unless the set outlifts the other one; a drop always has to clear it, since one
     // heavy day isn't a regression.
     const exact = bodyweight || assisted || added
-    const beats = (a: LoggedSet, b: LoggedSet) => (exact ? value(a) > value(b) : outlifts(a, b) || value(a) > value(b) * (1 + FLAT_BAND))
+    // A weighted lift is also up by double progression, as its plan goes (lib/report/progression.ts
+    // plansThrough): the next weight lifted within the range in force, though its estimated 1RM
+    // reads lower (80 x 8 to 82.5 x 6 is -2.3%), or more reps on the same weight's sets (8, 7, 6 to
+    // 8, 8, 8, whose best set is the same)
+    const plans = exact ? null : plansThrough(e, sets, unit, windowOf)
+    const tops = Array.from({ length: WINDOWS }, (_, k) => (exact ? null : topSession(sets.filter((s) => windowOf(s.date) === k))))
+    const progressed = (k: number, j: number): LiftFacts['progress'] | null => {
+        const a = tops[k]
+        const b = tops[j]
+        if (!a || !b || a.weightKg < b.weightKg) return null
+        if (a.weightKg > b.weightKg) return Math.max(...a.reps) >= (plans?.[j]?.low ?? Infinity) ? 'heavier' : null
+        const now = [...a.reps].sort((x, y) => y - x)
+        const before = [...b.reps].sort((x, y) => y - x)
+        const pairs = now.slice(0, before.length).map((r, i) => r - before[i])
+        return pairs.some((d) => d > 0) && pairs.every((d) => d >= 0) ? 'more_reps' : null
+    }
+    // Window k against an earlier window j: by its best set, else by the plan
+    const byBest = (k: number, j: number) => {
+        const a = bests[k]!
+        const b = bests[j]!
+        return exact ? value(a) > value(b) : outlifts(a, b) || value(a) > value(b) * (1 + FLAT_BAND)
+    }
+    const beats = (k: number, j: number) => byBest(k, j) || (!exact && !!progressed(k, j))
+    const lower = (now: number, before: number, k: number, j: number) => (exact ? now < before : !progressed(k, j) && now < before * (1 - FLAT_BAND))
     let trend: LiftFacts['trend'] = 'new'
     let change: number | null = null
+    let progress: LiftFacts['progress'] | null = null
     if (bests[0] && prev) {
         const now = value(bests[0])
         const before = value(prev)
+        // Said only where the best set doesn't show it
+        progress = exact || byBest(0, prevIndex) ? null : progressed(0, prevIndex)
         change = assisted || added ? null : bodyweight ? now - before : round1(((now - before) / before) * 100)
-        const down = exact ? now < before : now < before * (1 - FLAT_BAND)
-        trend = beats(bests[0], prev) ? 'up' : down ? 'down' : 'flat'
+        // Up by the plan, not by the estimate: no minus sign beside it
+        if (progress && change != null && change < 0) change = null
+        trend = beats(0, prevIndex) ? 'up' : lower(now, before, 0, prevIndex) ? 'down' : 'flat'
     }
 
     // Walk the trained windows oldest first. A run is measured from the best it started at, not the
     // best so far: small steady gains each stay inside the band, but they add up past it.
-    const trainedSets = bests.filter((b): b is LoggedSet => b != null).reverse()
+    const trainedWindows = bests.flatMap((b, k) => (b ? [k] : [])).reverse()
     let flatWindows = 0
-    let from = trainedSets[0]
-    for (const b of trainedSets.slice(1)) {
-        if (beats(b, from)) {
+    let from = trainedWindows[0]
+    for (const k of trainedWindows.slice(1)) {
+        if (beats(k, from)) {
             flatWindows = 0
-            from = b
+            from = k
         } else flatWindows++
     }
-    const trained = series.filter((v): v is number => v != null)
+    // Then newest first, each against the trained window before it
+    const valueAt = (k: number) => series[WINDOWS - 1 - k]!
     let downWindows = 0
-    for (let i = trained.length - 1; i > 0; i--) {
-        const lower = exact ? trained[i] < trained[i - 1] : trained[i] < trained[i - 1] * (1 - FLAT_BAND)
-        if (!lower) break
+    for (let i = trainedWindows.length - 1; i > 0; i--) {
+        const k = trainedWindows[i]
+        const j = trainedWindows[i - 1]
+        if (!lower(valueAt(k), valueAt(j), k, j)) break
         downWindows++
     }
 
@@ -505,6 +528,9 @@ function liftFacts(e: ExerciseInfo, allSets: LoggedSet[], windowOf: (date: strin
         flatWindows: best ? flatWindows : 0,
         downWindows,
         goalLift: goalMentions(goal, e, userExercises),
+        ...(tops[0] ? { top: tops[0] } : {}),
+        ...(prev && tops[prevIndex] ? { previousTop: tops[prevIndex]! } : {}),
+        ...(progress ? { progress } : {}),
     }
 }
 

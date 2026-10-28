@@ -688,6 +688,10 @@
             "new": "新動作"
         },
         "flatFor": "第 {n} {unit, select, week {週} other {輪}}",
+        "liftProgress": {
+            "heavier": "加重了",
+            "more_reps": "多做了幾下"
+        },
         "record": "新紀錄",
         "reps": "{n} 下",
         "assisted": "{n} 下（輔助 {assist}）",

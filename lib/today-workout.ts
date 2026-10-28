@@ -31,7 +31,7 @@ export interface TodayExercise {
     loggedSets: LoggedSetRow[]
     /** The sets of the last earlier workout with this exercise, in order: grey hints in the empty cells */
     previous: SetValues[]
-    /** Its sets before today, since the start of the period the newest report is of: what today's aim is worked out from (lib/report/progression.ts todayAim) */
+    /** Its sets before today, from as many periods back as the report reads: what today's aim is worked out from (lib/report/progression.ts todayAim) */
     recent: LoggedSet[]
     /** What it trains and how it is loaded, for the size of a weight step */
     primaryMuscles: string[]

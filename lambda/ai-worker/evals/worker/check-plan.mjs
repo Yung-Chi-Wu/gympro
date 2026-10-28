@@ -231,14 +231,80 @@ const braces = (items) => items.flatMap((i) => [i.action, ...(i.lines ?? []).fla
 
 {
     const previous = [{ id: 'goal_path:ex-bench', rule: 'goal_path', subject: 'ex-bench', priority: 65, data: { how: 'load', weightKg: 42.5, low: 8, top: 10, nextKg: 45 } }]
-    const status = (best) => {
+    // The lift as facts.ts has it: its best set, its trend, and the latest session's sets at its heaviest weight
+    const status = (best, trend, reps) => {
         const facts = { muscles: [], sessions: { done: 1, planned: null }, totalSets: { now: 1 }, bodyWeight: { weighIns: 0 } }
-        return w.followUp(previous, facts, () => (best ? { best, trend: 'up', series: [] } : null))[0]
+        return w.followUp(previous, facts, () => (best ? { best, trend, series: [], top: { weightKg: best.weightKg, reps } } : null))[0]
     }
-    check('followed up: the next weight is done', status({ weightKg: 45, reps: 8 }).status === 'done')
-    check('more reps at the same weight is partial', status({ weightKg: 42.5, reps: 10 }).status === 'partial')
-    check('the same set is not done', status({ weightKg: 42.5, reps: 8 }).status === 'not_done')
+    check('followed up: the next weight is done', status({ weightKg: 45, reps: 8 }, 'up', [8, 8, 7]).status === 'done')
+    check('every set at the top is done: the next weight is due', status({ weightKg: 42.5, reps: 10 }, 'up', [10, 10, 10]).status === 'done')
+    check('more reps at the same weight is partial', status({ weightKg: 42.5, reps: 10 }, 'up', [10, 9, 8]).status === 'partial')
+    check('the same sets again are not done, though the best set is above the bottom of the range', status({ weightKg: 42.5, reps: 9 }, 'flat', [9, 8, 8]).status === 'not_done')
     check('not trained says so', status(null).data.trained === 0)
+}
+
+// ---------- A plan held from period to period ----------
+// The owner's question (2026-10-27): the plan said 80 kg x 6-8, then 82.5 once every set is at 8.
+// Doing exactly that read as flat, and the next plan moved the target to 80 x 8-10; the step to
+// 82.5 x 6 read as down 2.3% and "regressing". The range is now set once and held (planNext), and a
+// step within it, or more reps on the same weight, is up.
+
+{
+    const bench = ex('bench', 'Barbell Bench Press')
+    const row = ex('row', 'Barbell Row', { muscleGroup: 'back', primaryMuscles: ['upper_back', 'lats'] })
+    const day = (date, exerciseId, list) => list.map(([kg, reps], i) => set(exerciseId, kg, reps, { date, workoutId: `w-${date}`, loggedAt: `${date}T18:0${i}:00Z` }))
+    const weeks = (two, last, now) => [
+        ...day('2026-09-28', 'bench', two), ...day('2026-10-05', 'bench', last), ...day('2026-10-12', 'bench', now),
+        ...day('2026-10-05', 'row', [[60, 8], [60, 8], [60, 8]]), ...day('2026-10-13', 'row', [[60, 8], [60, 8], [60, 8]]),
+    ]
+    const period = { start: '2026-10-12', end: '2026-10-18' }
+    const weekOf = (date) => (date > period.end ? -1 : Math.floor((Date.parse(period.end) - Date.parse(date)) / 86_400_000 / 7))
+    const analyzed = (sets) => {
+        const r = w.analyze({ periodStart: period.start, periodEnd: period.end, sets, exercises: [bench, row], schedule: null, weighIns: [], goal: null, routineLeads: ['bench'], previousFindings: null, notes: [], weightUnit: 'kg' })
+        return { lift: r.facts.lifts.find((l) => l.exerciseId === 'bench'), status: r.facts.status, plan: r.findings.find((f) => f.id === 'next_session:bench')?.data, r }
+    }
+    const rx = (sets) => w.planNext(bench, sets, 'kg', weekOf)
+
+    // 6-8 set two weeks ago; every set at 8 this week: 82.5 kg is next, at the same range
+    const reached = weeks([[80, 8], [80, 7], [80, 6]], [[80, 8], [80, 7], [80, 6]], [[80, 8], [80, 8], [80, 8]])
+    const plan = rx(reached)
+    check('every set at the top: the next weight, at the same range', plan.weightKg === 82.5 && plan.low === 6 && plan.top === 8 && plan.nextKg === 85 && plan.fromKg === 80, JSON.stringify(plan))
+    const done = analyzed(reached)
+    check('and it reads as up: more reps on the same weight', done.lift.trend === 'up' && done.lift.progress === 'more_reps', JSON.stringify(done.lift))
+    check('the report plans the same step', done.plan?.weightKg === 82.5 && done.plan?.low === 6 && done.plan?.fromKg === 80, JSON.stringify(done.plan))
+
+    // The same sets as last week: the range stays 6-8 at 80, and nothing moved
+    const same = weeks([[80, 8], [80, 7], [80, 6]], [[80, 8], [80, 7], [80, 6]], [[80, 8], [80, 7], [80, 6]])
+    check('the same sets: the range is held, not moved up to the best set', rx(same).weightKg === 80 && rx(same).low === 6 && rx(same).top === 8 && rx(same).fromKg == null, JSON.stringify(rx(same)))
+    check('and the lift is flat', analyzed(same).lift.trend === 'flat')
+
+    // Reps climbing inside the range: kept at 80, 6-8, never 7-9 then 8-10
+    const climbing = weeks([[80, 6], [80, 6], [80, 6]], [[80, 7], [80, 7], [80, 6]], [[80, 8], [80, 8], [80, 7]])
+    check('reps climbing: the range set two weeks ago holds', rx(climbing).weightKg === 80 && rx(climbing).low === 6 && rx(climbing).top === 8, JSON.stringify(rx(climbing)))
+
+    // The step taken: 82.5 x 6 after 80 x 8 is up, though its estimated 1RM is 2.3% lower
+    const stepped = weeks([[80, 8], [80, 7], [80, 6]], [[80, 8], [80, 8], [80, 8]], [[82.5, 6], [82.5, 6], [82.5, 6]])
+    const up = analyzed(stepped)
+    check('the next weight within the range is up, not down', up.lift.trend === 'up' && up.lift.progress === 'heavier' && up.lift.change === null && up.status !== 'regressing', JSON.stringify({ trend: up.lift.trend, change: up.lift.change, status: up.status }))
+    check('and its plan starts there: 82.5 x 6-8', rx(stepped).weightKg === 82.5 && rx(stepped).low === 6 && rx(stepped).top === 8 && rx(stepped).nextKg === 85, JSON.stringify(rx(stepped)))
+    check('a step up is no lift_regressed and no deload', !up.r.findings.some((f) => f.rule === 'lift_regressed' || f.rule === 'deload'))
+    const brief = w.buildPrompt({ ...up.r, note: null, language: 'en', weightUnit: 'kg' })
+    const benchLine = brief.split('\n').find((l) => l.startsWith('- Barbell Bench Press:'))
+    check('the brief says it moved up, with no estimated 1RM change to misread', /up: moved up to 82\.5 kg x 6 after 80 kg x 8/.test(benchLine ?? '') && !/estimated 1RM/.test(benchLine ?? ''), benchLine)
+
+    // A step taken too soon, below the range: by its estimate, as before
+    const early = weeks([[80, 8], [80, 7], [80, 6]], [[80, 8], [80, 8], [80, 8]], [[82.5, 4], [82.5, 4], [82.5, 3]])
+    check('a heavier weight below the range is judged by its estimate', analyzed(early).lift.trend === 'down' && !analyzed(early).lift.progress, JSON.stringify(analyzed(early).lift))
+
+    // One lighter week (a deload, an off day) keeps the plan; two in a row start it again there
+    const offDay = weeks([[80, 8], [80, 7], [80, 6]], [[80, 8], [80, 7], [80, 7]], [[70, 8], [70, 8], [70, 8]])
+    check('one lighter week keeps the plan at 80, 6-8', rx(offDay).weightKg === 80 && rx(offDay).low === 6, JSON.stringify(rx(offDay)))
+    const lighter = weeks([[80, 8], [80, 7], [80, 6]], [[70, 8], [70, 8], [70, 8]], [[70, 9], [70, 9], [70, 8]])
+    check('two lighter weeks in a row start the plan at the lighter weight', rx(lighter).weightKg === 70 && rx(lighter).low === 8, JSON.stringify(rx(lighter)))
+
+    // Today: the period that reached the top steps up on the first session after it, as the report says
+    const aim = w.todayAim({ exercise: bench, sets: reached, unit: 'kg', today: '2026-10-19', lastPeriod: period, findings: [] })
+    check('Today aims the same step on the next session', aim?.how === 'step_up' && aim.weightKg === 82.5 && aim.fromKg === 80 && aim.low === 6 && aim.top === 8, JSON.stringify(aim))
 }
 {
     const facts = (done) => ({ period: { days: 7 }, muscles: [], sessions: { done, planned: null }, totalSets: { now: 20 }, bodyWeight: { weighIns: 0 } })
