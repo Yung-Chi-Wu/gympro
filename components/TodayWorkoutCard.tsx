@@ -13,7 +13,7 @@ import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
 import { fieldValue, fitsLogType, isOptionalField, isValidField, isWeightField, LOG_FIELDS, logNoteOf, logTypeOf, nextSetDraft, toSetRow, toStoredSet, typedValue, withField, type FieldKey, type SetValues, type Units } from '@/lib/set-log'
 import { MUSCLE_GROUPS, type ExerciseOption } from './log-types'
-import { dayIsOver, DayOverError, exerciseLogUnits, lastSessionSets, loadTodayWorkout, recentSets, startTodayWorkout, type TodayAims, type TodayExercise } from '@/lib/today-workout'
+import { dayIsOver, DayOverError, exerciseHints, loadTodayWorkout, startTodayWorkout, targetOutsideRoutine, type TodayAims, type TodayExercise } from '@/lib/today-workout'
 import { todayAim, type Aim } from '@/lib/report/progression'
 import { aimText } from '@/lib/report/report-text'
 import { cellText, compactSet, fieldLabel, SummaryLine } from './set-format'
@@ -361,25 +361,22 @@ export function TodayWorkoutCard({
         try {
             const { id: wId, exercises: current } = await ensureWorkout()
             if (!current.some((ex) => ex.exerciseId === exercise.id)) {
-                const [previous, logUnits, recent] = await Promise.all([
-                    lastSessionSets(supabase, userId, [exercise.id], todayRange.start),
-                    exerciseLogUnits(supabase, userId, [exercise.id]),
-                    recentFrom ? recentSets(supabase, userId, [exercise.id], { ...recentFrom, before: todayRange.start }) : null,
-                ])
+                const { previous, logUnits, recent, fromRoutines } = await exerciseHints(supabase, userId, [exercise.id], { before: todayRange.start, recentFrom, targets: true })
+                const logType = logTypeOf(exercise.log_type)
                 setExercises(await planExercise(wId, current, {
                     exerciseId: exercise.id,
                     name: language === 'zh-TW' && exercise.name_zh_tw ? exercise.name_zh_tw : exercise.name,
                     muscleGroup: exercise.muscle_group,
-                    logType: logTypeOf(exercise.log_type),
+                    logType,
                     logNote: logNoteOf(exercise),
                     logUnit: logUnits.get(exercise.id) ?? null,
                     previous: previous.get(exercise.id) ?? [],
-                    recent: recent?.get(exercise.id) ?? [],
+                    recent: recent.get(exercise.id) ?? [],
                     // The library row as the picker has it: by its group, for the weight step
                     primaryMuscles: [],
                     equipment: exercise.equipment ?? null,
-                    // Added just for today: the routine has no target for it
-                    target: null,
+                    // Added just for today: what another routine asks of it, else last time's sets
+                    target: targetOutsideRoutine(fromRoutines.get(exercise.id), previous.get(exercise.id) ?? [], logType),
                 }))
             }
             setOpenState((s) => ({ ...s, open: s.open.includes(exercise.id) ? s.open : [...s.open, exercise.id] }))

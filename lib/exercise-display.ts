@@ -70,8 +70,9 @@ export interface ExerciseSection<T> {
 /**
  * One muscle group's exercises as the picker lists them (2026-10-23), so a longer library stays easy
  * to look through: up to RECENT_SHOWN done lately first, the latest on top, then one section per kind
- * of equipment, each by name in the user's language. Each exercise is listed once; empty sections
- * are left out. `recent` is the exercise's place among those done lately (lib/recent-exercises.ts).
+ * of equipment, each by name in the user's language. Every exercise is in its equipment section,
+ * a recent one too (10/27: users who looked for it there didn't find it); empty sections are left
+ * out. `recent` is the exercise's place among those done lately (lib/recent-exercises.ts).
  */
 export function exerciseSections<T extends ExerciseWithTranslation & { recent?: number }>(exercises: T[], language: string): ExerciseSection<T>[] {
     const labels = SECTION_LABELS[language] ?? SECTION_LABELS.en
@@ -81,10 +82,9 @@ export function exerciseSections<T extends ExerciseWithTranslation & { recent?: 
         .filter((ex) => ex.recent != null)
         .sort((a, b) => a.recent! - b.recent!)
         .slice(0, RECENT_SHOWN)
-    const rest = exercises.filter((ex) => !recent.includes(ex))
     const sectionOf = (ex: T): string => (EQUIPMENT_SECTIONS as readonly string[]).includes(ex.equipment ?? '') ? ex.equipment! : 'other'
     return [
         { key: 'recent', label: labels.recent, exercises: recent },
-        ...EQUIPMENT_SECTIONS.map((key) => ({ key, label: labels[key], exercises: rest.filter((ex) => sectionOf(ex) === key).sort(byName) })),
+        ...EQUIPMENT_SECTIONS.map((key) => ({ key, label: labels[key], exercises: exercises.filter((ex) => sectionOf(ex) === key).sort(byName) })),
     ].filter((section) => section.exercises.length)
 }

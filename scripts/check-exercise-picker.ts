@@ -42,7 +42,7 @@ const sections = exerciseSections(withDone, 'zh-TW')
 const recent = sections[0]
 check(`done lately heads the group, ${RECENT_SHOWN} at most, the latest on top`, recent.key === 'recent' && recent.label === '最近做過' && recent.exercises.length === RECENT_SHOWN && recent.exercises.every((ex, i) => ex.recent === i), recent.exercises.map((ex) => ex.recent).join(','))
 const rest = sections.slice(1).flatMap((s) => s.exercises)
-check('the rest, older ones included, are listed under their equipment', rest.length === legs.length - RECENT_SHOWN && !rest.some((ex) => recent.exercises.includes(ex)))
+check('every exercise, the recent ones too, is listed under its equipment, once', rest.length === withDone.length && new Set(rest.map((ex) => ex.id)).size === withDone.length && recent.exercises.every((ex) => rest.includes(ex)))
 check('no section for done lately when nothing was', exerciseSections(legs, 'en')[0].key !== 'recent')
 
 console.log(failed ? `\n${failed} picker check(s) failed` : '\nThe exercise picker lists every group as expected')
