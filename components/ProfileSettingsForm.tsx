@@ -20,6 +20,7 @@ import { InstallGuide } from '@/components/InstallGuide'
 import { FeedbackForm } from '@/components/FeedbackForm'
 import { CHOSEN_UTC } from '@/lib/time-zone'
 import { MAX_DISPLAY_NAME_CHARS, MAX_TRAINING_GOAL_CHARS } from '@/lib/text-limits'
+import { BUTTON, SEGMENTED } from '@/lib/ui'
 
 // Settings. Side by side (@split): the sections on the left (個人資料, 訓練目標, 單位與語言,
 // 外觀, 意見回饋, 帳號), the chosen section's form on the right. On a phone: one grouped list with
@@ -82,10 +83,9 @@ const COMMON_TIMEZONES = [
 const LANGUAGE_NAMES: Record<string, string> = { en: 'English', 'zh-TW': '繁體中文' }
 
 // Phone sizes first (44px targets, 52px rows, 15px text), the denser desktop ones from md
-const CARD = 'rounded-[14px] border border-line bg-card p-4'
-const INPUT = 'h-11 w-full rounded-[9px] border border-line bg-card px-3 md:h-auto md:py-2'
-const TEXTAREA = 'w-full rounded-[9px] border border-line bg-card px-3 py-2.5 md:py-2'
-const PRIMARY = 'inline-flex min-h-11 items-center justify-center rounded-[9px] bg-accent px-5 text-[15px] font-bold text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50 md:min-h-10 md:text-sm'
+const CARD = 'rounded-card border border-line bg-card p-4'
+const INPUT = 'h-11 w-full rounded-field border border-line bg-card px-3 md:h-auto md:py-2'
+const TEXTAREA = 'w-full rounded-field border border-line bg-card px-3 py-2.5 md:py-2'
 const ROW = 'flex min-h-[52px] w-full items-center gap-3 py-2.5 text-left md:min-h-12'
 
 // The theme is only known in the browser: the server and the first render show none
@@ -214,7 +214,7 @@ export function ProfileSettingsForm({ userId, initial }: { userId: string; initi
                             type="button"
                             onClick={() => setSection(key)}
                             aria-current={section === key ? 'true' : undefined}
-                            className={`block w-full rounded-[9px] px-3 py-2 text-left text-sm font-medium ${section === key ? 'bg-done text-ink' : 'text-muted hover:text-ink'}`}
+                            className={`block w-full rounded-field px-3 py-2 text-left text-sm font-medium ${section === key ? 'bg-done text-ink' : 'text-muted hover:text-ink'}`}
                         >
                             {t(`sections.${key}`)}
                         </button>
@@ -250,7 +250,7 @@ export function ProfileSettingsForm({ userId, initial }: { userId: string; initi
                     {PHONE_GROUPS.map(({ key, fields }) => (
                         <section key={key} className="space-y-2">
                             <h2 className="px-1 text-[13px] tracking-wider text-muted">{t(`groups.${key}`)}</h2>
-                            <ul className="divide-y divide-line rounded-[14px] border border-line bg-card px-4">
+                            <ul className="divide-y divide-line rounded-card border border-line bg-card px-4">
                                 {key === 'account' ? accountRows : fields.map((field) => (
                                     <li key={field}>
                                         <button type="button" onClick={() => openSubPage('item', field)} className={ROW}>
@@ -362,7 +362,7 @@ function SettingsForm({ title, fields, values, onSave, isZhTW, single = false }:
                 {status && (
                     <p role="status" className={`text-[15px] md:text-sm ${status.ok ? 'text-good' : 'text-miss'}`}>{status.text}</p>
                 )}
-                <button type="submit" disabled={saving} className={`${PRIMARY} ${single ? '@max-split:w-full' : ''}`}>
+                <button type="submit" disabled={saving} className={`${BUTTON.primary} ${single ? '@max-split:w-full' : ''}`}>
                     {saving ? t('saving') : t('save')}
                 </button>
             </div>
@@ -447,7 +447,7 @@ function FieldEditor({ field, value, onChange, hideLabel, isZhTW }: {
 /** kg / lb, or km / mi */
 function Segmented({ id, options, value, onChange }: { id: string; options: string[]; value: string; onChange: (v: string) => void }) {
     return (
-        <div id={id} role="radiogroup" className="inline-flex overflow-hidden rounded-[9px] border border-line">
+        <div id={id} role="radiogroup" className={`${SEGMENTED.track} w-fit`}>
             {options.map((option) => (
                 <button
                     key={option}
@@ -455,7 +455,7 @@ function Segmented({ id, options, value, onChange }: { id: string; options: stri
                     role="radio"
                     aria-checked={value === option}
                     onClick={() => onChange(option)}
-                    className={`min-h-11 min-w-16 px-5 font-mono text-[15px] font-bold md:min-h-10 md:px-4 md:text-sm ${value === option ? 'bg-ink text-card' : 'text-faint'}`}
+                    className={`${SEGMENTED.segment} min-w-16 font-mono`}
                 >
                     {option}
                 </button>

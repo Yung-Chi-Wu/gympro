@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { saveDayNote, saveDayWeight } from '@/app/(app)/dashboard/period-actions'
 import { serverWrite } from '@/lib/data-version'
 import { toDisplayWeight, toStorageKg, type WeightUnit } from '@/lib/weight-unit'
+import { BUTTON } from '@/lib/ui'
 
 // The day_notes table allows 200 characters, so a week of notes can't drown the report's brief
 const DAY_NOTE_MAX = 200
@@ -77,7 +78,7 @@ export function DayLogFields({ initialWeightKg, lastWeightKg, initialNote, weigh
                         value={weight}
                         onChange={(e) => setWeight(e.target.value)}
                         placeholder={shown(lastWeightKg)}
-                        className="h-11 w-full rounded-lg border border-line bg-card px-3 pr-10 font-mono text-base font-bold placeholder:font-medium placeholder:text-faint"
+                        className="h-11 w-full rounded-field border border-line bg-card px-3 pr-10 font-mono text-base font-bold placeholder:font-medium placeholder:text-faint"
                     />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-faint">{weightUnit}</span>
                 </div>
@@ -92,7 +93,7 @@ export function DayLogFields({ initialWeightKg, lastWeightKg, initialNote, weigh
                     rows={2}
                     maxLength={DAY_NOTE_MAX}
                     placeholder={t('notePlaceholder')}
-                    className="min-w-0 flex-1 rounded-lg border border-line bg-card px-3 py-2 text-base placeholder:text-faint"
+                    className="min-w-0 flex-1 rounded-field border border-line bg-card px-3 py-2 text-base placeholder:text-faint"
                 />
             </div>
 
@@ -104,7 +105,7 @@ export function DayLogFields({ initialWeightKg, lastWeightKg, initialNote, weigh
                 <button
                     type="submit"
                     disabled={saving || (!weightChanged && !noteChanged)}
-                    className="h-11 shrink-0 rounded-lg bg-plate px-5 font-display uppercase tracking-wide text-chalk transition-opacity hover:opacity-90 disabled:opacity-40 dark:bg-white dark:text-[#1A1814]"
+                    className={`${BUTTON.primary} shrink-0`}
                 >
                     {saving ? t('saving') : t('save')}
                 </button>

@@ -1,5 +1,7 @@
 'use client'
 
+import { SEGMENTED } from '@/lib/ui'
+
 interface ThemeSelectorProps {
     isZhTW: boolean
     value: string
@@ -14,16 +16,15 @@ export function ThemeSelector({ isZhTW, value, onChange }: ThemeSelectorProps) {
     ]
 
     return (
-        <div className="flex gap-2">
+        <div role="radiogroup" className={SEGMENTED.track}>
             {options.map((opt) => (
                 <button
                     key={opt.value}
                     type="button"
+                    role="radio"
+                    aria-checked={value === opt.value}
                     onClick={() => onChange(opt.value)}
-                    className={`min-h-11 flex-1 rounded-xl border-2 text-[15px] font-medium transition-colors md:min-h-0 md:py-2 md:text-sm ${value === opt.value
-                            ? 'border-plate bg-plate text-chalk dark:border-white dark:bg-white dark:text-[#1A1814]'
-                            : 'border-ink/20 dark:border-white/30 text-ink/60 dark:text-white/60 hover:border-ink/40 dark:hover:border-white/50'
-                        }`}
+                    className={`${SEGMENTED.segment} flex-1`}
                 >
                     {isZhTW ? opt.labelZh : opt.labelEn}
                 </button>

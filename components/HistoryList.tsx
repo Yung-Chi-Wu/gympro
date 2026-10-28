@@ -31,6 +31,7 @@ import { useHistoryRecords } from './use-history-records'
 import { isReportV3, ReportView } from './report/ReportView'
 import { FailedReport } from './report/FailedReport'
 import { shownStatus } from '@/lib/report/queue'
+import { BUTTON } from '@/lib/ui'
 
 // The 紀錄 page's tabs. Training, side by side (@split): a month calendar and that
 // month's periods on the left, the chosen day on the right. On a phone: the days grouped
@@ -40,8 +41,7 @@ import { shownStatus } from '@/lib/report/queue'
 export type HistoryTab = 'training' | 'weight' | 'reports'
 
 // Phone sizes first (44px targets, 15px text), the denser desktop ones from md
-const CARD = 'rounded-[14px] border border-line bg-card p-4'
-const BUTTON = 'inline-flex min-h-11 items-center justify-center gap-1 whitespace-nowrap rounded-[9px] border border-line bg-card px-4 text-[15px] font-bold transition-colors hover:bg-done disabled:opacity-50 md:min-h-9 md:px-3 md:text-[13px]'
+const CARD = 'rounded-card border border-line bg-card p-4'
 
 const TABS: { tab: HistoryTab; href: string }[] = [
     { tab: 'training', href: '/history' },
@@ -170,7 +170,7 @@ export function HistoryTraining({
                                 onClick={() => showMonth(addMonths(month, -1))}
                                 disabled={!firstDate || addMonths(month, -1) < monthOf(firstDate)}
                                 aria-label={t('prevMonth')}
-                                className="flex size-8 items-center justify-center rounded-[7px] text-muted hover:bg-done disabled:opacity-30"
+                                className="flex size-8 items-center justify-center rounded-full text-muted hover:bg-done disabled:opacity-30"
                             >
                                 <Icon name="back" className="size-4" />
                             </button>
@@ -179,7 +179,7 @@ export function HistoryTraining({
                                 onClick={() => showMonth(addMonths(month, 1))}
                                 disabled={month >= monthOf(today)}
                                 aria-label={t('nextMonth')}
-                                className="flex size-8 items-center justify-center rounded-[7px] text-muted hover:bg-done disabled:opacity-30"
+                                className="flex size-8 items-center justify-center rounded-full text-muted hover:bg-done disabled:opacity-30"
                             >
                                 <Icon name="forward" className="size-4" />
                             </button>
@@ -278,7 +278,7 @@ export function HistoryTraining({
                                 <span>{sessions(period)}</span>
                                 <ReportTrendChip report={reportFor(period)} />
                             </h2>
-                            <div className="rounded-[14px] border border-line bg-card px-4 md:px-3">
+                            <div className="rounded-card border border-line bg-card px-4 md:px-3">
                                 {trained.length === 0 ? (
                                     <p className="py-4 text-[15px] text-faint md:py-3 md:text-sm">{t('noTraining')}</p>
                                 ) : (
@@ -298,7 +298,7 @@ export function HistoryTraining({
                 {loadError && <LoadError onRetry={list.month ? () => jumpTo(list.month as string) : loadOlder} />}
                 {hasOlder && (
                     <div className="flex justify-center">
-                        <button type="button" onClick={loadOlder} disabled={loading} className={BUTTON}>
+                        <button type="button" onClick={loadOlder} disabled={loading} className={BUTTON.secondary}>
                             {loading ? t('loading') : t('loadOlder', { count: PERIODS_PER_PAGE })}
                         </button>
                     </div>
@@ -434,11 +434,11 @@ function DayDetail({ date, day, language, units }: { date: string; day: HistoryD
             {day && trained && (
                 <>
                     <div className="hidden max-w-xs grid-cols-2 gap-2 md:grid">
-                        <div className="grid rounded-[10px] bg-done px-3 py-2">
+                        <div className="grid rounded-field bg-done px-3 py-2">
                             <span className="text-[11px] text-muted">{t('statSets')}</span>
                             <span className="font-mono text-base font-bold">{setCount(day)}</span>
                         </div>
-                        <div className="grid rounded-[10px] bg-done px-3 py-2">
+                        <div className="grid rounded-field bg-done px-3 py-2">
                             <span className="text-[11px] text-muted">{t('statExercises')}</span>
                             <span className="font-mono text-base font-bold">{day.exercises.length}</span>
                         </div>
@@ -465,7 +465,7 @@ function DayDetail({ date, day, language, units }: { date: string; day: HistoryD
             )}
 
             {day?.note && (
-                <p className="border-t border-line pt-3 text-[15px] text-muted md:rounded-[10px] md:border md:px-3 md:py-2 md:text-[13px]">
+                <p className="border-t border-line pt-3 text-[15px] text-muted md:rounded-field md:border md:px-3 md:py-2 md:text-[13px]">
                     {t('noteLine', { note: day.note })}
                 </p>
             )}
@@ -516,7 +516,7 @@ export function HistoryWeight({ entries, weightUnit, language, timeZone }: {
                     </ul>
                 )}
                 {weighIns.length > shown && (
-                    <button type="button" onClick={() => setShown((n) => n + WEIGH_INS_PER_PAGE)} className={`${BUTTON} mt-2`}>
+                    <button type="button" onClick={() => setShown((n) => n + WEIGH_INS_PER_PAGE)} className={`${BUTTON.secondary} mt-2`}>
                         {t('showMore')}
                     </button>
                 )}
@@ -602,7 +602,7 @@ export function HistoryReports({ initialReports, openPeriod = null, cycle, langu
             {loadError && <LoadError onRetry={loadOlder} />}
             {!noMore && (
                 <div className="flex justify-center">
-                    <button type="button" onClick={loadOlder} disabled={loading} className={BUTTON}>
+                    <button type="button" onClick={loadOlder} disabled={loading} className={BUTTON.secondary}>
                         {loading ? t('loading') : t('olderReports')}
                     </button>
                 </div>
@@ -646,7 +646,7 @@ function ReportItem({ report, startOpen = false, periodEnd, language, weightUnit
     const rec = isCompleted && !v3 ? (report.recommendation as unknown as AiRecommendation) : null
 
     return (
-        <section ref={itemRef} className="scroll-mt-[calc(64px+env(safe-area-inset-top))] rounded-[14px] border border-line bg-card md:scroll-mt-4">
+        <section ref={itemRef} className="scroll-mt-[calc(64px+env(safe-area-inset-top))] rounded-card border border-line bg-card md:scroll-mt-4">
             <button
                 type="button"
                 onClick={() => setIsOpen((v) => !v)}
