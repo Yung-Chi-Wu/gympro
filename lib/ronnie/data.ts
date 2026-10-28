@@ -130,6 +130,9 @@ const DAY_MS = 86_400_000
 const WORKOUTS_PER_REQUEST = 100
 const ROWS_PER_PAGE = 1000
 
+/** What a failed write tells Ronnie, after "Not saved: " and the like */
+export const WRITE_REFUSED = "it couldn't be saved just now. Say so, and that they can try again later."
+
 interface CycleRow {
     id: string
     cycle_length: number
@@ -142,12 +145,14 @@ export function createSupabaseRonnieData(
     userId: string,
     timeZone: string,
     cycle: CycleRow | null,
-    { now = () => new Date(), embedQuery = null, onSearchError = null, admin = null }: {
+    { now = () => new Date(), embedQuery = null, onSearchError = null, onWriteError = null, admin = null }: {
         now?: () => Date
         /** Turns a search query into a vector (lib/embeddings.ts); null disables vector search */
         embedQuery?: ((text: string) => Promise<number[]>) | null
         /** Told when vector search fails and keywords stand in, so it reaches app_errors (context.ts) */
         onSearchError?: ((err: unknown) => void) | null
+        /** Told the database's own error when a write fails, so it reaches app_errors (context.ts) */
+        onWriteError?: ((what: string, err: unknown) => void) | null
         /**
          * The service-role client (lib/supabase/admin.ts) for what users can't write themselves:
          * memory notes and proposals. Every query names userId. Null: no memory (no notes, saving
@@ -158,6 +163,13 @@ export function createSupabaseRonnieData(
 ): RonnieData {
     // Read once per request: the prompt and the tools both need the notes. A write clears it.
     let notes: Promise<MemoryNote[]> | null = null
+    // A write the database refused: the model hears only that it failed, since it may repeat what
+    // it is told to the user, and the database's own words go to onWriteError
+    const refused = (what: string, error: { message: string } | null): string | null => {
+        if (!error) return null
+        onWriteError?.(what, error)
+        return WRITE_REFUSED
+    }
 
     async function getTodayRoutineId(): Promise<string | null> {
         if (!cycle) return null
@@ -331,7 +343,7 @@ export function createSupabaseRonnieData(
             const { error } = await supabase
                 .from('workout_planned_exercises')
                 .insert({ workout_id: workoutId, exercise_id: exerciseId, user_id: userId })
-            return error?.message ?? null
+            return refused('add-planned', error)
         },
 
         async removePlannedExercise(workoutId, exerciseId) {
@@ -341,7 +353,7 @@ export function createSupabaseRonnieData(
                 .eq('workout_id', workoutId)
                 .eq('exercise_id', exerciseId)
                 .select('id')
-            return { error: error?.message ?? null, removed: data?.length ?? 0 }
+            return { error: refused('remove-planned', error), removed: data?.length ?? 0 }
         },
 
         async createProposal(proposal) {
@@ -358,7 +370,7 @@ export function createSupabaseRonnieData(
                 })
                 .select('id')
                 .single()
-            return error || !data ? { error: error?.message ?? 'Failed to save the proposal' } : { id: data.id }
+            return error || !data ? { error: refused('proposal', error ?? { message: 'The insert returned no row' })! } : { id: data.id }
         },
 
         listMemories() {
@@ -385,7 +397,7 @@ export function createSupabaseRonnieData(
             const { error } = await admin.from('ronnie_memories').upsert({
                 user_id: userId, kind: note.kind, subject: note.subject, state: note.state, note: note.text, updated_at: note.updatedAt,
             }, { onConflict: 'user_id,kind,subject' })
-            return error?.message ?? null
+            return refused('memory-save', error)
         },
 
         // Saved first, then checked against the user's last 30 days with it, the way
@@ -403,7 +415,7 @@ export function createSupabaseRonnieData(
                 language,
                 app_version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 64) ?? null,
             }).select('id, created_at').single()
-            if (saveError || !mine) return { error: saveError?.message ?? 'Not saved' }
+            if (saveError || !mine) return { error: refused('exercise-request', saveError ?? { message: 'The insert returned no row' })! }
             const at = now().getTime()
             const { data: recent, error } = await admin
                 .from('app_feedback')
@@ -412,9 +424,9 @@ export function createSupabaseRonnieData(
                 .gte('created_at', new Date(at - REQUEST_MEMORY_DAYS * DAY_MS).toISOString())
             const takeOut = async <T>(answer: T): Promise<T> => {
                 const { error: removeError } = await admin.from('app_feedback').delete().eq('id', mine.id)
-                return removeError ? ({ error: removeError.message } as T) : answer
+                return removeError ? ({ error: refused('exercise-request-undo', removeError)! } as T) : answer
             }
-            if (error) return takeOut({ error: error.message })
+            if (error) return takeOut({ error: refused('exercise-request-check', error)! })
             const rows = recent ?? []
             const mineAt = Date.parse(mine.created_at)
             const before = (r: { id: string; created_at: string }) => Date.parse(r.created_at) < mineAt || (Date.parse(r.created_at) === mineAt && r.id < mine.id)
@@ -430,7 +442,7 @@ export function createSupabaseRonnieData(
             notes = null
             const query = admin.from('ronnie_memories').delete().eq('user_id', userId).eq('kind', kind)
             const { error } = await (subject === null ? query.is('subject', null) : query.eq('subject', subject))
-            return error?.message ?? null
+            return refused('memory-delete', error)
         },
     }
 }

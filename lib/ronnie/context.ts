@@ -57,6 +57,7 @@ export async function loadRonnieContext(supabase: SupabaseClient<Database>, user
         onSearchError: (err) => reportError('ronnie/vector-search', err, {
             userId, level: isTransientAwsError(err) ? 'warning' : 'error', context: { kind: (err as Error | null)?.name ?? 'unknown' },
         }),
+        onWriteError: (what, err) => reportError(`ronnie/${what}`, err, { userId }),
         admin: createAdminClient(),
     })
 

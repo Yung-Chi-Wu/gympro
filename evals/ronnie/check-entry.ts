@@ -6,7 +6,7 @@ export { buildSystemPrompt, MEDICINE_RULE, stripMarkdown } from '../../lib/ronni
 export { MAX_EXERCISE_NOTES_SHOWN, MAX_NOTES, MAX_OTHER_NOTES, memoryLines } from '../../lib/ronnie/memory'
 export { createRonnieExecutor } from '../../lib/ronnie/executor'
 export { MAX_INCLUDE } from '../../lib/coach-g-planner'
-export { createSupabaseRonnieData } from '../../lib/ronnie/data'
+export { createSupabaseRonnieData, WRITE_REFUSED } from '../../lib/ronnie/data'
 export { appendConversation, replaceConversation, withoutCitationNumbers } from '../../lib/ronnie/conversation'
 export { asTypedMessage, EVENT_PREFIX } from '../../lib/ronnie/events'
 export { createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER, fixtureNotes, ROUTINES } from './fixture'
