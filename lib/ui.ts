@@ -15,8 +15,9 @@ export const BUTTON = {
     primary: `${BASE} bg-accent text-accent-ink hover:opacity-90`,
     /** Every other action: a tonal pill with no border */
     secondary: `${BASE} bg-done text-ink hover:bg-line`,
-    /** A destructive action, before anything is lost (it asks first) */
-    danger: `${BASE} bg-miss/10 text-miss hover:bg-miss/15`,
+    /** A destructive action, before anything is lost (it asks first). A light tint: the red text
+     * on it stays above 4.5:1 */
+    danger: `${BASE} bg-miss/5 text-miss hover:bg-miss/6`,
     /** The confirm of a destructive action, the step that loses it */
     dangerConfirm: `${BASE} bg-miss text-miss-ink hover:opacity-90`,
 } as const
