@@ -8,6 +8,7 @@ import { getEffectiveLanguage } from '@/lib/get-language'
 import { RecommendationPanel } from '@/components/RecommendationPanel'
 import { TodayWorkoutCard } from '@/components/TodayWorkoutCard'
 import { PeriodNoteCard } from '@/components/PeriodNoteCard'
+import { TodayGoal } from '@/components/TodayGoal'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
@@ -39,13 +40,12 @@ export default async function DashboardPage() {
       .order('name'),
     recentExerciseIds(supabase, user.id),
     loadLatestReport(supabase, user.id),
-    getTranslations('dashboard'),
+    getTranslations('today'),
     getTranslations('report'),
     getTranslations('periodLog'),
   ])
   const { profile, cycle, language, period, todayIso, todayRange, dayIndex, routineIdForToday, routineName, today, periodNote, lastPeriod, recentFrom } = day
 
-  const greetingName = profile?.display_name || user.email || ''
   const onboardingCompleted = profile?.onboarding_completed ?? false
   const weightUnit = (profile?.weight_unit as WeightUnit) ?? 'kg'
   const distanceUnit: DistanceUnit = profile?.distance_unit === 'mi' ? 'mi' : 'km'
@@ -63,10 +63,10 @@ export default async function DashboardPage() {
         serverCompleted={onboardingCompleted}
       />
 
-      {/* One line on the phone, under the top bar that already says 今天 */}
-      <h1 className="truncate text-lg font-semibold text-muted md:text-3xl md:font-bold md:text-ink">
-        {t('welcome', { name: greetingName })}
-      </h1>
+      {/* As on the other tabs: the top bar says 今天 on a phone. The greeting that was here gave
+          its place to the goal (owner, 2026-10-28) */}
+      <h1 className="text-2xl font-bold max-md:sr-only">{t('title')}</h1>
+      <TodayGoal goal={profile?.training_goal ?? null} latest={latestReport} language={language} weightUnit={weightUnit} />
 
       {/* Today's log, then the report: side by side once the page is wide enough */}
       <div className="grid grid-cols-1 items-start gap-5 @4xl:grid-cols-[3fr_2fr] @4xl:gap-6">

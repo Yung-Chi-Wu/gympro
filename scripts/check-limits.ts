@@ -3,6 +3,8 @@ import { join } from 'node:path'
 import { REPS, SETS } from '../lib/coach-g'
 import { isValidField, MIN_AVG_HR, STORED_MAX, type Units } from '../lib/set-log'
 import { isTarget, TARGET_REPS, TARGET_SETS } from '../lib/targets'
+import { GOAL_CHOICES, goalText } from '../lib/goal-choices'
+import { MAX_TRAINING_GOAL_CHARS } from '../lib/text-limits'
 
 // The limits on what a user types: a set's amounts in any unit, and a routine's targets. The app
 // and the tables must agree, or a value the app lets through fails on save, so the migrations'
@@ -83,6 +85,24 @@ const sqlMatches: [string, boolean][] = [
 ]
 const missing = sqlMatches.filter(([, ok]) => !ok).map(([p]) => p)
 check(`the migrations' limits are the app's (${sqlMatches.length})`, !missing.length, missing.join('; '))
+
+// The goal onboarding writes: the kinds picked, then the user's own words, as one text the
+// report's goal reader reads. It stays inside training_goal's limit however much is typed
+const goalCases: [string[], string, boolean, string][] = [
+    [['muscle', 'strength'], '深蹲 140 kg', true, '增肌、力量。深蹲 140 kg'],
+    [['muscle', 'strength'], '', false, 'Muscle, Strength'],
+    [['physique', 'fat_loss'], ' get down to 165 lb ', false, 'Fat loss, Physique. get down to 165 lb'],
+    [[], '減到 75 公斤', true, '減到 75 公斤'],
+    [[], '   ', true, ''],
+]
+for (const [kinds, words, zh, want] of goalCases) {
+    const got = goalText(kinds, words, zh)
+    check(`goal from ${JSON.stringify(kinds)} and ${JSON.stringify(words)}`, got === want, `got ${JSON.stringify(got)}`)
+}
+check(`a goal from every kind and the longest words fits training_goal (${MAX_TRAINING_GOAL_CHARS})`,
+    goalText(GOAL_CHOICES.map((c) => c.key), 'x'.repeat(MAX_TRAINING_GOAL_CHARS), true).length <= MAX_TRAINING_GOAL_CHARS)
+check(`training_goal's limit is the table's (${MAX_TRAINING_GOAL_CHARS})`,
+    has(migration('20261014140000_ronnie_server_writes.sql'), `char_length(training_goal) <= ${MAX_TRAINING_GOAL_CHARS}`))
 
 if (failed) {
     console.log(`\n${failed} check(s) failed`)

@@ -84,8 +84,11 @@
         }
     },
     "dashboard": {
-        "welcome": "歡迎回來，{name}",
-        "aiReportTitle": "AI 教練報告"
+        "aiReportTitle": "AI 教練報告",
+        "goalPrompt": "設個目標，週報會算你離它多遠",
+        "goalSet": "設定",
+        "goalLabel": "目標",
+        "goalEdit": "目標：{goal}，點了可以改"
     },
     "today": {
         "title": "今天",

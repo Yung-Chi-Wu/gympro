@@ -84,8 +84,11 @@
         }
     },
     "dashboard": {
-        "welcome": "Welcome back, {name}",
-        "aiReportTitle": "AI Coach Report"
+        "aiReportTitle": "AI Coach Report",
+        "goalPrompt": "Set a goal and your report tracks how close you are",
+        "goalSet": "Set",
+        "goalLabel": "Goal",
+        "goalEdit": "Goal: {goal}. Tap to change it"
     },
     "today": {
         "title": "Today",

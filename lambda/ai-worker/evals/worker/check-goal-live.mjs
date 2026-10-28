@@ -48,6 +48,11 @@ const CASES = [
     ['跑完一場半馬', 'kg', (r) => has(r, 'endurance') && !!r.unread],
     ['Front squat 100 kg', 'kg', (r) => near(lift(r, 'Front Squat')?.loadKg, 100) && !lift(r, 'Barbell Back Squat')],
     ['維持現在的身材，一週練三次就好', 'kg', (r) => !r.targets.some((t) => t.kind === 'body_weight' || (t.kind === 'lift' && (t.loadKg != null || t.reps != null)))],
+    // As onboarding writes them (lib/goal-choices.ts goalText): the kinds picked, then the user's own words
+    ['增肌、力量。深蹲 140 kg', 'kg', (r) => has(r, 'muscle') && has(r, 'strength') && near(lift(r, 'Barbell Back Squat')?.loadKg, 140) && !r.unread],
+    ['減脂、健康、耐力', 'kg', (r) => has(r, 'fat_loss') && has(r, 'health') && has(r, 'endurance') && r.targets.length === 0 && !r.unread],
+    ['Muscle, Strength', 'lb', (r) => has(r, 'muscle') && has(r, 'strength') && r.targets.length === 0 && !r.unread],
+    ['Physique, Fat loss. get down to 165 lb', 'lb', (r) => has(r, 'physique') && has(r, 'fat_loss') && r.targets.some((t) => t.kind === 'body_weight' && near(t.weightKg, 74.8) && t.unit === 'lb')],
 ]
 if (!byName('Front Squat')) throw new Error('library has no Front Squat')
 

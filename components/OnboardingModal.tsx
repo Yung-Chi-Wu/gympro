@@ -6,7 +6,8 @@ import { useTheme } from 'next-themes'
 import type { WeightUnit } from '@/lib/weight-unit'
 import { toFriendlyError } from '@/lib/friendly-error'
 import { reportClientError } from '@/lib/report-client-error'
-import { MAX_DISPLAY_NAME_CHARS } from '@/lib/text-limits'
+import { MAX_DISPLAY_NAME_CHARS, MAX_TRAINING_GOAL_CHARS } from '@/lib/text-limits'
+import { GOAL_CHOICES, goalText } from '@/lib/goal-choices'
 import { InstallGuide } from './InstallGuide'
 
 interface OnboardingModalProps {
@@ -19,7 +20,7 @@ interface OnboardingModalProps {
 // The choices first, then a tour of the app in its own words. Replayed from Settings it is
 // only the tour: the choices live in Settings, and starting them over would show the
 // defaults rather than what the user has.
-const CHOICE_STEPS = ['lang', 'theme', 'unit', 'profile']
+const CHOICE_STEPS = ['lang', 'theme', 'unit', 'profile', 'goal']
 const TOUR_STEPS = ['routines', 'log', 'ronnie', 'checkin', 'report', 'pwa']
 
 export function OnboardingModal({ userId, language, onClose }: OnboardingModalProps) {
@@ -35,6 +36,8 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
     const [sex, setSex] = useState('')
     const [dateOfBirth, setDateOfBirth] = useState('')
     const [heightCm, setHeightCm] = useState('')
+    const [goalKinds, setGoalKinds] = useState<string[]>([])
+    const [goalWords, setGoalWords] = useState('')
     const [saving, setSaving] = useState(false)
     const [saveError, setSaveError] = useState<string | null>(null)
 
@@ -61,6 +64,8 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
         if (sex) updates.sex = sex
         if (dateOfBirth) updates.date_of_birth = dateOfBirth
         if (heightCm) updates.height_cm = Number(heightCm)
+        const goal = goalText(goalKinds, goalWords, selectedLang === 'zh-TW')
+        if (goal) updates.training_goal = goal
 
         setSaving(true)
         setSaveError(null)
@@ -228,6 +233,43 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
                                     onChange={(e) => setDateOfBirth(e.target.value)}
                                     className="w-full rounded-lg border border-black/15 dark:border-white/15 px-3 py-2 text-sm bg-white dark:bg-[#3A3733] text-[#1A1814] dark:text-[#EAE7E0]" />
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── goal ── */}
+                {currentStep === 'goal' && (
+                    <div className="space-y-4">
+                        <div className="text-center space-y-1">
+                            <div className="text-4xl">🎯</div>
+                            <h2 className="text-xl font-bold text-[#1A1814] dark:text-[#EAE7E0]">
+                                {zh ? '你最想練出什麼？' : 'What are you training for?'}
+                            </h2>
+                            <p className="text-xs text-black/40 dark:text-white/40">
+                                {zh ? '可以複選，週報和 Ronnie 會照這個給建議' : 'Pick any. Your report and Ronnie go by it'}
+                            </p>
+                        </div>
+                        <div role="group" aria-label={zh ? '目標' : 'Goal'} className="grid grid-cols-3 gap-2">
+                            {GOAL_CHOICES.map((c) => {
+                                const on = goalKinds.includes(c.key)
+                                return (
+                                    <button key={c.key} type="button" aria-pressed={on} className={optionClass(on)}
+                                        onClick={() => setGoalKinds((k) => (on ? k.filter((x) => x !== c.key) : [...k, c.key]))}>
+                                        {zh ? c.zh : c.en}
+                                    </button>
+                                )
+                            })}
+                        </div>
+                        <div>
+                            <label htmlFor="onboarding-goal" className="text-xs font-medium text-black/60 dark:text-white/60 block mb-1">
+                                {zh ? '具體一點（選填）' : 'Anything specific? (optional)'}
+                            </label>
+                            <input id="onboarding-goal" type="text" value={goalWords} maxLength={MAX_TRAINING_GOAL_CHARS - 40}
+                                onChange={(e) => setGoalWords(e.target.value)}
+                                placeholder={selectedUnit === 'lb'
+                                    ? (zh ? '例如：深蹲 300 lb、減到 165 lb' : 'e.g. squat 300 lb, get down to 165 lb')
+                                    : (zh ? '例如：深蹲 140 kg、減到 75 kg' : 'e.g. squat 140 kg, get down to 75 kg')}
+                                className="w-full rounded-lg border border-black/15 dark:border-white/15 px-3 py-2 text-sm bg-white dark:bg-[#3A3733] text-[#1A1814] dark:text-[#EAE7E0]" />
                         </div>
                     </div>
                 )}
