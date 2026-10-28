@@ -32,11 +32,12 @@ const SUMMARY_ITEMS = 3
 /** Where a plan's reason comes from (reportV3.sourceTag) */
 type SourceTag = 'goal' | 'log' | 'memory' | 'week'
 
-const STATUS_COLOR: Record<ReportV3['facts']['status'], string> = {
-    progressing: 'text-emerald-700 dark:text-emerald-400',
-    stalling: 'text-ink/70 dark:text-white/70',
-    regressing: 'text-amber-700 dark:text-amber-400',
-    baseline: 'text-ink/70 dark:text-white/70',
+/** The status chip's colors, as the calendar's report chip has them (ReportTrendChip) */
+const STATUS_TONE: Record<ReportV3['facts']['status'], string> = {
+    progressing: 'bg-good-soft text-good',
+    stalling: 'bg-done text-muted',
+    regressing: 'bg-accent-soft text-miss',
+    baseline: 'bg-done text-muted',
 }
 
 const shortDate = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`
@@ -175,10 +176,15 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
         .filter((i) => i.findings.length)
     // The summary shows the first 3, the most important (owner, 2026-10-20); the rest are in the full report
     const shownItems = summary ? items.slice(0, SUMMARY_ITEMS) : items
+    // The summary leaves an item's other lines (its options, a low muscle's choices) to the full report
+    const otherWays = summary && shownItems.some((i) => !!i.lines?.length)
     /** Whether an earlier item already showed this research part in full */
     const researchSeen = (index: number, part: PlanPart | null) => !!part && shownItems.slice(0, index).some((x) => CODE_RULES.has(x.findings[0].rule) && planParts(x.findings[0]).includes(part))
     const missed = facts.sessions.planned != null ? facts.sessions.planned - facts.sessions.done : 0
     const lowGroups = facts.muscles.filter((m) => m.status === 'low').map((m) => m.group)
+    const advisedLow = findings.some((f) => f.rule === 'low_volume')
+    // The lifts with a last period to compare with: the ones the up/flat/down count is of
+    const liftsCompared = facts.liftsSummary.up + facts.liftsSummary.flat + facts.liftsSummary.down
     const weightWatch = watching.find((w) => w.rule === 'weight_trend')
     // Shown when there was cardio this period or the one before; reports saved before cardio was read have none
     const cardio = facts.cardio && (facts.cardio.minutes > 0 || !!facts.cardio.previousPerWeek) ? facts.cardio : null
@@ -188,33 +194,45 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
 
     return (
         <div className="space-y-5">
-            {/* Status and headline */}
+            {/* The headline first, with the status as a chip: the numbers under it say how it went */}
             <div className="space-y-1.5">
-                <p className="text-xs font-semibold uppercase tracking-wider text-ink/50 max-md:text-[13px] dark:text-white/50">
-                    {t('period', { unit, start: shortDate(facts.period.start), end: shortDate(facts.period.end) })}
-                </p>
-                <div className="flex flex-wrap items-baseline gap-x-3">
-                    <h3 className={`text-2xl font-bold ${STATUS_COLOR[facts.status]}`}>{t(`status.${facts.status}`)}</h3>
-                    <span className="text-sm font-medium text-ink/60 max-md:text-[15px] dark:text-white/60">{t(`statusHint.${facts.status}`, { unit })}</span>
+                <div className="flex items-center justify-between gap-3">
+                    <p className="text-[13px] font-semibold text-muted md:text-xs">
+                        {t('period', { unit, start: shortDate(facts.period.start), end: shortDate(facts.period.end) })}
+                    </p>
+                    <StatusChip status={facts.status} label={t(`status.${facts.status}`)} />
                 </div>
-                <p className="text-[15px] leading-relaxed">{narrative.headline}</p>
+                <p className="text-[17px] font-bold leading-snug">{narrative.headline}</p>
             </div>
 
-            <GoalSection goal={facts.goal} unit={unit} zh={zh} weightUnit={weightUnit} summary={summary} muscle={muscle} />
-
-            {/* Four numbers, each against last period */}
-            <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-ink/10 max-md:rounded-none max-md:border-x-0 max-md:[&>div:nth-child(2n+1)]:pl-0 dark:border-white/10 [&>div:nth-child(2n)]:border-l [&>div:nth-child(n+3)]:border-t [&>div]:border-ink/10 dark:[&>div]:border-white/10">
-                <Kpi label={t('kpi.sessions')} value={facts.sessions.planned != null ? <>{facts.sessions.done}<small className="text-base font-medium text-ink/40 dark:text-white/40"> / {facts.sessions.planned}</small></> : facts.sessions.done}
-                    note={facts.sessions.planned != null ? (missed > 0 ? t('kpi.missed', { n: missed }) : t('kpi.allDone')) : null} />
-                <Kpi label={t('kpi.records')} value={facts.records.length}
-                    note={facts.records.length ? facts.records.slice(0, 2).map(liftName).join(zh ? '、' : ', ') : t('kpi.noRecords', { unit })} good={facts.records.length > 0} />
-                <Kpi label={t('kpi.mainLifts')} value={<>{facts.liftsSummary.up}<small className="text-base font-medium text-ink/40 dark:text-white/40"> {t('kpi.up')}</small></>}
-                    note={t('kpi.rest', { flat: facts.liftsSummary.flat, down: facts.liftsSummary.down })} />
-                <Kpi label={t('kpi.weight')} value={facts.bodyWeight.latestKg != null ? <>{bodyWeight(facts.bodyWeight.latestKg)}<small className="text-base font-medium text-ink/40 dark:text-white/40"> {weightUnit}</small></> : '—'}
+            {/* Four numbers, each against last period (other apps' recaps open the same way) */}
+            <dl className="grid grid-cols-2 gap-2">
+                <Stat label={t('kpi.sessions')}
+                    value={<>{facts.sessions.done}{facts.sessions.planned != null && <small className="text-base font-medium text-muted"> / {facts.sessions.planned}</small>}<Unit text={t('kpi.sessionsUnit')} /></>}
+                    note={facts.sessions.planned != null ? (missed > 0 ? t('kpi.missed', { n: missed }) : t('kpi.allDone'))
+                        : facts.sessions.previousDone != null ? t('kpi.sessionsBefore', { n: facts.sessions.previousDone, unit }) : null} />
+                <Stat label={t('kpi.sets')} value={<>{facts.totalSets.now}<Unit text={t('kpi.setsUnit')} /></>}
+                    note={facts.totalSets.previous == null ? null : facts.totalSets.now === facts.totalSets.previous ? t('kpi.setsSame', { unit })
+                        : t('kpi.setsBefore', { change: `${facts.totalSets.now > facts.totalSets.previous ? '+' : '−'}${Math.abs(facts.totalSets.now - facts.totalSets.previous)}`, n: facts.totalSets.previous, unit })}
+                    good={facts.totalSets.previous != null && facts.totalSets.now > facts.totalSets.previous} />
+                <Stat label={t('kpi.records')} value={<>{facts.records.length}<Unit text={t('kpi.recordsUnit')} /></>}
+                    note={facts.records.length ? `${liftName(facts.records[0])} ${bestText(facts.records[0].best, facts.records[0])}${facts.records.length > 1 ? t('kpi.recordsMore', { n: facts.records.length - 1 }) : ''}` : t('kpi.noRecords', { unit })}
+                    good={facts.records.length > 0} />
+                <Stat label={t('kpi.weight')} value={facts.bodyWeight.latestKg != null ? <>{bodyWeight(facts.bodyWeight.latestKg)}<Unit text={weightUnit} /></> : '—'}
                     note={facts.bodyWeight.changeKg != null ? t('kpi.weightChange', { unit, back: facts.bodyWeight.changeWindows ?? 1, change: `${facts.bodyWeight.changeKg > 0 ? '+' : ''}${bodyWeight(facts.bodyWeight.changeKg)}` }) : facts.bodyWeight.latestKg == null ? t('kpi.noWeight') : null} />
             </dl>
 
-            <WeekDots days={facts.sessions.days} zh={zh} />
+            {facts.groups && facts.totalSets.now > 0 && (
+                <section className="space-y-2">
+                    <SectionTitle title={t('share.title', { unit })} count={t('share.count', { n: facts.totalSets.now })} />
+                    <GroupShare groups={facts.groups} total={facts.totalSets.now} label={(g) => t(`share.group.${g}`)} setsLabel={(n) => t('share.sets', { n })}
+                        legend={[t('share.now', { unit }), t('share.before', { unit })]} />
+                </section>
+            )}
+
+            <GoalSection goal={facts.goal} unit={unit} zh={zh} weightUnit={weightUnit} summary={summary} muscle={muscle} />
+
+            {!summary && <WeekDots days={facts.sessions.days} zh={zh} />}
 
             {/* Last report's advice, followed up */}
             {followUps.length > 0 && (
@@ -248,8 +266,9 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                                     <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-plate text-xs font-bold text-chalk dark:bg-chalk dark:text-plate">{i + 1}</span>
                                     <p className="font-semibold leading-relaxed">{item.action}</p>
                                 </div>
-                                {/* Written by code, one per finding: a low muscle and its options */}
-                                {!!item.lines?.length && (
+                                {/* Written by code, one per finding: a low muscle and its options. The summary keeps
+                                    each item's own line, and the other ways are in the full report (owner, 2026-10-28) */}
+                                {!summary && !!item.lines?.length && (
                                     <ul className="mt-1.5 space-y-1 pl-[34px] text-sm leading-relaxed">
                                         {item.lines.map((line, i) => (
                                             // A plan's options all start with "or": the label is no key
@@ -283,8 +302,12 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                         ))}
                     </ol>
                 )}
-                {summary && items.length > shownItems.length && (
-                    <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('nextMore', { n: items.length - shownItems.length })}</p>
+                {summary && (items.length > shownItems.length || otherWays) && (
+                    <p className="text-[13px] text-muted md:text-xs">
+                        {items.length > shownItems.length
+                            ? t(otherWays ? 'nextMoreWays' : 'nextMore', { n: items.length - shownItems.length })
+                            : t('otherWays')}
+                    </p>
                 )}
             </section>
 
@@ -299,46 +322,61 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
             {/* A right arrow: it goes somewhere else, it doesn't open here */}
             {summary && fullHref && (
                 <Link href={fullHref}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-plate py-3 text-sm font-bold hover:bg-ink/5 max-md:text-[15px] dark:border-chalk dark:hover:bg-white/5">
+                    className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-full bg-done text-[15px] font-semibold transition-colors hover:bg-line md:min-h-9 md:text-sm">
                     {t('openFull')} <span aria-hidden="true">→</span>
                 </Link>
             )}
 
+            {/* The main lifts, open: each lift's best set against the last one, and how many moved up */}
+            {!summary && facts.lifts.length > 0 && (
+                <section className="space-y-2.5">
+                    <SectionTitle title={t('section.lifts')} count={null} />
+                    {liftsCompared > 0 && (
+                        <div className="space-y-1.5">
+                            <div className="grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${liftsCompared}, minmax(0, 1fr))` }} aria-hidden="true">
+                                {[...Array(facts.liftsSummary.up).fill('bg-good'), ...Array(facts.liftsSummary.flat).fill('bg-line'), ...Array(facts.liftsSummary.down).fill('bg-miss')].map((c, i) => (
+                                    <span key={i} className={`h-2.5 rounded-[3px] ${c}`} />
+                                ))}
+                            </div>
+                            <p className="text-sm">{t('liftsRatio', { total: liftsCompared, up: facts.liftsSummary.up, flat: facts.liftsSummary.flat, down: facts.liftsSummary.down })}</p>
+                        </div>
+                    )}
+                    {facts.records.length > 0 && (
+                        <ul className="space-y-1">
+                            {facts.records.map((r) => (
+                                <li key={r.exerciseId} className="flex flex-wrap items-baseline gap-x-2 text-[15px] md:text-sm">
+                                    <span className="rounded-full bg-accent-soft px-2 text-xs font-bold text-accent">{t('record')}</span>
+                                    <b className="font-semibold">{liftName(r)} {bestText(r.best, r)}</b>
+                                    {r.previous && <span className="text-[13px] text-muted">{t('recordBefore', { set: bestText(r.previous, r) })}</span>}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    <LiftTable lifts={facts.lifts} name={liftName} set={(l) => bestText(l.best, l)}
+                        prev={(l) => bestText(l.previousBest, l)}
+                        trendLabel={(l) => t(`trend.${l.trend}`)}
+                        trendNote={(l) => l.trend === 'flat' && l.flatWindows ? t('flatFor', { n: l.flatWindows, unit }) : l.progress ? t(`liftProgress.${l.progress}`) : l.change != null && l.trend !== 'new' ? (l.bodyweight ? `${l.change > 0 ? '+' : ''}${l.change}` : `${l.change > 0 ? '+' : ''}${l.change}%`) : null} />
+                    <p className="text-[13px] text-muted md:text-xs">{t('liftsNote', { unit })}</p>
+                    {liftWatches.map((w) => <WatchNote key={w.subject} label={`${t('section.watching')}${zh ? '：' : ': '}`}>{t('liftWatch', { lift: liftName(w.data), n: Number(w.data.flatWindows), unit })}</WatchNote>)}
+                </section>
+            )}
+
             {!summary && (
                 <div className="space-y-2">
-                    <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('accordionHint')}</p>
                     <div className="divide-y divide-ink/10 rounded-xl border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
                         {facts.goal.read?.model && (
                             <Row {...row('goal')} title={t('goal.detailTitle')} take={null}>
                                 <GoalDetail goal={facts.goal} unit={unit} zh={zh} weightUnit={weightUnit} muscle={muscle} />
                             </Row>
                         )}
-                        <Row {...row('muscles')} title={t('section.muscles')} take={lowGroups.length ? t('section.musclesLow', { groups: lowGroups.map(muscle).join(zh ? '、' : ', ') }) : t('section.musclesOk')} tone={lowGroups.length ? 'warn' : 'good'}>
+                        {/* A muscle below the range is marked only when the report advises on it: under a strength goal it doesn't */}
+                        <Row {...row('muscles')} title={t('section.muscles')} take={advisedLow ? t('section.musclesLow', { groups: lowGroups.map(muscle).join(zh ? '、' : ', ') }) : null} tone={advisedLow ? 'warn' : undefined}>
                             <BodyMap muscles={facts.muscles} frontLabel={t('front')} backLabel={t('back')} />
                             <Legend items={[['bg-emerald-500/80', t('legend.ok')], ['bg-amber-500/85', t('legend.low')], ['bg-sky-500/80', t('legend.high')], ['bg-ink/25 dark:bg-white/25', t('legend.none')]]} />
                             <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">
                                 {t('musclesNote', { sets: facts.totalSets.now, unit })} {facts.totalSets.previous != null && t('musclesNotePrev', { prev: facts.totalSets.previous, unit })}
                             </p>
-                            <MuscleBars muscles={facts.muscles} label={muscle} />
-                        </Row>
-                        <Row {...row('lifts')} title={t('section.lifts')} take={facts.records.length ? t('section.recordsCount', { n: facts.records.length }) : null} tone="good">
-                            {facts.records.length > 0 && (
-                                <ul className="space-y-1.5">
-                                    {facts.records.map((r) => (
-                                        <li key={r.exerciseId} className="flex items-center gap-2.5 rounded-lg bg-[#C8955A]/15 px-3 py-2 text-sm max-md:rounded-none max-md:bg-transparent max-md:px-0 max-md:text-[15px]">
-                                            <span className="text-xs font-bold tracking-wider text-[#A8742F] dark:text-[#D9AA6E]">PR</span>
-                                            <b className="flex-1 font-semibold">{liftName(r)} {bestText(r.best, r)}</b>
-                                            <span className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{shortDate(r.date)}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                            <LiftTable lifts={facts.lifts} name={liftName} set={(l) => bestText(l.best, l)}
-                                prev={(l) => bestText(l.previousBest, l)}
-                                trendLabel={(l) => t(`trend.${l.trend}`)}
-                                trendNote={(l) => l.trend === 'flat' && l.flatWindows ? t('flatFor', { n: l.flatWindows, unit }) : l.progress ? t(`liftProgress.${l.progress}`) : l.change != null && l.trend !== 'new' ? (l.bodyweight ? `${l.change > 0 ? '+' : ''}${l.change}` : `${l.change > 0 ? '+' : ''}${l.change}%`) : null} />
-                            <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('liftsNote', { unit })}</p>
-                            {liftWatches.map((w) => <WatchNote key={w.subject} label={`${t('section.watching')}${zh ? '：' : ': '}`}>{t('liftWatch', { lift: liftName(w.data), n: Number(w.data.flatWindows), unit })}</WatchNote>)}
+                            <MuscleBars muscles={facts.muscles} label={muscle} flagLow={advisedLow} />
                         </Row>
                         {cardio && (
                             <Row {...row('cardio')} title={t('section.cardio')} take={cardio.minutes ? t('section.cardioTake', { minutes: cardio.minutes }) : null}>
@@ -600,12 +638,61 @@ function ContextDetail({ facts, unit }: { facts: ReportFacts; unit: 'week' | 'cy
     )
 }
 
-function Kpi({ label, value, note, good }: { label: string; value: React.ReactNode; note: string | null; good?: boolean }) {
+function StatusChip({ status, label }: { status: ReportV3['facts']['status']; label: string }) {
+    return <span className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[13px] font-semibold md:text-xs ${STATUS_TONE[status]}`}>{label}</span>
+}
+
+/** One of the four numbers: the value, and under it how it compares with last period */
+function Stat({ label, value, note, good }: { label: string; value: React.ReactNode; note: string | null; good?: boolean }) {
     return (
-        <div className="min-w-0 px-3.5 py-2.5">
-            <dt className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{label}</dt>
-            <dd className="text-[28px] font-semibold leading-tight tabular-nums">{value}</dd>
-            {note && <dd className={`truncate text-xs max-md:text-[13px] ${good ? 'text-emerald-700 dark:text-emerald-400' : 'text-ink/60 dark:text-white/60'}`}>{note}</dd>}
+        <div className="min-w-0 rounded-xl bg-done px-3 py-2.5">
+            <dt className="text-[13px] text-muted md:text-xs">{label}</dt>
+            <dd className="font-mono text-[22px] font-bold leading-tight tabular-nums">{value}</dd>
+            {/* Two lines at most: a record's set ("Barbell Bench Press 42.5kg × 8") is the point of the note */}
+            {note && <dd className={`line-clamp-2 text-[13px] md:text-xs ${good ? 'font-semibold text-good' : 'text-muted'}`}>{note}</dd>}
+        </div>
+    )
+}
+/** A value's unit beside it; English writes none for counts */
+function Unit({ text }: { text: string }) {
+    return text ? <small className="font-sans text-sm font-medium text-muted"> {text}</small> : null
+}
+
+/**
+ * The share of the period's sets by body group, in body order so a group stays in its row from week
+ * to week: a bar each, with last period's as a tick, the sets and the share. Bars, not a radar or a
+ * donut: they read on a phone and carry the numbers (the report research, 2026-10-27).
+ */
+function GroupShare({ groups, total, label, setsLabel, legend }: {
+    groups: NonNullable<ReportFacts['groups']>
+    total: number
+    label: (g: string) => string
+    setsLabel: (n: number) => string
+    legend: [string, string]
+}) {
+    const max = Math.max(1, ...groups.map((g) => Math.max(g.sets, g.previous ?? 0)))
+    const before = groups.some((g) => g.previous != null)
+    return (
+        <div className="space-y-2">
+            {/* One grid for every row, so the names' column is as wide as the longest (Shoulders) and the bars line up */}
+            <div className="grid grid-cols-[max-content_1fr_auto_2.75rem] items-center gap-x-2.5 gap-y-1.5 text-sm">
+                {groups.map((g) => {
+                    const share = `${Math.round((g.sets / total) * 100)}%`
+                    return [
+                        <span key={`${g.group}-name`} className="font-semibold">{label(g.group)}</span>,
+                        <span key={`${g.group}-bar`} className="relative h-2.5 rounded-full bg-done" role="img" aria-label={`${label(g.group)} ${setsLabel(g.sets)} ${share}`}>
+                            {g.sets > 0 && <i className="absolute inset-y-0 left-0 rounded-full bg-accent" style={{ width: `${(g.sets / max) * 100}%` }} />}
+                            {g.previous != null && <i className="absolute -inset-y-1 w-0.5 -translate-x-1/2 rounded-full bg-ink/55" style={{ left: `${(g.previous / max) * 100}%` }} />}
+                        </span>,
+                        <span key={`${g.group}-sets`} className="text-right font-mono text-[13px] tabular-nums" aria-hidden="true">{setsLabel(g.sets)}</span>,
+                        <span key={`${g.group}-share`} className="text-right font-mono text-[13px] tabular-nums text-muted" aria-hidden="true">{share}</span>,
+                    ]
+                })}
+            </div>
+            <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-hidden="true">
+                <span className="inline-flex items-center gap-1.5"><i className="h-2 w-3.5 rounded-sm bg-accent" />{legend[0]}</span>
+                {before && <span className="inline-flex items-center gap-1.5"><i className="h-3 w-0.5 rounded-full bg-ink/55" />{legend[1]}</span>}
+            </p>
         </div>
     )
 }
@@ -713,7 +800,7 @@ const AXIS_MAX = 24
 // Top to bottom of the body; shoulders and legs are categories in reports saved before the split
 const MUSCLE_ORDER = ['chest', 'back', 'shoulders', 'front_delts', 'side_delts', 'rear_delts', 'biceps', 'triceps', 'core', 'glutes', 'legs', 'quads', 'hamstrings', 'calves']
 
-function MuscleBars({ muscles, label }: { muscles: ReportV3['facts']['muscles']; label: (g: string) => string }) {
+function MuscleBars({ muscles, label, flagLow }: { muscles: ReportV3['facts']['muscles']; label: (g: string) => string; flagLow: boolean }) {
     const pct = (v: number) => `${(Math.min(v, AXIS_MAX) / AXIS_MAX) * 100}%`
     return (
         <div className="space-y-2">
@@ -722,9 +809,9 @@ function MuscleBars({ muscles, label }: { muscles: ReportV3['facts']['muscles'];
                     <span className="text-ink/70 dark:text-white/70">{label(m.group)}</span>
                     <div className="relative h-3.5 overflow-hidden rounded bg-ink/10 dark:bg-white/10">
                         {m.status !== 'no_target' && <div className="absolute inset-y-0 border-x border-dashed border-[#C8955A] bg-[#C8955A]/20" style={{ left: pct(10), width: pct(10) }} />}
-                        <div className={`absolute inset-y-[3px] left-0 rounded-sm ${m.status === 'low' ? 'bg-amber-600 dark:bg-amber-400' : 'bg-ink dark:bg-white'}`} style={{ width: pct(m.perWeek) }} />
+                        <div className={`absolute inset-y-[3px] left-0 rounded-sm ${flagLow && m.status === 'low' ? 'bg-amber-600 dark:bg-amber-400' : 'bg-ink dark:bg-white'}`} style={{ width: pct(m.perWeek) }} />
                     </div>
-                    <span className={`text-right font-semibold tabular-nums ${m.status === 'low' ? 'text-amber-700 dark:text-amber-400' : ''}`}>{m.perWeek}</span>
+                    <span className={`text-right font-semibold tabular-nums ${flagLow && m.status === 'low' ? 'text-amber-700 dark:text-amber-400' : ''}`}>{m.perWeek}</span>
                 </div>
             ))}
             <div className="grid grid-cols-[76px_1fr_44px] gap-2 text-[10px] text-ink/40 max-md:text-xs dark:text-white/40">

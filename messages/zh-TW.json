@@ -483,12 +483,32 @@
             "allDone": "全部完成",
             "records": "新紀錄",
             "noRecords": "這{unit, select, week {週} other {輪}}沒有",
-            "mainLifts": "主要動作",
-            "up": "進步",
-            "rest": "{flat} 持平 · {down} 退步",
             "weight": "體重",
             "weightChange": "{back, plural, =1 {比上{unit, select, week {週} other {輪}}} other {比 # {unit, select, week {週} other {輪}}前}} {change}",
-            "noWeight": "沒有記錄"
+            "noWeight": "沒有記錄",
+            "sessionsUnit": "次",
+            "sets": "組數",
+            "setsUnit": "組",
+            "recordsUnit": "個",
+            "sessionsBefore": "上{unit, select, week {週} other {輪}} {n} 次",
+            "setsBefore": "{change}・上{unit, select, week {週} other {輪}} {n}",
+            "setsSame": "和上{unit, select, week {週} other {輪}}一樣",
+            "recordsMore": "，還有 {n} 個"
+        },
+        "share": {
+            "title": "這{unit, select, week {週} other {輪}}練了哪裡",
+            "count": "{n} 組怎麼分",
+            "sets": "{n} 組",
+            "now": "這{unit, select, week {週} other {輪}}",
+            "before": "上{unit, select, week {週} other {輪}}的位置",
+            "group": {
+                "chest": "胸",
+                "back": "背",
+                "shoulders": "肩",
+                "arms": "手臂",
+                "legs": "腿",
+                "core": "核心"
+            }
         },
         "followUpTitle": "上次的建議",
         "followUpCount": "完成 {done} / {total}",
@@ -655,11 +675,9 @@
             "few_days": "WHO 2020 年的指引建議成人每週至少 2 天做肌力訓練，練到全身主要肌群。一項統合 16 個世代研究的分析發現，有做肌力訓練的人，早逝、心血管疾病、癌症和糖尿病的風險低 10–17%，每週約 30–60 分鐘時效益最大。所以一週練不到 2 天時，GymPro 建議練 2 天。"
         },
         "openFull": "看完整報告",
-        "accordionHint": "點一列展開，一次只打開一個。",
         "section": {
             "muscles": "練了哪些肌群",
             "musclesLow": "{groups}偏少",
-            "musclesOk": "都在範圍內",
             "lifts": "新紀錄和主要動作",
             "recordsCount": "{n} 個新紀錄",
             "noRecords": "主要動作",
@@ -682,6 +700,8 @@
         "front": "正面",
         "back": "背面",
         "liftsNote": "每{unit, select, week {週} other {輪}}最佳的一組，走勢線是近 6 {unit, select, week {週} other {輪}}的估計 1RM。持平 3 {unit, select, week {週} other {輪}}以上才算停滯。",
+        "liftsRatio": "{total} 個主要動作：{up} 個進步、{flat} 個持平、{down} 個退步",
+        "recordBefore": "之前最好 {set}",
         "trend": {
             "up": "進步",
             "flat": "持平",
@@ -849,6 +869,8 @@
             "week": "這{unit, select, week {週} other {輪}}說的"
         },
         "nextMore": "還有 {n} 項在完整報告",
+        "nextMoreWays": "還有 {n} 項，和每項的其他練法，在完整報告",
+        "otherWays": "每項的其他練法在完整報告",
         "planResearchAgain": "先加次數、做滿再加重，研究同上"
     }
 }

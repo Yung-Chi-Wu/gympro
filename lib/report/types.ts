@@ -5,6 +5,7 @@
 
 import type { LogType } from '../exercise-attributes'
 import type { MemoryKind } from '../ronnie/memory'
+import type { BodyGroup } from './volume'
 
 export interface ExerciseInfo {
     id: string
@@ -161,6 +162,8 @@ export interface RecordFacts {
     name: string
     nameZh: string | null
     best: BestSet
+    /** The best earlier set it beat; absent in reports saved before it was kept */
+    previous?: BestSet
     bodyweight: boolean
     assisted?: boolean
     added?: boolean
@@ -256,9 +259,12 @@ export type ReportStatus = 'progressing' | 'stalling' | 'regressing' | 'baseline
 
 export interface ReportFacts {
     period: { start: string; end: string; days: number }
-    sessions: { done: number; planned: number | null; days: DayFacts[] }
+    /** previousDone: days trained in the window before; null without history, absent in reports saved before it was kept */
+    sessions: { done: number; planned: number | null; days: DayFacts[]; previousDone?: number | null }
     /** Working sets: every set but cardio */
     totalSets: { now: number; previous: number | null }
+    /** The working sets by body group (lib/report/volume.ts BODY_GROUPS), each set once, so they add up to totalSets; absent in reports saved before */
+    groups?: { group: BodyGroup; sets: number; previous: number | null }[]
     muscles: MuscleFacts[]
     /** The main lifts: goal lifts first, then the most-trained exercises. Strength lifts only, never cardio or timed work. */
     lifts: LiftFacts[]

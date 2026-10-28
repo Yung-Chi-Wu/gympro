@@ -63,6 +63,19 @@ export const SUGGESTED_EXERCISES: Partial<Record<VolumeUnit, readonly string[]>>
 }
 export const SUGGESTED_NAMES = [...new Set(Object.values(SUGGESTED_EXERCISES).flat())]
 
+/**
+ * The six body groups of the report's share of sets, in body order. Each set counts once, toward its
+ * exercise's category (a squat is legs, a curl arms), so the groups add up to the period's sets.
+ * The units above are the finer view, where a secondary muscle counts half.
+ */
+export const BODY_GROUPS = ['chest', 'back', 'shoulders', 'arms', 'legs', 'core'] as const
+export type BodyGroup = typeof BODY_GROUPS[number]
+const CATEGORY_GROUP: Record<string, BodyGroup> = {
+    chest: 'chest', back: 'back', shoulders: 'shoulders', biceps: 'arms', triceps: 'arms', legs: 'legs', glutes: 'legs', core: 'core',
+}
+/** The body group an exercise's sets count toward; null for cardio */
+export const bodyGroupOf = (category: string): BodyGroup | null => CATEGORY_GROUP[category] ?? null
+
 /** A unit's name; reports saved before the split use category names, which fall back to `category`. */
 export function unitLabel(unit: string, language: string, category: (g: string) => string): string {
     const u = VOLUME_UNITS[unit as VolumeUnit]
