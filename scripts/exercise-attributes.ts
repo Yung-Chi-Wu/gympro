@@ -141,6 +141,10 @@ begin
     alter table exercises drop constraint if exists exercises_log_type_known;
     alter table exercises add constraint exercises_log_type_known check (log_type in (${LOG_TYPE_IDS.map(quote).join(', ')}));
 
+    -- Renamed exercises, ones moved to the category of their primary muscles, and new equipment.
+    -- Before the new ones, so a new exercise can take the name an old one gives up
+${renames}
+
     -- Built-in exercises the database doesn't have yet; one it has is left as it is
     insert into exercises (id, name, name_zh_tw, muscle_group, equipment, is_custom)
     values
@@ -163,9 +167,6 @@ ${inserts}
 ${values}
     ) as v (id, primary_muscles, secondary_muscles, stability_demand, joint_load, log_type, per_side)
     where e.id = v.id::uuid;
-
-    -- Renamed exercises, ones moved to the category of their primary muscles, and new equipment
-${renames}
 
     select count(*) into v_missing from exercises
     where not coalesce(is_custom, false) and cardinality(primary_muscles) = 0;
