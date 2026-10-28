@@ -336,7 +336,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                             <LiftTable lifts={facts.lifts} name={liftName} set={(l) => bestText(l.best, l)}
                                 prev={(l) => bestText(l.previousBest, l)}
                                 trendLabel={(l) => t(`trend.${l.trend}`)}
-                                trendNote={(l) => l.trend === 'flat' && l.flatWindows ? t('flatFor', { n: l.flatWindows, unit }) : l.change != null && l.trend !== 'new' ? (l.bodyweight ? `${l.change > 0 ? '+' : ''}${l.change}` : `${l.change > 0 ? '+' : ''}${l.change}%`) : null} />
+                                trendNote={(l) => l.trend === 'flat' && l.flatWindows ? t('flatFor', { n: l.flatWindows, unit }) : l.progress ? t(`liftProgress.${l.progress}`) : l.change != null && l.trend !== 'new' ? (l.bodyweight ? `${l.change > 0 ? '+' : ''}${l.change}` : `${l.change > 0 ? '+' : ''}${l.change}%`) : null} />
                             <p className="text-xs text-ink/50 max-md:text-[13px] dark:text-white/50">{t('liftsNote', { unit })}</p>
                             {liftWatches.map((w) => <WatchNote key={w.subject} label={`${t('section.watching')}${zh ? '：' : ': '}`}>{t('liftWatch', { lift: liftName(w.data), n: Number(w.data.flatWindows), unit })}</WatchNote>)}
                         </Row>

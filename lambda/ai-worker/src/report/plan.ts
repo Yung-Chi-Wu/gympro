@@ -1,4 +1,4 @@
-import { display, kgOf, prescribe, roundToStep, stepOf, type Prescription } from '../../../../lib/report/progression'
+import { display, kgOf, planNext, prescribe, roundToStep, stepOf, type Prescription } from '../../../../lib/report/progression'
 import { e1rm, liftFor, windowOfFor } from './facts'
 import type { ExerciseInfo, Finding, GoalProgress, GoalTarget, LiftFacts, ReportFacts, ReportInputs, RuleId, WeekSignal } from './types'
 
@@ -11,7 +11,9 @@ import type { ExerciseInfo, Finding, GoalProgress, GoalTarget, LiftFacts, Report
 //   pain_hold     a lift the user said hurt this period: no more weight on it this period
 // Each starts from double progression (Plotkin 2022; ACSM 2009): keep the weight and add reps
 // until every set reaches the top of the range, then add the smallest step. The range is the
-// user's own: the fewest reps of their heaviest sets, up to two more.
+// user's own: the fewest reps of their heaviest sets, up to two more, set the first period they
+// lift that weight and held until the next weight is due (planNext). A lift held for pain and a
+// lighter week start from this period's own sets (prescribe), the weight actually lifted.
 //
 // What the user told Ronnie and wrote this period changes the plan: a lift that hurt this period
 // is held; an injury Ronnie keeps rules out the heavier options on a lift that loads that joint;
@@ -60,6 +62,8 @@ interface Context {
 
 const rxData = (rx: Prescription) => ({
     how: rx.how, weightKg: rx.weightKg, low: rx.low, top: rx.top, nextKg: rx.nextKg, assistKg: rx.assistKg, sets: rx.sets,
+    // The weight every set reached the top at, when weightKg is the step after it
+    ...(rx.fromKg != null ? { fromKg: rx.fromKg } : {}),
 })
 
 /** The pain this period that bears on a lift: about it by name, or in a joint it loads more than lightly */
@@ -141,7 +145,7 @@ function goalPath(target: GoalTarget, progress: GoalProgress | undefined, ctx: C
         const research = 'pullUp,progress'
         const told: Finding['data'] = dislike ? { dislike: dislike.text, dislikeDate: dislike.date } : {}
         if (viaAssisted) {
-            const rx = prescribe(viaAssisted, ctx.inputs.sets, ctx.unit, ctx.windowOf)
+            const rx = planNext(viaAssisted, ctx.inputs.sets, ctx.unit, ctx.windowOf)
             if (rx) {
                 return finding('goal_path', e.id, {
                     ...base, path: 'assisted', ...nameData(viaAssisted, 'via'), ...rxData(rx),
@@ -150,7 +154,7 @@ function goalPath(target: GoalTarget, progress: GoalProgress | undefined, ctx: C
             }
         }
         if (progress?.proxy && pulldownEx) {
-            const rx = prescribe(pulldownEx, ctx.inputs.sets, ctx.unit, ctx.windowOf)
+            const rx = planNext(pulldownEx, ctx.inputs.sets, ctx.unit, ctx.windowOf)
             if (rx && rx.how !== 'assist') {
                 // The pulldown set that estimates the checkpoint, at 6 reps: where a first pull-up likely comes
                 const tryAtKg = progress.proxy.checkpointKg ? shareOf(progress.proxy.checkpointKg / (1 + TRY_REPS / 30), 1, pulldownEx, ctx.unit) : null
@@ -169,7 +173,7 @@ function goalPath(target: GoalTarget, progress: GoalProgress | undefined, ctx: C
     }
 
     const lift = ctx.facts.lifts.find((l) => l.exerciseId === e.id) ?? liftFor(ctx.inputs, e.id)
-    const rx = prescribe(e, ctx.inputs.sets, ctx.unit, ctx.windowOf)
+    const rx = planNext(e, ctx.inputs.sets, ctx.unit, ctx.windowOf)
     if (!lift || !rx) {
         // Not trained this period: from the last set logged, or where to begin
         const last = [...ctx.inputs.sets].filter((s) => s.exerciseId === e.id && s.weightKg > 0).sort((a, b) => b.date.localeCompare(a.date))[0]
@@ -177,8 +181,9 @@ function goalPath(target: GoalTarget, progress: GoalProgress | undefined, ctx: C
     }
 
     // A goal lift that stopped improving: take some weight off and build back up, which a new range
-    // and a run of easier sessions restart (the stall ladder after the notes and recovery)
-    const stalled = lift.flatWindows >= STALL_WINDOWS && rx.how === 'load'
+    // and a run of easier sessions restart (the stall ladder after the notes and recovery). One that
+    // reached the top of its range has the next weight to try first.
+    const stalled = lift.flatWindows >= STALL_WINDOWS && rx.how === 'load' && rx.fromKg == null
     const dropKg = stalled ? kgOf(roundToStep(display(rx.weightKg * (1 - STALL_DROP), ctx.unit), stepOf(e, ctx.unit)), ctx.unit) : null
     const e1 = e1rmNow(e, ctx)
     const weighted = rx.how === 'load' || rx.how === 'load_now'
@@ -272,7 +277,7 @@ export function withPlan(fired: Finding[], facts: ReportFacts, inputs: ReportInp
     const others = facts.lifts.filter((l: LiftFacts) => !goalIds.has(l.exerciseId) && !spoken.has(l.exerciseId) && !held.has(l.exerciseId))
     for (const l of others.slice(0, MAX_NEXT_LINES)) {
         const e = exerciseOf(l.exerciseId)
-        const rx = e ? prescribe(e, inputs.sets, unit, ctx.windowOf) : null
+        const rx = e ? planNext(e, inputs.sets, unit, ctx.windowOf) : null
         if (e && rx) added.push(finding('next_session', e.id, { ...nameData(e), ...rxData(rx) }))
     }
     // A goal lift's stall is in its plan; a lift held for pain isn't pushed by the stall rule either

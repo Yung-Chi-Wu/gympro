@@ -1,12 +1,13 @@
 // Free check of today's aim on each exercise (lib/report/progression.ts todayAim): the report's
-// plan for the period that ended, moved on by each session since, and what the report decided for
+// plan for the period that ended (its range held from earlier periods), moved on by each session
+// since, and what the report decided for
 // this period first. Also that Today's numbers are the report's, and that the report plans with
 // the same function, so the two can't give different numbers. And the target of an exercise
 // outside today's routine (lib/today-workout.ts): another routine's, else last time's sets.
 //   npm run check:today-aim
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { prescribe, todayAim, type AimFinding } from '../lib/report/progression'
+import { planNext, prescribe, todayAim, windowOfFor, type AimFinding } from '../lib/report/progression'
 import { aimText, planItems } from '../lib/report/report-text'
 import type { ExerciseInfo, Finding, LoggedSet } from '../lib/report/types'
 import { loadTodayWorkout, targetOutsideRoutine } from '../lib/today-workout'
@@ -58,6 +59,19 @@ check('a session since that didn\'t reach the top on every set keeps the weight'
     same(pick(aimOf(bench, [...lastWeek, ...session(bench, '2026-10-27', [[80, 8], [80, 8], [80, 7]])]), NUMBERS), { how: 'load', weightKg: 80, low: 6, top: 8, nextKg: 82.5 }))
 check('one that reached it on every set steps up, and starts the heavier weight at the bottom of the range',
     same(pick(aimOf(bench, [...lastWeek, ...session(bench, '2026-10-27', [[80, 8], [80, 8], [80, 9]])]), [...NUMBERS, 'fromKg']), { how: 'step_up', weightKg: 82.5, low: 6, top: 8, nextKg: null, fromKg: 80 }))
+// The range is held from period to period, as the report holds it (planNext): set two weeks before
+// at 80 x 6-8, reached on every set last week, so the report plans 82.5 and so does Today
+{
+    const held = [...session(bench, '2026-10-06', [[80, 8], [80, 7], [80, 6]]), ...session(bench, '2026-10-13', [[80, 8], [80, 7], [80, 7]]), ...session(bench, '2026-10-21', [[80, 8], [80, 8], [80, 8]])]
+    const a = aimOf(bench, held)
+    const rx = planNext(bench, held, 'kg', windowOfFor(LAST.start, LAST.end))!
+    check('a range reached last week, set two weeks before: the next weight, as the report plans it',
+        same(pick(a, [...NUMBERS, 'fromKg']), { how: 'step_up', weightKg: 82.5, low: 6, top: 8, nextKg: null, fromKg: 80 }) && a!.weightKg === rx.weightKg && a!.low === rx.low && rx.fromKg === 80,
+        JSON.stringify({ a, rx }))
+    const climbing = [...session(bench, '2026-10-06', [[80, 6], [80, 6], [80, 6]]), ...session(bench, '2026-10-21', [[80, 8], [80, 7], [80, 7]])]
+    check('reps climbing inside the range keep it: 80 x 6-8, not 7-9',
+        same(pick(aimOf(bench, climbing), NUMBERS), { how: 'load', weightKg: 80, low: 6, top: 8, nextKg: 82.5 }), JSON.stringify(aimOf(bench, climbing)))
+}
 // A 2 kg step on 12 kg is more than a tenth of it, so the dumbbell's range is four reps wide (the report's rule)
 check('the step is the report\'s: 5 kg on a lower-body lift, 2 kg on dumbbells, 5 lb in pounds',
     aimOf(squat, [...session(squat, '2026-10-21', [[100, 6]]), ...session(squat, '2026-10-27', [[100, 8], [100, 8]])])?.weightKg === 105
@@ -146,7 +160,9 @@ check('no aim for an exercise not done lately, cardio, a timed hold or a core ex
     const copies = sources.filter(({ path, text }) => path !== own && /function prescribe\(|const STEP = \{|function todayAim\(/.test(text)).map(({ path }) => path)
     check('the next session is worked out only in lib/report/progression.ts', copies.length === 0, copies.join(', '))
     const plan = sources.find(({ path }) => path === join('lambda', 'ai-worker', 'src', 'report', 'plan.ts'))?.text ?? ''
-    check('the report plans with it', /from '\.\.\/\.\.\/\.\.\/\.\.\/lib\/report\/progression'/.test(plan) && plan.includes('prescribe('))
+    check('the report plans with it', /from '\.\.\/\.\.\/\.\.\/\.\.\/lib\/report\/progression'/.test(plan) && plan.includes('planNext('))
+    const dashboard = sources.find(({ path }) => path === join('app', '(app)', 'dashboard', 'page.tsx'))?.text ?? ''
+    check('Today reads as many periods back as the report, so the held range is the same', dashboard.includes('REPORT_WINDOWS - 1'))
 }
 
 // ---------- The target of an exercise outside today's routine ----------

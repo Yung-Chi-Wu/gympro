@@ -1,13 +1,27 @@
 import { toDisplayWeight, toStorageKg } from '../weight-unit'
 import type { LogType } from '../exercise-attributes'
+import { daysBetween } from '../periods'
 import { setWeights } from './volume'
 import type { ExerciseInfo, LoggedSet } from './types'
 
 // A lift's next session by double progression (Plotkin 2022; ACSM 2009): keep the weight and add
 // reps until every set reaches the top of the range, then add the smallest step. The range is the
-// user's own: the fewest reps of their heaviest sets, up to two more. The report plans with it
+// user's own: the fewest reps of their heaviest sets, up to two more, set the first period they
+// lift that weight and kept from period to period (planNext). The report plans with it
 // (lambda/ai-worker/src/report/plan.ts) and Today aims each exercise with it (todayAim below), so
 // the two can't give different numbers.
+
+/** The periods the report reads, this one and the ones before it. A plan follows its range through them, so Today reads as many. */
+export const REPORT_WINDOWS = 6
+
+/** Which window a date falls in: 0 for this period, 1 for the one before, -1 after it. */
+export function windowOfFor(periodStart: string, periodEnd: string) {
+    const days = daysBetween(periodStart, periodEnd) + 1
+    return (date: string) => {
+        const back = daysBetween(date, periodEnd)
+        return back < 0 ? -1 : Math.floor(back / days)
+    }
+}
 
 /** Groups whose exercises aren't lifts */
 export const NOT_LIFTS = new Set(['cardio', 'core'])
@@ -49,6 +63,8 @@ export interface Prescription {
     assistKg: number | null
     /** Sets at that weight in the last session that had them */
     sets: number
+    /** The weight every set reached the top at, so weightKg is the next step and not yet lifted (planNext); absent otherwise */
+    fromKg?: number | null
 }
 
 /** The weight step for an exercise, in the user's unit */
@@ -93,6 +109,63 @@ export function prescribe(e: ExerciseInfo, sets: LoggedSet[], unit: 'kg' | 'lb',
     const top = Math.min(MAX_TOP, low + (step / shown > MAX_STEP_SHARE ? WIDE_REP_SPAN : REP_SPAN))
     const nextKg = kgOf(shown + step, unit)
     return { how: low >= MAX_TOP ? 'load_now' : 'load', weightKg, low, top, nextKg, assistKg: null, sets: lastSession(at) }
+}
+
+/** A weighted lift's heaviest weight in these sets, and the reps of the latest session's sets at it, in the order logged */
+export function topSession(sets: LoggedSet[]): { weightKg: number; reps: number[] } | null {
+    const weighted = sets.filter((s) => s.weightKg > 0)
+    if (!weighted.length) return null
+    const weightKg = Math.max(...weighted.map((s) => s.weightKg))
+    const at = latestSession(weighted.filter((s) => s.weightKg === weightKg))
+    return { weightKg, reps: [...at].sort((a, b) => a.loggedAt.localeCompare(b.loggedAt)).map((s) => s.reps) }
+}
+
+/**
+ * A weighted lift's plan after each window, by window (index 0 is this period's): the range is set
+ * the first period a weight is the heaviest (prescribe) and kept while the reps climb. Once every
+ * set of the latest session at that weight reaches the top, the next weight is due, at the same
+ * range. A heavier weight sets a new range. A lighter one for a period (a lighter week, an off day)
+ * leaves the plan as it was, and for two in a row starts it again there. Null before the lift has
+ * weighted sets in the windows.
+ */
+export function plansThrough(e: ExerciseInfo, sets: LoggedSet[], unit: 'kg' | 'lb', windowOf: (date: string) => number): (Prescription | null)[] {
+    const out: (Prescription | null)[] = Array.from({ length: REPORT_WINDOWS }, () => null)
+    const next = (kg: number) => kgOf(display(kg, unit) + stepOf(e, unit), unit)
+    const own = sets.filter((s) => s.exerciseId === e.id)
+    let plan: Prescription | null = null
+    // The weight lifted at the plan's range: the plan's own, or the one before a step that is due
+    let doneKg = 0
+    let lighter = 0
+    for (let k = REPORT_WINDOWS - 1; k >= 0; k--) {
+        const rx = prescribe(e, own, unit, (date) => (windowOf(date) === k ? 0 : 1))
+        const top = topSession(own.filter((s) => windowOf(s.date) === k))
+        if (rx && top && (rx.how === 'load' || rx.how === 'load_now')) {
+            if (!plan || rx.weightKg > doneKg || (rx.weightKg < doneKg && ++lighter >= 2)) {
+                plan = rx
+                doneKg = rx.weightKg
+                lighter = 0
+            } else if (rx.weightKg === doneKg) {
+                lighter = 0
+                const held: Prescription = plan
+                plan = top.reps.every((r) => r >= held.top)
+                    ? { ...held, how: 'load', weightKg: next(doneKg), nextKg: next(next(doneKg)), sets: rx.sets, fromKg: doneKg }
+                    : { ...held, weightKg: doneKg, nextKg: next(doneKg), sets: rx.sets, fromKg: null }
+            }
+        }
+        out[k] = plan
+    }
+    return out
+}
+
+/**
+ * The next session for one exercise: a weighted lift's plan as plansThrough holds it, so a period
+ * that reached the top plans the next weight, not a higher range; any other lift from this period
+ * alone (prescribe). Null when it had no sets this period.
+ */
+export function planNext(e: ExerciseInfo, sets: LoggedSet[], unit: 'kg' | 'lb', windowOf: (date: string) => number): Prescription | null {
+    const now = prescribe(e, sets, unit, windowOf)
+    if (!now || (now.how !== 'load' && now.how !== 'load_now')) return now
+    return plansThrough(e, sets, unit, windowOf)[0] ?? now
 }
 
 
@@ -145,14 +218,15 @@ function latestSession(sets: LoggedSet[]): LoggedSet[] {
 
 /**
  * What to aim for today on one exercise, by the report's rule. The range comes from the period the
- * newest report covers, as the report worked it out, and each session since moves it on: every
- * set at the top, the next step. Without that period's sets, the latest session gives the range.
- * What the report decided for this period comes first: a lift held for pain, a lighter week, a
- * goal lift taken back down. Null for an exercise that isn't a lift, or not done lately.
+ * newest report covers, as the report worked it out (planNext, over the same periods), and each
+ * session since moves it on: every set at the top, the next step. Without that period's sets, the
+ * latest session gives the range. What the report decided for this period comes first: a lift
+ * held for pain, a lighter week, a goal lift taken back down. Null for an exercise that isn't a
+ * lift, or not done lately.
  */
 export function todayAim({ exercise: e, sets, unit, today, lastPeriod, findings }: {
     exercise: ExerciseInfo
-    /** Its sets before today, from the start of lastPeriod on (or the last few weeks) */
+    /** Its sets before today, from REPORT_WINDOWS periods back from lastPeriod's end (or the last few weeks) */
     sets: LoggedSet[]
     unit: 'kg' | 'lb'
     today: string
@@ -164,8 +238,7 @@ export function todayAim({ exercise: e, sets, unit, today, lastPeriod, findings 
     if (!STRENGTH_LOG_TYPES.has(e.logType) || NOT_LIFTS.has(e.muscleGroup)) return null
     const mine = sets.filter((s) => s.exerciseId === e.id && s.date < today)
     const since = latestSession(lastPeriod ? mine.filter((s) => s.date > lastPeriod.end) : mine)
-    const inPeriod = (date: string) => !!lastPeriod && lastPeriod.start <= date && date <= lastPeriod.end
-    const fromPeriod = lastPeriod ? prescribe(e, mine, unit, (date) => (inPeriod(date) ? 0 : 1)) : null
+    const fromPeriod = lastPeriod ? planNext(e, mine, unit, windowOfFor(lastPeriod.start, lastPeriod.end)) : null
     // Without the period's sets, the latest session is the range, and nothing has happened since it
     const base = fromPeriod ?? (since.length ? prescribe(e, since, unit, () => 0) : null)
     const after = fromPeriod ? since : []
@@ -213,6 +286,8 @@ export function todayAim({ exercise: e, sets, unit, today, lastPeriod, findings 
             const dropKg = reset.dropKg as number
             return aim('reset', { weightKg: dropKg, fromKg: base.weightKg, low: base.low, top: base.top, nextKg: stepUp(dropKg) })
         }
+        // The period reached the top, so the report's plan is the next weight already
+        if (base.fromKg != null) return aim('step_up', { weightKg: base.weightKg, fromKg: base.fromKg, low: base.low, top: base.top })
         return base.how === 'load_now'
             ? aim('step_up', { weightKg: base.nextKg, fromKg: base.weightKg, low: base.low, top: base.top })
             : aim('load', { weightKg: base.weightKg, low: base.low, top: base.top, nextKg: base.nextKg })

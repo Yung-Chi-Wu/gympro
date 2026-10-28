@@ -265,7 +265,7 @@ export function followUp(previous: Finding[] | null, facts: ReportFacts, liftOf:
                 const l = id ? liftOf(id) : null
                 if (!l || !l.best) return result('not_done', { trained: 0 })
                 const now = setText(l.best)
-                return result(planStatus(f.data, l.best), { now })
+                return result(planStatus(f.data, l), { now })
             }
             case 'few_days': {
                 const now = round1((facts.sessions.done * 7) / facts.period.days)
@@ -284,18 +284,24 @@ export function followUp(previous: Finding[] | null, facts: ReportFacts, liftOf:
 }
 
 /**
- * A plan followed up against this period's best set: done when it reached the plan's next step
- * (the next weight, the top reps, less assist), partial when it moved toward it.
+ * A plan followed up against this period: done when it reached the plan's next step (the next
+ * weight, every set at the top reps, less assist), partial when the lift moved toward it.
  */
-function planStatus(d: Finding['data'], best: BestSet): FollowUpStatus {
+function planStatus(d: Finding['data'], l: LiftFacts): FollowUpStatus {
+    const best = l.best!
     const low = Number(d.low)
     switch (d.how) {
         case 'assist': return best.assistKg != null && best.assistKg < Number(d.assistKg) ? 'done' : best.reps > low ? 'partial' : 'not_done'
         case 'reps': return best.reps >= Number(d.top) ? 'done' : best.reps > low ? 'partial' : 'not_done'
         case 'load':
-        case 'load_now':
-            return d.nextKg != null && best.weightKg >= Number(d.nextKg) ? 'done'
-                : best.weightKg > Number(d.weightKg) || (best.weightKg === Number(d.weightKg) && best.reps > low) ? 'partial' : 'not_done'
+        case 'load_now': {
+            if (d.nextKg != null && best.weightKg >= Number(d.nextKg)) return 'done'
+            // Every set of the latest session at the plan's weight reached the top: the next weight is due
+            const top = l.top
+            if (top && top.weightKg >= Number(d.weightKg) && top.reps.every((r) => r >= Number(d.top))) return 'done'
+            // Moved toward it: more reps, or the next weight within the range. The same sets again aren't.
+            return l.trend === 'up' ? 'partial' : 'not_done'
+        }
         // Not trained then, or where to start: trained now is done
         default: return 'done'
     }
