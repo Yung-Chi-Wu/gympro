@@ -90,27 +90,34 @@ export async function publishAiMetrics(supabase: SupabaseClient): Promise<void> 
 
 /**
  * The app's own failures in the past hour, from app_errors (warnings left out), as the GymPro/App
- * metric the gympro-app-errors alarm watches. Logged in the embedded metric format like the AI
- * metrics; a failure here is logged, never thrown.
+ * metric the gympro-app-errors alarm watches, and the database's size, which gympro-database-size
+ * watches: Supabase's free plan turns read-only at 500 MB (database_size_bytes, migration
+ * 20261027160000). Logged in the embedded metric format like the AI metrics; each is sent on its
+ * own, and a failure is logged, never thrown.
  */
 export async function publishAppMetrics(supabase: SupabaseClient): Promise<void> {
+    const now = Date.now()
+    const metric = (name: string, unit: string, value: number) => console.log(JSON.stringify({
+        _aws: { Timestamp: now, CloudWatchMetrics: [{ Namespace: 'GymPro/App', Dimensions: [[]], Metrics: [{ Name: name, Unit: unit }] }] },
+        [name]: value,
+    }))
     try {
-        const now = Date.now()
         const { count, error } = await supabase
             .from('app_errors')
             .select('id', { count: 'exact', head: true })
             .eq('level', 'error')
             .gte('created_at', new Date(now - 3_600_000).toISOString())
         if (error) throw new Error(error.message)
-        console.log(JSON.stringify({
-            _aws: {
-                Timestamp: now,
-                CloudWatchMetrics: [{ Namespace: 'GymPro/App', Dimensions: [[]], Metrics: [{ Name: 'AppErrorsLastHour', Unit: 'Count' }] }],
-            },
-            AppErrorsLastHour: count ?? 0,
-        }))
+        metric('AppErrorsLastHour', 'Count', count ?? 0)
     } catch (err) {
         console.error(`App metrics not published: ${err instanceof Error ? err.message : String(err)}`)
+    }
+    try {
+        const { data, error } = await supabase.rpc('database_size_bytes')
+        if (error) throw new Error(error.message)
+        metric('DatabaseMB', 'Megabytes', Math.round(Number(data) / 1_000_000))
+    } catch (err) {
+        console.error(`Database size not published: ${err instanceof Error ? err.message : String(err)}`)
     }
 }
 

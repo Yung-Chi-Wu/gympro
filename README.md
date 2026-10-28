@@ -31,7 +31,7 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
 - **Production infrastructure in Terraform.**
   - Vercel and Supabase, with AWS for the report pipeline: SQS, Lambda and EventBridge Scheduler.
   - No long-lived AWS keys.
-  - 12 CloudWatch alarms. Every AI call is traced with its tokens and cost.
+  - 14 CloudWatch alarms. Every AI call is traced with its tokens and cost.
   - Every model call asks a spend limit first: one per user, and one for all users together.
 
 ## What it does
@@ -240,13 +240,14 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
 - **Feedback.** Users send feedback from Settings: a problem, an idea, or an exercise they want added, in their own words. It is kept in `app_feedback` with the app version, language and browser, never their training log, and a user can send 10 a day. When a user names an exercise the library doesn't have, Ronnie asks for it there too (`request_exercise`, at most 3 a day): code checks the library first, the same name isn't sent twice in 30 days, and the line under the reply saying it was sent is written by code.
 - **Weekly email.** Each Monday the owner gets one email with the week's feedback and the Ronnie replies that were flagged, by the review or by the user, with the reasons a user gave for reporting one. It is sent only when there is something in it. It never quotes a conversation, and every line a user wrote starts with "> ", so none of it can pass for the email's own text.
 - **Errors.** Server and browser errors go to an `app_errors` table.
-- **Alarms.** 13 CloudWatch alarms send email when:
+- **Alarms.** 14 CloudWatch alarms send email when:
   - AI calls fail, or half of an hour's calls fail (a dead key);
   - a day's AI spend runs high;
   - the scheduler goes silent;
   - a report is stuck, or reaches the dead-letter queue;
   - a Lambda nears its timeout, or the daily review or weekly email fails;
-  - the app logs an error.
+  - the app logs an error;
+  - the database passes 400 MB of the free plan's 500 MB.
 - **Data integrity.** Today's workout and its plan are created in one transaction, under a per-user lock. Limits on sets, targets and amounts are enforced in both the app and the database.
 
 ## Performance
@@ -291,9 +292,11 @@ Opening the app on Today went from 0.8–1.1 s to about 0.5 s.
 - **AI spend limits**, against what OWASP's LLM10 calls "denial of wallet". Before every model call the app takes a slot from the database ([`lib/ai/spend-limits.ts`](lib/ai/spend-limits.ts)):
   - one AI request at a time per user;
   - a user's requests may cost US$0.50 over any 24 hours;
-  - all users' together may cost US$1, so however many accounts someone makes, the scheduled reports keep room under the Anthropic spend cap.
+  - accounts younger than 7 days share US$1, so accounts made to spend can't use up what everyone shares;
+  - all users' together may cost US$5, so however many accounts someone makes, the scheduled reports keep room under the Anthropic spend cap.
 
-  The cost is summed from the traces, and a slot is let go only after its trace is saved, so a user can pass their limit by one request at most. Past a limit, Ronnie says when it's back, and Coach G carries on without the model. If the limits themselves fail, the request goes through and an alarm fires. Checked against the last 30 days of real use: none of the 47 requests would have been refused.
+  The cost is summed from the traces, and a slot is let go only after its trace is saved, so a user can pass their limit by one request at most. That one request is bounded too: a turn sends at most 60,000 characters of the day's history, and a trace the database refuses for its text is saved again with only its cost. Past a limit, Ronnie says when it's back, and Coach G carries on without the model. If the limits themselves fail, the request goes through and an alarm fires. Checked against the last 30 days of real use: none of the 47 requests would have been refused.
+- **Rows per account.** Each table a user writes to takes at most about ten years of heavy use per account (60,000 sets, 5,000 workouts), checked by a trigger after each insert, and a day's Ronnie conversation at most 1 MB. The database is on Supabase's free plan, which turns read-only at 500 MB.
 - Dependabot is on, and GitHub Actions are pinned to commit SHAs. CodeQL scans the code and the workflows on every pull request and once a week, with GitHub's extended security queries.
 
 ## Tech stack

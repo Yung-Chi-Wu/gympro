@@ -771,12 +771,18 @@ export type Database = {
         Args: {
           p_all_usd: number
           p_features: string[]
+          p_new_days?: number
+          p_new_usd?: number
           p_request_id: string
           p_slot_seconds: number
           p_user_id: string
           p_user_usd: number
         }
         Returns: Json
+      }
+      database_size_bytes: {
+        Args: never
+        Returns: number
       }
       end_ai_request: {
         Args: {

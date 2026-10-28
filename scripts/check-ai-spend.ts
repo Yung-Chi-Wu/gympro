@@ -13,7 +13,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, normalize } from 'node:path'
 import ts from 'typescript'
-import { askForSlot, LIMITED_FEATURES, SLOT_SECONDS, spendLimitsFrom, type SlotDeps } from '../lib/ai/spend-limits'
+import { askForSlot, LIMITED_FEATURES, NEW_ACCOUNT_DAYS, SLOT_SECONDS, spendLimitsFrom, type SlotDeps } from '../lib/ai/spend-limits'
 import { recordTrace, type Trace } from '../lib/ai/trace'
 import { isStorableText } from '../lib/text-limits'
 
@@ -26,13 +26,13 @@ const check = (name: string, ok: boolean, detail = '') => {
 // ---------- The limits ----------
 {
     const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
-    check('with nothing set: US$0.50 a user and US$1 for everyone over 24 hours, on',
-        same(spendLimitsFrom({}), { userUsd: 0.5, allUsd: 1, off: false }), JSON.stringify(spendLimitsFrom({})))
+    check('with nothing set: US$0.50 a user, US$1 for new accounts together and US$5 for everyone over 24 hours, on',
+        same(spendLimitsFrom({}), { userUsd: 0.5, newUsd: 1, allUsd: 5, off: false }), JSON.stringify(spendLimitsFrom({})))
     check('set in the environment, they are used',
-        same(spendLimitsFrom({ AI_USER_DAILY_USD: '0.2', AI_ALL_DAILY_USD: ' 3 ' }), { userUsd: 0.2, allUsd: 3, off: false }))
+        same(spendLimitsFrom({ AI_USER_DAILY_USD: '0.2', AI_NEW_DAILY_USD: '2', AI_ALL_DAILY_USD: ' 3 ' }), { userUsd: 0.2, newUsd: 2, allUsd: 3, off: false }))
     check('0 is a limit (nothing goes through), not a missing one', spendLimitsFrom({ AI_USER_DAILY_USD: '0' }).userUsd === 0)
     check('a value that is no amount (empty, words, negative) falls back to the default',
-        same(spendLimitsFrom({ AI_USER_DAILY_USD: '', AI_ALL_DAILY_USD: 'ten' }), { userUsd: 0.5, allUsd: 1, off: false })
+        same(spendLimitsFrom({ AI_USER_DAILY_USD: '', AI_NEW_DAILY_USD: 'one', AI_ALL_DAILY_USD: 'ten' }), { userUsd: 0.5, newUsd: 1, allUsd: 5, off: false })
         && spendLimitsFrom({ AI_USER_DAILY_USD: '-1' }).userUsd === 0.5)
     check('AI_LIMITS=off turns them off; anything else leaves them on',
         spendLimitsFrom({ AI_LIMITS: 'off' }).off && !spendLimitsFrom({ AI_LIMITS: 'no' }).off)
@@ -53,7 +53,7 @@ function fakeDatabase(answers: Answer[]) {
             if (answer instanceof Error) throw answer
             return answer
         },
-        limits: { userUsd: 0.5, allUsd: 1, off: false },
+        limits: { userUsd: 0.5, newUsd: 0.8, allUsd: 1, off: false },
         failed: (err, step) => failures.push(`${step}: ${err instanceof Error ? err.message : JSON.stringify(err)}`),
         allReached: () => { allReached++ },
         sleep: async (ms) => { sleeps.push(ms); clock += ms },
@@ -70,10 +70,11 @@ async function checkSlots() {
         const db = fakeDatabase([ok])
         const asked = await askForSlot('u1', db.deps())
         const begin = db.calls[0]
-        check('a slot is asked for this user, the limited features, the limits and the slot time',
+        check('a slot is asked for this user, the limited features, the limits (the new-account one too) and the slot time',
             asked.ok && begin?.fn === 'begin_ai_request' && begin.args.p_user_id === 'u1'
             && JSON.stringify(begin.args.p_features) === JSON.stringify(LIMITED_FEATURES)
             && begin.args.p_user_usd === 0.5 && begin.args.p_all_usd === 1 && begin.args.p_slot_seconds === SLOT_SECONDS
+            && begin.args.p_new_usd === 0.8 && begin.args.p_new_days === NEW_ACCOUNT_DAYS
             && typeof begin.args.p_request_id === 'string', JSON.stringify(begin))
         if (asked.ok) {
             await Promise.all([asked.release(), asked.release()])
@@ -130,7 +131,7 @@ async function checkSlots() {
     }
     {
         const db = fakeDatabase([refusedAs('user')])
-        const asked = await askForSlot('u1', db.deps({ limits: { userUsd: 0.5, allUsd: 1, off: true } }))
+        const asked = await askForSlot('u1', db.deps({ limits: { userUsd: 0.5, newUsd: 0.8, allUsd: 1, off: true } }))
         check('switched off: it goes ahead without asking', asked.ok && db.calls.length === 0)
     }
     {

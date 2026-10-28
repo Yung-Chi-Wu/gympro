@@ -32,7 +32,7 @@ export async function takeAiSlot(userId: string, clientOptions: Omit<ClientOptio
         allReached: () => {
             if (Date.now() - allReportedAt < ALL_REPORT_MS) return
             allReportedAt = Date.now()
-            reportError('ai-spend', `All users' AI requests reached US$${limits.allUsd} over 24 hours: they are refused until it falls under`)
+            reportError('ai-spend', `AI requests reached a shared limit over 24 hours (new accounts US$${limits.newUsd}, everyone US$${limits.allUsd}): they are refused until it falls under`)
         },
     })
     if (!asked.ok) return { refused: asked.refused }

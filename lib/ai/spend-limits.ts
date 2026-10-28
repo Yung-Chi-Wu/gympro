@@ -5,6 +5,9 @@ import type { TraceFeature } from './trace'
 // them out:
 //   - one AI request at a time per user;
 //   - a user's requests may cost limits.userUsd over any 24 hours;
+//   - accounts younger than NEW_ACCOUNT_DAYS share limits.newUsd, so accounts made to spend
+//     can't use up what everyone shares and switch AI off for the users already here
+//     (migration 20261027160000);
 //   - all users' together limits.allUsd, so however many accounts someone makes, the reports
 //     (made on a schedule, not on request) keep room under the Anthropic Console's monthly
 //     spend limit, the last wall.
@@ -19,6 +22,9 @@ import type { TraceFeature } from './trace'
 /** The features a user runs on request. The report and the daily review run on a schedule. */
 export const LIMITED_FEATURES: TraceFeature[] = ['ronnie', 'coach_chat', 'coach_routine']
 
+/** How long an account counts as new, by user_profiles.created_at (no profile is new) */
+export const NEW_ACCOUNT_DAYS = 7
+
 /** Longer than a route may run (300 s on Vercel), so a slot whose request died frees itself after it */
 export const SLOT_SECONDS = 360
 /** How long a request waits for the user's one before it: a stopped reply still saves what it did */
@@ -28,24 +34,31 @@ const RETRY_MS = 750
 export interface SpendLimits {
     /** US$ one user's requests may cost over 24 hours */
     userUsd: number
+    /** US$ the requests of all accounts younger than NEW_ACCOUNT_DAYS may cost together over 24 hours */
+    newUsd: number
     /** US$ all users' requests may cost together over 24 hours */
     allUsd: number
     /** AI_LIMITS=off: the switch for a limit that refuses what it shouldn't */
     off: boolean
 }
 
-/** The limits from the environment: AI_USER_DAILY_USD (0.5), AI_ALL_DAILY_USD (1), AI_LIMITS=off */
+/** The limits from the environment: AI_USER_DAILY_USD (0.5), AI_NEW_DAILY_USD (1), AI_ALL_DAILY_USD (5), AI_LIMITS=off */
 export function spendLimitsFrom(env: Record<string, string | undefined>): SpendLimits {
     const usd = (name: string, fallback: number) => {
         const value = Number(env[name])
         return env[name]?.trim() && Number.isFinite(value) && value >= 0 ? value : fallback
     }
-    return { userUsd: usd('AI_USER_DAILY_USD', 0.5), allUsd: usd('AI_ALL_DAILY_USD', 1), off: env.AI_LIMITS?.trim() === 'off' }
+    return {
+        userUsd: usd('AI_USER_DAILY_USD', 0.5),
+        newUsd: usd('AI_NEW_DAILY_USD', 1),
+        allUsd: usd('AI_ALL_DAILY_USD', 5),
+        off: env.AI_LIMITS?.trim() === 'off',
+    }
 }
 
 /**
  * busy: the user's request before this one is still running; user: their own limit; all: the
- * all-users limit. resetsAt is when enough of the 24 hours' cost has aged out, if known.
+ * new accounts' limit, for a new account, or the all-users limit. resetsAt is when enough of the 24 hours' cost has aged out, if known.
  */
 export interface Refusal {
     reason: 'busy' | 'user' | 'all'
@@ -60,7 +73,7 @@ export interface SlotDeps {
     limits: SpendLimits
     /** The limits failed at this step; the request has gone ahead */
     failed: (err: unknown, step: 'begin' | 'end') => void
-    /** A request was refused at the all-users limit */
+    /** A request was refused at the new accounts' or the all-users limit */
     allReached: () => void
     sleep?: (ms: number) => Promise<void>
     now?: () => number
@@ -87,6 +100,7 @@ export async function askForSlot(userId: string, deps: SlotDeps): Promise<Asked>
             const { data, error } = await rpc('begin_ai_request', {
                 p_user_id: userId, p_request_id: requestId, p_features: LIMITED_FEATURES,
                 p_user_usd: deps.limits.userUsd, p_all_usd: deps.limits.allUsd, p_slot_seconds: SLOT_SECONDS,
+                p_new_usd: deps.limits.newUsd, p_new_days: NEW_ACCOUNT_DAYS,
             })
             if (error) throw error
             const answer = data as { ok?: unknown; reason?: unknown; resets_at?: unknown } | null
