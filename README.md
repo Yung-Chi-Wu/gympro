@@ -288,7 +288,7 @@ Opening the app on Today went from 0.8–1.1 s to about 0.5 s.
 - Row-level security on every user table, with the policies in [`supabase/migrations`](supabase/migrations). Conversation and memory tables are written only by the server.
 - No long-lived AWS credentials. Production and preview deployments get separate IAM roles through OIDC.
 - Queues are encrypted, size-capped and TLS-only.
-- Security headers are set, and sign-in redirects are validated. A Content Security Policy is enforced: scripts, styles and connections only from the app itself, Supabase and the Vercel toolbar, and no framing. It ran report-only for a week first. Anything it blocks in a signed-in page is sent to `app_errors`, so it raises an alarm.
+- Security headers are set, and sign-in redirects are validated. A Content Security Policy is enforced: scripts, styles and connections only from the app itself and Supabase (inline scripts too, which Next.js needs), the Vercel toolbar on preview deployments only, and no framing. It ran report-only for a week first. Anything it blocks in a signed-in page is sent to `app_errors`, so it raises an alarm.
 - **AI spend limits**, against what OWASP's LLM10 calls "denial of wallet". Before every model call the app takes a slot from the database ([`lib/ai/spend-limits.ts`](lib/ai/spend-limits.ts)):
   - one AI request at a time per user;
   - a user's requests may cost US$0.50 over any 24 hours;

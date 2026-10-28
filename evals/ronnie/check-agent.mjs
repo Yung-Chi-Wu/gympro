@@ -845,31 +845,44 @@ const op = (q, name) => q.ops.find(([k]) => k === name)?.[1]
 
 // An exercise request goes through the service-role client, for this user: kind exercise, source
 // ronnie; the same name asked for in 30 days (from Settings too) isn't sent again, and a day holds
-// 10 pieces of feedback, 3 of them Ronnie's
+// 10 pieces of feedback, 3 of them Ronnie's. It is saved first and checked with itself after, and
+// taken out again when it breaks a rule, so requests made at once can't all count the same rows
 {
     const at = (hoursAgo) => new Date(FIXTURE_NOW.getTime() - hoursAgo * 3_600_000).toISOString()
-    const run = async (rows, name = '寬握滑輪下拉') => {
-        const admin = fakeSupabase((q) => (op(q, 'select') ? { data: rows, error: null } : { data: null, error: null }))
+    const run = async (rows, { name = '寬握滑輪下拉', id = 'mine', created = at(0) } = {}) => {
+        const message = `${name}\n滑輪下拉機，寬握`
+        const self = { id, created_at: created, kind: 'exercise', source: 'ronnie', message }
+        const admin = fakeSupabase((q) => (op(q, 'insert') ? { data: { id, created_at: created }, error: null }
+            : op(q, 'select') ? { data: [...rows, self], error: null } : { error: null }))
         const userClient = fakeSupabase(() => ({ data: null, error: null }))
         const data = createSupabaseRonnieData(userClient, 'u1', FIXTURE_TIME_ZONE, null, { admin, now: () => FIXTURE_NOW })
-        const result = await data.requestExercise({ name, message: `${name}\n滑輪下拉機，寬握`, language: 'zh-TW' })
-        return { result, admin, userClient, insert: op(admin.requests.find((q) => op(q, 'insert')) ?? { ops: [] }, 'insert')?.[0] }
+        const result = await data.requestExercise({ name, message, language: 'zh-TW' })
+        const removed = admin.requests.find((q) => op(q, 'delete'))
+        return { result, admin, userClient, insert: op(admin.requests.find((q) => op(q, 'insert')) ?? { ops: [] }, 'insert')?.[0], removed: removed ? op(removed, 'eq')?.join() : null }
     }
     const fresh = await run([])
-    const read = fresh.admin.requests[0]
-    check(fresh.result.status === 'sent' && fresh.insert?.user_id === 'u1' && fresh.insert.kind === 'exercise' && fresh.insert.source === 'ronnie' && fresh.insert.message === '寬握滑輪下拉\n滑輪下拉機，寬握' && fresh.insert.language === 'zh-TW' && !fresh.userClient.requests.length,
+    const read = fresh.admin.requests.find((q) => !op(q, 'insert') && op(q, 'select'))
+    check(fresh.result.status === 'sent' && fresh.insert?.user_id === 'u1' && fresh.insert.kind === 'exercise' && fresh.insert.source === 'ronnie' && fresh.insert.message === '寬握滑輪下拉\n滑輪下拉機，寬握' && fresh.insert.language === 'zh-TW' && !fresh.userClient.requests.length && !fresh.removed,
         `it is kept as the user's exercise request from Ronnie, never through their own client: ${JSON.stringify(fresh.insert)}`)
-    check(op(read, 'eq')?.join() === 'user_id,u1' && op(read, 'gte')?.[1] === new Date(FIXTURE_NOW.getTime() - 30 * 86_400_000).toISOString(), "the check reads this user's last 30 days")
-    const asked = await run([{ created_at: at(24 * 20), kind: 'exercise', source: 'settings', message: '寬握 滑輪下拉\n我想要寬握的' }])
-    check(asked.result.status === 'duplicate' && !asked.insert, 'asked for from Settings 20 days ago, it is not sent again')
-    const other = await run([{ created_at: at(1), kind: 'idea', source: 'settings', message: '寬握滑輪下拉' }])
+    check(fresh.admin.requests.indexOf(read) > fresh.admin.requests.findIndex((q) => op(q, 'insert')) && op(read, 'eq')?.join() === 'user_id,u1' && op(read, 'gte')?.[1] === new Date(FIXTURE_NOW.getTime() - 30 * 86_400_000).toISOString(),
+        "the check reads this user's last 30 days, after the save")
+    const asked = await run([{ id: 'a', created_at: at(24 * 20), kind: 'exercise', source: 'settings', message: '寬握 滑輪下拉\n我想要寬握的' }])
+    check(asked.result.status === 'duplicate' && asked.removed === 'id,mine', `asked for from Settings 20 days ago, it is not sent again: taken out (${asked.removed})`)
+    const other = await run([{ id: 'a', created_at: at(1), kind: 'idea', source: 'settings', message: '寬握滑輪下拉' }])
     check(other.result.status === 'sent', 'an idea that happens to say the name is not a request for it')
-    const busy = await run(Array.from({ length: 10 }, (_, i) => ({ created_at: at(i + 1), kind: 'bug', source: 'settings', message: `bug ${i}` })))
-    check(busy.result.status === 'limit' && !busy.insert, 'after 10 pieces of feedback in a day, nothing more')
-    const ronnie = await run(Array.from({ length: 3 }, (_, i) => ({ created_at: at(i + 1), kind: 'exercise', source: 'ronnie', message: `exercise ${i}` })))
-    check(ronnie.result.status === 'limit' && !ronnie.insert, "after Ronnie's 3 requests in a day, nothing more")
-    const yesterday = await run(Array.from({ length: 3 }, (_, i) => ({ created_at: at(25 + i), kind: 'exercise', source: 'ronnie', message: `exercise ${i}` })))
+    const busy = await run(Array.from({ length: 10 }, (_, i) => ({ id: `b${i}`, created_at: at(i + 1), kind: 'bug', source: 'settings', message: `bug ${i}` })))
+    check(busy.result.status === 'limit' && busy.removed === 'id,mine', 'after 10 pieces of feedback in a day, nothing more: the 11th is taken out')
+    const ronnie = await run(Array.from({ length: 3 }, (_, i) => ({ id: `e${i}`, created_at: at(i + 1), kind: 'exercise', source: 'ronnie', message: `exercise ${i}` })))
+    check(ronnie.result.status === 'limit' && ronnie.removed === 'id,mine', "after Ronnie's 3 requests in a day, nothing more")
+    const yesterday = await run(Array.from({ length: 3 }, (_, i) => ({ id: `e${i}`, created_at: at(25 + i), kind: 'exercise', source: 'ronnie', message: `exercise ${i}` })))
     check(yesterday.result.status === 'sent', 'the day is the last 24 hours: yesterday\'s 3 leave room')
+    // Two requests for the same name made at once (one reply's tool calls): each sees the other, and only the earlier stays
+    const twin = (id) => ({ id, created_at: at(0), kind: 'exercise', source: 'ronnie', message: '寬握滑輪下拉\n滑輪下拉機，寬握' })
+    const first = await run([twin('m2')], { id: 'm1' })
+    const second = await run([twin('m1')], { id: 'm2' })
+    check(first.result.status === 'sent' && !first.removed && second.result.status === 'duplicate' && second.removed === 'id,m2', 'of two asking for the same name at once, exactly one stays')
+    const later = await run([{ id: 'z', created_at: at(-0.01), kind: 'exercise', source: 'ronnie', message: '寬握滑輪下拉\nx' }])
+    check(later.result.status === 'sent', 'one made after it is the one that goes, not this')
     const none = createSupabaseRonnieData(fakeSupabase(() => ({ data: null, error: null })), 'u1', FIXTURE_TIME_ZONE, null)
     check(JSON.stringify(await none.requestExercise({ name: 'x', message: 'x', language: 'en' })) === '{"error":"Requests are not available"}', 'without the service-role client, it says so')
 }
