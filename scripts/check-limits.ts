@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { REPS, SETS } from '../lib/coach-g'
 import { isValidField, MIN_AVG_HR, STORED_MAX, type Units } from '../lib/set-log'
 import { isTarget, TARGET_REPS, TARGET_SETS } from '../lib/targets'
-import { GOAL_CHOICES, goalText } from '../lib/goal-choices'
+import { answersGoalText, GOAL_CHOICES, goalText } from '../lib/goal-choices'
 import { MAX_TRAINING_GOAL_CHARS } from '../lib/text-limits'
 
 // The limits on what a user types: a set's amounts in any unit, and a routine's targets. The app
@@ -99,6 +99,18 @@ for (const [kinds, words, zh, want] of goalCases) {
     const got = goalText(kinds, words, zh)
     check(`goal from ${JSON.stringify(kinds)} and ${JSON.stringify(words)}`, got === want, `got ${JSON.stringify(got)}`)
 }
+// Coach G's goal answers, offered as the goal after its plan is saved
+const answerCases: [string[], boolean, string][] = [
+    [['增肌', '增強力量'], true, '增肌、增強力量'],
+    [[' Build muscle ', 'Build muscle', '', 'Lose fat'], false, 'Build muscle, Lose fat'],
+    [['  '], true, ''],
+]
+for (const [answers, zh, want] of answerCases) {
+    const got = answersGoalText(answers, zh)
+    check(`goal from Coach G's answers ${JSON.stringify(answers)}`, got === want, `got ${JSON.stringify(got)}`)
+}
+check(`a goal from Coach G's answers fits training_goal (${MAX_TRAINING_GOAL_CHARS})`,
+    answersGoalText(Array.from({ length: 20 }, (_, i) => `${i}`.padEnd(60, 'x')), true).length <= MAX_TRAINING_GOAL_CHARS)
 check(`a goal from every kind and the longest words fits training_goal (${MAX_TRAINING_GOAL_CHARS})`,
     goalText(GOAL_CHOICES.map((c) => c.key), 'x'.repeat(MAX_TRAINING_GOAL_CHARS), true).length <= MAX_TRAINING_GOAL_CHARS)
 check(`training_goal's limit is the table's (${MAX_TRAINING_GOAL_CHARS})`,
