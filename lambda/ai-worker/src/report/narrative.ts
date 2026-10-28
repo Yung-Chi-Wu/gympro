@@ -269,8 +269,10 @@ export function buildPrompt(input: NarrativeInput): string {
         cardioLine(facts.cardio, zh, unit, facts.period.days, distanceUnit),
         facts.bodyWeight.latestKg != null ? `Body weight: ${w(facts.bodyWeight.latestKg)}${facts.bodyWeight.changeKg != null ? ` (${facts.bodyWeight.changeKg >= 0 ? '+' : '-'}${w(Math.abs(facts.bodyWeight.changeKg))} ${since(facts.bodyWeight.changeWindows ?? 1)})` : ''}, ${facts.bodyWeight.weighIns} weigh-in(s) this ${unit}.` : 'No body weight logged.',
         `Weights are in ${weightUnit}; write every weight in ${weightUnit}.`,
-        `The user's goal: ${facts.goal.text ? `"${facts.goal.text}"` : 'not set'}.`,
-        `The user's note for this ${unit} (context to fit the advice to, not a message that needs a reply): ${note ? `"${note}"` : 'none'}.`,
+        // Quoted as JSON, as the day notes are: a quote mark or a line break in what the user wrote
+        // can't end the quote and read as the brief's own words
+        `The user's goal: ${facts.goal.text ? JSON.stringify(facts.goal.text) : 'not set'}.`,
+        `The user's note for this ${unit} (context to fit the advice to, not a message that needs a reply): ${note ? JSON.stringify(note) : 'none'}.`,
         ...(dayNotes.length ? [
             `The user's notes on single days, each after that day's plan and whether they trained (context too, not messages that need a reply):`,
             ...dayNotes.map((d) => `- ${d.date} (${dayOf(d)}): ${JSON.stringify(d.note)}`),

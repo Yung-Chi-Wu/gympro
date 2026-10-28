@@ -15,7 +15,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..', '..')
 execFileSync(join(root, 'lambda/ai-worker/node_modules/.bin/esbuild'), ['evals/ronnie/check-entry.ts', '--bundle', '--platform=node', '--target=node20', '--format=cjs', '--outfile=evals/ronnie/dist/check.cjs', '--log-level=warning'], { cwd: root, stdio: 'inherit' })
 const {
-    MAX_HISTORY_CHARS, recentHistory, runRonnieTurn, stripMarkdown, createRonnieExecutor, MAX_INCLUDE, createSupabaseRonnieData,
+    MAX_HISTORY_CHARS, recentHistory, runRonnieTurn, stripMarkdown, createRonnieExecutor, MAX_INCLUDE, createSupabaseRonnieData, WRITE_REFUSED,
     appendConversation, replaceConversation, withoutCitationNumbers, asTypedMessage, EVENT_PREFIX,
     createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER,
     buildSystemPrompt, MEDICINE_RULE, fixtureNotes, memoryLines, MAX_NOTES, MAX_EXERCISE_NOTES_SHOWN, MAX_OTHER_NOTES,
@@ -913,6 +913,24 @@ const op = (q, name) => q.ops.find(([k]) => k === name)?.[1]
     let message = null
     try { await broken.listMemories() } catch (err) { message = err.message }
     check(/Could not read the memory notes: timeout/.test(message ?? ''), `a failed read throws, instead of reading as no notes (${message})`)
+
+    // A refused write tells the model only that it failed, since it may repeat that to the user;
+    // the database's own words go to onWriteError, and from there to app_errors
+    const told = []
+    const refusing = createSupabaseRonnieData(fakeSupabase(() => ({ data: null, error: { message: 'new row violates row-level security policy for table "workout_planned_exercises"' } })), 'u1', FIXTURE_TIME_ZONE, null, {
+        admin: fakeSupabase(() => ({ data: null, error: { message: 'duplicate key value violates unique constraint "ronnie_memories_pkey"' } })),
+        onWriteError: (what, err) => told.push([what, err.message]),
+    })
+    const answers = [
+        await refusing.saveMemory(note('schedule', null, 'active', 'x')),
+        await refusing.deleteMemory({ kind: 'schedule', subject: null }),
+        (await refusing.createProposal({ change: 'add_exercise', exerciseId: 'e1', exerciseName: 'Squat', routineIds: ['r1'], routineNames: ['Legs'], targetSets: 3, targetReps: 8 })).error,
+        await refusing.addPlannedExercise('w1', 'e1'),
+        (await refusing.removePlannedExercise('w1', 'e1')).error,
+    ]
+    check(answers.every((a) => a === WRITE_REFUSED), `a refused write reads the same fixed line, never the database's words (${answers.filter((a) => a !== WRITE_REFUSED).join(' | ') || 'all fixed'})`)
+    check(told.map(([what]) => what).join() === 'memory-save,memory-delete,proposal,add-planned,remove-planned' && told.every(([, m]) => /violates/.test(m)),
+        `each refusal is reported with the database's own error (${told.map(([what]) => what).join(', ')})`)
 }
 
 // Proposals and the conversation go back to the model as trusted text, so only the server writes
