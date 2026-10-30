@@ -29,9 +29,9 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
   - Tab switches went from 0.4–0.6 s to 0.16–0.33 s. The old and new data loaders were compared on 1,720 runs before the change shipped.
   - A CI check makes every write count, so a page never shows data from before the user's own change.
 - **Production infrastructure in Terraform.**
-  - Vercel and Supabase, with AWS for the report pipeline: SQS, Lambda and EventBridge Scheduler.
+  - Vercel and Supabase, with AWS for the report pipeline and the daily reminder: SQS, Lambda and EventBridge Scheduler.
   - No long-lived AWS keys.
-  - 14 CloudWatch alarms. Every AI call is traced with its tokens and cost.
+  - 15 CloudWatch alarms. Every AI call is traced with its tokens and cost.
   - Every model call asks a spend limit first: one per user, and one for all users together.
 
 ## What it does
@@ -43,6 +43,7 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
 | **Ronnie** | A chat coach. *"My elbow hurts, what instead of pushdowns?"*, *"What's left today?"*, *"Plan me a 4-day week."*, *"Will creatine make my hair fall out?"* It remembers injuries, likes and dislikes, equipment and schedule across conversations, and answers fitness questions from research notes, with the papers listed under the reply. |
 | **Coach G** | The user answers a few questions and gets a week of routines built from a 190-exercise library, rated for muscles and joint load. |
 | **Weekly report** | Generated when the user's week ends, Monday to Sunday in their time zone. It shows the status, the goal's progress, the key numbers and follow-up on last period's advice. Then it says what to do next session: for each lift the goal names, the way the user trains it now and other ways research supports; one line for each other main lift; and an action for each rule that fired. Each piece names its data, where that came from (the log, the goal, Ronnie's notes, what the user said) and the research behind it. A week under 10 working sets gets its numbers only, with no model call and one line on why there is no advice, and a week with nothing logged is one grey line in History. |
+| **Reminder** | At 9 PM in the user's time zone, a push notification asks whether they trained today. On a day with sets logged, it says how many and asks whether anything is left to add. It skips a rest day the cycle plans. Each device is asked once, on Today, and Settings has the switch. On an iPhone it needs the app on the home screen. |
 | **Layouts** | Separate phone and desktop layouts. On iPhone it installs to the home screen. |
 
 <p>
@@ -72,11 +73,15 @@ flowchart LR
     reviewfn -->|"each ended day of Ronnie chats"| db
     reviewfn -->|"review"| claude
     reviewfn -->|"weekly digest"| mail["SNS email"]
+    hourly["EventBridge Scheduler, hourly"] --> remindfn["Reminder Lambda"]
+    remindfn --> db
+    remindfn -->|"Web Push, VAPID"| push["Push services → the user's device"]
 ```
 
 - **App:** Next.js 16 (App Router, server actions and route handlers) on Vercel. The UI strings are in English and Traditional Chinese, using next-intl.
 - **Data:** Supabase Postgres, with row-level security on every user table. The policies are in the repo. pgvector holds the exercise embeddings.
 - **Reports:** an hourly scheduler finds the users whose week has ended in their own time zone, claims a report row, and queues it. A week an earlier report already covered to its end, such as one round of a cycle from before reports were weekly, gets none. The worker Lambda builds and writes the report. A request is retried up to 3 times, then goes to a dead-letter queue, which raises an alarm.
+- **Reminders:** a device that turns the reminder on registers a service worker ([`public/sw.js`](public/sw.js)) and saves its push subscription through a database function; signed-in users can't read the table. Every hour a Lambda finds the users whose local time is 21:00, skips a rest day their cycle plans, and claims each device for the day before sending, so a repeated run sends nothing twice. It posts only to the browsers' push services, which the database also enforces, so a subscription can't point it anywhere else. A device the push service no longer knows is deleted.
 - **AWS access:** Vercel deployments assume IAM roles through OIDC, with separate roles for production and preview. API keys live in SSM Parameter Store. Everything AWS-side is in [`infra/terraform`](infra/terraform).
 
 ## How the AI parts are built
@@ -240,12 +245,12 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
 - **Feedback.** Users send feedback from Settings: a problem, an idea, or an exercise they want added, in their own words. It is kept in `app_feedback` with the app version, language and browser, never their training log, and a user can send 10 a day. When a user names an exercise the library doesn't have, Ronnie asks for it there too (`request_exercise`, at most 3 a day): code checks the library first, the same name isn't sent twice in 30 days, and the line under the reply saying it was sent is written by code.
 - **Weekly email.** Each Monday the owner gets one email with the week's feedback and the Ronnie replies that were flagged, by the review or by the user, with the reasons a user gave for reporting one. It is sent only when there is something in it. It never quotes a conversation, and every line a user wrote starts with "> ", so none of it can pass for the email's own text.
 - **Errors.** Server and browser errors go to an `app_errors` table.
-- **Alarms.** 14 CloudWatch alarms send email when:
+- **Alarms.** 15 CloudWatch alarms send email when:
   - AI calls fail, or half of an hour's calls fail (a dead key);
   - a day's AI spend runs high;
   - the scheduler goes silent;
   - a report is stuck, or reaches the dead-letter queue;
-  - a Lambda nears its timeout, or the daily review or weekly email fails;
+  - a Lambda nears its timeout, or the daily review, weekly email or reminder fails;
   - the app logs an error;
   - the database passes 400 MB of the free plan's 500 MB.
 - **Data integrity.** Today's workout and its plan are created in one transaction, under a per-user lock. Limits on sets, targets and amounts are enforced in both the app and the database.

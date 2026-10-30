@@ -40,6 +40,14 @@ const nextConfig: NextConfig = {
           { key: 'Content-Security-Policy', value: csp },
         ],
       },
+      // The service worker (public/sw.js) is checked for a new version on every visit, never from a cache
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+        ],
+      },
     ]
   },
 };

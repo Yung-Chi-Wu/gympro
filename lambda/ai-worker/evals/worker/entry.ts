@@ -21,3 +21,6 @@ export { checkedRead, exerciseKeys, GOAL_READER_MODEL, keptRead, readGoal } from
 export { checkedSignals, readWeek, WEEK_READER_MODEL, weekKeys } from '../../src/report/week'
 export { computeFacts, GOAL_MAX_REPS, GOAL_TREND_POINTS } from '../../src/report/facts'
 export { getClaudeClient } from '../../src/claude'
+export { dueReminders, localHour, vapidPublicKeyOf } from '../../src/reminders'
+export { isPushEndpoint, REMINDER_HOUR, reminderPayload } from '../../../../lib/push'
+export { default as webpush } from 'web-push'

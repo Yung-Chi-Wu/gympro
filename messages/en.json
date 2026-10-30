@@ -883,5 +883,21 @@
         "nextMoreWays": "{n} more, and other ways to do each, in the full report",
         "otherWays": "Other ways to do each are in the full report",
         "planResearchAgain": "reps first, then weight: the research above"
+    },
+    "reminder": {
+        "ask": "Remind you to log your training at 9 PM each day?",
+        "askNote": "Not on rest days. You can turn it off in Settings.",
+        "turnOn": "Turn on",
+        "noThanks": "No thanks",
+        "turnedOn": "Done. You'll get a reminder at 9 PM.",
+        "blocked": "Notifications are blocked. To turn them on, allow GymPro in your phone or browser settings.",
+        "failed": "That didn't work. Please try again.",
+        "setting": "Reminder at 9 PM",
+        "on": "On",
+        "off": "Off",
+        "onNote": "Not on rest days.",
+        "install": "Add GymPro to your home screen to get notifications.",
+        "denied": "Notifications are off for GymPro. Allow them in your phone or browser settings.",
+        "unsupported": "This browser can't get notifications."
     }
 }

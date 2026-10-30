@@ -352,6 +352,33 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          p256dh: string
+          reminded_on: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          p256dh: string
+          reminded_on?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          p256dh?: string
+          reminded_on?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ronnie_conversations: {
         Row: {
           conversation_date: string
@@ -807,6 +834,20 @@ export type Database = {
           p_period_start: string
         }
         Returns: Json
+      }
+      save_push_subscription: {
+        Args: {
+          p_auth: string
+          p_endpoint: string
+          p_p256dh: string
+        }
+        Returns: undefined
+      }
+      delete_push_subscription: {
+        Args: {
+          p_endpoint: string
+        }
+        Returns: undefined
       }
       save_coach_routines: {
         Args: {

@@ -17,6 +17,7 @@ import { LogoutButton } from '@/components/LogoutButton'
 import { ThemeSelector } from '@/components/ThemeSelector'
 import { Icon } from '@/components/Icon'
 import { InstallGuide } from '@/components/InstallGuide'
+import { ReminderSetting } from '@/components/ReminderSetting'
 import { FeedbackForm } from '@/components/FeedbackForm'
 import { CHOSEN_UTC } from '@/lib/time-zone'
 import { MAX_DISPLAY_NAME_CHARS, MAX_TRAINING_GOAL_CHARS } from '@/lib/text-limits'
@@ -203,6 +204,9 @@ export function ProfileSettingsForm({ userId, initial, goalRead: keptRead }: {
 
     const accountRows = (
         <>
+            <li>
+                <ReminderSetting />
+            </li>
             <li>
                 <button type="button" onClick={() => setShowOnboarding(true)} className={ROW}>
                     <span className="flex-1">{t('tutorial')}</span>

@@ -883,5 +883,21 @@
         "nextMoreWays": "還有 {n} 項，和每項的其他練法，在完整報告",
         "otherWays": "每項的其他練法在完整報告",
         "planResearchAgain": "先加次數、做滿再加重，研究同上"
+    },
+    "reminder": {
+        "ask": "每天晚上 9 點提醒你記錄訓練？",
+        "askNote": "休息日不提醒。之後可以在設定裡關掉。",
+        "turnOn": "開啟",
+        "noThanks": "不用",
+        "turnedOn": "好，每天晚上 9 點提醒你。",
+        "blocked": "通知被擋住了。要開的話，請到手機或瀏覽器的設定裡允許 GymPro 傳送通知。",
+        "failed": "沒有開成功，請再試一次。",
+        "setting": "每晚 9 點提醒",
+        "on": "開",
+        "off": "關",
+        "onNote": "休息日不提醒。",
+        "install": "要先把 GymPro 加到主畫面，才收得到通知。",
+        "denied": "通知被關掉了。請到手機或瀏覽器的設定裡允許 GymPro 傳送通知。",
+        "unsupported": "這個瀏覽器收不到通知。"
     }
 }
