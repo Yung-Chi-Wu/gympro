@@ -476,3 +476,26 @@ export interface ReportV3 {
     dayNotes?: DayNote[]
     narrative: ReportNarrative
 }
+
+// ---------- A week below the sets advice needs ----------
+
+/** The working sets a period needs before its report gives advice; below it the report is its numbers alone */
+export const MINIMUM_SETS_FOR_ADVICE = 10
+
+/**
+ * A week with fewer working sets than MINIMUM_SETS_FOR_ADVICE, saved with status insufficient_data:
+ * the facts code computes, with no rules, no advice and no model call (owner, 2026-10-28). Rows
+ * saved before 2026-10-30 have none.
+ */
+export interface ReportStats {
+    version: 3
+    statsOnly: true
+    facts: ReportFacts
+}
+
+export function isReportStats(rec: unknown): rec is ReportStats {
+    return !!rec && typeof rec === 'object' && (rec as { version?: unknown }).version === 3 && (rec as { statsOnly?: unknown }).statsOnly === true
+}
+
+/** A week with nothing logged: History shows it as one grey line, and Today the report before it (lib/report/latest.ts) */
+export const isEmptyWeek = (stats: ReportStats) => stats.facts.sessions.done === 0

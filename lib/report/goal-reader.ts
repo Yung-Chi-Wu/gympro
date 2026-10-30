@@ -108,6 +108,16 @@ export function keptRead(value: unknown, text: string | null | undefined): GoalR
     return goal && r && typeof r === 'object' && r.model && r.text === goal && Array.isArray(r.kinds) && Array.isArray(r.targets) ? r as GoalRead : null
 }
 
+/**
+ * The goal as read without reading it: null without a goal, the read before (the kept one, or the
+ * previous report's) while the text is the same, and undefined when this text hasn't been read
+ */
+export function readBefore(text: string | null, previous: GoalRead | null | undefined): GoalRead | null | undefined {
+    const goal = (text ?? '').trim()
+    if (!goal) return null
+    return previous?.model && previous.text === goal ? previous : undefined
+}
+
 /** The exercise list the reader picks from, by short key: the user's own first */
 export function exerciseKeys(own: ExerciseInfo[], library: ExerciseInfo[]) {
     const ownIds = new Set(own.map((e) => e.id))
@@ -165,8 +175,8 @@ export async function readGoal(client: GoalReaderClient, text: string | null, op
     deadline?: number
 }): Promise<ReadResult> {
     const goal = (text ?? '').trim()
-    if (!goal) return { read: null, call: null }
-    if (opts.previous?.model && opts.previous.text === goal) return { read: opts.previous, call: null }
+    const before = readBefore(goal, opts.previous)
+    if (before !== undefined) return { read: before, call: null }
 
     const { byKey, lines } = exerciseKeys(opts.own, opts.library)
     const prompt = `<goal>\n${goal}\n</goal>\n\nThe user logs weights in ${opts.weightUnit}.\n\nExercises:\n${lines.join('\n')}`

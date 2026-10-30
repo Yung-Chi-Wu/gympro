@@ -123,7 +123,7 @@ for (const [name, start, end, days] of [
 for (const [name, save] of [
     ['saveReport', (sb) => w.saveReport(sb, request, { version: 3 }, null)],
     ['saveFailedStatus', (sb) => w.saveFailedStatus(sb, request, 'error')],
-    ['saveInsufficientDataStatus', (sb) => w.saveInsufficientDataStatus(sb, request, 4, 10)],
+    ['saveInsufficientDataStatus', (sb) => w.saveInsufficientDataStatus(sb, request, { version: 3, statsOnly: true, facts: { totalSets: { now: 4 } } }, 10)],
 ]) {
     const sb = fakeSupabase(null)
     await save(sb)
@@ -131,6 +131,34 @@ for (const [name, save] of [
     const has = (col, val) => q.filters.some(([c, v]) => c === col && v === val)
     check(`${name} updates only the pending row of this request`, q.kind === 'update' && has('user_id', 'u1') && has('period_start', '2026-10-05') && has('status', 'pending') && has('queued_at', QUEUED),
         `${q.kind} with ${JSON.stringify(q.filters)}`)
+}
+
+// A week below the sets advice needs: its numbers alone, saved on its row, with no rules and no model call
+{
+    const sc = SCENARIOS.find((x) => x.id === 'goal-strength-owner-zh')
+    const full = inputsFor(sc)
+    // This week, only the chest day: bench 3 and lateral raise 3
+    const thin = { ...full, sets: full.sets.filter((s) => s.date < full.periodStart || s.date === full.periodStart), goalRead: undefined }
+    const stats = w.statsOf(thin, sc.goalRead)
+    check('a thin week is its numbers alone: 6 sets on 1 day, and no findings or text',
+        w.isReportStats(stats) && stats.facts.totalSets.now === 6 && stats.facts.sessions.done === 1 && !('findings' in stats) && !('narrative' in stats) && !w.isEmptyWeek(stats),
+        JSON.stringify({ sets: stats.facts.totalSets, done: stats.facts.sessions.done, keys: Object.keys(stats) }))
+    check('it shows the goal as read before while the text is the same, with each target\'s progress',
+        stats.facts.goal.read === sc.goalRead && stats.facts.goal.progress?.length === 3, JSON.stringify(stats.facts.goal.progress?.map((p) => p.target.kind)))
+    const changed = w.statsOf({ ...thin, goal: '深蹲 170 公斤' }, sc.goalRead)
+    check('a goal text not read yet is left out, not read: the week makes no model call',
+        !('read' in changed.facts.goal) && !('progress' in changed.facts.goal) && changed.facts.goal.text === '深蹲 170 公斤', JSON.stringify(changed.facts.goal))
+    check('without a goal, the goal is null, so the report asks for one', w.statsOf({ ...thin, goal: null }, sc.goalRead).facts.goal.read === null)
+    check('what was said this period is not read either', !('context' in stats.facts))
+    const empty = w.statsOf({ ...full, sets: full.sets.filter((s) => s.date < full.periodStart), goalRead: undefined }, sc.goalRead)
+    check('a week with nothing logged is an empty week', w.isEmptyWeek(empty) && empty.facts.totalSets.now === 0)
+    check('a full report is not read as numbers alone', !w.isReportStats({ version: 3, facts: stats.facts, findings: [], narrative: { headline: '', items: [] } }))
+
+    const sb = fakeSupabase(null)
+    await w.saveInsufficientDataStatus(sb, request, stats, 10)
+    const v = sb.queries.at(-1).values
+    check('the numbers are saved on the row, as insufficient_data', v.status === 'insufficient_data' && v.recommendation === stats && v.error_message === 'Only 6 sets logged this period (minimum 10 required for analysis).',
+        JSON.stringify({ status: v.status, error_message: v.error_message }))
 }
 
 // A failed row says a fixed line: an error's own text can name AWS resources, and the row is the user's

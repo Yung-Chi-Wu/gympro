@@ -6,6 +6,7 @@ import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { GOAL_SETTING } from '@/lib/goal-choices'
 import { unitLabel } from '@/lib/report/volume'
 import type { LatestReport } from '@/lib/report/latest'
+import { isReportStats } from '@/lib/report/types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import { GoalSection, isReportV3 } from './report/ReportView'
 
@@ -35,7 +36,9 @@ export function TodayGoal({ goal, latest, language, weightUnit }: {
         )
     }
 
-    const report = latest?.status === 'completed' && isReportV3(latest.recommendation) ? latest.recommendation : null
+    // A week below the sets advice needs has the goal's rows too
+    const report = (latest?.status === 'completed' && isReportV3(latest.recommendation)) || (latest?.status === 'insufficient_data' && isReportStats(latest.recommendation))
+        ? latest.recommendation : null
     const read = report?.facts.goal.read
     if (report && latest && read?.model && read.text === text && report.facts.goal.progress?.length) {
         return (

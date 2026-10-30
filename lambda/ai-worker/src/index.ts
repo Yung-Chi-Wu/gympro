@@ -1,6 +1,6 @@
 import type { SQSEvent, SQSHandler, SQSRecord } from 'aws-lambda'
 import { getSupabaseClient, isRunnable, parseRequest, saveFailedStatus, saveInsufficientDataStatus, saveReport } from './supabase'
-import { analyze } from './report/analyze'
+import { analyze, statsOf } from './report/analyze'
 import { fetchReportInputs } from './report/fetch'
 import { generateNarrative, NARRATIVE_MODEL } from './report/narrative'
 import { GOAL_READER_MODEL, readGoal } from './report/goal'
@@ -8,9 +8,8 @@ import { readWeek, WEEK_READER_MODEL, type WeekText } from './report/week'
 import { getClaudeClient } from './claude'
 import { errorText, recordTrace, usageOfError } from '../../../lib/ai/trace'
 import { periodDays } from '../../../lib/periods'
-import type { ReportV3 } from './report/types'
+import { MINIMUM_SETS_FOR_ADVICE, type ReportV3 } from './report/types'
 
-const MINIMUM_SETS_FOR_ANALYSIS = 10
 /** Kept back from the Lambda's timeout to save a failure and its trace: a run cut off saves nothing and stays pending */
 const SAVE_MARGIN_MS = 15_000
 
@@ -52,13 +51,13 @@ async function processMessage(record: SQSRecord, deadline: number): Promise<void
     const { inputs, language, weightUnit, distanceUnit, library, previousGoal, messages } = await fetchReportInputs(supabase, userId, periodStart, periodEnd)
 
     // Working sets: a week of treadmill sets alone has nothing for a strength report to compare.
-    // Counted before anything is read, so a report that isn't written pays for no read.
+    // Counted before anything is read: a week with fewer gets its numbers alone, which pay for no read.
     const totalSets = analyze(inputs).facts.totalSets.now
-    if (totalSets < MINIMUM_SETS_FOR_ANALYSIS) {
+    if (totalSets < MINIMUM_SETS_FOR_ADVICE) {
       console.log(
-        `Skipping AI analysis for user ${userId}: only ${totalSets} sets logged (minimum ${MINIMUM_SETS_FOR_ANALYSIS})`
+        `Numbers only for user ${userId}: ${totalSets} sets logged (advice needs ${MINIMUM_SETS_FOR_ADVICE})`
       )
-      await saveInsufficientDataStatus(supabase, request, totalSets, MINIMUM_SETS_FOR_ANALYSIS)
+      await saveInsufficientDataStatus(supabase, request, statsOf(inputs, previousGoal), MINIMUM_SETS_FOR_ADVICE)
       return
     }
 

@@ -42,7 +42,7 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
 | **Plan** | Routines, and a training cycle of 1 to 28 days that puts one on each day. A month calendar shows what the cycle plans for each day, ahead and past, and what was done. A day ahead can be given another routine or made a rest day, and a rest day a routine; the cycle around it stays as it is. Each week, Monday to Sunday, is one report's period, linked from its days. The report doesn't follow the cycle, so someone who trains when their hours allow still gets one each week. |
 | **Ronnie** | A chat coach. *"My elbow hurts, what instead of pushdowns?"*, *"What's left today?"*, *"Plan me a 4-day week."*, *"Will creatine make my hair fall out?"* It remembers injuries, likes and dislikes, equipment and schedule across conversations, and answers fitness questions from research notes, with the papers listed under the reply. |
 | **Coach G** | The user answers a few questions and gets a week of routines built from a 190-exercise library, rated for muscles and joint load. |
-| **Weekly report** | Generated when the user's week ends, Monday to Sunday in their time zone. It shows the status, the goal's progress, the key numbers and follow-up on last period's advice. Then it says what to do next session: for each lift the goal names, the way the user trains it now and other ways research supports; one line for each other main lift; and an action for each rule that fired. Each piece names its data, where that came from (the log, the goal, Ronnie's notes, what the user said) and the research behind it. |
+| **Weekly report** | Generated when the user's week ends, Monday to Sunday in their time zone. It shows the status, the goal's progress, the key numbers and follow-up on last period's advice. Then it says what to do next session: for each lift the goal names, the way the user trains it now and other ways research supports; one line for each other main lift; and an action for each rule that fired. Each piece names its data, where that came from (the log, the goal, Ronnie's notes, what the user said) and the research behind it. A week under 10 working sets gets its numbers only, with no model call and one line on why there is no advice, and a week with nothing logged is one grey line in History. |
 | **Layouts** | Separate phone and desktop layouts. On iPhone it installs to the home screen. |
 
 <p>
@@ -127,7 +127,7 @@ flowchart LR
 
 ### Weekly report, a workflow
 
-[`lambda/ai-worker/src/report`](lambda/ai-worker/src/report) runs these steps:
+[`lambda/ai-worker/src/report`](lambda/ai-worker/src/report) runs these steps. A week under 10 working sets stops after step 2: it is saved with its facts alone, and the goal shows as read before while its text is the same, so the week makes no model call.
 
 1. **Goal and messages:** Claude Haiku 4.5 reads the goal the user wrote in their own words into targets: a lift's load or reps, a body weight, a body fat, or the body parts a physique goal names. Code keeps only what checks out, such as an exercise from the library and a number in range, and converts it to kg. Each text is read once, and the report shows what was read.
    - Haiku also reads what the user said during the period, in day notes and in their own messages to Ronnie, into a few signals: pain and where, soreness, tiredness, illness, time away. Code keeps a signal only when its words are in the text it came from.

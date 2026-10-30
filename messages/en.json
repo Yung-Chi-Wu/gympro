@@ -171,7 +171,7 @@
         "fieldOfSet": "Set {n}, {field}"
     },
     "periodLog": {
-        "reportSchedule": "This period ends on {end}. Its report is made automatically then, once 10 sets are logged.",
+        "reportSchedule": "This week ends on {end}. Its report is made then; advice needs 10 logged sets.",
         "periodNoteLabel": "Note for this period",
         "periodNoteHint": "Your earlier note for the whole period still goes into this period's report; from now on, write in today's log.",
         "saveNote": "Save note",
@@ -443,6 +443,8 @@
         "workout": "Workout",
         "listJoiner": ", ",
         "daySets": "{count, plural, one {# set} other {# sets}}",
+        "trainedDays": "{n, plural, one {# day} other {# days}}",
+        "nothingLogged": "Nothing logged",
         "notTrained": "No training this day",
         "statSets": "Sets",
         "statExercises": "Exercises",
@@ -450,7 +452,7 @@
         "weighIns": "Weigh-ins",
         "lastYear": "The last 12 months",
         "showMore": "Show more",
-        "noReports": "No reports yet. One is made automatically when each period ends, once it has 10 logged sets.",
+        "noReports": "No reports yet. One is made automatically when each week ends; advice needs 10 logged sets.",
         "olderReports": "Show earlier reports",
         "dayExercises": "{count, plural, one {# exercise} other {# exercises}}",
         "weightLabel": "Weight"
@@ -799,6 +801,7 @@
             }
         },
         "insufficient": "Fewer than 10 sets were logged this period, so there's no report for it.",
+        "statsOnly": "{n, plural, =0 {No strength sets} one {# set} other {# sets}} this {unit, select, week {week} other {cycle}}. Advice starts at {min} sets.",
         "goal": {
             "title": "Goal",
             "estimated": "estimated 1RM",

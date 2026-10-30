@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { getSecret } from './secrets'
-import type { ReportV3 } from './report/types'
+import type { ReportStats, ReportV3 } from './report/types'
 import type { AnalysisRequestMessage } from './types'
 import { isCurrentRequest } from '../../../lib/report/queue'
 
@@ -120,15 +120,18 @@ export async function saveFailedStatus(supabase: SupabaseClient, request: Report
     if (error) console.error('Failed to save failure status:', error.message)
 }
 
+/** A week below the sets advice needs, with its numbers (ReportStats) */
 export async function saveInsufficientDataStatus(
     supabase: SupabaseClient,
     request: ReportRequest,
-    totalSets: number,
+    stats: ReportStats,
     minimumRequired: number
 ): Promise<void> {
     const { error } = await updateOwnRow(supabase, request, {
         status: 'insufficient_data',
-        error_message: `Only ${totalSets} sets logged this period (minimum ${minimumRequired} required for analysis).`,
+        recommendation: stats,
+        error_message: `Only ${stats.facts.totalSets.now} sets logged this period (minimum ${minimumRequired} required for analysis).`,
+        completed_at: new Date().toISOString(),
         pdf_status: 'not_applicable',
     })
     if (error) console.error('Failed to save insufficient_data status:', error.message)
