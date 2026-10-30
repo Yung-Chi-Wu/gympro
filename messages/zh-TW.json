@@ -885,12 +885,10 @@
         "planResearchAgain": "先加次數、做滿再加重，研究同上"
     },
     "reminder": {
-        "ask": "每天晚上 9 點提醒你記錄訓練？",
-        "askNote": "休息日不提醒。之後可以在設定裡關掉。",
-        "turnOn": "開啟",
-        "noThanks": "不用",
-        "turnedOn": "好，每天晚上 9 點提醒你。",
-        "blocked": "通知被擋住了。要開的話，請到手機或瀏覽器的設定裡允許 GymPro 傳送通知。",
+        "noticeTitle": "每晚 9 點提醒",
+        "noticeBody": "每天晚上 9 點，GymPro 可以問你今天訓練了嗎，休息日不提醒。要的話，可以在設定裡開啟。",
+        "goToSettings": "去設定",
+        "gotIt": "知道了",
         "failed": "沒有開成功，請再試一次。",
         "setting": "每晚 9 點提醒",
         "on": "開",

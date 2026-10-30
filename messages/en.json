@@ -885,12 +885,10 @@
         "planResearchAgain": "reps first, then weight: the research above"
     },
     "reminder": {
-        "ask": "Remind you to log your training at 9 PM each day?",
-        "askNote": "Not on rest days. You can turn it off in Settings.",
-        "turnOn": "Turn on",
-        "noThanks": "No thanks",
-        "turnedOn": "Done. You'll get a reminder at 9 PM.",
-        "blocked": "Notifications are blocked. To turn them on, allow GymPro in your phone or browser settings.",
+        "noticeTitle": "A reminder at 9 PM",
+        "noticeBody": "Each evening at 9 PM, GymPro can ask whether you trained today. Not on rest days. You can turn it on in Settings.",
+        "goToSettings": "Go to Settings",
+        "gotIt": "Got it",
         "failed": "That didn't work. Please try again.",
         "setting": "Reminder at 9 PM",
         "on": "On",

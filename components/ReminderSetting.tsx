@@ -3,10 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
-import { reminderState, turnOffReminder, turnOnReminder, type ReminderState } from '@/lib/push-client'
+import { REMINDER_TOLD_KEY, reminderState, turnOffReminder, turnOnReminder, type ReminderState } from '@/lib/push-client'
 import { reportClientError } from '@/lib/report-client-error'
 import { SEGMENTED } from '@/lib/ui'
-import { REMINDER_ASKED_KEY } from './ReminderPrompt'
 
 /**
  * The daily reminder on this device, in Settings → 帳號: 開 or 關, saved at once. Where it can't be
@@ -35,8 +34,8 @@ export function ReminderSetting() {
                 await turnOffReminder(supabase)
                 setState('off')
             }
-            // Answered here, so Today doesn't ask
-            try { localStorage.setItem(REMINDER_ASKED_KEY, '1') } catch {}
+            // Found here, so Today doesn't point here
+            try { localStorage.setItem(REMINDER_TOLD_KEY, '1') } catch {}
         } catch (err) {
             reportClientError(on ? 'client/reminder/turn-on' : 'client/reminder/turn-off', err)
             setFailed(true)
