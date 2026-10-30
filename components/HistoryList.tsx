@@ -31,6 +31,7 @@ import { useHistoryRecords } from './use-history-records'
 import { isReportV3, ReportView } from './report/ReportView'
 import { FailedReport } from './report/FailedReport'
 import { shownStatus } from '@/lib/report/queue'
+import { isEmptyWeek, isReportStats } from '@/lib/report/types'
 import { BUTTON } from '@/lib/ui'
 
 // The 紀錄 page's tabs. Training, side by side (@split): a month calendar and that
@@ -622,6 +623,7 @@ function ReportItem({ report, startOpen = false, periodEnd, language, weightUnit
 }) {
     const t = useTranslations('report')
     const tV3 = useTranslations('reportV3')
+    const tH = useTranslations('history')
     const router = useRouter()
     const [isOpen, setIsOpen] = useState(startOpen)
     const [showMore, setShowMore] = useState(false)
@@ -644,6 +646,19 @@ function ReportItem({ report, startOpen = false, periodEnd, language, weightUnit
     const isCompleted = status === 'completed'
     const v3 = isCompleted && isReportV3(report.recommendation) ? report.recommendation : null
     const rec = isCompleted && !v3 ? (report.recommendation as unknown as AiRecommendation) : null
+    // A week below the sets advice needs: its numbers. Rows from before have none, and keep the line
+    const stats = status === 'insufficient_data' && isReportStats(report.recommendation) ? report.recommendation : null
+    const shown = v3 ?? stats
+    const range = formatRange({ start: report.period_start, end: periodEnd })
+
+    // A week with nothing logged is one grey line, with nothing to open (owner, 2026-10-28)
+    if (stats && isEmptyWeek(stats)) {
+        return (
+            <p className="px-4 py-1 text-[15px] text-faint md:text-sm">
+                <span className="font-mono font-bold">{range}</span>{tH('separator')}{tH('nothingLogged')}
+            </p>
+        )
+    }
 
     return (
         <section ref={itemRef} className="scroll-mt-[calc(64px+env(safe-area-inset-top))] rounded-card border border-line bg-card md:scroll-mt-4">
@@ -654,8 +669,14 @@ function ReportItem({ report, startOpen = false, periodEnd, language, weightUnit
                 className="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left md:min-h-0"
             >
                 <span className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-[15px] font-bold md:text-sm">{formatRange({ start: report.period_start, end: periodEnd })}</span>
+                    <span className="font-mono text-[15px] font-bold md:text-sm">{range}</span>
                     <ReportTrendChip report={{ periodStart: report.period_start, status, trend: v3?.facts.status ?? null }} />
+                    {/* No verdict on a few sets: how much was done instead */}
+                    {stats && (
+                        <span className="text-[13px] text-muted md:text-xs">
+                            {tH('trainedDays', { n: stats.facts.sessions.done })}{tH('separator')}{tH('daySets', { count: stats.facts.totalSets.now })}
+                        </span>
+                    )}
                 </span>
                 <Icon name="forward" className={`size-4 text-faint transition-transform ${isOpen ? 'rotate-90' : ''}`} />
             </button>
@@ -669,11 +690,11 @@ function ReportItem({ report, startOpen = false, periodEnd, language, weightUnit
                         </div>
                     )}
 
-                    {status === 'insufficient_data' && (
+                    {status === 'insufficient_data' && !stats && (
                         <p className="text-[15px] text-muted md:text-sm">{tV3('insufficient')}</p>
                     )}
 
-                    {v3 && <ReportView report={v3} language={language} weightUnit={weightUnit} distanceUnit={distanceUnit} />}
+                    {shown && <ReportView report={shown} language={language} weightUnit={weightUnit} distanceUnit={distanceUnit} />}
 
                     {status === 'failed' && <FailedReport periodStart={report.period_start} onRetried={reload} />}
 

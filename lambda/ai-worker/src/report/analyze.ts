@@ -1,9 +1,19 @@
 import { setWeights } from '../../../../lib/report/volume'
+import { readBefore } from '../../../../lib/report/goal-reader'
 import { computeFacts, liftFor } from './facts'
 import { withExerciseOptions } from './options'
 import { withPlan } from './plan'
 import { evaluateRules, followUp } from './rules'
-import type { DayFacts, DayNote, ReportInputs } from './types'
+import type { DayFacts, DayNote, GoalRead, ReportInputs, ReportStats } from './types'
+
+/**
+ * A week below the sets advice needs: its numbers alone, with no rules and no model call. The
+ * goal shows as read before while its text is the same; a text not read yet waits for a report
+ * with advice, or Settings, to read it.
+ */
+export function statsOf(inputs: ReportInputs, previousGoal: GoalRead | null): ReportStats {
+    return { version: 3, statsOnly: true, facts: computeFacts({ ...inputs, goalRead: readBefore(inputs.goal, previousGoal) }) }
+}
 
 /** Everything in the report that code decides: the facts, the rules that fired (with the exercises to suggest), last report's follow-up, and the day notes lined up with the days. */
 export function analyze(inputs: ReportInputs) {

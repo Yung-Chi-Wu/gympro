@@ -22,6 +22,7 @@ import type { DistanceUnit } from '@/lib/distance-unit'
 import { isReportV3, ReportView } from './report/ReportView'
 import { FailedReport } from './report/FailedReport'
 import { loadLatestReport, type LatestReport, type ReportStatus } from '@/lib/report/latest'
+import { isReportStats } from '@/lib/report/types'
 
 interface RecommendationPanelProps {
     userId: string
@@ -131,10 +132,14 @@ export function RecommendationPanel({ userId, initial, language, weightUnit, dis
                 />
             )}
 
-            {/* error_message is the English cause for logs; users get the localized line */}
-            {status === 'insufficient_data' && (
+            {/* A week below the sets advice needs: its numbers. Rows from before have none, and keep
+                the line (error_message is the English cause for logs) */}
+            {status === 'insufficient_data' && (isReportStats(recommendation) ? (
+                <ReportView report={recommendation} language={language} weightUnit={weightUnit} distanceUnit={distanceUnit}
+                    variant="summary" fullHref={periodStart ? `/history?tab=reports&report=${periodStart}` : undefined} showGoal={false} />
+            ) : (
                 <p className="text-[15px] text-muted md:text-base">{tV3('insufficient')}</p>
-            )}
+            ))}
 
             {/* A retried report is 'pending' again, which restarts the polling above */}
             {status === 'failed' && periodStart && <FailedReport periodStart={periodStart} onRetried={checkStatus} />}

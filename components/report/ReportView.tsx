@@ -10,7 +10,7 @@ import { unitLabel } from '@/lib/report/volume'
 import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
 import { toDisplayDistance, toDisplaySpeed, type DistanceUnit } from '@/lib/distance-unit'
 import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, GOAL_EVIDENCE, MIN_EFFECTIVE_WEEKLY_SETS, PLAN_EVIDENCE, type PlanPart, type Source } from '@/lib/report/evidence'
-import { CODE_RULES, type BestSet, type CardioFacts, type CardioTrendFacts, type ContextNote, type DayFacts, type Finding, type FollowUp, type LiftFacts, type ReportFacts, type ReportV3, type WeekSignal } from '@/lib/report/types'
+import { CODE_RULES, isReportStats, MINIMUM_SETS_FOR_ADVICE, type BestSet, type CardioFacts, type CardioTrendFacts, type ContextNote, type DayFacts, type Finding, type FollowUp, type LiftFacts, type ReportFacts, type ReportStats, type ReportV3, type WeekSignal } from '@/lib/report/types'
 import { BodyMap } from './BodyMap'
 import { Sparkline } from './Sparkline'
 import { useGoalReadLabels, useGoalText } from './goal-text'
@@ -23,6 +23,8 @@ import { useGoalReadLabels, useGoalText } from './goal-text'
 //            owner, 2026-10-13), and none of the apps compared puts a whole report on Home.
 //   full     in History: the advice with its reasons and research, then the analysis
 //            sections, one open at a time (one level, not a button and then the sections).
+// A week below the sets advice needs (ReportStats) is the same numbers with no verdict, headline,
+// follow-up or advice: one line says why, where the advice would be.
 //
 // On a phone (below md) the report sits in one card, so nothing inside it is a box of its
 // own: groups are set apart by lines and space, and text is at least 12-13px. The max-md:
@@ -45,7 +47,7 @@ const STATUS_TONE: Record<ReportV3['facts']['status'], string> = {
 const shortDate = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`
 
 export function ReportView({ report, language, weightUnit, distanceUnit = 'km', variant = 'full', fullHref, showGoal = true }: {
-    report: ReportV3
+    report: ReportV3 | ReportStats
     language: string
     weightUnit: WeightUnit
     distanceUnit?: DistanceUnit
@@ -57,7 +59,10 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
 }) {
     const t = useTranslations('reportV3')
     const zh = language === 'zh-TW'
-    const { facts, findings, watching, followUps, narrative } = report
+    const statsOnly = isReportStats(report)
+    const { facts } = report
+    const { findings, watching, followUps, narrative }: Pick<ReportV3, 'findings' | 'watching' | 'followUps'> & { narrative: ReportV3['narrative'] | null } =
+        statsOnly ? { findings: [], watching: [], followUps: [], narrative: null } : report
     const unit = facts.period.days === 7 ? 'week' : 'cycle'
     const summary = variant === 'summary'
     // One section of the full analysis open at a time
@@ -175,7 +180,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
     }
 
     // One item per fired rule, with every finding of it; reports saved before that have one per finding
-    const items = narrative.items
+    const items = (narrative?.items ?? [])
         .map((i) => ({ ...i, findings: findings.filter((f) => (i.rule ? f.rule === i.rule : f.id === i.findingId)) }))
         .filter((i) => i.findings.length)
     // The summary shows the first 3, the most important (owner, 2026-10-20); the rest are in the full report
@@ -204,9 +209,10 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                     <p className="text-[13px] font-semibold text-muted md:text-xs">
                         {t('period', { unit, start: shortDate(facts.period.start), end: shortDate(facts.period.end) })}
                     </p>
-                    <StatusChip status={facts.status} label={t(`status.${facts.status}`)} />
+                    {/* A few sets make no verdict */}
+                    {narrative && <StatusChip status={facts.status} label={t(`status.${facts.status}`)} />}
                 </div>
-                <p className="text-[17px] font-bold leading-snug">{narrative.headline}</p>
+                {narrative && <p className="text-[17px] font-bold leading-snug">{narrative.headline}</p>}
             </div>
 
             {/* Four numbers, each against last period (other apps' recaps open the same way) */}
@@ -253,8 +259,15 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                 </section>
             )}
 
+            {/* Below the sets advice needs, one line where the advice would be */}
+            {statsOnly && (
+                <p className="rounded-xl bg-done px-3 py-2.5 text-[15px] text-muted md:text-sm">
+                    {t('statsOnly', { unit, n: facts.totalSets.now, min: MINIMUM_SETS_FOR_ADVICE })}
+                </p>
+            )}
+
             {/* What to change next period */}
-            <section className="space-y-2">
+            {!statsOnly && <section className="space-y-2">
                 <SectionTitle title={t('nextTitle', { unit })} count={items.length ? t('nextCount', { n: items.length }) : null} />
                 {items.length === 0 ? (
                     <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 max-md:bg-transparent max-md:p-0 max-md:text-[15px] dark:bg-emerald-400/10 dark:text-emerald-300 max-md:dark:bg-transparent">{t('noAdvice', { unit })}</p>
@@ -313,7 +326,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                             : t('otherWays')}
                     </p>
                 )}
-            </section>
+            </section>}
 
             {/* No goal: one small line last, so a user who only logs isn't asked for one first thing every week */}
             {showGoal && facts.goal.read === null && (
@@ -925,6 +938,6 @@ function WatchNote({ label, children }: { label: string; children: React.ReactNo
 }
 
 export function isReportV3(rec: unknown): rec is ReportV3 {
-    return !!rec && typeof rec === 'object' && (rec as { version?: unknown }).version === 3
+    return !!rec && typeof rec === 'object' && (rec as { version?: unknown }).version === 3 && !isReportStats(rec)
 }
 
