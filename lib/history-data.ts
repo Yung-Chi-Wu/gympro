@@ -165,17 +165,7 @@ export async function loadReports(supabase: SupabaseClient<Database>, userId: st
     return data ?? []
 }
 
-/** The first day the user trained, so the list knows when there is nothing older to load */
-export async function loadFirstTrainedDate(
-    supabase: SupabaseClient<Database>,
-    userId: string,
-    timeZone: string,
-): Promise<string | null> {
-    const at = await readFirstTrainedAt(supabase, userId)
-    return at && localDate(timeZone, new Date(at))
-}
-
-/** When the user first trained (an instant), for a page that reads it before it has the user's time zone */
+/** When the user first trained (an instant), so the list knows when there is nothing older to load */
 export async function readFirstTrainedAt(supabase: SupabaseClient<Database>, userId: string): Promise<string | null> {
     const { data } = await supabase
         .from('workouts')
