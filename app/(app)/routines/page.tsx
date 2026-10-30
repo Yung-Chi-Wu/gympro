@@ -4,13 +4,14 @@ import { redirect } from 'next/navigation'
 import { getEffectiveLanguage } from '@/lib/get-language'
 import { localDate } from '@/lib/periods'
 import { RoutineBuilder } from '@/components/RoutineBuilder'
-import type { ExerciseOption } from '@/components/log-types'
 import { timeZoneOf } from '@/lib/time-zone'
-import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
+import { withRecent } from '@/lib/recent-exercises'
 import { ServerTimingMark } from '@/components/ServerTimingMark'
 import { ReadYourWrites } from '@/components/ReadYourWrites'
 import { calendarRange, calendarReadAhead } from '@/lib/cycle-calendar'
-import { historyDaysOf, loadReportStatuses, readFirstTrainedAt, readHistoryRowsSplit } from '@/lib/history-data'
+import { historyDaysOf } from '@/lib/history-data'
+import { loadRoutinesData, readRoutinesPage, routinesFromPage } from '@/lib/routines-page'
+import { reportError } from '@/lib/report-error'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
 
@@ -35,66 +36,28 @@ export interface CycleDayInfo {
     routineId: string | null
 }
 
-interface RawRoutineExerciseRow {
-    id: string
-    exercise_id: string
-    order_index: number
-    target_sets: number | null
-    target_reps: number | null
-    exercises: { name: string; muscle_group: string } | null
-}
-
-interface RawRoutineRow {
-    id: string
-    name: string
-    routine_exercises: RawRoutineExerciseRow[]
-}
-
-// One round: the profile, the exercise list, the routines, the cycle with its days, and the
-// calendar's month: what was trained, the rounds' reports, and the first day ever trained. The
-// month's range needs the user's zone and cycle, so it is read as wide as any of them can make it
-// (calendarReadAhead) and cut to the calendar's range after; a user with no cycle has no calendar,
-// and these reads cost them nothing, being in the same round.
+// 課表 is read in one request (routines_page, lib/routines-page.ts) beside the profile, which the
+// frame reads anyway: the exercise list, the routines, the cycle with its days, and the calendar's
+// month: what was trained, the weeks' reports, and the first day ever trained. The month depends
+// on the user's zone, so it is read as wide as any zone can make it (calendarReadAhead) and cut to
+// the calendar's range after; a user with no cycle has no calendar. When that request fails, the
+// page is read the old way, in one round of requests.
 export default async function RoutinesPage() {
     const user = await getSessionUser()
     if (!user) redirect('/login')
     const supabase = await createClient()
     const ahead = calendarReadAhead(new Date().toISOString().slice(0, 10))
 
-    const [{ profile }, exercisesResult, recentIds, routinesResult, cycleResult, historyRows, reports, firstTrainedAt] = await Promise.all([
-        getFrameProfile(),
-        supabase
-            .from('exercises')
-            .select('id, name, name_zh_tw, muscle_group, equipment')
-            .order('name'),
-        recentExerciseIds(supabase, user.id),
-        supabase
-            .from('routines')
-            .select(`
-                id, name,
-                routine_exercises (
-                    id, exercise_id, order_index, target_sets, target_reps,
-                    exercises ( name, muscle_group )
-                )
-            `)
-            .eq('user_id', user.id)
-            .order('created_at'),
-        supabase
-            .from('training_cycles')
-            .select('id, cycle_length, start_date, cycle_days ( day_index, routine_id ), cycle_date_changes ( change_date, routine_id )')
-            .eq('user_id', user.id)
-            .order('day_index', { referencedTable: 'cycle_days' })
-            .maybeSingle(),
-        readHistoryRowsSplit(supabase, user.id, ahead.range, ahead.weeksStart),
-        loadReportStatuses(supabase, user.id, ahead.range),
-        readFirstTrainedAt(supabase, user.id),
-    ])
+    const [{ profile }, page] = await Promise.all([getFrameProfile(), readRoutinesPage(supabase, ahead)])
+    if (page.error) reportError('routines-page', page.error, { userId: user.id })
+    const { exercises, recentIds, routines, cycle, history, reports, firstTrainedAt } = page.data
+        ? routinesFromPage(page.data)
+        : await loadRoutinesData(supabase, user.id, ahead)
     const language = await getEffectiveLanguage(profile)
-    const cycle = cycleResult.data
     const timeZone = timeZoneOf(profile?.timezone)
     const today = localDate(timeZone, new Date())
 
-    const routineList: RoutineWithExercises[] = ((routinesResult.data as RawRoutineRow[]) ?? []).map((r) => ({
+    const routineList: RoutineWithExercises[] = routines.map((r) => ({
         id: r.id,
         name: r.name,
         exercises: (r.routine_exercises ?? [])
@@ -117,7 +80,7 @@ export default async function RoutinesPage() {
         const range = calendarRange(today.slice(0, 7))
         calendar = {
             range,
-            days: historyDaysOf(historyRows, { range, timeZone, language }),
+            days: historyDaysOf(history, { range, timeZone, language }),
             reports: reports.filter((r) => r.periodStart >= range.start && r.periodStart <= range.end),
             firstDate: firstTrainedAt && localDate(timeZone, new Date(firstTrainedAt)),
         }
@@ -134,7 +97,7 @@ export default async function RoutinesPage() {
             <RoutineBuilder
                 key={cycle?.id ?? 'no-cycle'}
                 userId={user.id}
-                exercises={withRecent((exercisesResult.data ?? []) as ExerciseOption[], recentIds)}
+                exercises={withRecent(exercises, recentIds)}
                 initialRoutines={routineList}
                 language={language}
                 initialCycle={cycle ? { id: cycle.id, cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null}

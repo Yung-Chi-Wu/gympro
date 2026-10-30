@@ -889,6 +889,13 @@ export type Database = {
         }
         Returns: Json
       }
+      routines_page: {
+        Args: {
+          p_end: string
+          p_start: string
+        }
+        Returns: Json
+      }
       mark_report_queue_failed: {
         Args: {
           p_period_start: string

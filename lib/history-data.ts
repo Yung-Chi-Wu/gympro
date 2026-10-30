@@ -63,23 +63,6 @@ export async function readHistoryRows(supabase: SupabaseClient<Database>, userId
     return { workouts: (workoutsResult.data ?? []) as unknown as WorkoutRow[], notes }
 }
 
-/**
- * readHistoryRows in two queries at once, split at `at`: each brings half the rows, so both are back
- * sooner than one with all of them (課表's month read ahead: about 80 ms against 105). A workout
- * both read, as each asks a day wider, is kept once.
- */
-export async function readHistoryRowsSplit(supabase: SupabaseClient<Database>, userId: string, range: HistoryRange, at: string): Promise<HistoryRows> {
-    const [before, after] = await Promise.all([
-        readHistoryRows(supabase, userId, { start: range.start, end: addDays(at, -1) }),
-        readHistoryRows(supabase, userId, { start: at, end: range.end }),
-    ])
-    const inAfter = new Set(after.workouts.map((w) => w.id))
-    return {
-        workouts: [...before.workouts.filter((w) => !inAfter.has(w.id)), ...after.workouts],
-        notes: new Map([...before.notes, ...after.notes]),
-    }
-}
-
 /** The days in a range, from rows read for it or for a range around it */
 export function historyDaysOf(
     { workouts, notes }: HistoryRows,
@@ -148,7 +131,20 @@ export async function loadReportStatuses(
         .eq('user_id', userId)
         .gte('period_start', range.start)
         .lte('period_start', range.end)
-    return (data ?? []).map((r) => ({
+    return reportStatusesOf(data ?? [])
+}
+
+/** What loadReportStatuses reads for a report */
+export interface ReportStatusRow {
+    period_start: string
+    status: string
+    queued_at: string | null
+    trend: string | null
+}
+
+/** Each report's period and verdict, from its row */
+export function reportStatusesOf(rows: ReportStatusRow[]): PeriodReportStatus[] {
+    return rows.map((r) => ({
         periodStart: r.period_start,
         // A pending report whose run died isn't "being made"
         status: shownStatus(r),
