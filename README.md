@@ -12,17 +12,17 @@ A workout tracker with an AI coach, in English and Traditional Chinese. It has t
 
 ## Highlights
 
-- **An agent with guardrails.** Ronnie is a Claude tool-use agent with 13 tools over the user's data and a knowledge base of 151 papers.
+- **An agent with guardrails.** Ronnie is a Claude tool-use agent with 14 tools over the user's data and a knowledge base of 151 papers.
   - Reads are free. A change to today's workout that the user names is made at once. A change Ronnie picks, and any change to a routine, is shown as a card, and code applies it when the user taps it.
   - Code writes every line that states a fact: memory receipts, plan summaries, corrections.
   - A reply that contradicts today's log is caught before it's shown.
 - **Evals decide what ships.**
-  - 71 scripted conversations against a fixture user, plus 71 search queries and 36 report scenarios.
+  - 99 scripted conversations against a fixture user, plus 146 search queries and 44 report scenarios.
   - Graded by code checks and an LLM judge.
   - Every run is recorded in the repo, and the model for each feature was chosen by eval.
   - Mistakes found in evals are replayed in CI on every pull request, at no cost.
 - **Facts in code, words from the model.**
-  - The weekly report's numbers and advice come from a rule table in code, backed by 22 cited papers whose DOIs are checked in CI. Code writes what to do next session on each lift; the model only phrases the rest.
+  - The weekly report's numbers and advice come from a rule table in code, backed by 27 cited papers whose DOIs are checked in CI. Code writes what to do next session on each lift; the model only phrases the rest.
   - Coach G's plan is built by code; a small model only reads the user's free text.
 - **Measured, then tuned.**
   - Each page reports where its server time goes.
@@ -151,7 +151,7 @@ flowchart LR
    - Code checks the text before it's saved: Traditional, not Simplified, characters; punctuation; no Markdown; the user's weight unit; headline length; and that each action names every finding of its rule.
    - A failure is retried with the specific error.
    - After two failures, a code template is used.
-6. **Research:** each rule's research line comes from a table of 24 papers in [`lib/report/evidence.ts`](lib/report/evidence.ts), not from the model.
+6. **Research:** each rule's research line comes from a table of 27 papers in [`lib/report/evidence.ts`](lib/report/evidence.ts), not from the model.
 
 ## Evaluation
 
@@ -163,7 +163,7 @@ flowchart LR
 | Ronnie, memory | 21, some across several conversations | Code checks on the saved notes, plus the judge |
 | Exercise search | 51 queries, plus 20 held out | hit@1, hit@5, MRR |
 | Knowledge search | 50 questions, plus 25 held out | hit@1, hit@5, MRR |
-| Weekly report | 42 scenarios | Rule checks, a grader and the judge |
+| Weekly report | 44 scenarios | Rule checks, a grader and the judge |
 | Report goal reader | 20 goal texts, run by hand | Code checks on each read |
 | Report period reader | 16 sets of notes and messages, run by hand | Code checks on each read |
 
@@ -326,7 +326,7 @@ lib/report/          Report evidence table, volume units, queue
 lib/ai/              AI tracing, spend limits and the one place that makes a model client
 lib/server-timing.ts Where each page's server time goes
 lib/data-version.ts  The browser's data version: every write counts
-lambda/ai-worker/    Report worker, hourly scheduler and daily review (Lambda), with their evals
+lambda/ai-worker/    Report worker, hourly scheduler, daily review and reminders (Lambda), with their evals
 evals/ronnie/        Ronnie evals: cases, fixture, grader, judge, runner, replays
 evals/search/        Exercise search eval
 infra/terraform/     AWS infrastructure
