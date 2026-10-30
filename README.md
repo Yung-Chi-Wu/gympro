@@ -112,11 +112,11 @@ Some of what the evals decided ([all of it](docs/evaluation.md)):
 
 ## Performance
 
-Each page reports where its server time goes, and a script times tab taps on production. Reading the database in fewer rounds did most of it: Today went from 10 rounds to 2. Tap to content, median of 6:
+Each page reports where its server time goes, and a script times tab taps on production. Fewer database requests did most of it: Today went from 10 rounds of requests to one request. Tap to content, median of 6:
 
 | Tab | Before | After |
 |---|---|---|
-| Today | 0.62–0.64 s | 0.30 s |
+| Today | 0.62–0.64 s | 0.25–0.29 s |
 | Routines | 0.39–0.45 s | 0.21 s |
 | History | 0.46–0.60 s | 0.33 s |
 | Settings | 0.36–0.42 s | 0.16 s |
