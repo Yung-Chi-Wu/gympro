@@ -19,7 +19,10 @@ export const isPushEndpoint = (url: string) => url.length <= MAX_ENDPOINT_LENGTH
 
 /** What a reminder carries, and what the service worker (public/sw.js) shows */
 export interface ReminderPayload {
+    /** The question itself. The phone names the sender under it ("from GymPro" on an iPhone, the
+     * site on Android and desktops), so the app's name isn't the title */
     title: string
+    /** Empty: the title is the whole message */
     body: string
     /** Where a tap goes: Today, where the day is logged */
     url: string
@@ -31,5 +34,5 @@ export const REMINDER_TAG = 'daily-reminder'
 
 /** The reminder's text, one question every day (owner, 2026-10-30) */
 export function reminderPayload(language: string): ReminderPayload {
-    return { title: 'GymPro', body: language === 'zh-TW' ? '今天訓練了嗎？' : 'Did you train today?', url: '/dashboard', tag: REMINDER_TAG }
+    return { title: language === 'zh-TW' ? '今天訓練了嗎？' : 'Did you train today?', body: '', url: '/dashboard', tag: REMINDER_TAG }
 }
