@@ -22,8 +22,8 @@ import { Icon } from './Icon'
 // ahead lists its routine's exercises, each with a ✎ that opens it to change right there, and can
 // be given another routine or made a rest day, or a rest day a routine, from 換課表 by its title (a
 // sheet of what it can become): the cycle doesn't move, and
-// the routine the day had isn't done that round, so the round has its sets fewer. A day's round
-// is lightly filled across the month: a round is one report's period, and the report is linked
+// the routine the day had isn't done that round, so the week has its sets fewer. The picked day's
+// week is lightly filled across its row: a week is one report's period, and the report is linked
 // from the day. Past days come from the same reads as 紀錄, and a trained day links to its page
 // there. Months load as the user moves (use-history-records.ts).
 
@@ -105,9 +105,9 @@ export function CycleCalendar({
     const firstMonth = monthOf(firstDate && firstDate < cycle.startDate ? firstDate : cycle.startDate)
     const lastMonth = addMonths(monthOf(today), MONTHS_AHEAD)
 
-    // The month on screen, from the start of the round it opens in: read once it is shown (on a
-    // move, for a cycle made on this page, or one whose start moved)
-    const range = calendarRange(month, cycle)
+    // The month on screen: read once it is shown (on a move, for a cycle made on this page, or one
+    // whose start moved)
+    const range = calendarRange(month)
     useEffect(() => {
         void ensureLoaded(range)
     }, [range.start, range.end]) // eslint-disable-line react-hooks/exhaustive-deps -- ensureLoaded is new each render and skips what is loaded
@@ -181,9 +181,9 @@ export function CycleCalendar({
                                 {week.map((date, i) => {
                                     const day = dayOf(date)
                                     const slot = colorOf(day)
-                                    const inRound = day.round.start === picked.round.start
-                                    const band = inRound
-                                        ? `bg-accent-soft ${date === day.round.start || i === 0 ? 'rounded-l-xl' : ''} ${date === day.round.end || i === 6 ? 'rounded-r-xl' : ''}`
+                                    // The picked day's week, a report's period, is its row
+                                    const band = day.week.start === picked.week.start
+                                        ? `bg-accent-soft ${i === 0 ? 'rounded-l-xl' : ''} ${i === 6 ? 'rounded-r-xl' : ''}`
                                         : ''
                                     const number = date === selected
                                         ? date === today ? 'bg-accent font-bold text-accent-ink' : 'bg-ink font-bold text-card'
@@ -248,7 +248,7 @@ export function CycleCalendar({
                 cycle={cycle}
                 routineById={routineById}
                 exercises={exercises}
-                report={picked.round.end < today ? reportFor(picked.round) : null}
+                report={picked.week.end < today ? reportFor(picked.week) : null}
                 language={language}
                 units={units}
                 routines={routines}
@@ -287,7 +287,7 @@ interface DayPanelProps {
     cycle: CalendarCycle
     routineById: Map<string, RoutineWithExercises>
     exercises: ExerciseOption[]
-    /** The report of the day's round, once the round has ended */
+    /** The report of the day's week, once the week has ended */
     report: PeriodReportStatus | null
     language: string
     units: Units
@@ -364,7 +364,7 @@ function DayPanel({ day, slot, colors, trained, today, cycle, routineById, exerc
         status = <>{word}{th('separator')}{th('dayExercises', { count: shownExercises.length })}{instead && `${th('separator')}${instead}`}</>
     }
 
-    const roundEnded = day.round.end < today
+    const weekEnded = day.week.end < today
     return (
         <section className={`${CARD} space-y-3`} aria-live="polite">
             <div className="flex flex-wrap justify-between gap-x-3 text-[13px] text-faint md:text-xs">
@@ -448,10 +448,10 @@ function DayPanel({ day, slot, colors, trained, today, cycle, routineById, exerc
             {dayChange?.error && <p role="alert" className="text-sm text-miss">{dayChange.error}</p>}
 
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-[13px] text-muted md:text-xs">
-                <span>{t('calendar.round')} <span className="font-mono">{formatRange(day.round)}</span></span>
-                {roundEnded && report && (report.status === 'pending' || report.trend) ? (
+                <span>{t('calendar.week')} <span className="font-mono">{formatRange(day.week)}</span></span>
+                {weekEnded && report && (report.status === 'pending' || report.trend) ? (
                     <Link
-                        href={`/history?tab=reports&report=${day.round.start}`}
+                        href={`/history?tab=reports&report=${report.periodStart}`}
                         onNavigate={() => markNavigation('/history')}
                         aria-label={t('calendar.seeReport')}
                         className="inline-flex min-h-9 items-center gap-0.5"
@@ -459,8 +459,8 @@ function DayPanel({ day, slot, colors, trained, today, cycle, routineById, exerc
                         <ReportTrendChip report={report} />
                         <Icon name="forward" className="size-3.5 text-faint" />
                     </Link>
-                ) : day.round.start <= today && today <= day.round.end ? (
-                    <span>{t('calendar.reportAfter', { date: formatDay(day.round.end, language) })}</span>
+                ) : day.week.start <= today && today <= day.week.end ? (
+                    <span>{t('calendar.reportAfter', { date: formatDay(day.week.end, language) })}</span>
                 ) : null}
             </div>
         </section>

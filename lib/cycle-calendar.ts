@@ -2,8 +2,8 @@ import { addDays, cycleDayOf, daysBetween, MAX_CYCLE_DAYS, plannedRoutineId, typ
 import { datesIn, isTrained, monthOf, monthRange, periodOf, type HistoryDay, type HistoryRange } from './history'
 
 // 課表's calendar (components/CycleCalendar.tsx): a month, Monday first, each day with what the
-// training cycle plans for it and whether it was trained. A round of the cycle is a report's
-// period (lib/periods.ts), so each day also knows its round. Plans follow the cycle as it is now,
+// training cycle plans for it and whether it was trained. A week is a report's period
+// (lib/periods.ts), so each day also knows its week, a row of the month. Plans follow the cycle as it is now,
 // start on its start date and take the days the user changed (another routine, or a rest day) as
 // changed, the way a report counts them (lambda/ai-worker/src/report/fetch.ts).
 
@@ -31,8 +31,8 @@ export interface CalendarDay {
     /** The routine the cycle itself has for the day; null on its rest days */
     cycleRoutineId: string | null
     status: DayStatus
-    /** The cycle's round the day is in: a report's period */
-    round: HistoryRange
+    /** The week the day is in: a report's period */
+    week: HistoryRange
 }
 
 /** Routines in their own color, in the order the cycle first reaches them; the rest share a plain one */
@@ -44,9 +44,9 @@ export function plannedRoutine(cycle: CalendarCycle, date: string): string | nul
 }
 
 export function calendarDay(date: string, cycle: CalendarCycle, today: string, day: HistoryDay | undefined): CalendarDay {
-    const round = periodOf(date, cycle)
+    const week = periodOf(date)
     const trained = isTrained(day)
-    if (date < cycle.startDate) return { date, cycleDay: null, routineId: null, changed: false, cycleRoutineId: null, status: trained ? 'done' : 'none', round }
+    if (date < cycle.startDate) return { date, cycleDay: null, routineId: null, changed: false, cycleRoutineId: null, status: trained ? 'done' : 'none', week }
     const cycleDay = cycleDayOf(cycle, date)
     const routineId = plannedRoutine(cycle, date)
     const changed = cycle.changes.has(date)
@@ -55,7 +55,7 @@ export function calendarDay(date: string, cycle: CalendarCycle, today: string, d
     if (trained) status = 'done'
     else if (!routineId) status = 'rest'
     else status = date < today ? 'missed' : date === today ? 'today' : 'planned'
-    return { date, cycleDay, routineId, changed, cycleRoutineId, status, round }
+    return { date, cycleDay, routineId, changed, cycleRoutineId, status, week }
 }
 
 /** Whether a routine, or none for a rest day, is what the cycle itself has for a date: picking it gives a changed day back */
@@ -76,18 +76,19 @@ export function monthWeeks(month: string): string[][] {
     return Array.from({ length: dates.length / 7 }, (_, i) => dates.slice(i * 7, i * 7 + 7))
 }
 
-/** What the calendar reads for a month: its weeks, from the start of the round the first one is in */
-export function calendarRange(month: string, cycle: CycleSettings): HistoryRange {
+/** What the calendar reads for a month: its weeks */
+export function calendarRange(month: string): HistoryRange {
     const weeks = monthWeeks(month)
-    return { start: periodOf(weeks[0][0], cycle).start, end: weeks[weeks.length - 1][6] }
+    return { start: weeks[0][0], end: weeks[weeks.length - 1][6] }
 }
 
 /**
- * A range that holds calendarRange for today's month in any time zone and any cycle: so the month
- * is read before the user's zone and cycle are in, in the page's first round, and cut to
- * calendarRange once they are. Today in a zone is within a day of today in UTC, and a round starts
- * at most a cycle's length before the month's first week. weeksStart is that week's Monday, where
- * the read splits in two (readHistoryRowsSplit).
+ * A range that holds calendarRange for today's month in any time zone: so the month is read before
+ * the user's zone and cycle are in, in the page's first round, and cut to calendarRange once they
+ * are. Today in a zone is within a day of today in UTC. It still starts a cycle's length before the
+ * month's first week, from when the calendar showed the cycle's rounds and a round could start
+ * there; the rows before weeksStart, that week's Monday, come in their own query
+ * (readHistoryRowsSplit), so they add no wait.
  */
 export function calendarReadAhead(utcToday: string): { range: HistoryRange; weeksStart: string } {
     const first = monthWeeks(monthOf(addDays(utcToday, -1)))

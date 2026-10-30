@@ -1,9 +1,9 @@
 import type { LogType } from './exercise-attributes'
-import { addDays, daysBetween, mostRecentMonday, type CycleSettings } from './periods'
+import { addDays, daysBetween, PERIOD_DAYS, weekOf } from './periods'
 import type { SetValues } from './set-log'
 
-// The 紀錄 page's data: one entry per day the user trained, grouped into periods (a
-// calendar week, or one round of the training cycle). Records are kept forever, so the
+// The 紀錄 page's data: one entry per day the user trained, grouped into periods (calendar
+// weeks, a report's period: lib/periods.ts). Records are kept forever, so the
 // page never asks for all of them: the side-by-side view loads one month, the phone list
 // four periods at a time (more on request). Used by the page, its API and its components.
 
@@ -63,37 +63,32 @@ export const isDate = (s: string | null | undefined): s is string => {
 }
 export const isMonth = (s: string | null | undefined): s is string => !!s && /^\d{4}-(0[1-9]|1[0-2])$/.test(s)
 
-/** The period a day falls in. Before a training cycle's start, its rounds are counted backwards. */
-export function periodOf(date: string, cycle: CycleSettings | null): HistoryRange {
-    if (!cycle) {
-        const start = mostRecentMonday(date)
-        return { start, end: addDays(start, 6) }
-    }
-    const round = Math.floor(daysBetween(cycle.startDate, date) / cycle.cycleLength)
-    const start = addDays(cycle.startDate, round * cycle.cycleLength)
-    return { start, end: addDays(start, cycle.cycleLength - 1) }
+/** The period a day falls in: its week */
+export function periodOf(date: string): HistoryRange {
+    const { periodStart, periodEnd } = weekOf(date)
+    return { start: periodStart, end: periodEnd }
 }
 
 /** The period that contains `from` and the `count - 1` before it, newest first */
-export function periodsBack(from: string, count: number, cycle: CycleSettings | null, today: string): PeriodRange[] {
+export function periodsBack(from: string, count: number, today: string): PeriodRange[] {
     const periods: PeriodRange[] = []
-    let period = periodOf(from, cycle)
+    let period = periodOf(from)
     for (let i = 0; i < count; i++) {
         periods.push({ ...period, current: period.start <= today && today <= period.end })
-        period = periodOf(addDays(period.start, -1), cycle)
+        period = periodOf(addDays(period.start, -1))
     }
     return periods
 }
 
 /** The periods that overlap a range, newest first */
-export function periodsSpanning({ start, end }: HistoryRange, cycle: CycleSettings | null, today: string): PeriodRange[] {
-    const count = Math.floor(daysBetween(periodOf(start, cycle).start, periodOf(end, cycle).start) / (cycle?.cycleLength ?? 7)) + 1
-    return periodsBack(end, count, cycle, today)
+export function periodsSpanning({ start, end }: HistoryRange, today: string): PeriodRange[] {
+    const count = Math.floor(daysBetween(periodOf(start).start, periodOf(end).start) / PERIOD_DAYS) + 1
+    return periodsBack(end, count, today)
 }
 
 /** The periods that overlap a month (YYYY-MM), newest first */
-export const periodsInMonth = (month: string, cycle: CycleSettings | null, today: string) =>
-    periodsSpanning(monthRange(month), cycle, today)
+export const periodsInMonth = (month: string, today: string) =>
+    periodsSpanning(monthRange(month), today)
 
 /** From the oldest period's first day to the newest's last */
 export const rangeOf = (periods: HistoryRange[]): HistoryRange => ({

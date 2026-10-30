@@ -13,7 +13,7 @@ import { OnboardingGuard } from '@/components/OnboardingGuard'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
-import { addDays, currentPeriod, cycleDayOf, daysBetween, lastCompletedPeriod, localDate, plannedRoutineId } from '@/lib/periods'
+import { addDays, currentPeriod, cycleDayOf, lastCompletedPeriod, localDate, PERIOD_DAYS, plannedRoutineId } from '@/lib/periods'
 import { localDayToUtcRange, timeZoneOf } from '@/lib/time-zone'
 import { loadTodayWorkout } from '@/lib/today-workout'
 import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
@@ -89,19 +89,17 @@ export default async function DashboardPage() {
           initialDayNote={day.dayNote}
           initialWeightKg={day.todayWeightKg}
           lastWeightKg={day.lastWeightKg}
-          aims={{ today: todayIso, lastPeriod, findings: aimFindings(latestReport, lastPeriod), unit: cycle ? 'cycle' : 'week', recentFrom }}
+          aims={{ today: todayIso, lastPeriod, findings: aimFindings(latestReport, lastPeriod), unit: 'week', recentFrom }}
         />
 
         <section className="space-y-3">
           <div>
             <h2 className="text-lg font-bold">{tReport('sectionTitle')}</h2>
-            {period && (
-              <p className="text-[13px] text-muted">
-                {tPeriod('reportSchedule', { end: formatPeriodDate(period.periodEnd, language) })}
-              </p>
-            )}
+            <p className="text-[13px] text-muted">
+              {tPeriod('reportSchedule', { end: formatPeriodDate(period.periodEnd, language) })}
+            </p>
           </div>
-          {period && periodNote && <PeriodNoteCard initialNote={periodNote} />}
+          {periodNote && <PeriodNoteCard initialNote={periodNote} />}
           <RecommendationPanel userId={user.id} initial={latestReport} language={language} weightUnit={weightUnit} distanceUnit={distanceUnit} />
         </section>
       </div>
@@ -130,16 +128,14 @@ async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
 
   const language = await getEffectiveLanguage(profile)
   const timezone = timeZoneOf(profile?.timezone)
-  const period = currentPeriod(timezone, cycleSettings)
+  const period = currentPeriod(timezone)
   const todayIso = localDate(timezone, new Date())
   const todayRange = localDayToUtcRange(todayIso, timezone)
   // Today's aims work from the period the newest report is of, and the days since. The plan holds
   // its range from period to period, so the sets go back as many periods as the report reads.
-  const ended = lastCompletedPeriod(timezone, cycleSettings)
-  const lastPeriod = ended && { start: ended.periodStart, end: ended.periodEnd }
-  const aimsFrom = lastPeriod
-    ? addDays(lastPeriod.start, -(REPORT_WINDOWS - 1) * (daysBetween(lastPeriod.start, lastPeriod.end) + 1))
-    : addDays(todayIso, -AIM_LOOKBACK_DAYS)
+  const ended = lastCompletedPeriod(timezone)
+  const lastPeriod = { start: ended.periodStart, end: ended.periodEnd }
+  const aimsFrom = addDays(lastPeriod.start, -(REPORT_WINDOWS - 1) * PERIOD_DAYS)
   const recentFrom = { from: localDayToUtcRange(aimsFrom, timezone).start, timeZone: timezone }
 
   const dayIndex = cycleSettings ? cycleDayOf(cycleSettings, todayIso) : 0
@@ -158,14 +154,12 @@ async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
     : null
 
   const [periodNoteResult, dayNoteResult, todayWeightResult, lastWeightResult, today] = await Promise.all([
-    period
-      ? supabase
-        .from('period_notes')
-        .select('note')
-        .eq('user_id', userId)
-        .eq('period_start', period.periodStart)
-        .maybeSingle()
-      : Promise.resolve({ data: null }),
+    supabase
+      .from('period_notes')
+      .select('note')
+      .eq('user_id', userId)
+      .eq('period_start', period.periodStart)
+      .maybeSingle(),
     supabase
       .from('day_notes')
       .select('note')
@@ -222,8 +216,6 @@ async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
   }
 }
 
-/** Without a period that has ended (a cycle in its first round), today's aims look this far back */
-const AIM_LOOKBACK_DAYS = 28
 /** What today's aims take from the report: a lift held for pain, a lighter week, a goal lift taken down */
 const AIM_RULES = new Set(['pain_hold', 'next_session', 'goal_path'])
 

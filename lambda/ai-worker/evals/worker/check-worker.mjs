@@ -96,6 +96,29 @@ for (const [name, start, end, days] of [
     check(`period: ${name}`, w.periodDays(start, end) === days, String(w.periodDays(start, end)))
 }
 
+// A period is the user's calendar week, Monday to Sunday, whatever their training cycle
+{
+    const at = (iso) => new Date(iso)
+    const range = (p) => `${p.periodStart}..${p.periodEnd}`
+    check('on a Wednesday, the report due is last week\'s, Monday to Sunday',
+        range(w.lastCompletedPeriod('America/New_York', at('2026-10-28T14:00:00Z'))) === '2026-10-19..2026-10-25'
+        && range(w.currentPeriod('America/New_York', at('2026-10-28T14:00:00Z'))) === '2026-10-26..2026-11-01')
+    // Sunday 16:30 UTC is Monday 00:30 in Taipei and still Sunday in New York
+    check('the week ends at midnight in the user\'s own time zone',
+        range(w.lastCompletedPeriod('Asia/Taipei', at('2026-11-01T16:30:00Z'))) === '2026-10-26..2026-11-01'
+        && range(w.lastCompletedPeriod('America/New_York', at('2026-11-01T16:30:00Z'))) === '2026-10-19..2026-10-25')
+}
+
+// A week an earlier report already covered to its end gets no second report
+{
+    const week = { userId: 'u1', periodStart: '2026-10-27', periodEnd: '2026-11-02' }
+    const due = (end) => w.weeksNotReported([week], new Map(end ? [['u1', end]] : [])).length === 1
+    check('a week with no report before it is due', due(null))
+    check('a round of a cycle that ended inside the week leaves it due, so no day goes unreported', due('2026-10-28'))
+    check('a round that ended on or after its Sunday covered it, and this week\'s own report is not made twice', !due('2026-11-02') && !due('2026-11-05'))
+    check('one user\'s reports leave another user\'s week due', w.weeksNotReported([week, { ...week, userId: 'u2' }], new Map([['u1', '2026-11-02']])).map((d) => d.userId).join() === 'u2')
+}
+
 // Every save is an update limited to this request's row: never an upsert, never another request's
 for (const [name, save] of [
     ['saveReport', (sb) => w.saveReport(sb, request, { version: 3 }, null)],

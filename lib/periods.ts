@@ -1,7 +1,9 @@
 // Training periods, shared by the dashboard and the report-scheduler Lambda.
-// A period is a calendar week (Monday-Sunday) by default, or one cycle of a
-// custom training cycle. Dates are YYYY-MM-DD in the user's own time zone.
-// No imports, so the Lambda can bundle this file as-is.
+// A period, one report's, is a calendar week, Monday to Sunday, for everyone: a cycle plans which
+// routine falls on which day, but the report doesn't follow it, since a user whose work hours
+// change trains when they can (owner, 2026-10-28; other apps' weekly recaps are calendar weeks
+// too). Reports saved before then may cover one round of the cycle. Dates are YYYY-MM-DD in the
+// user's own time zone. No imports, so the Lambda can bundle this file as-is.
 
 export interface Period {
     periodStart: string
@@ -14,8 +16,9 @@ export interface CycleSettings {
 }
 
 /**
- * The longest training cycle, so also the longest period one report covers. The database
- * holds both to it (migration 20261014120000), so a report's size has a ceiling.
+ * The longest training cycle, and the longest period a report covers: reports saved before
+ * periods were weeks may be one round of a cycle. The database holds both to it (migration
+ * 20261014120000), so a report's size has a ceiling.
  */
 export const MAX_CYCLE_DAYS = 28
 
@@ -26,33 +29,23 @@ export function periodDays(periodStart: string, periodEnd: string | null | undef
     return days >= 1 && days <= MAX_CYCLE_DAYS ? days : null
 }
 
-/** The period today falls in, or null when a custom cycle hasn't started yet. */
-export function currentPeriod(timeZone: string, cycle: CycleSettings | null, now = new Date()): Period | null {
-    const today = localDate(timeZone, now)
-    if (!cycle) {
-        const periodStart = mostRecentMonday(today)
-        return { periodStart, periodEnd: addDays(periodStart, 6) }
-    }
-    const daysSinceStart = daysBetween(cycle.startDate, today)
-    if (daysSinceStart < 0) return null
-    const periodStart = addDays(cycle.startDate, Math.floor(daysSinceStart / cycle.cycleLength) * cycle.cycleLength)
-    return { periodStart, periodEnd: addDays(periodStart, cycle.cycleLength - 1) }
+/** The days a period lasts: a week */
+export const PERIOD_DAYS = 7
+
+/** The week a date falls in, Monday to Sunday */
+export function weekOf(date: string): Period {
+    const periodStart = mostRecentMonday(date)
+    return { periodStart, periodEnd: addDays(periodStart, PERIOD_DAYS - 1) }
 }
 
-/**
- * The most recent period that has fully ended (its last day is before today),
- * which is the one a report is due for. Null when no custom cycle has ended yet.
- */
-export function lastCompletedPeriod(timeZone: string, cycle: CycleSettings | null, now = new Date()): Period | null {
-    const today = localDate(timeZone, now)
-    if (!cycle) {
-        const periodStart = addDays(mostRecentMonday(today), -7)
-        return { periodStart, periodEnd: addDays(periodStart, 6) }
-    }
-    const cyclesDone = Math.floor(daysBetween(cycle.startDate, today) / cycle.cycleLength)
-    if (cyclesDone < 1) return null
-    const periodStart = addDays(cycle.startDate, (cyclesDone - 1) * cycle.cycleLength)
-    return { periodStart, periodEnd: addDays(periodStart, cycle.cycleLength - 1) }
+/** The period today falls in: this week */
+export function currentPeriod(timeZone: string, now = new Date()): Period {
+    return weekOf(localDate(timeZone, now))
+}
+
+/** The most recent period that has fully ended, which is the one a report is due for: last week */
+export function lastCompletedPeriod(timeZone: string, now = new Date()): Period {
+    return weekOf(addDays(localDate(timeZone, now), -PERIOD_DAYS))
 }
 
 /**
@@ -87,9 +80,13 @@ export function plannedRoutineId(
     return routineByDay[cycleDayOf(cycle, date)] ?? null
 }
 
-/** Last day of the period that starts on periodStart. */
+/**
+ * The last day of a report saved before reports kept their period's end (2026-10-13), when a
+ * period could be a round of the cycle: as long as the cycle is now, which a retry also takes
+ * (claim_report_retry, migration 20261014120000).
+ */
 export function periodEndFor(periodStart: string, cycle: CycleSettings | null): string {
-    return addDays(periodStart, (cycle?.cycleLength ?? 7) - 1)
+    return addDays(periodStart, (cycle?.cycleLength ?? PERIOD_DAYS) - 1)
 }
 
 // ---------- Date helpers ----------
