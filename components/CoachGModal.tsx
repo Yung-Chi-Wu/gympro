@@ -35,7 +35,9 @@ export function CoachGModal({ language, onClose, onSaved }: CoachGModalProps) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-lg h-[85vh] rounded-xl bg-white dark:bg-[#2C2923] shadow-xl flex flex-col overflow-hidden">
+            {/* The app's dialog surface, as Coach G's entry dialog: bg-raised has its own night color, so
+                the buttons' tonal fill (bg-done) stands out on it in both themes */}
+            <div className="flex h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-sheet bg-raised shadow-float">
                 {generatedPlan ? (
                     <CoachGResult
                         routines={generatedPlan.routines}
