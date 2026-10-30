@@ -5,13 +5,13 @@ import { getSupabaseClient } from './supabase'
 import { getSecret } from './secrets'
 import { fetchSchedule } from './report/fetch'
 import { localDate } from '../../../lib/periods'
-import { localDayToUtcRange, timeZoneOf } from '../../../lib/time-zone'
+import { timeZoneOf } from '../../../lib/time-zone'
 import { isPushEndpoint, REMINDER_HOUR, REMINDER_TAG, reminderPayload, type ReminderPayload } from '../../../lib/push'
 
 // Runs every hour on the hour from EventBridge Scheduler. For each user with a device that turned
 // the reminder on (push_subscriptions) whose local time is 21:00 to 21:59, it sends the daily
-// reminder (lib/push.ts): not on a rest day their cycle plans, and with the sets they logged today
-// when there are some. Each device is claimed for the day before it is sent to (reminded_on), so a
+// reminder (lib/push.ts), except on a rest day their cycle plans. Each device is claimed for the day
+// before it is sent to (reminded_on), so a
 // run that repeats sends nothing twice. A device the push service no longer knows (404, 410) is
 // deleted. The model is never called.
 //
@@ -39,7 +39,6 @@ interface SubscriptionRow {
 export interface DueReminder {
     userId: string
     language: string
-    timeZone: string
     today: string
 }
 
@@ -54,7 +53,7 @@ export function dueReminders(profiles: ProfileRow[], now: Date): DueReminder[] {
         try {
             const timeZone = timeZoneOf(p.timezone)
             if (localHour(timeZone, now) !== REMINDER_HOUR) return []
-            return [{ userId: p.user_id, language: p.language === 'zh-TW' ? 'zh-TW' : 'en', timeZone, today: localDate(timeZone, now) }]
+            return [{ userId: p.user_id, language: p.language === 'zh-TW' ? 'zh-TW' : 'en', today: localDate(timeZone, now) }]
         } catch (err) {
             console.error(`Skipping the reminder for user ${p.user_id}: ${err instanceof Error ? err.message : String(err)}`)
             return []
@@ -106,19 +105,6 @@ async function send(supabase: SupabaseClient, sub: SubscriptionRow, payload: Rem
     }
 }
 
-/** Sets logged on the user's local date */
-async function setsOn(supabase: SupabaseClient, userId: string, date: string, timeZone: string): Promise<number> {
-    const { start, end } = localDayToUtcRange(date, timeZone)
-    const { count, error } = await supabase
-        .from('workout_sets')
-        .select('id, workouts!inner(user_id, performed_at)', { count: 'exact', head: true })
-        .eq('workouts.user_id', userId)
-        .gte('workouts.performed_at', start)
-        .lte('workouts.performed_at', end)
-    if (error) throw new Error(`Failed to count today's sets: ${error.message}`)
-    return count ?? 0
-}
-
 /** Every user with a device that turned the reminder on, with their time zone and language */
 async function profilesWithDevices(supabase: SupabaseClient): Promise<ProfileRow[]> {
     const ids = new Set<string>()
@@ -141,11 +127,10 @@ export async function handler(event?: { userId?: unknown }): Promise<void> {
 
     // The owner's test: this user's devices, now
     if (typeof event?.userId === 'string') {
-        const { data: profile } = await supabase.from('user_profiles').select('user_id, timezone, language').eq('user_id', event.userId).maybeSingle()
+        const { data: profile } = await supabase.from('user_profiles').select('language').eq('user_id', event.userId).maybeSingle()
         const { data: subs, error } = await supabase.from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', event.userId)
         if (error) throw new Error(`Failed to read devices: ${error.message}`)
-        const timeZone = timeZoneOf((profile as ProfileRow | null)?.timezone ?? null)
-        const payload = reminderPayload((profile as ProfileRow | null)?.language ?? 'en', await setsOn(supabase, event.userId, localDate(timeZone, new Date()), timeZone))
+        const payload = reminderPayload(profile?.language ?? 'en')
         const results = await Promise.all((subs ?? []).map((s) => send(supabase, s as SubscriptionRow, payload, privateKey)))
         console.log(JSON.stringify({ event: 'reminder_test', devices: results.length, results }))
         return
@@ -161,7 +146,7 @@ export async function handler(event?: { userId?: unknown }): Promise<void> {
                 counts.restDay++
                 continue
             }
-            const payload = reminderPayload(user.language, await setsOn(supabase, user.userId, user.today, user.timeZone))
+            const payload = reminderPayload(user.language)
             // Claimed for today before sending, so a repeated run sends nothing twice
             const { data: claimed, error } = await supabase
                 .from('push_subscriptions')

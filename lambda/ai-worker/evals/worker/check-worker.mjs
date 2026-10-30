@@ -434,7 +434,7 @@ for (const [error, stopped] of [
     check(`a trace error ${JSON.stringify(error)} ${stopped ? 'is the user stopping, not counted' : 'is counted as a failure'}`, w.stoppedByUser(error) === stopped)
 }
 
-// The daily reminder (src/reminders.ts): at 21:00 in each user's own time zone, with today's sets, and only to push services
+// The daily reminder (src/reminders.ts): at 21:00 in each user's own time zone, one question, and only to push services
 {
     const at = (iso) => new Date(iso)
     const due = (iso, profiles) => w.dueReminders(profiles, at(iso)).map((d) => `${d.userId}:${d.today}:${d.language}`).join()
@@ -446,9 +446,8 @@ for (const [error, stopped] of [
     check('a profile with no language set gets English', w.dueReminders([{ user_id: 'x', timezone: 'Asia/Taipei', language: null }], at('2026-10-30T13:00:00Z'))[0]?.language === 'en')
     check('local hours run 0 to 23, midnight as 0', w.localHour('Asia/Taipei', at('2026-10-30T16:00:00Z')) === 0 && w.localHour('Asia/Taipei', at('2026-10-30T15:00:00Z')) === 23)
 
-    const p0 = w.reminderPayload('zh-TW', 0), p12 = w.reminderPayload('zh-TW', 12), en1 = w.reminderPayload('en', 1)
-    check('nothing logged: the question', p0.body === '今天有練嗎？有的話記一下。' && w.reminderPayload('en', 0).body === 'Did you train today? If you did, log it.', p0.body)
-    check('sets logged: how many, and whether anything is left', p12.body === '今天記了 12 組。還有沒記到的嗎？' && en1.body === '1 set logged today. Anything left to add?' && w.reminderPayload('en', 3).body.startsWith('3 sets'), `${p12.body} / ${en1.body}`)
+    const p0 = w.reminderPayload('zh-TW')
+    check('one question, in the user\'s language', p0.body === '今天訓練了嗎？' && w.reminderPayload('en').body === 'Did you train today?', p0.body)
     check('a tap opens Today, and a newer reminder replaces an older one', p0.url === '/dashboard' && p0.tag === 'daily-reminder' && p0.title === 'GymPro')
 
     for (const [ep, ok] of [
@@ -464,7 +463,7 @@ for (const [error, stopped] of [
     const { createECDH, randomBytes } = await import('node:crypto')
     const device = createECDH('prime256v1'); device.generateKeys()
     const sub = { endpoint: 'https://fcm.googleapis.com/fcm/send/test', keys: { p256dh: device.getPublicKey().toString('base64url'), auth: randomBytes(16).toString('base64url') } }
-    const req = w.webpush.generateRequestDetails(sub, JSON.stringify(p12), {
+    const req = w.webpush.generateRequestDetails(sub, JSON.stringify(p0), {
         vapidDetails: { subject: 'https://gympro.chichi.mom', publicKey: w.vapidPublicKeyOf(keys.privateKey), privateKey: keys.privateKey },
         TTL: 10800, urgency: 'normal', topic: 'daily-reminder',
     })

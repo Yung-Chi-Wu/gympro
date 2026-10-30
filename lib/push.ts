@@ -1,6 +1,6 @@
 // The daily reminder (owner, 2026-10-30): at 21:00 in the user's own time zone, a push notification
-// asks whether they trained today, or, when they logged sets, whether anything is left to add. Not
-// on a rest day the cycle plans; every day for a user without a cycle. Shared by the app, which
+// asks whether they trained today, the same words whether or not the day is logged. Not on a rest
+// day the cycle plans; every day for a user without a cycle. Shared by the app, which
 // subscribes this device (lib/push-client.ts), and the Lambda that sends it
 // (lambda/ai-worker/src/reminders.ts).
 
@@ -29,11 +29,7 @@ export interface ReminderPayload {
 
 export const REMINDER_TAG = 'daily-reminder'
 
-/** The reminder's text: a question on a day with nothing logged, else what was logged and whether anything is left */
-export function reminderPayload(language: string, setsToday: number): ReminderPayload {
-    const zh = language === 'zh-TW'
-    const body = setsToday === 0
-        ? (zh ? '今天有練嗎？有的話記一下。' : 'Did you train today? If you did, log it.')
-        : zh ? `今天記了 ${setsToday} 組。還有沒記到的嗎？` : `${setsToday} ${setsToday === 1 ? 'set' : 'sets'} logged today. Anything left to add?`
-    return { title: 'GymPro', body, url: '/dashboard', tag: REMINDER_TAG }
+/** The reminder's text, one question every day (owner, 2026-10-30) */
+export function reminderPayload(language: string): ReminderPayload {
+    return { title: 'GymPro', body: language === 'zh-TW' ? '今天訓練了嗎？' : 'Did you train today?', url: '/dashboard', tag: REMINDER_TAG }
 }
