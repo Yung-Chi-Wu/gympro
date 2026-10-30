@@ -161,8 +161,9 @@ check('no aim for an exercise not done lately, cardio, a timed hold or a core ex
     check('the next session is worked out only in lib/report/progression.ts', copies.length === 0, copies.join(', '))
     const plan = sources.find(({ path }) => path === join('lambda', 'ai-worker', 'src', 'report', 'plan.ts'))?.text ?? ''
     check('the report plans with it', /from '\.\.\/\.\.\/\.\.\/\.\.\/lib\/report\/progression'/.test(plan) && plan.includes('planNext('))
-    const dashboard = sources.find(({ path }) => path === join('app', '(app)', 'dashboard', 'page.tsx'))?.text ?? ''
-    check('Today reads as many periods back as the report, so the held range is the same', dashboard.includes('REPORT_WINDOWS - 1'))
+    // Today's reads (lib/today-page.ts), and today_page, which reads the same in one request, is given the same number
+    const today = sources.find(({ path }) => path === join('lib', 'today-page.ts'))?.text ?? ''
+    check('Today reads as many periods back as the report, so the held range is the same', today.includes('REPORT_WINDOWS - 1') && today.includes('p_report_windows: REPORT_WINDOWS'))
 }
 
 // ---------- The target of an exercise outside today's routine ----------
