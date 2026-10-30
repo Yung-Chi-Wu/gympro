@@ -112,7 +112,7 @@ Some of what the evals decided ([all of it](docs/evaluation.md)):
 
 ## Performance
 
-Each page reports where its server time goes, and a script times tab taps on production. Fewer database requests did most of it: Today went from 10 rounds of requests to one request. Tap to content, median of 6:
+Each page reports where its server time goes, and a script times tab taps on production. Fewer database requests did most of it: Today went from 10 rounds of requests to one request, and Routines from 10 requests to one. Tap to content, median of 6:
 
 | Tab | Before | After |
 |---|---|---|
