@@ -447,8 +447,8 @@ for (const [error, stopped] of [
     check('local hours run 0 to 23, midnight as 0', w.localHour('Asia/Taipei', at('2026-10-30T16:00:00Z')) === 0 && w.localHour('Asia/Taipei', at('2026-10-30T15:00:00Z')) === 23)
 
     const p0 = w.reminderPayload('zh-TW')
-    check('one question, in the user\'s language', p0.body === '今天訓練了嗎？' && w.reminderPayload('en').body === 'Did you train today?', p0.body)
-    check('a tap opens Today, and a newer reminder replaces an older one', p0.url === '/dashboard' && p0.tag === 'daily-reminder' && p0.title === 'GymPro')
+    check('one question as the title, in the user\'s language, with nothing under it but the sender the phone adds', p0.title === '今天訓練了嗎？' && w.reminderPayload('en').title === 'Did you train today?' && p0.body === '', p0.title)
+    check('a tap opens Today, and a newer reminder replaces an older one', p0.url === '/dashboard' && p0.tag === 'daily-reminder')
 
     for (const [ep, ok] of [
         ['https://fcm.googleapis.com/fcm/send/abc:APA91b-xyz', true], ['https://web.push.apple.com/QGuQyavXutnMH0', true],
