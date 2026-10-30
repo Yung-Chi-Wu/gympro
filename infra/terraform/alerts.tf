@@ -280,6 +280,7 @@ resource "aws_cloudwatch_log_metric_filter" "lambda_logged_errors" {
     worker    = aws_cloudwatch_log_group.ai_worker_logs.name
     scheduler = aws_cloudwatch_log_group.report_scheduler_logs.name
     audit     = aws_cloudwatch_log_group.ronnie_audit_logs.name
+    reminders = aws_cloudwatch_log_group.reminders_logs.name
   }
 
   name           = "gympro-${each.key}-logged-errors"
@@ -295,7 +296,7 @@ resource "aws_cloudwatch_log_metric_filter" "lambda_logged_errors" {
 
 resource "aws_cloudwatch_metric_alarm" "lambda_logged_errors" {
   alarm_name        = "gympro-lambda-logged-errors"
-  alarm_description = "A Lambda wrote an error to its log in the past hour, thrown or not. Search for ERROR in /aws/lambda/gympro-ai-worker, /aws/lambda/gympro-report-scheduler and /aws/lambda/gympro-ronnie-audit."
+  alarm_description = "A Lambda wrote an error to its log in the past hour, thrown or not. Search for ERROR in /aws/lambda/gympro-ai-worker, /aws/lambda/gympro-report-scheduler, /aws/lambda/gympro-ronnie-audit and /aws/lambda/gympro-reminders."
 
   namespace   = "GymPro/Lambda"
   metric_name = "LoggedErrors"

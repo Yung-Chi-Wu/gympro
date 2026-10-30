@@ -9,6 +9,7 @@ import { RecommendationPanel } from '@/components/RecommendationPanel'
 import { TodayWorkoutCard } from '@/components/TodayWorkoutCard'
 import { PeriodNoteCard } from '@/components/PeriodNoteCard'
 import { TodayGoal } from '@/components/TodayGoal'
+import { ReminderNotice } from '@/components/ReminderNotice'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
 import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
@@ -66,6 +67,8 @@ export default async function DashboardPage() {
       {/* As on the other tabs: the top bar says 今天 on a phone. The greeting that was here gave
           its place to the goal (owner, 2026-10-28) */}
       <h1 className="text-2xl font-bold max-md:sr-only">{t('title')}</h1>
+      {/* Once a device can get the daily reminder: where to turn it on */}
+      <ReminderNotice ready={onboardingCompleted} />
       <TodayGoal goal={profile?.training_goal ?? null} latest={latestReport} language={language} weightUnit={weightUnit} />
 
       {/* Today's log, then the report: side by side once the page is wide enough */}

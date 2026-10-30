@@ -353,8 +353,8 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
                         </p>
                         <p className="text-xs text-black/40 dark:text-white/40 leading-relaxed">
                             {zh
-                                ? '一期至少要記 10 組才會產生報告。摘要在「今天」，完整報告在「紀錄」。'
-                                : 'A period needs at least 10 logged sets for a report. The summary is in Today, the full report in History.'}
+                                ? '每週結束後產生週報，記滿 10 組才會有建議。摘要在「今天」，完整報告在「紀錄」。'
+                                : 'A report comes at the end of each week, with advice once 10 sets are logged. The summary is in Today, the full report in History.'}
                         </p>
                     </div>
                 )}
@@ -368,7 +368,7 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
                                 {zh ? '加到主畫面' : 'Add to Home Screen'}
                             </h2>
                             <p className="text-sm text-black/50 dark:text-white/50">
-                                {zh ? '把 GymPro 加到主畫面，像 App 一樣一鍵開啟。' : 'Add GymPro to your home screen for quick access.'}
+                                {zh ? '把 GymPro 加到主畫面，像 App 一樣一鍵開啟，也能收到每晚 9 點的提醒。' : 'Add GymPro to your home screen for quick access and the 9 PM reminder.'}
                             </p>
                         </div>
                         {/* Steps for the browser this is open in: Safari, another iOS browser, or already installed */}

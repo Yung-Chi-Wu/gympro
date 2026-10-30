@@ -883,5 +883,19 @@
         "nextMoreWays": "{n} more, and other ways to do each, in the full report",
         "otherWays": "Other ways to do each are in the full report",
         "planResearchAgain": "reps first, then weight: the research above"
+    },
+    "reminder": {
+        "noticeTitle": "A reminder at 9 PM",
+        "noticeBody": "GymPro can ask each evening at 9\u00a0PM whether you trained today. Not on rest days.",
+        "goToSettings": "Turn on in Settings",
+        "close": "Close",
+        "failed": "That didn't work. Please try again.",
+        "setting": "Reminder at 9 PM",
+        "on": "On",
+        "off": "Off",
+        "onNote": "Not on rest days.",
+        "install": "Add GymPro to your home screen to get notifications.",
+        "denied": "Notifications are off for GymPro. Allow them in your phone or browser settings.",
+        "unsupported": "This browser can't get notifications."
     }
 }

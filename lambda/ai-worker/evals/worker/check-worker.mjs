@@ -434,5 +434,43 @@ for (const [error, stopped] of [
     check(`a trace error ${JSON.stringify(error)} ${stopped ? 'is the user stopping, not counted' : 'is counted as a failure'}`, w.stoppedByUser(error) === stopped)
 }
 
+// The daily reminder (src/reminders.ts): at 21:00 in each user's own time zone, one question, and only to push services
+{
+    const at = (iso) => new Date(iso)
+    const due = (iso, profiles) => w.dueReminders(profiles, at(iso)).map((d) => `${d.userId}:${d.today}:${d.language}`).join()
+    const PEOPLE = [{ user_id: 'tw', timezone: 'Asia/Taipei', language: 'zh-TW' }, { user_id: 'ny', timezone: 'America/New_York', language: 'en' }]
+    check('21:30 in Taipei is Taipei\'s reminder, not New York\'s (09:30 there)', due('2026-10-30T13:30:00Z', PEOPLE) === 'tw:2026-10-30:zh-TW')
+    check('21:15 in New York is the reminder of its own date, a day behind Taipei', due('2026-10-31T01:15:00Z', PEOPLE) === 'ny:2026-10-30:en')
+    check('after the clocks go back (EST), 21:00 in New York is 02:00 UTC', due('2026-11-02T02:00:00Z', PEOPLE) === 'ny:2026-11-01:en' && due('2026-11-02T01:00:00Z', PEOPLE) === '')
+    check('20:59 is not yet the reminder\'s hour', due('2026-10-30T12:59:00Z', PEOPLE) === '')
+    check('a profile with no language set gets English', w.dueReminders([{ user_id: 'x', timezone: 'Asia/Taipei', language: null }], at('2026-10-30T13:00:00Z'))[0]?.language === 'en')
+    check('local hours run 0 to 23, midnight as 0', w.localHour('Asia/Taipei', at('2026-10-30T16:00:00Z')) === 0 && w.localHour('Asia/Taipei', at('2026-10-30T15:00:00Z')) === 23)
+
+    const p0 = w.reminderPayload('zh-TW')
+    check('one question, in the user\'s language', p0.body === '今天訓練了嗎？' && w.reminderPayload('en').body === 'Did you train today?', p0.body)
+    check('a tap opens Today, and a newer reminder replaces an older one', p0.url === '/dashboard' && p0.tag === 'daily-reminder' && p0.title === 'GymPro')
+
+    for (const [ep, ok] of [
+        ['https://fcm.googleapis.com/fcm/send/abc:APA91b-xyz', true], ['https://web.push.apple.com/QGuQyavXutnMH0', true],
+        ['https://updates.push.services.mozilla.com/wpush/v2/gAAAA', true], ['https://wns2-par02p.notify.windows.com/w/?token=BQYAAA%3d', true],
+        ['http://fcm.googleapis.com/fcm/send/x', false], ['https://evil.example.com/push', false], ['https://127.0.0.1:9001/2018-06-01/runtime', false],
+        ['https://fcm.googleapis.com.evil.com/x', false], ['https://web.push.apple.com/a b', false], [`https://web.push.apple.com/${'a'.repeat(1100)}`, false],
+    ]) check(`${ok ? 'posts to' : 'refuses'} ${ep.slice(0, 60)}`, w.isPushEndpoint(ep) === ok)
+
+    // One secret: the public key comes from the private one, and web-push builds a request with them
+    const keys = w.webpush.generateVAPIDKeys()
+    check('the VAPID public key is worked out from the private key', w.vapidPublicKeyOf(keys.privateKey) === keys.publicKey)
+    const { createECDH, randomBytes } = await import('node:crypto')
+    const device = createECDH('prime256v1'); device.generateKeys()
+    const sub = { endpoint: 'https://fcm.googleapis.com/fcm/send/test', keys: { p256dh: device.getPublicKey().toString('base64url'), auth: randomBytes(16).toString('base64url') } }
+    const req = w.webpush.generateRequestDetails(sub, JSON.stringify(p0), {
+        vapidDetails: { subject: 'https://gympro.chichi.mom', publicKey: w.vapidPublicKeyOf(keys.privateKey), privateKey: keys.privateKey },
+        TTL: 10800, urgency: 'normal', topic: 'daily-reminder',
+    })
+    check('the request is encrypted for the device, signed with the key, kept 3 hours, and replaces an older reminder',
+        req.headers['Content-Encoding'] === 'aes128gcm' && String(req.headers.Authorization).includes(`k=${keys.publicKey}`) && req.headers.TTL === 10800 && req.headers.Topic === 'daily-reminder' && req.body.length > 0,
+        JSON.stringify(Object.keys(req.headers)))
+}
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nThe worker trusts only the request in a message, runs it once, saves only to its own row, stops in time, and checks its text')
 process.exit(failed ? 1 : 0)

@@ -17,6 +17,7 @@ import { LogoutButton } from '@/components/LogoutButton'
 import { ThemeSelector } from '@/components/ThemeSelector'
 import { Icon } from '@/components/Icon'
 import { InstallGuide } from '@/components/InstallGuide'
+import { ReminderSetting } from '@/components/ReminderSetting'
 import { FeedbackForm } from '@/components/FeedbackForm'
 import { CHOSEN_UTC } from '@/lib/time-zone'
 import { MAX_DISPLAY_NAME_CHARS, MAX_TRAINING_GOAL_CHARS } from '@/lib/text-limits'
@@ -113,7 +114,8 @@ export function ProfileSettingsForm({ userId, initial, goalRead: keptRead }: {
     const { theme, setTheme } = useTheme()
     const inBrowser = useSyncExternalStore(subscribeNothing, () => true, () => false)
     const [saved, setSaved] = useState<ProfileValues>(initial)
-    const [section, setSection] = useState<Section>('profile')
+    // ?section= opens one, as the daily reminder's card on Today links to 帳號 (components/ReminderNotice.tsx)
+    const [section, setSection] = useState<Section>(() => SECTIONS.find((s) => s.key === searchParams.get('section'))?.key ?? 'profile')
     const [showOnboarding, setShowOnboarding] = useState(false)
     const [goalRead, setGoalRead] = useState<GoalReadState | null>(keptRead ? { text: keptRead.text, status: 'done', read: keptRead } : null)
     // The text last asked about: each is asked once a visit, and one that couldn't be read waits for the report
@@ -204,6 +206,9 @@ export function ProfileSettingsForm({ userId, initial, goalRead: keptRead }: {
     const accountRows = (
         <>
             <li>
+                <ReminderSetting />
+            </li>
+            <li>
                 <button type="button" onClick={() => setShowOnboarding(true)} className={ROW}>
                     <span className="flex-1">{t('tutorial')}</span>
                     <Icon name="forward" className="size-4 text-faint" />
@@ -285,7 +290,7 @@ export function ProfileSettingsForm({ userId, initial, goalRead: keptRead }: {
                 {/* Phone: every setting, grouped, with its value */}
                 <div className={`space-y-6 @split:hidden ${item ? 'hidden' : ''}`}>
                     {PHONE_GROUPS.map(({ key, fields }) => (
-                        <section key={key} className="space-y-2">
+                        <section key={key} id={`group-${key}`} className="scroll-mt-[calc(64px+env(safe-area-inset-top))] space-y-2">
                             <h2 className="px-1 text-[13px] tracking-wider text-muted">{t(`groups.${key}`)}</h2>
                             <ul className="divide-y divide-line rounded-card border border-line bg-card px-4">
                                 {key === 'account' ? accountRows : fields.map((field) => (
