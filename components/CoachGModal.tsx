@@ -21,6 +21,7 @@ interface GeneratedRoutine {
 interface GeneratedPlan {
     routines: GeneratedRoutine[]
     cycleLength: number
+    goals: string[]
 }
 
 interface CoachGModalProps {
@@ -45,12 +46,13 @@ export function CoachGModal({ language, onClose, onSaved }: CoachGModalProps) {
                             if (confirm(language === 'zh-TW' ? '重新設計會清掉這份課表，從第一題重新開始。要重新設計嗎？' : 'Redesigning drops this plan and starts again from the first question. Redesign?')) setGeneratedPlan(null)
                         }}
                         onSaved={onSaved}
+                        goals={generatedPlan.goals}
                     />
                 ) : (
                     <CoachGChat
                         language={language}
-                        onRoutinesGenerated={(routines, cycleLength) =>
-                            setGeneratedPlan({ routines, cycleLength })
+                        onRoutinesGenerated={(routines, cycleLength, goals) =>
+                            setGeneratedPlan({ routines, cycleLength, goals })
                         }
                         onClose={onClose}
                     />

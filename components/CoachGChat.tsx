@@ -37,7 +37,8 @@ interface GeneratedRoutine {
 
 interface CoachGChatProps {
     language: string
-    onRoutinesGenerated: (routines: GeneratedRoutine[], cycleLength: number) => void
+    /** goals: the goal answers, which the result offers to save as the user's goal */
+    onRoutinesGenerated: (routines: GeneratedRoutine[], cycleLength: number, goals: string[]) => void
     onClose: () => void
 }
 
@@ -120,7 +121,8 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
             })
             const genData = await genRes.json().catch(() => null)
             if (genData?.action === 'generate_routine' && genData.routines?.length) {
-                onRoutinesGenerated(genData.routines, genData.cycle_length ?? genData.routines.length)
+                const goals = Array.isArray(answers.goals) ? answers.goals : answers.goals ? [answers.goals] : []
+                onRoutinesGenerated(genData.routines, genData.cycle_length ?? genData.routines.length, goals)
                 return
             }
             reportClientError('client/coach-g/generate', responseError(`Generate request failed: ${genRes.status}`, genRes.status, genData))

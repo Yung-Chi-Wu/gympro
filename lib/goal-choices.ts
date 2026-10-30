@@ -22,3 +22,9 @@ export function goalText(kinds: string[], words: string, zh: boolean): string {
     const text = picked && own ? `${picked}${zh ? '。' : '. '}${own}` : picked || own
     return text.slice(0, MAX_TRAINING_GOAL_CHARS)
 }
+
+/** Coach G's goal answers as one goal ("增肌、增強力量"): the options picked or the words typed, as given */
+export function answersGoalText(answers: string[], zh: boolean): string {
+    const given = [...new Set(answers.map((a) => a.trim()).filter(Boolean))]
+    return goalText([], given.join(zh ? '、' : ', '), zh)
+}
