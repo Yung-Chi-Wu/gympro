@@ -114,7 +114,7 @@ export function ProfileSettingsForm({ userId, initial, goalRead: keptRead }: {
     const { theme, setTheme } = useTheme()
     const inBrowser = useSyncExternalStore(subscribeNothing, () => true, () => false)
     const [saved, setSaved] = useState<ProfileValues>(initial)
-    // ?section= opens one, as the daily reminder's dialog links to 帳號 (components/ReminderNotice.tsx)
+    // ?section= opens one, as the daily reminder's card on Today links to 帳號 (components/ReminderNotice.tsx)
     const [section, setSection] = useState<Section>(() => SECTIONS.find((s) => s.key === searchParams.get('section'))?.key ?? 'profile')
     const [showOnboarding, setShowOnboarding] = useState(false)
     const [goalRead, setGoalRead] = useState<GoalReadState | null>(keptRead ? { text: keptRead.text, status: 'done', read: keptRead } : null)

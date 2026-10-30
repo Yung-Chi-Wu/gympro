@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
-import { REMINDER_TOLD_KEY, reminderState, turnOffReminder, turnOnReminder, type ReminderState } from '@/lib/push-client'
+import { reminderState, turnOffReminder, turnOnReminder, type ReminderState } from '@/lib/push-client'
 import { reportClientError } from '@/lib/report-client-error'
 import { SEGMENTED } from '@/lib/ui'
 
@@ -34,10 +34,9 @@ export function ReminderSetting() {
                 await turnOffReminder(supabase)
                 setState('off')
             }
-            // Found here, so Today doesn't point here
-            try { localStorage.setItem(REMINDER_TOLD_KEY, '1') } catch {}
         } catch (err) {
-            reportClientError(on ? 'client/reminder/turn-on' : 'client/reminder/turn-off', err)
+            if (on) reportClientError('client/reminder/turn-on', err)
+            else reportClientError('client/reminder/turn-off', err)
             setFailed(true)
             setState(await reminderState())
         } finally {

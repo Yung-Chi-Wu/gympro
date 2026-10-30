@@ -19,8 +19,6 @@ export type ReminderState = 'unsupported' | 'install' | 'denied' | 'off' | 'on'
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
 /** The local date this device last saved its subscription */
 const SAVED_ON_KEY = 'reminder_saved_on'
-/** Set once this device has been told where to turn the reminder on, or has used the switch (components/ReminderNotice.tsx) */
-export const REMINDER_TOLD_KEY = 'reminder_told'
 
 type Client = SupabaseClient<Database>
 

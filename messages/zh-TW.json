@@ -886,9 +886,9 @@
     },
     "reminder": {
         "noticeTitle": "每晚 9 點提醒",
-        "noticeBody": "每天晚上 9 點，GymPro 可以問你今天訓練了嗎，休息日不提醒。要的話，可以在設定裡開啟。",
-        "goToSettings": "去設定",
-        "gotIt": "知道了",
+        "noticeBody": "GymPro 可以每天晚上 9\u00a0點問你今天訓練了嗎，休息日不提醒。",
+        "goToSettings": "去設定開啟",
+        "close": "關閉",
         "failed": "沒有開成功，請再試一次。",
         "setting": "每晚 9 點提醒",
         "on": "開",

@@ -886,9 +886,9 @@
     },
     "reminder": {
         "noticeTitle": "A reminder at 9 PM",
-        "noticeBody": "Each evening at 9 PM, GymPro can ask whether you trained today. Not on rest days. You can turn it on in Settings.",
-        "goToSettings": "Go to Settings",
-        "gotIt": "Got it",
+        "noticeBody": "GymPro can ask each evening at 9\u00a0PM whether you trained today. Not on rest days.",
+        "goToSettings": "Turn on in Settings",
+        "close": "Close",
         "failed": "That didn't work. Please try again.",
         "setting": "Reminder at 9 PM",
         "on": "On",
