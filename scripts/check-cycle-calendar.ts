@@ -1,17 +1,16 @@
 // Free check of 課表's calendar (lib/cycle-calendar.ts): which day of the cycle a date is, what
 // each day shows, a day given another routine or made a rest day, the month's weeks, each day's
 // round (a report's period), what the calendar reads for a month and the wider range 課表 reads it
-// in ahead (in two at once), the next workout after a rest day, the sessions a round plans and the
-// routines' colors. Also that the cycle day is worked out only in lib/periods.ts, and a date's plan
+// in ahead, the next workout after a rest day, the sessions a round plans and the routines' colors. Also that the cycle day is worked out only in lib/periods.ts, and a date's plan
 // read only through plannedRoutineId, so the calendar, Today, Ronnie, 紀錄 and the report can't
 // count it differently.
 //   npm run check:cycle-calendar
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { calendarDay, calendarRange, calendarReadAhead, isCyclesOwn, monthWeeks, nextPlanned, plannedSessions, routineColors, type CalendarCycle } from '../lib/cycle-calendar'
-import { addDays, cycleDayOf, MAX_CYCLE_DAYS, plannedRoutineId } from '../lib/periods'
+import { addDays, cycleDayOf, plannedRoutineId } from '../lib/periods'
 import { monthOf } from '../lib/history'
-import { historyDaysOf, readHistoryRows, readHistoryRowsSplit, type HistoryRows } from '../lib/history-data'
+import { historyDaysOf, type HistoryRows } from '../lib/history-data'
 import type { HistoryDay } from '../lib/history'
 
 let failed = 0
@@ -20,8 +19,6 @@ const check = (name: string, ok: boolean, detail = '') => {
     console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${ok ? '' : `\n       ${detail}`}`)
 }
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
-// Checks that wait on a read, done before the summary
-const pending: Promise<void>[] = []
 
 // Push, pull, legs, push, legs, pull, rest; starting on a Monday
 const seven: CalendarCycle = {
@@ -116,7 +113,7 @@ check("a month is read as its weeks, so each week's report comes too", same(cale
     const misses: string[] = []
     for (let i = 0; i < 730; i++) {
         const utc = addDays('2026-01-01', i)
-        const ahead = calendarReadAhead(utc).range
+        const ahead = calendarReadAhead(utc)
         for (const local of [addDays(utc, -1), utc, addDays(utc, 1)]) {
             const range = calendarRange(monthOf(local))
             if (range.start < ahead.start || range.end > ahead.end) misses.push(`${utc} ${local}: ${JSON.stringify(range)} not in ${JSON.stringify(ahead)}`)
@@ -124,9 +121,8 @@ check("a month is read as its weeks, so each week's report comes too", same(cale
     }
     check("the range read ahead holds the calendar's month for any zone", misses.length === 0, misses.slice(0, 3).join('\n       '))
     const ahead = calendarReadAhead('2026-10-27')
-    check('and is that month from the longest round before its first week, split where the weeks start',
-        same(ahead, { range: { start: addDays('2026-09-28', -(MAX_CYCLE_DAYS - 1)), end: '2026-11-01' }, weeksStart: '2026-09-28' }), JSON.stringify(ahead))
-    check('on the last day of a month in UTC it takes in the next month too', calendarReadAhead('2026-10-31').range.end === '2026-12-06')
+    check("and is that month's weeks, nothing before", same(ahead, { start: '2026-09-28', end: '2026-11-01' }), JSON.stringify(ahead))
+    check('on the last day of a month in UTC it takes in the next month too', same(calendarReadAhead('2026-10-31'), { start: '2026-09-28', end: '2026-12-06' }))
 }
 {
     // Rows read for the wider range, cut to the calendar's: a workout logged late on 10/1 in New
@@ -141,39 +137,6 @@ check("a month is read as its weeks, so each week's report comes too", same(cale
     const days = historyDaysOf(rows, { range: { start: '2026-09-28', end: '2026-11-01' }, timeZone: 'America/New_York', language: 'zh-TW' })
     check("rows read for the wider range keep only the calendar's days, each on the user's own date",
         same(days.map((d) => [d.date, d.routineNames, d.exercises.map((e) => e.name), d.note]), [['2026-10-01', ['Push Day'], ['臥推'], null], ['2026-10-05', [], [], 'tired']]), JSON.stringify(days))
-}
-
-{
-    // Read in two at the weeks' Monday: the same days as one read, in every zone, and a workout on
-    // either side of the split (both reads ask a day wider) only once. A stand-in for Supabase
-    // answers each read from these rows, by its own range.
-    const workouts = ['2026-09-05T12:00:00Z', '2026-09-26T23:30:00Z', '2026-09-27T04:00:00Z', '2026-09-27T23:59:00Z', '2026-09-28T00:30:00Z', '2026-09-28T13:00:00Z', '2026-10-14T18:00:00Z', '2026-11-02T03:00:00Z']
-        .map((at, i) => ({ id: `w${i}`, performed_at: at, routines: { name: 'Push Day' }, workout_sets: [{ exercise_id: 'b', set_number: 1, created_at: at, reps: 8, weight_kg: 80 + i, exercises: { name: 'Bench', name_zh_tw: null, log_type: 'weight_reps' } }] }))
-    const notes = [{ note_date: '2026-09-27', note: 'before' }, { note_date: '2026-09-28', note: 'first' }]
-    const query = (rows: Record<string, unknown>[], dateOf: (r: Record<string, unknown>) => string) => {
-        const filters: [string, (a: string, b: string) => boolean, string][] = []
-        const chain = {
-            select: () => chain,
-            eq: () => chain,
-            gte: (_c: string, v: string) => (filters.push(['gte', (a, b) => a >= b, v]), chain),
-            lte: (_c: string, v: string) => (filters.push(['lte', (a, b) => a <= b, v]), chain),
-            order: () => chain,
-            then: (done: (r: unknown) => void) => done({ data: rows.filter((r) => filters.every(([, ok, v]) => ok(dateOf(r), v))), error: null }),
-        }
-        return chain
-    }
-    const fake = { from: (table: string) => table === 'workouts' ? query(workouts, (r) => String(r.performed_at)) : query(notes, (r) => String(r.note_date)) } as unknown as Parameters<typeof readHistoryRows>[0]
-    pending.push((async () => {
-        const range = { start: '2026-09-01', end: '2026-11-01' }
-        const one = await readHistoryRows(fake, 'u', range)
-        const two = await readHistoryRowsSplit(fake, 'u', range, '2026-09-28')
-        const ids = two.workouts.map((w) => w.id)
-        check('read in two, a workout either side of the split comes once, in order',
-            ids.length === new Set(ids).size && same(ids, one.workouts.map((w) => w.id)), JSON.stringify({ one: one.workouts.map((w) => w.id), two: ids }))
-        const zones = ['America/Los_Angeles', 'America/New_York', 'UTC', 'Asia/Taipei', 'Pacific/Kiritimati']
-        const differ = zones.filter((timeZone) => !same(historyDaysOf(one, { range, timeZone, language: 'en' }), historyDaysOf(two, { range, timeZone, language: 'en' })))
-        check('and the days are the same as one read, in every zone', differ.length === 0, differ.join(', '))
-    })())
 }
 
 // ---------- The next workout ----------
@@ -222,7 +185,5 @@ check('a round before the cycle starts plans none, and the first one only from i
     check('a plan is read only through plannedRoutineId: elsewhere cycleDayOf would miss a day the user changed', others.length === 0, others.join(', '))
 }
 
-void Promise.all(pending).then(() => {
-    console.log(failed ? `\n${failed} failed` : '\nall passed')
-    process.exit(failed ? 1 : 0)
-})
+console.log(failed ? `\n${failed} failed` : '\nall passed')
+process.exit(failed ? 1 : 0)
