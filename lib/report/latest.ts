@@ -28,11 +28,16 @@ export async function loadLatestReport(supabase: SupabaseClient<Database>, userI
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
-    if (!data) return null
+    return latestReportOf(data)
+}
+
+/** The row Today reads (here, or in one request with today_page) as Today shows it */
+export function latestReportOf(row: { status: string; recommendation: Json | null; period_start: string; queued_at: string } | null): LatestReport | null {
+    if (!row) return null
     return {
         // A pending report whose run died shows as failed, with its retry
-        status: shownStatus(data) as ReportStatus,
-        recommendation: data.status === 'completed' || data.status === 'insufficient_data' ? data.recommendation : null,
-        periodStart: data.period_start,
+        status: shownStatus(row) as ReportStatus,
+        recommendation: row.status === 'completed' || row.status === 'insufficient_data' ? row.recommendation : null,
+        periodStart: row.period_start,
     }
 }

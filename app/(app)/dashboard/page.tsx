@@ -1,5 +1,3 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '@/lib/types/database.types'
 import { createClient } from '@/lib/supabase/server'
 import { getFrameProfile, getSessionUser } from '@/lib/frame-profile'
 import { redirect } from 'next/navigation'
@@ -11,47 +9,45 @@ import { PeriodNoteCard } from '@/components/PeriodNoteCard'
 import { TodayGoal } from '@/components/TodayGoal'
 import { ReminderNotice } from '@/components/ReminderNotice'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
-import type { ExerciseOption } from '@/components/log-types'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
-import { addDays, currentPeriod, cycleDayOf, lastCompletedPeriod, localDate, PERIOD_DAYS, plannedRoutineId } from '@/lib/periods'
-import { localDayToUtcRange, timeZoneOf } from '@/lib/time-zone'
-import { loadTodayWorkout } from '@/lib/today-workout'
-import { recentExerciseIds, withRecent } from '@/lib/recent-exercises'
-import { loadLatestReport, type LatestReport } from '@/lib/report/latest'
-import { REPORT_WINDOWS, type AimFinding } from '@/lib/report/progression'
+import { withRecent } from '@/lib/recent-exercises'
+import { loadTodayData, readTodayPage, todayFromPage } from '@/lib/today-page'
+import { reportError } from '@/lib/report-error'
+import type { LatestReport } from '@/lib/report/latest'
+import type { AimFinding } from '@/lib/report/progression'
 import { ServerTimingMark } from '@/components/ServerTimingMark'
 import { ReadYourWrites } from '@/components/ReadYourWrites'
 
-// 今天. Its reads go out in two rounds. Who is signed in is checked here (no network). Then
-// everything that needs only the user, and as soon as the profile and the cycle are in, what needs
-// the user's day (loadDay): today's workout with last time's sets for today's routine, the notes
-// and the weigh-ins. An exercise outside today's routine takes one more round
-// (lib/today-workout.ts). One query after another was ten rounds.
+// 今天. Who is signed in is checked here (no network). Then the page is read in one request
+// (today_page, lib/today-page.ts) beside the profile, which the frame reads anyway. When that
+// request fails, or works the day out differently from the profile, the page is read the old way,
+// in two rounds of requests.
 export default async function DashboardPage() {
   const user = await getSessionUser()
   if (!user) redirect('/login')
   const supabase = await createClient()
+  // The instant the day is worked out from, on both sides
+  const now = new Date()
 
-  const [day, allExercisesResult, recentIds, latestReport, t, tReport, tPeriod] = await Promise.all([
-    loadDay(supabase, user.id),
-    supabase
-      .from('exercises')
-      .select('id, name, name_zh_tw, muscle_group, equipment, log_type, per_side')
-      .order('name'),
-    recentExerciseIds(supabase, user.id),
-    loadLatestReport(supabase, user.id),
+  const [{ profile }, page, t, tReport, tPeriod] = await Promise.all([
+    getFrameProfile(),
+    readTodayPage(supabase, now),
     getTranslations('today'),
     getTranslations('report'),
     getTranslations('periodLog'),
   ])
-  const { profile, cycle, language, period, todayIso, todayRange, dayIndex, routineIdForToday, routineName, today, periodNote, lastPeriod, recentFrom } = day
+  const language = await getEffectiveLanguage(profile)
+  const input = { userId: user.id, profile, language, now }
+  if (page.error) reportError('today-page', page.error, { userId: user.id })
+  const day = (page.data && await todayFromPage(page.data, input)) || await loadTodayData(supabase, input)
+  const { period, todayIso, todayRange, dayIndex, routineIdForToday, routineName, today, periodNote, lastPeriod, recentFrom, latestReport } = day
 
   const onboardingCompleted = profile?.onboarding_completed ?? false
   const weightUnit = (profile?.weight_unit as WeightUnit) ?? 'kg'
   const distanceUnit: DistanceUnit = profile?.distance_unit === 'mi' ? 'mi' : 'km'
 
-  const hasCycle = !!cycle
+  const hasCycle = day.cycleLength !== null
   const isRestDay = hasCycle && routineIdForToday === null
 
   return (
@@ -82,9 +78,9 @@ export default async function DashboardPage() {
           isRestDay={isRestDay}
           hasCycle={hasCycle}
           dayIndex={dayIndex}
-          cycleLength={cycle?.cycle_length ?? 0}
+          cycleLength={day.cycleLength ?? 0}
           initialExercises={today.exercises}
-          allExercises={withRecent((allExercisesResult.data ?? []) as ExerciseOption[], recentIds)}
+          allExercises={withRecent(day.library, day.recentIds)}
           language={language}
           weightUnit={weightUnit}
           distanceUnit={distanceUnit}
@@ -108,115 +104,6 @@ export default async function DashboardPage() {
       </div>
     </div>
   )
-}
-
-// The user's day, by their time zone and cycle, and what's logged in it. It waits only for the
-// profile and the cycle, so its round goes out while the page's other first reads are still out.
-async function loadDay(supabase: SupabaseClient<Database>, userId: string) {
-  // Today in some time zone is within a day of today in UTC: the days changed around it come with the cycle
-  const utcToday = new Date().toISOString().slice(0, 10)
-  const [{ profile }, cycleResult] = await Promise.all([
-    getFrameProfile(),
-    supabase
-      .from('training_cycles')
-      // Each routine's exercises too: last time's sets for today's go out with today's workout
-      .select('id, cycle_length, start_date, cycle_days ( day_index, routine_id, routines ( name, routine_exercises ( exercise_id ) ) ), cycle_date_changes ( change_date, routine_id, routines ( name, routine_exercises ( exercise_id ) ) )')
-      .eq('user_id', userId)
-      .gte('cycle_date_changes.change_date', addDays(utcToday, -1))
-      .lte('cycle_date_changes.change_date', addDays(utcToday, 1))
-      .maybeSingle(),
-  ])
-  const cycle = cycleResult.data
-  const cycleSettings = cycle ? { cycleLength: cycle.cycle_length, startDate: cycle.start_date } : null
-
-  const language = await getEffectiveLanguage(profile)
-  const timezone = timeZoneOf(profile?.timezone)
-  const period = currentPeriod(timezone)
-  const todayIso = localDate(timezone, new Date())
-  const todayRange = localDayToUtcRange(todayIso, timezone)
-  // Today's aims work from the period the newest report is of, and the days since. The plan holds
-  // its range from period to period, so the sets go back as many periods as the report reads.
-  const ended = lastCompletedPeriod(timezone)
-  const lastPeriod = { start: ended.periodStart, end: ended.periodEnd }
-  const aimsFrom = addDays(lastPeriod.start, -(REPORT_WINDOWS - 1) * PERIOD_DAYS)
-  const recentFrom = { from: localDayToUtcRange(aimsFrom, timezone).start, timeZone: timezone }
-
-  const dayIndex = cycleSettings ? cycleDayOf(cycleSettings, todayIso) : 0
-  // Nothing before the cycle starts or on a rest day; a day the user changed trains the routine they picked
-  const routineIdForToday = cycle && cycleSettings
-    ? plannedRoutineId(
-      cycleSettings,
-      Object.fromEntries(cycle.cycle_days.map((d) => [d.day_index, d.routine_id])),
-      todayIso,
-      new Map(cycle.cycle_date_changes.map((c) => [c.change_date, c.routine_id]))
-    )
-    : null
-  // Its name and exercises, from the cycle's day or the change that has it
-  const todayRoutine = routineIdForToday
-    ? [...(cycle?.cycle_days ?? []), ...(cycle?.cycle_date_changes ?? [])].find((d) => d.routine_id === routineIdForToday)?.routines ?? null
-    : null
-
-  const [periodNoteResult, dayNoteResult, todayWeightResult, lastWeightResult, today] = await Promise.all([
-    supabase
-      .from('period_notes')
-      .select('note')
-      .eq('user_id', userId)
-      .eq('period_start', period.periodStart)
-      .maybeSingle(),
-    supabase
-      .from('day_notes')
-      .select('note')
-      .eq('user_id', userId)
-      .eq('note_date', todayIso)
-      .maybeSingle(),
-    // Today's weigh-in, and the one before today as the weight box's hint
-    supabase
-      .from('body_metrics')
-      .select('weight_kg')
-      .eq('user_id', userId)
-      .gte('recorded_at', todayRange.start)
-      .lte('recorded_at', todayRange.end)
-      .not('weight_kg', 'is', null)
-      .order('recorded_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from('body_metrics')
-      .select('weight_kg')
-      .eq('user_id', userId)
-      .lt('recorded_at', todayRange.start)
-      .not('weight_kg', 'is', null)
-      .order('recorded_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    loadTodayWorkout(supabase, {
-      userId,
-      range: todayRange,
-      routineId: routineIdForToday,
-      routineExerciseIds: todayRoutine?.routine_exercises.map((re) => re.exercise_id) ?? [],
-      language,
-      recentFrom,
-    }),
-  ])
-
-  return {
-    profile,
-    cycle,
-    language,
-    period,
-    todayIso,
-    todayRange,
-    dayIndex,
-    routineIdForToday,
-    routineName: todayRoutine?.name ?? null,
-    today,
-    periodNote: periodNoteResult.data?.note ?? '',
-    dayNote: dayNoteResult.data?.note ?? '',
-    todayWeightKg: todayWeightResult.data?.weight_kg ?? null,
-    lastWeightKg: lastWeightResult.data?.weight_kg ?? null,
-    lastPeriod,
-    recentFrom,
-  }
 }
 
 /** What today's aims take from the report: a lift held for pain, a lighter week, a goal lift taken down */

@@ -217,7 +217,7 @@ check('a round before the cycle starts plans none, and the first one only from i
     check('the cycle day is worked out only by cycleDayOf in lib/periods.ts', copies.length === 0, copies.join(', '))
     // A date's routine comes from plannedRoutineId, which takes the days the user changed. cycleDayOf
     // alone only labels a day ("day 3 of 7"): these files do that, next to a plan read the right way
-    const labels = ['lib/periods.ts', 'lib/cycle-calendar.ts', 'components/CycleCalendar.tsx', 'components/CycleScheduler.tsx', 'app/(app)/dashboard/page.tsx'].map((p) => join(...p.split('/')))
+    const labels = ['lib/periods.ts', 'lib/cycle-calendar.ts', 'components/CycleCalendar.tsx', 'components/CycleScheduler.tsx', 'lib/today-page.ts'].map((p) => join(...p.split('/')))
     const others = sources.filter(({ path, text }) => !labels.includes(path) && /\bcycleDayOf\(/.test(text)).map(({ path }) => path)
     check('a plan is read only through plannedRoutineId: elsewhere cycleDayOf would miss a day the user changed', others.length === 0, others.join(', '))
 }

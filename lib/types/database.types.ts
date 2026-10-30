@@ -866,6 +866,29 @@ export type Database = {
         }
         Returns: string
       }
+      today_hints: {
+        Args: {
+          p_before: string
+          p_ids: string[]
+          p_recent_from: string
+          p_targets: boolean
+        }
+        Returns: Json
+      }
+      local_day_start: {
+        Args: {
+          p_date: string
+          p_zone: string
+        }
+        Returns: string
+      }
+      today_page: {
+        Args: {
+          p_now: string
+          p_report_windows: number
+        }
+        Returns: Json
+      }
       mark_report_queue_failed: {
         Args: {
           p_period_start: string
