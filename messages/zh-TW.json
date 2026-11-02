@@ -947,5 +947,17 @@
         },
         "estimated": "估 {value}",
         "nextOf": "{tier}牌 {now} / {mark}"
+    },
+    "recap": {
+        "week": "上週 · {start} – {end}",
+        "trained": "練了 <num>{n}</num> 天",
+        "allPlanned": "課表上的 {planned} 天全部完成",
+        "moreDays": "比前一週多 {n} 天",
+        "recordsMore": "，還有 {n} 個",
+        "moreSets": "比前一週多 {n} 組",
+        "cardio": "有氧",
+        "minutes": "分鐘",
+        "fullReport": "看完整週報",
+        "close": "知道了"
     }
 }

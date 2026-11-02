@@ -79,6 +79,8 @@ jobs:
         run: npm run check:today-aim
       - name: Awards give each best and the day each mark was reached, and new bests by the report's rule
         run: npm run check:awards
+      - name: Today opens last week's recap once a week, never mid-workout, and says only good news against the week before
+        run: npm run check:today-overlay
       - name: Ronnie's tools, turn loop, recorded conversations and grader (offline)
         run: |
           npm run eval:ronnie:build

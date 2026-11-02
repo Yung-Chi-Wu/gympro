@@ -9,6 +9,8 @@ import { PeriodNoteCard } from '@/components/PeriodNoteCard'
 import { TodayGoal } from '@/components/TodayGoal'
 import { ReminderNotice } from '@/components/ReminderNotice'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
+import { WeeklyRecap } from '@/components/WeeklyRecap'
+import { dueOverlay } from '@/lib/today-overlay'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
 import { withRecent } from '@/lib/recent-exercises'
@@ -49,6 +51,14 @@ export default async function DashboardPage() {
 
   const hasCycle = day.cycleLength !== null
   const isRestDay = hasCycle && routineIdForToday === null
+  // What opens over the page on this visit, at most one
+  const overlay = dueOverlay({
+    onboarded: onboardingCompleted,
+    latest: latestReport,
+    lastPeriod,
+    recapSeenWeek: profile?.recap_seen_week ?? null,
+    loggedToday: today.exercises.some((e) => e.loggedSets.length > 0),
+  })
 
   return (
     <div className="space-y-5 md:space-y-6">
@@ -63,8 +73,9 @@ export default async function DashboardPage() {
       {/* As on the other tabs: the top bar says 今天 on a phone. The greeting that was here gave
           its place to the goal (owner, 2026-10-28) */}
       <h1 className="text-2xl font-bold max-md:sr-only">{t('title')}</h1>
-      {/* Once a device can get the daily reminder: where to turn it on */}
-      <ReminderNotice ready={onboardingCompleted} />
+      {overlay?.kind === 'recap' && <WeeklyRecap recap={overlay.recap} userId={user.id} language={language} weightUnit={weightUnit} />}
+      {/* Once a device can get the daily reminder: where to turn it on, on a visit with nothing else over the page */}
+      <ReminderNotice ready={onboardingCompleted && !overlay} />
       <TodayGoal goal={profile?.training_goal ?? null} latest={latestReport} language={language} weightUnit={weightUnit} />
 
       {/* Today's log, then the report: side by side once the page is wide enough */}

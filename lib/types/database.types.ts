@@ -569,6 +569,7 @@ export type Database = {
           height_updated_at: string | null
           language: string
           onboarding_completed: boolean
+          recap_seen_week: string | null
           sex: string | null
           timezone: string
           training_goal: string | null
@@ -586,6 +587,7 @@ export type Database = {
           height_updated_at?: string | null
           language?: string
           onboarding_completed?: boolean
+          recap_seen_week?: string | null
           sex?: string | null
           timezone?: string
           training_goal?: string | null
@@ -603,6 +605,7 @@ export type Database = {
           height_updated_at?: string | null
           language?: string
           onboarding_completed?: boolean
+          recap_seen_week?: string | null
           sex?: string | null
           timezone?: string
           training_goal?: string | null

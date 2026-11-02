@@ -44,7 +44,20 @@ const STATUS_TONE: Record<ReportV3['facts']['status'], string> = {
     baseline: 'bg-done text-muted',
 }
 
-const shortDate = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`
+export const shortDate = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`
+
+/** A set as the report writes it, in the user's unit: weight × reps, the reps alone, weight on top of the body, or the assist */
+export function useSetWords(weightUnit: WeightUnit) {
+    const t = useTranslations('reportV3')
+    // Weights are stored in kg and shown in the user's unit
+    const weight = (kg: number) => `${toDisplayWeight(kg, weightUnit)}${weightUnit}`
+    /** Weight on top of the body, or the reps alone when there was none */
+    const addedText = (kg: number, reps: number | string) => (kg === 0 ? t('reps', { n: reps }) : `+${weight(kg)} × ${reps}`)
+    const bestText = (s: BestSet | null, kind: { bodyweight: boolean; added?: boolean }) =>
+        !s ? '—' : s.assistKg != null ? t('assisted', { n: s.reps, assist: weight(s.assistKg) }) : kind.added ? addedText(s.weightKg, s.reps)
+            : kind.bodyweight ? t('reps', { n: s.reps }) : `${weight(s.weightKg)} × ${s.reps}`
+    return { weight, addedText, bestText }
+}
 
 export function ReportView({ report, language, weightUnit, distanceUnit = 'km', variant = 'full', fullHref, showGoal = true }: {
     report: ReportV3 | ReportStats
@@ -73,10 +86,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
     const muscle = (g: string) => unitLabel(g, language, (x) => getMuscleGroupLabel(x, language))
     const muscles = (list: string) => list.split(', ').filter(Boolean).map(muscle).join(zh ? '、' : ', ')
     const liftName = (x: { name: string; nameZh: string | null } | Data) => String((zh && x.nameZh) || x.name)
-    // Weights are stored in kg and shown in the user's unit
-    const weight = (kg: number) => `${toDisplayWeight(kg, weightUnit)}${weightUnit}`
-    /** Weight on top of the body, or the reps alone when there was none */
-    const addedText = (kg: number, reps: number | string) => (kg === 0 ? t('reps', { n: reps }) : `+${weight(kg)} × ${reps}`)
+    const { weight, addedText, bestText } = useSetWords(weightUnit)
     /** A set in finding data ("82.5x8"); its flags say to read only the reps, the number as the assist, or as weight added to the body */
     const setText = (raw: unknown, d: { bodyweight?: unknown; assisted?: unknown; added?: unknown }) => {
         if (raw == null) return '—'
@@ -84,9 +94,6 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
         return Number(d.assisted) ? t('assisted', { n: r, assist: weight(Number(w)) }) : Number(d.added) ? addedText(Number(w), r)
             : Number(d.bodyweight) ? t('reps', { n: r }) : `${weight(Number(w))} × ${r}`
     }
-    const bestText = (s: BestSet | null, kind: { bodyweight: boolean; added?: boolean }) =>
-        !s ? '—' : s.assistKg != null ? t('assisted', { n: s.reps, assist: weight(s.assistKg) }) : kind.added ? addedText(s.weightKg, s.reps)
-            : kind.bodyweight ? t('reps', { n: s.reps }) : `${weight(s.weightKg)} × ${s.reps}`
     const bodyWeight = (kg: number) => toDisplayWeight(kg, weightUnit)
     const routineList = (s: unknown) => String(s ?? '').split(', ').join(zh ? '、' : ', ')
 

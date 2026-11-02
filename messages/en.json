@@ -947,5 +947,17 @@
         },
         "estimated": "Est. {value}",
         "nextOf": "{tier}: {now} of {mark}"
+    },
+    "recap": {
+        "week": "Last week · {start} – {end}",
+        "trained": "You trained <num>{n}</num> {n, plural, one {day} other {days}}",
+        "allPlanned": "{planned, plural, one {The planned day, done} other {All # planned days done}}",
+        "moreDays": "{n, plural, one {# day} other {# days}} more than the week before",
+        "recordsMore": " and {n} more",
+        "moreSets": "{n} more than the week before",
+        "cardio": "Cardio",
+        "minutes": "min",
+        "fullReport": "Full report",
+        "close": "Got it"
     }
 }
