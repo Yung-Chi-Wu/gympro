@@ -918,16 +918,20 @@
             "deadlift": "Deadlift",
             "press": "Overhead press",
             "pullup": "Pull-ups",
-            "weeks": "Weeks on plan",
-            "records": "New bests"
+            "weeks": "Training weeks",
+            "records": "New bests",
+            "stronger": "Stronger lifts",
+            "days": "Training days"
         },
         "values": {
             "weight": "{n} {unit}",
-            "pullup": "{n} reps",
-            "weeks": "{n} weeks",
-            "records": "{n}"
+            "pullup": "{n, plural, one {# rep} other {# reps}}",
+            "weeks": "{n, plural, one {# week} other {# weeks}}",
+            "records": "{n}",
+            "stronger": "{n, plural, one {# lift} other {# lifts}}",
+            "days": "{n, plural, one {# day} other {# days}}"
         },
-        "howCounted": "A lift counts your heaviest logged set, even a single rep. Weeks on plan and new bests add up; they don't need to be in a row.",
+        "howCounted": "A lift counts your heaviest single, or the estimated 1RM of a set of 2 to 10 reps, so there's no need to test a max. A stronger lift is one up 20% on your first two weeks of it. A week with 2 or more training days is a training week. Training days, training weeks and new bests add up; they don't need to be in a row.",
         "notYet": "Not logged yet",
         "tierCount": "{tier} {n}",
         "medal": "{tier}",
@@ -937,7 +941,11 @@
         "stamps": {
             "pullup": "REPS",
             "weeks": "WEEKS",
-            "records": "BESTS"
-        }
+            "records": "BESTS",
+            "stronger": "LIFTS",
+            "days": "DAYS"
+        },
+        "estimated": "Est. {value}",
+        "nextOf": "{tier}: {now} of {mark}"
     }
 }
