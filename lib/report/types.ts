@@ -261,8 +261,11 @@ export interface ReportFacts {
     period: { start: string; end: string; days: number }
     /** previousDone: days trained in the window before; null without history, absent in reports saved before it was kept */
     sessions: { done: number; planned: number | null; days: DayFacts[]; previousDone?: number | null }
-    /** Working sets: every set but cardio */
-    totalSets: { now: number; previous: number | null }
+    /**
+     * Working sets: every set but cardio. series: the working sets of each window, oldest first, the
+     * last being now; null for a window from before the user's first set. Absent in reports saved before it was kept.
+     */
+    totalSets: { now: number; previous: number | null; series?: (number | null)[] }
     /** The working sets by body group (lib/report/volume.ts BODY_GROUPS), each set once, so they add up to totalSets; absent in reports saved before */
     groups?: { group: BodyGroup; sets: number; previous: number | null }[]
     muscles: MuscleFacts[]

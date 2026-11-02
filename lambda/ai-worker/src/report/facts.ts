@@ -161,10 +161,14 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
         : 'stalling'
 
     const bodyWeight = bodyWeightFacts(inputs.weighIns, windowOf)
+    // The windows from the oldest one with a set: the ones before it are from before the user
+    // started, not windows off. (Sets before the windows are read only for this period's exercises.)
+    const oldest = inputs.sets.reduce((a, s) => Math.max(a, windowOf(s.date)), -1)
+    const setsSeries = Array.from({ length: WINDOWS }, (_, k) => (k <= oldest ? working(inWindow(k)).length : null)).reverse()
     return {
         period: { start: periodStart, end: periodEnd, days },
         sessions,
-        totalSets: { now: working(current).length, previous: hasHistory ? working(inWindow(1)).length : null },
+        totalSets: { now: working(current).length, previous: hasHistory ? working(inWindow(1)).length : null, series: setsSeries },
         groups: BODY_GROUPS.map((group) => {
             const of = (sets: LoggedSet[]) => working(sets).filter((s) => bodyGroupOf(byId.get(s.exerciseId)?.muscleGroup ?? '') === group).length
             return { group, sets: of(current), previous: hasHistory ? of(inWindow(1)) : null }

@@ -79,6 +79,11 @@ for (const sc of SCENARIOS) {
     for (const l of r.facts.lifts) if (!['weight_reps', 'bodyweight', 'assisted'].includes(logTypeOf.get(l.exerciseId))) problems.push(`main lift ${l.exerciseId} is logged as ${logTypeOf.get(l.exerciseId)}`)
     const working = inputs0.sets.filter((x) => x.date >= inputs0.periodStart && !CARDIO_TYPES.includes(logTypeOf.get(x.exerciseId))).length
     if (r.facts.totalSets.now !== working) problems.push(`totalSets ${r.facts.totalSets.now}, expected ${working} working sets`)
+    // The line of working sets ends with now and the window before, and is empty only before the first set
+    const line = r.facts.totalSets.series
+    const known = line.filter((n) => n != null)
+    if (line.length !== 6 || line.at(-1) !== r.facts.totalSets.now || (r.facts.totalSets.previous != null && line.at(-2) !== r.facts.totalSets.previous)
+        || line.findIndex((n) => n != null) !== line.length - known.length) problems.push(`sets series ${JSON.stringify(line)} for now ${r.facts.totalSets.now}, previous ${r.facts.totalSets.previous}`)
     if (sc.expect.cardio) {
         const c = r.facts.cardio
         // By heart rate: the minutes by intensity, and each setting's first and latest heart rate

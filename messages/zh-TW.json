@@ -958,6 +958,9 @@
         "cardio": "有氧",
         "minutes": "分鐘",
         "fullReport": "看完整週報",
-        "close": "知道了"
+        "close": "知道了",
+        "lastWeek": "上週",
+        "weekSets": "{date}：{n} 組",
+        "lineLabel": "最近 {n} 週的組數：{list}"
     }
 }

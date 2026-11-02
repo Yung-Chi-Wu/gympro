@@ -17,12 +17,13 @@ const DAYS = ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-3
 const bench: RecordFacts = { exerciseId: 'bench', name: 'Barbell Bench Press', nameZh: '槓鈴臥推', best: { weightKg: 60, reps: 5 }, bodyweight: false, date: '2026-10-28' }
 
 /** Last week's facts, as much of them as the recap reads; trained: the days of the week with training */
-const factsOf = ({ trained = [0, 2, 4], planned = null, previousDone = null, sets = 30, previousSets = null, records = [], cardio = 0 }: {
+const factsOf = ({ trained = [0, 2, 4], planned = null, previousDone = null, sets = 30, previousSets = null, records = [], cardio = 0, series }: {
     trained?: number[]; planned?: number | null; previousDone?: number | null; sets?: number; previousSets?: number | null; records?: RecordFacts[]; cardio?: number
+    series?: (number | null)[]
 } = {}) => ({
     period: { start: WEEK, end: DAYS[6], days: 7 },
     sessions: { done: trained.length, planned, previousDone, days: DAYS.map((date, i) => ({ date, routine: null, trained: trained.includes(i) })) },
-    totalSets: { now: sets, previous: previousSets },
+    totalSets: { now: sets, previous: previousSets, series },
     records,
     cardio: cardio ? { minutes: cardio } : undefined,
 }) as unknown as ReportFacts
@@ -69,6 +70,14 @@ check('the new bests: how many, and the first to name', withBests?.records.count
 check('no new bests, none to name', recap(factsOf())?.records.count === 0 && recap(factsOf())?.records.first === null)
 const cardioOnly = recap(factsOf({ trained: [1, 3], sets: 0, cardio: 44.6 }))
 check('a week of cardio only says its minutes, whole', cardioOnly?.sets === 0 && cardioOnly.cardioMinutes === 45)
+
+// ---------- The line of the last weeks ----------
+const line = recap(factsOf({ series: [null, null, 18, 24, 0, 30] }))?.weeks
+check('the line has each week of the report with its first day, oldest first, the last being last week',
+    JSON.stringify(line?.map((w) => w.start)) === JSON.stringify(['2026-09-21', '2026-09-28', '2026-10-05', '2026-10-12', '2026-10-19', WEEK])
+    && JSON.stringify(line?.map((w) => w.sets)) === JSON.stringify([null, null, 18, 24, 0, 30]), JSON.stringify(line))
+check('no line with only one week to draw (a first week)', recap(factsOf({ series: [null, null, null, null, null, 30] }))?.weeks === null)
+check('no line in a report saved before it kept the weeks', recap(factsOf())?.weeks === null)
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 process.exit(failed ? 1 : 0)

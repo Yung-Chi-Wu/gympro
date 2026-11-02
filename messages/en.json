@@ -958,6 +958,9 @@
         "cardio": "Cardio",
         "minutes": "min",
         "fullReport": "Full report",
-        "close": "Got it"
+        "close": "Got it",
+        "lastWeek": "Last week",
+        "weekSets": "{date}: {n, plural, one {# set} other {# sets}}",
+        "lineLabel": "Working sets, last {n} weeks: {list}"
     }
 }

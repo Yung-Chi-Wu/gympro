@@ -1,3 +1,4 @@
+import { addDays } from '@/lib/periods'
 import type { LatestReport } from '@/lib/report/latest'
 import type { RecordFacts, ReportFacts } from '@/lib/report/types'
 
@@ -15,6 +16,8 @@ export interface WeekRecap {
     moreSets: number | null
     /** Cardio minutes, said in place of the sets in a week of cardio only */
     cardioMinutes: number
+    /** The working sets of the last weeks, oldest first, each with its first day: null before the user's first set, and the whole line null with fewer than two weeks to draw or in a report saved before it kept them */
+    weeks: { start: string; sets: number | null }[] | null
 }
 
 /** What Today opens over the page on this visit */
@@ -50,6 +53,7 @@ function recapOf(facts: ReportFacts): WeekRecap {
     const { sessions, totalSets } = facts
     const planned = sessions.planned ?? 0
     const before = sessions.previousDone
+    const series = totalSets.series
     return {
         start: facts.period.start,
         end: facts.period.end,
@@ -61,5 +65,8 @@ function recapOf(facts: ReportFacts): WeekRecap {
         sets: totalSets.now,
         moreSets: totalSets.previous != null && totalSets.now > totalSets.previous ? totalSets.now - totalSets.previous : null,
         cardioMinutes: Math.round(facts.cardio?.minutes ?? 0),
+        weeks: series && series.filter((n) => n != null).length >= 2
+            ? series.map((sets, i) => ({ start: addDays(facts.period.start, -(series.length - 1 - i) * facts.period.days), sets }))
+            : null,
     }
 }
