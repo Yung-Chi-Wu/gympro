@@ -20,7 +20,7 @@ const {
     createFixtureData, EXERCISES, FIXTURE_NOW, FIXTURE_TIME_ZONE, FIXTURE_USER,
     buildSystemPrompt, MEDICINE_RULE, fixtureNotes, memoryLines, MAX_NOTES, MAX_EXERCISE_NOTES_SHOWN, MAX_OTHER_NOTES,
     correctionIn, flagForCancel, flagForClear, flagsForMessage, RIGHT_AFTER_MS,
-    nextKnowledgeKey, renumber, withSources, KNOWLEDGE_NOTES, KNOWLEDGE_PAGES, knowledgePageFor, pageNotes, searchKnowledge, KNOWLEDGE_CHECK_MODEL, RESEARCH_WORDS,
+    nextKnowledgeKey, notesInHistory, withSources, citationOf, KNOWLEDGE_NOTES, KNOWLEDGE_PAGES, knowledgePageFor, pageNotes, searchKnowledge, KNOWLEDGE_CHECK_MODEL, RESEARCH_WORDS,
     medicineNote, mentionsMedicine, refersToDoctor,
 } = createRequire(import.meta.url)(join(here, 'dist', 'check.cjs'))
 
@@ -533,7 +533,6 @@ function note(kind, subject, state, text, updatedAt = '2026-10-01T02:00:00.000Z'
     check(JSON.stringify(r.unknown) === '["K9"]', 'the unknown key is reported')
     const shown = withoutCitationNumbers(r.text)
     check(shown === '不用每組都力竭。組數越多越好但效益遞減，也見於。這句引用了沒給的。' && withoutCitationNumbers('Close to failure [1].\nRest 2 min [1, 2].') === 'Close to failure.\nRest 2 min.', `the chat shows the reply without the numbers: ${shown}`)
-    check(renumber('see [K3] and [K9]', r.numbers) === 'see [2] and', `the stored history gets the same numbers: ${renumber('see [K3] and [K9]', r.numbers)}`)
     // The brackets Chinese replies use, as evals v30 and v31 recorded them (stretch-before-zh rep0),
     // which were shown as they were, with no sources
     const stretch = [{ key: 'K1', note: note('warneke-2024-warm-up') }, { key: 'K2', note: note('warneke-2024-stretching') }, { key: 'K5', note: note('herbert-2011-stretching-soreness') }]
@@ -551,6 +550,20 @@ function note(kind, subject, state, text, updatedAt = '2026-10-01T02:00:00.000Z'
     check(org === 'ACSM, 2026', `an organization is cited without et al.: ${org}`)
     const history = [{ role: 'user', content: [{ type: 'tool_result', tool_use_id: 't', content: 'notes\n\n[K1] a\n\n[K4] b' }] }, { role: 'assistant', content: [{ type: 'text', text: 'x [K7]' }] }]
     check(nextKnowledgeKey(history) === 5 && nextKnowledgeKey([]) === 1, 'keys continue past the ones earlier search results gave (not the reply\'s)')
+}
+
+// The notes earlier search results gave, read back from the history with their keys
+{
+    const { data } = createFixtureData()
+    const executor = executorFor(data)
+    const result = await executor.executeTool('search_knowledge', { query: '每組都要做到力竭嗎' })
+    const read = notesInHistory([{ role: 'user', content: [{ type: 'tool_result', tool_use_id: 't', content: result }] }, { role: 'assistant', content: [{ type: 'text', text: '[K1]' }] }])
+    const given = executor.knowledge.map((c) => `${c.key} ${c.note.id}`).join()
+    check(read.length > 0 && read.map((c) => `${c.key} ${c.note.id}`).join() === given, `each note a result gave comes back with its key: ${given}`)
+    // Each note opens its result with its own line, so none is read back as another
+    const opening = (n) => `[K1] ${citationOf(n.source)}, ${n.source.journal} (${n.design}; ${n.population})`
+    const misread = KNOWLEDGE_NOTES.filter((n) => notesInHistory([{ role: 'user', content: [{ type: 'tool_result', tool_use_id: 't', content: opening(n) }] }])[0]?.note.id !== n.id).map((n) => n.id)
+    check(misread.length === 0, `every note in the knowledge base is read back as itself: ${misread.join(', ')}`)
 }
 
 // search_knowledge: notes with keys, the same note keeps its key, keys start where the turn says; keywords without vectors
@@ -611,7 +624,16 @@ function note(kind, subject, state, text, updatedAt = '2026-10-01T02:00:00.000Z'
     check(checks[0]?.params?.model === undefined && checks[0]?.model === KNOWLEDGE_CHECK_MODEL && /<question>\n每組都要做到力竭嗎/.test(checks[0].messages[0].content) && /\[K1\] Refalo 2023/.test(checks[0].messages[0].content), 'the check reads the question, the notes given, with their keys, on Haiku')
     check(t.unsourced === true && !t.knowledgeCheck.retried, 'general advice no note backs is labelled, not sent back')
     check(t.usage.length === 2 && t.knowledgeCheck.usage.length === 1, 'the check\'s usage is kept apart from Ronnie\'s')
-    check(t.messages.at(-1).content.at(-1).text.includes('[1]') && !t.messages.at(-1).content.at(-1).text.includes('[K'), 'the stored reply has the number, not the key')
+    check(t.messages.at(-1).content.at(-1).text.includes('[K1]'), 'the stored reply keeps the key, which matches the search result before it')
+
+    // The next turn cites that note again without searching, as a trace of 2026-10-28 did: it is
+    // the paper it was, listed under the reply, not a key dropped mid-sentence
+    const next = scripted([reply('補充一點，這句的來源是 [K1]。')])
+    const messages = [...t.messages, { role: 'user', content: '所以要留幾下？' }]
+    const executor = createRonnieExecutor({ data, language: 'zh-TW', timeZone: FIXTURE_TIME_ZONE, now: () => FIXTURE_NOW, knowledgeKeyStart: nextKnowledgeKey(messages) })
+    const again = await turn(next, data, { messages, executor })
+    check(again.message === '補充一點，這句的來源是 [1]。' && again.sources?.[0].citation === 'Refalo et al., 2023' && !again.knowledgeCheck?.unknownKeys,
+        `a note an earlier search gave stays citable: ${again.message} / ${JSON.stringify(again.sources)} / ${JSON.stringify(again.knowledgeCheck)}`)
 }
 
 // Research the notes don't support goes back once; the rewrite is checked again and shown

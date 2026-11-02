@@ -159,6 +159,14 @@ retried.writes = retried.turns.flatMap((t) => t.writes)
 const g2 = programmaticGrade(removeToday, retried, EXERCISES).grade
 check(overallPass(g2) === 1 && g2.valid_ids === 0, `rejected attempt then a correct retry should pass with valid_ids 0, got ${JSON.stringify(g2)}`)
 
+// Asking the owner for a missing exercise changes no workout, so a case that allows no
+// changes still passes, and there is no exercise id to check
+const requested = oracle(removeToday)
+requested.turns[0].writes = [...requested.turns[0].writes, { op: 'request_exercise', name: 'Hack Squat', effective: true }]
+requested.writes = requested.turns.flatMap((t) => t.writes)
+const g3 = programmaticGrade(removeToday, requested, EXERCISES).grade
+check(g3.no_wrong_change === 1 && g3.valid_ids === 1, `a request_exercise is not a wrong change or an unknown id, got ${JSON.stringify(g3)}`)
+
 // Rolling seven days is not "last week"
 const lastWeek = cases.find((c) => c.id === 'history-last-week-zh')
 const rolling = oracle(lastWeek)
@@ -295,6 +303,14 @@ const doiOf = (noteId) => notesFile.find((n) => n.id === noteId).source.doi
     const old = knowledgeCases.find((x) => x.id === 'knowledge-volume-zh')
     check(programmaticGrade(old, knowledgeTurn({}), EXERCISES).grade.sourced === null, 'a case that asks nothing of the sources leaves sourced out')
     check(cited.length === 23 && cited.every((x) => x.expect.tools_required?.includes('search_knowledge') && x.expect.cites_any.every((id) => doiOf(id))), `every new knowledge case asks for a search and names notes that exist (${cited.length})`)
+}
+
+// A key no note had, in any turn, fails a case that asks only that
+{
+    const c = knowledgeCases.find((x) => x.id === 'knowledge-followup-cite-zh')
+    const turns = (unknownSecond) => ({ turns: c.turns.map((user, i) => ({ user, toolCalls: [], writes: [], message: '好。', ...(i === 1 && unknownSecond ? { knowledgeCheck: { unknownKeys: ['K4'] } } : {}) })) })
+    check(programmaticGrade(c, turns(false), EXERCISES).grade.sourced === 1, `${c.id}: no unknown key passes`)
+    check(programmaticGrade(c, turns(true), EXERCISES).grade.sourced === 0, `${c.id}: a key the second turn wasn't given fails`)
 }
 
 console.log(failures ? `\n${failures} grader check(s) failed` : `\nGrader behaves as expected (${cases.length} oracle cases, ${memoryCases.length} memory cases, ${knowledgeCases.length} knowledge cases + negative controls)`)

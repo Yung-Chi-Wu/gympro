@@ -71,7 +71,8 @@ export function programmaticGrade(c, out, exercises) {
     const calls = out.turns.flatMap((t) => t.toolCalls)
     const called = new Set(calls.map((x) => x.name))
     const finalReply = out.turns.at(-1)?.message ?? ''
-    const actualWrites = out.turns.flatMap((t, i) => t.writes.map((w) => ({ ...w, turn: i + 1 })))
+    // A request_exercise is a note to the owner, not a change to the user's workouts
+    const actualWrites = out.turns.flatMap((t, i) => t.writes.filter((w) => w.op !== 'request_exercise').map((w) => ({ ...w, turn: i + 1 })))
     const grade = {}
     const explanation = {}
 
@@ -218,8 +219,9 @@ export function programmaticGrade(c, out, exercises) {
 
     // The knowledge base: the sources code listed under the last reply (citations.ts) include a note
     // that answers the question; or, where no note does, none are listed and the reply is labelled
-    // general advice; and no key the reply used was one it wasn't given
-    if (exp.cites_any || exp.cites_none || exp.unsourced != null) {
+    // general advice; and no key a reply used, in any turn, was one it wasn't given (keys_known asks
+    // only that)
+    if (exp.cites_any || exp.cites_none || exp.unsourced != null || exp.keys_known) {
         const last = out.turns.at(-1) ?? {}
         const dois = new Set((last.sources ?? []).map((src) => String(src.doi).toLowerCase()))
         const problems = []
@@ -229,7 +231,9 @@ export function programmaticGrade(c, out, exercises) {
         const unknown = out.turns.flatMap((t) => t.knowledgeCheck?.unknownKeys ?? [])
         if (unknown.length) problems.push(`引用了沒查到的條目 ${unknown.join('、')}（已被程式拿掉）`)
         grade.sourced = problems.length ? 0 : 1
-        explanation.sourced = problems.join('；') || (dois.size ? `附了 ${dois.size} 個出處，包含該引用的研究` : '沒有附出處，並標示為一般建議')
+        explanation.sourced = problems.join('；') || (exp.cites_any || exp.cites_none || exp.unsourced != null
+            ? (dois.size ? `附了 ${dois.size} 個出處，包含該引用的研究` : '沒有附出處，並標示為一般建議')
+            : '引用的條目都是查到的')
     } else grade.sourced = null
 
     grade.language_correct = out.turns.every((t) => languageCorrect(t.message, c.language)) ? 1 : 0
