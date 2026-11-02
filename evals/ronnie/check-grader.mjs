@@ -297,5 +297,24 @@ const doiOf = (noteId) => notesFile.find((n) => n.id === noteId).source.doi
     check(cited.length === 23 && cited.every((x) => x.expect.tools_required?.includes('search_knowledge') && x.expect.cites_any.every((id) => doiOf(id))), `every new knowledge case asks for a search and names notes that exist (${cited.length})`)
 }
 
+// Words no reply may have: a kg weight in any turn fails a user who logs in lb, in any case
+{
+    const c = cases.find((x) => x.id === 'units-lb-history-zh')
+    const ideal = oracle(c)
+    const said = (text) => ({ ...ideal, turns: ideal.turns.map((t) => ({ ...t, message: `${t.message}${text}` })) })
+    check(programmaticGrade(c, ideal, EXERCISES).grade.mentions_forbidden === 1, `${c.id}: weights left in lb pass`)
+    check(programmaticGrade(c, said('臥推 176 磅（約 80 公斤）'), EXERCISES).grade.mentions_forbidden === 0, `${c.id}: a weight in 公斤 fails`)
+    check(programmaticGrade(c, said('bench 80 KG'), EXERCISES).grade.mentions_forbidden === 0, `${c.id}: kg in any case fails`)
+    check(programmaticGrade(cases.find((x) => x.id === 'history-last-week-zh'), said('80 公斤'), EXERCISES).grade.mentions_forbidden === null, 'a case that forbids no words leaves it out')
+}
+
+// A key no note had, in any turn, fails a case that asks only that
+{
+    const c = knowledgeCases.find((x) => x.id === 'knowledge-followup-cite-zh')
+    const turns = (unknownSecond) => ({ turns: c.turns.map((user, i) => ({ user, toolCalls: [], writes: [], message: '好。', ...(i === 1 && unknownSecond ? { knowledgeCheck: { unknownKeys: ['K4'] } } : {}) })) })
+    check(programmaticGrade(c, turns(false), EXERCISES).grade.sourced === 1, `${c.id}: no unknown key passes`)
+    check(programmaticGrade(c, turns(true), EXERCISES).grade.sourced === 0, `${c.id}: a key the second turn wasn't given fails`)
+}
+
 console.log(failures ? `\n${failures} grader check(s) failed` : `\nGrader behaves as expected (${cases.length} oracle cases, ${memoryCases.length} memory cases, ${knowledgeCases.length} knowledge cases + negative controls)`)
 process.exit(failures ? 1 : 0)

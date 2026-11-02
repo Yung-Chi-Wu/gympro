@@ -3,7 +3,7 @@ import { stripMarkdown } from './prompt'
 import { RONNIE_TOOLS } from './tools'
 import type { RonnieExecutor } from './executor'
 import { doneClaimCorrection, doneClaimFeedback, doneClaims } from './reply-check'
-import { renumber, withSources, type ReplySource } from './citations'
+import { notesInHistory, withSources, type ReplySource } from './citations'
 import { checkKnowledge, overclaimFeedback, RESEARCH_WORDS, type KnowledgeVerdict } from './knowledge-check'
 import { medicineNote, mentionsMedicine, refersToDoctor } from './medicine-check'
 
@@ -146,6 +146,9 @@ export async function runRonnieTurn({
     let servedModel: string | null = null
     const history = [...messages]
     const options = modelOptions(model)
+    // The notes earlier turns' searches gave, which the model still sees: citable again, with this turn's
+    const earlier = notesInHistory(messages)
+    const citable = () => [...new Map([...earlier, ...executor.knowledge].map((c) => [c.key, c])).values()]
     const zh = language === 'zh-TW'
     const sorry = zh ? '抱歉，請再問一次。' : 'Sorry, please try again.'
 
@@ -216,7 +219,7 @@ export async function runRonnieTurn({
         const text = textOf(content)
         if (executor.proposals.length || !text.trim()) return content
         if (!executor.knowledge.length && !RESEARCH_WORDS.test(text)) return content
-        const first = await checkKnowledge(client, { question: question(), reply: text, notes: executor.knowledge, signal })
+        const first = await checkKnowledge(client, { question: question(), reply: text, notes: citable(), signal })
         knowledgeCheck = { first: first.verdict, retried: false, usage: first.usage ? [first.usage] : [] }
         let final = first.verdict
         let out = content
@@ -237,7 +240,7 @@ export async function runRonnieTurn({
                 servedModel = retry.model
                 const again = textOf(retry.content)
                 if (again.trim()) {
-                    const second = await checkKnowledge(client, { question: question(), reply: again, notes: executor.knowledge, signal })
+                    const second = await checkKnowledge(client, { question: question(), reply: again, notes: citable(), signal })
                     if (second.usage) knowledgeCheck.usage.push(second.usage)
                     knowledgeCheck.after = second.verdict
                     final = second.verdict
@@ -259,8 +262,8 @@ export async function runRonnieTurn({
         const proposed = executor.proposals.length > 0
         const codeLines = [...executor.confirmations, ...executor.notices].join('\n')
         // An empty reply falls back to what the tools changed. Its citations become numbers, with the
-        // papers listed under it by code; a key no note had this turn is dropped
-        const cited = withSources(proposed ? '' : stripMarkdown(textOf(content)), executor.knowledge)
+        // papers listed under it by code; a key no note had, this turn or earlier, is dropped
+        const cited = withSources(proposed ? '' : stripMarkdown(textOf(content)), citable())
         if (cited.unknown.length) knowledgeCheck = { ...(knowledgeCheck ?? { first: { overclaims: [], general: false }, retried: false, usage: [] }), unknownKeys: cited.unknown }
         // A turn that searched the notes and cites none answers as general coaching, so it is labelled
         // whatever the check says: given replies that called themselves "my own coaching advice", the
@@ -279,8 +282,11 @@ export async function runRonnieTurn({
         // A reply cut off by max_tokens can end in a half-written tool call, which stored
         // without its result would make the next request invalid
         const kept = proposed ? [] : [
-            // Stored with the numbers shown, so a later turn's keys never read as these
-            ...content.filter((b) => b.type !== 'tool_use').map((b) => (b.type === 'text' ? { ...b, text: renumber(b.text, cited.numbers) } : b)),
+            // Stored with the keys as the model wrote them, which match the search results above them:
+            // stored as the numbers shown, a later turn read its own [1] as a wrong citation and
+            // "corrected" it (a trace of 2026-10-28). Keys never repeat in a day, so none reads as
+            // a later turn's
+            ...content.filter((b) => b.type !== 'tool_use'),
             // The correction is part of what was said, so the next turn doesn't take the claim as standing
             ...(correction ? [{ type: 'text' as const, text: correction, citations: null }] : []),
             ...(medicineLine ? [{ type: 'text' as const, text: medicineLine, citations: null }] : []),

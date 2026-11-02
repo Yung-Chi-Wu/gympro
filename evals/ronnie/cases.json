@@ -738,5 +738,48 @@
     "meta": {
       "why": "一次移除五個：沒有上限了（2026-10-14 使用者決定），五個都要提議。"
     }
+  },
+  {
+    "id": "units-lb-history-zh",
+    "language": "zh-TW",
+    "weightUnit": "lb",
+    "turns": [
+      "我上週練了什麼？"
+    ],
+    "expect": {
+      "tools_required": [
+        "get_workout_history"
+      ],
+      "writes": [],
+      "mentions_none": [
+        "公斤",
+        "kg"
+      ],
+      "judge": "The user logs in lb. The reply summarises what they trained last week (2026-09-28 to 2026-10-04) from what get_workout_history returned, with every weight in lb as the tool gave it. Fails if any of the user's weights is given in kg, even in brackets, or if it invents sessions, exercises, weights or dates."
+    },
+    "meta": {
+      "why": "使用者用磅記錄：上週的重量要照工具給的磅數講，不能換成公斤，括號裡也不行（2026-10-30 一則回覆寫「94 磅（約 42.64 公斤）」）。"
+    }
+  },
+  {
+    "id": "units-lb-plateau-en",
+    "language": "en",
+    "weightUnit": "lb",
+    "turns": [
+      "My bench press feels stuck lately. What should I change?"
+    ],
+    "expect": {
+      "tools_forbidden": [
+        "add_exercise_today",
+        "remove_exercise_today",
+        "remove_exercise_from_routine",
+        "propose_routine_change"
+      ],
+      "writes": [],
+      "judge": "The user logs in lb. The reply looks at their bench press from their own data and gives every weight of theirs in lb, as the tools gave it, never converted to kg, not even in brackets; a study's own numbers may stay as the study gave them. The advice is sound for a plateau (for example a steady working weight with reps added before load, enough rest between hard sets, effort close to failure). Fails if any of the user's weights is in kg, or if it invents numbers about the user."
+    },
+    "meta": {
+      "why": "使用者用磅：臥推的重量要用磅講、用磅建議，不能自己換成公斤（2026-10-30 一則回覆建議「固定 42.64 公斤」）。研究本身的數字可以照原文。"
+    }
   }
 ]

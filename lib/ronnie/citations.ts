@@ -1,10 +1,11 @@
-import { citationOf } from './knowledge'
+import { citationOf, KNOWLEDGE_NOTES, type KnowledgeNote } from './knowledge'
 import type { CitedNote } from './executor'
 
-// The sources under a reply, written by code from the notes search_knowledge gave the model this
-// turn. The model marks a sentence with a note's key ([K2]); code numbers the notes it cited in the
-// order they appear ([1], [2]) and lists each one's paper under the reply, so a source shown is
-// always a paper Ronnie was given, never one it named itself. A key that wasn't given is dropped.
+// The sources under a reply, written by code from the notes search_knowledge gave the model, this
+// turn or earlier today. The model marks a sentence with a note's key ([K2]); code numbers the notes
+// it cited in the order they appear ([1], [2]) and lists each one's paper under the reply, so a
+// source shown is always a paper Ronnie was given, never one it named itself. A key that wasn't
+// given is dropped.
 
 /** A paper under a reply, as the chat shows it */
 export interface ReplySource {
@@ -26,16 +27,14 @@ const BARE_KEY = /\bK\d+\b/g
 export interface CitedReply {
     text: string
     sources: ReplySource[]
-    /** Keys the reply used that no note had this turn, dropped from the text */
+    /** Keys the reply used that no note it was given had, dropped from the text */
     unknown: string[]
-    /** Each cited key's number, to renumber the same markers elsewhere (the stored history) */
-    numbers: Map<string, number>
 }
 
 const keysOf = (keys: string) => keys.split(/\s*[,，、]\s*/).map((k) => k.trim())
 
 /** The markers in a text as numbers, a key without one dropped */
-export function renumber(text: string, numbers: Map<string, number>): string {
+function renumber(text: string, numbers: Map<string, number>): string {
     return text
         .replace(MARKER, (_, keys: string) => {
             const ns = [...new Set(keysOf(keys).map((k) => numbers.get(k)).filter((n): n is number => n != null))]
@@ -59,8 +58,8 @@ export function withSources(reply: string, cited: CitedNote[]): CitedReply {
         }
     }
     const numbers = new Map(order.map((c, i) => [c.key, i + 1]))
-    // A key given this turn, named in the sentence, reads as its paper, which is listed under the
-    // reply too. Any other K and number is left as it is
+    // A key given, named in the sentence, reads as its paper, which is listed under the reply too.
+    // Any other K and number is left as it is
     const text = renumber(reply, numbers).replace(BARE_KEY, (key) => {
         const c = byKey.get(key)
         if (!c) return key
@@ -74,8 +73,42 @@ export function withSources(reply: string, cited: CitedNote[]): CitedReply {
         text,
         sources: order.map((c, i) => ({ n: i + 1, citation: citationOf(c.note.source), title: c.note.source.title, journal: c.note.source.journal, doi: c.note.source.doi })),
         unknown: [...unknown],
-        numbers,
     }
+}
+
+// Each note as search_knowledge's results open it after its key (executor.ts noteText and
+// shortNoteText): "Refalo et al., 2023, Sports Medicine (meta-analysis; ...)". Who was studied
+// tells apart two papers with the same first author, year and journal (Llanos-Lagos 2024); a line
+// two notes still share names neither
+const NOTE_LINES = (() => {
+    const byLine = new Map<string, KnowledgeNote | null>()
+    for (const n of KNOWLEDGE_NOTES) {
+        const line = `${citationOf(n.source)}, ${n.source.journal} (${n.design}; ${n.population})`
+        byLine.set(line, byLine.has(line) ? null : n)
+    }
+    return byLine
+})()
+
+/**
+ * The notes earlier search results in the history gave, each with its key, read back from the
+ * line each one starts with. Keys never repeat in a day (nextKnowledgeKey), so the model, which
+ * still sees those results, may cite one again without searching, and it is listed under the reply
+ * like a note given this turn
+ */
+export function notesInHistory(messages: { role: string; content: unknown }[]): CitedNote[] {
+    const found = new Map<string, CitedNote>()
+    for (const m of messages) {
+        if (m.role !== 'user' || !Array.isArray(m.content)) continue
+        for (const b of m.content as { type?: string; content?: unknown }[]) {
+            if (b.type !== 'tool_result' || typeof b.content !== 'string') continue
+            for (const [, key, rest] of b.content.matchAll(/^\[(K\d+)\] (.+)$/gm)) {
+                if (found.has(key)) continue
+                const note = [...NOTE_LINES].find(([line]) => rest.startsWith(line))?.[1]
+                if (note) found.set(key, { key, note })
+            }
+        }
+    }
+    return [...found.values()]
 }
 
 /**

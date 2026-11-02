@@ -125,6 +125,7 @@ export async function runConversation({
     turns = [],
     sessions = [turns],
     memory = [],
+    weightUnit = FIXTURE_USER.weightUnit === 'lb' ? 'lb' : 'kg',
     client: injectedClient,
     vectors = !injectedClient,
 }: {
@@ -135,6 +136,8 @@ export async function runConversation({
     sessions?: CaseTurn[][]
     /** What Ronnie remembers before the first conversation */
     memory?: CaseMemory[]
+    /** The user's weight unit: the prompt says it and the tools give weights in it */
+    weightUnit?: 'kg' | 'lb'
     /** For tests: a stand-in for the Claude client */
     client?: Anthropic
     /** Vector search as in production; off for offline tests, which make no AWS calls */
@@ -148,7 +151,7 @@ export async function runConversation({
     })
     const memoriesBefore = memories.map((n) => ({ ...n }))
     // As the coach route does it: each request's prompt lists the notes as they are then
-    const systemNow = () => promptFor(buildSystemPrompt(language, { ...FIXTURE_USER, notes: fixtureNotes(memories, language) }))
+    const systemNow = () => promptFor(buildSystemPrompt(language, { ...FIXTURE_USER, weightUnit, notes: fixtureNotes(memories, language) }))
     let system = systemNow()
     const results: ConversationResult['turns'] = []
 
@@ -173,7 +176,7 @@ export async function runConversation({
                 language,
                 timeZone: FIXTURE_TIME_ZONE,
                 todayRoutineName: FIXTURE_USER.todayRoutineName,
-                weightUnit: FIXTURE_USER.weightUnit === 'lb' ? 'lb' : 'kg',
+                weightUnit,
                 now: () => FIXTURE_NOW,
                 knowledgeKeyStart: nextKnowledgeKey(messages),
                 knowledgePages: PAGES_ON,

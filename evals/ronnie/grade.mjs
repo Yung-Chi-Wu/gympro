@@ -155,6 +155,14 @@ export function programmaticGrade(c, out, exercises) {
         explanation.mentions_expected = missing.length ? `回覆沒有提到：${missing.join('、')}` : '該提到的都有提到'
     } else grade.mentions_expected = null
 
+    // Words no reply may have, in any turn: a kg weight for a user who logs in lb
+    if (exp.mentions_none) {
+        const said = out.turns.map((t) => t.message ?? '').join('\n').toLowerCase()
+        const found = exp.mentions_none.filter((m) => said.includes(m.toLowerCase()))
+        grade.mentions_forbidden = found.length ? 0 : 1
+        explanation.mentions_forbidden = found.length ? `回覆提到了不該有的：${found.join('、')}` : '沒有不該有的字'
+    } else grade.mentions_forbidden = null
+
     if (exp.history_range) {
         const { cover: [from, to], earliest, latest } = exp.history_range
         const ranges = calls.filter((x) => x.input?.date_from && x.input?.date_to).map((x) => [x.input.date_from, x.input.date_to])
@@ -218,8 +226,9 @@ export function programmaticGrade(c, out, exercises) {
 
     // The knowledge base: the sources code listed under the last reply (citations.ts) include a note
     // that answers the question; or, where no note does, none are listed and the reply is labelled
-    // general advice; and no key the reply used was one it wasn't given
-    if (exp.cites_any || exp.cites_none || exp.unsourced != null) {
+    // general advice; and no key a reply used, in any turn, was one it wasn't given (keys_known asks
+    // only that)
+    if (exp.cites_any || exp.cites_none || exp.unsourced != null || exp.keys_known) {
         const last = out.turns.at(-1) ?? {}
         const dois = new Set((last.sources ?? []).map((src) => String(src.doi).toLowerCase()))
         const problems = []
@@ -229,7 +238,9 @@ export function programmaticGrade(c, out, exercises) {
         const unknown = out.turns.flatMap((t) => t.knowledgeCheck?.unknownKeys ?? [])
         if (unknown.length) problems.push(`引用了沒查到的條目 ${unknown.join('、')}（已被程式拿掉）`)
         grade.sourced = problems.length ? 0 : 1
-        explanation.sourced = problems.join('；') || (dois.size ? `附了 ${dois.size} 個出處，包含該引用的研究` : '沒有附出處，並標示為一般建議')
+        explanation.sourced = problems.join('；') || (exp.cites_any || exp.cites_none || exp.unsourced != null
+            ? (dois.size ? `附了 ${dois.size} 個出處，包含該引用的研究` : '沒有附出處，並標示為一般建議')
+            : '引用的條目都是查到的')
     } else grade.sourced = null
 
     grade.language_correct = out.turns.every((t) => languageCorrect(t.message, c.language)) ? 1 : 0
