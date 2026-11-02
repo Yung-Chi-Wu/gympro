@@ -39,7 +39,7 @@ import { BUTTON } from '@/lib/ui'
 // by period, four periods at a time, and a day opens as a page of its own (?day=, see
 // lib/sub-page.ts). Only the ranges on screen are loaded (lib/history.ts).
 
-export type HistoryTab = 'training' | 'weight' | 'reports'
+export type HistoryTab = 'training' | 'weight' | 'reports' | 'awards'
 
 // Phone sizes first (44px targets, 15px text), the denser desktop ones from md
 const CARD = 'rounded-card border border-line bg-card p-4'
@@ -48,9 +48,10 @@ const TABS: { tab: HistoryTab; href: string }[] = [
     { tab: 'training', href: '/history' },
     { tab: 'weight', href: '/history?tab=weight' },
     { tab: 'reports', href: '/history?tab=reports' },
+    { tab: 'awards', href: '/history?tab=awards' },
 ]
 
-/** 訓練 / 體重 / 報告. Each is its own link, so a tab loads only its own data. */
+/** 訓練 / 體重 / 報告 / 成就, sharing a phone's width. Each is its own link, so a tab loads only its own data. */
 export function HistoryTabs({ current: loaded }: { current: HistoryTab }) {
     const t = useTranslations('history')
     // A day's page on a phone has the top bar's back button instead
@@ -68,7 +69,7 @@ export function HistoryTabs({ current: loaded }: { current: HistoryTab }) {
                     onNavigate={() => markNavigation(href)}
                     scroll={false}
                     aria-current={tab === current ? 'page' : undefined}
-                    className={`-mb-px flex min-h-11 items-center border-b-2 px-4 text-[15px] font-medium transition-colors md:min-h-0 md:px-3 md:py-2 md:text-sm ${tab === current ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink'}`}
+                    className={`-mb-px flex min-h-11 flex-1 items-center justify-center border-b-2 px-2 text-[15px] font-medium transition-colors md:min-h-0 md:flex-none md:px-3 md:py-2 md:text-sm ${tab === current ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink'}`}
                 >
                     {t(`tabs.${tab}`)}
                 </Link>

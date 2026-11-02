@@ -418,7 +418,8 @@
         "tabs": {
             "training": "Training",
             "weight": "Weight",
-            "reports": "Reports"
+            "reports": "Reports",
+            "awards": "Awards"
         },
         "prevMonth": "Previous month",
         "nextMonth": "Next month",
@@ -455,7 +456,8 @@
         "noReports": "No reports yet. One is made automatically when each week ends; advice needs 10 logged sets.",
         "olderReports": "Show earlier reports",
         "dayExercises": "{count, plural, one {# exercise} other {# exercises}}",
-        "weightLabel": "Weight"
+        "weightLabel": "Weight",
+        "awardsFailed": "Couldn't load your awards. Please try again later."
     },
     "auth": {
         "loginTitle": "Log in to GymPro",
@@ -897,5 +899,45 @@
         "install": "Add GymPro to your home screen to get notifications.",
         "denied": "Notifications are off for GymPro. Allow them in your phone or browser settings.",
         "unsupported": "This browser can't get notifications."
+    },
+    "awards": {
+        "summary": "Awards",
+        "of": "{count} of {total}",
+        "latest": "Latest: {award}, {tier} · {date}",
+        "none": "Log your first set to start earning awards.",
+        "strength": "Strength",
+        "keepingAt": "Consistency",
+        "tiers": {
+            "bronze": "Bronze",
+            "silver": "Silver",
+            "gold": "Gold"
+        },
+        "names": {
+            "squat": "Squat",
+            "bench": "Bench press",
+            "deadlift": "Deadlift",
+            "press": "Overhead press",
+            "pullup": "Pull-ups",
+            "weeks": "Weeks on plan",
+            "records": "New bests"
+        },
+        "values": {
+            "weight": "{n} {unit}",
+            "pullup": "{n} reps",
+            "weeks": "{n} weeks",
+            "records": "{n}"
+        },
+        "howCounted": "A lift counts your heaviest logged set, even a single rep. Weeks on plan and new bests add up; they don't need to be in a row.",
+        "notYet": "Not logged yet",
+        "tierCount": "{tier} {n}",
+        "medal": "{tier}",
+        "nextToGo": "{left} to {tier}",
+        "nextAt": "{tier} at {value}",
+        "allDone": "All three reached",
+        "stamps": {
+            "pullup": "REPS",
+            "weeks": "WEEKS",
+            "records": "BESTS"
+        }
     }
 }
