@@ -903,6 +903,10 @@ export type Database = {
         }
         Returns: Json
       }
+      awards_page: {
+        Args: never
+        Returns: Json
+      }
       mark_report_queue_failed: {
         Args: {
           p_period_start: string

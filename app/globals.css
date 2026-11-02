@@ -42,6 +42,22 @@
   --color-routine-2: #eda100;
   --color-routine-3: #d55181;
 
+  /* 紀錄's 成就 (components/Awards.tsx). A medal reached: its disc (-medal), its rim and ribbon
+     (-edge) and the number on it (-ink, above 5:1 on the disc in both themes); the tier's name in
+     text (gold, silver, bronze: above 4.5:1 on a card) */
+  --color-gold: #8A6100;
+  --color-gold-medal: #E5BC48;
+  --color-gold-edge: #B38A1E;
+  --color-gold-ink: #3D2C00;
+  --color-silver: #535C66;
+  --color-silver-medal: #CDD3DA;
+  --color-silver-edge: #9AA3AD;
+  --color-silver-ink: #2A3138;
+  --color-bronze: #8E4E25;
+  --color-bronze-medal: #DDA06F;
+  --color-bronze-edge: #A8683C;
+  --color-bronze-ink: #3A1C08;
+
   /* 中文字：裝了 Noto Sans TC 就用，否則蘋果用蘋方、Windows 用微軟正黑 */
   --font-sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
 
@@ -167,6 +183,15 @@ html.dark {
   --color-routine-1: #3987e5;
   --color-routine-2: #c98500;
   --color-routine-3: #d55181;
+  --color-gold: #E9C46A;
+  --color-gold-medal: #D1A93A;
+  --color-gold-edge: #A07A16;
+  --color-silver: #C9D0D8;
+  --color-silver-medal: #B9C1C9;
+  --color-silver-edge: #8C959F;
+  --color-bronze: #E3A57C;
+  --color-bronze-medal: #C98B5C;
+  --color-bronze-edge: #9A5E33;
   color-scheme: dark;
   background-color: #1A1814;
   color: #EAE7E0;

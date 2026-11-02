@@ -7,6 +7,9 @@ import { addDays, localDate, type CycleSettings } from '@/lib/periods'
 import { isDate, trainingReadAhead, trainingView } from '@/lib/history'
 import { historyDaysOf, loadReports } from '@/lib/history-data'
 import { readHistoryData } from '@/lib/history-page'
+import { readAwardsPage } from '@/lib/awards-page'
+import { awardTracks } from '@/lib/awards'
+import { Awards } from '@/components/Awards'
 import { HistoryReports, HistoryTabs, HistoryTraining, HistoryWeight, type HistoryTab } from '@/components/HistoryList'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
@@ -14,7 +17,7 @@ import { timeZoneOf } from '@/lib/time-zone'
 import { ServerTimingMark } from '@/components/ServerTimingMark'
 import { ReadYourWrites } from '@/components/ReadYourWrites'
 
-// 紀錄: tabs for training, body weight and reports (?tab=). Each tab reads only what it
+// 紀錄: tabs for training, body weight, reports and awards (?tab=). Each tab reads only what it
 // shows, by date range: records are kept forever and the page must not slow down as
 // they grow. Training starts with this month and the last four periods (one query
 // covers both); the rest loads from /api/history/workouts as the user goes back.
@@ -26,7 +29,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
     if (!user) redirect('/login')
     const supabase = await createClient()
     const params = await searchParams
-    const tab: HistoryTab = params.tab === 'weight' || params.tab === 'reports' ? params.tab : 'training'
+    const tab: HistoryTab = params.tab === 'weight' || params.tab === 'reports' || params.tab === 'awards' ? params.tab : 'training'
     const utcToday = new Date().toISOString().slice(0, 10)
 
     const training = tab === 'training' ? readHistoryData(supabase, user.id, trainingReadAhead(utcToday, params.day)) : null
@@ -46,6 +49,8 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
             loadReports(supabase, user.id),
         ])
         : null
+    // Awards are worked out from all the log, in one request (lib/awards-page.ts)
+    const awardsTab = tab === 'awards' ? readAwardsPage(supabase, user.id) : null
     const [{ profile }, t] = await Promise.all([getFrameProfile(), getTranslations('history')])
 
     const timeZone = timeZoneOf(profile?.timezone)
@@ -105,6 +110,12 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                 distanceUnit={distanceUnit}
             />
         )
+    } else if (awardsTab) {
+        const page = await awardsTab
+
+        content = page
+            ? <Awards tracks={awardTracks(page, { timeZone, weightUnit })} language={language} weightUnit={weightUnit} />
+            : <p className="text-sm text-muted">{t('awardsFailed')}</p>
     }
 
     return (

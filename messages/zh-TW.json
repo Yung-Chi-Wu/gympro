@@ -418,7 +418,8 @@
         "tabs": {
             "training": "訓練",
             "weight": "體重",
-            "reports": "報告"
+            "reports": "報告",
+            "awards": "成就"
         },
         "prevMonth": "上個月",
         "nextMonth": "下個月",
@@ -455,7 +456,8 @@
         "noReports": "還沒有週報。每週結束後會自動產生，記滿 10 組才會有建議。",
         "olderReports": "看更早的報告",
         "dayExercises": "{count} 個動作",
-        "weightLabel": "體重"
+        "weightLabel": "體重",
+        "awardsFailed": "讀不到成就，請稍後再試。"
     },
     "auth": {
         "loginTitle": "登入 GymPro",
@@ -897,5 +899,45 @@
         "install": "要先把 GymPro 加到主畫面，才收得到通知。",
         "denied": "通知被關掉了。請到手機或瀏覽器的設定裡允許 GymPro 傳送通知。",
         "unsupported": "這個瀏覽器收不到通知。"
+    },
+    "awards": {
+        "summary": "已拿到",
+        "of": "{count} / {total}",
+        "latest": "最近：{award}{tier}牌 · {date}",
+        "none": "記下第一組，就會開始拿成就。",
+        "strength": "力量",
+        "keepingAt": "持續",
+        "tiers": {
+            "bronze": "銅",
+            "silver": "銀",
+            "gold": "金"
+        },
+        "names": {
+            "squat": "深蹲",
+            "bench": "臥推",
+            "deadlift": "硬舉",
+            "press": "肩推",
+            "pullup": "引體向上",
+            "weeks": "照計畫的週",
+            "records": "新紀錄"
+        },
+        "values": {
+            "weight": "{n} {unit}",
+            "pullup": "{n} 下",
+            "weeks": "{n} 週",
+            "records": "{n} 次"
+        },
+        "howCounted": "力量看你記過最重的一組，做到 1 下就算。照計畫的週和新紀錄是累計的，不用連續。",
+        "notYet": "還沒記過",
+        "tierCount": "{tier} {n}",
+        "medal": "{tier}牌",
+        "nextToGo": "{tier}牌還差 {left}",
+        "nextAt": "{tier}牌 {value}",
+        "allDone": "三面都拿到了",
+        "stamps": {
+            "pullup": "下",
+            "weeks": "週",
+            "records": "次"
+        }
     }
 }

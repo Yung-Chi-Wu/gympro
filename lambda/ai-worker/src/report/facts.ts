@@ -2,6 +2,7 @@ import { addDays, daysBetween } from '../../../../lib/periods'
 import { BODY_GROUPS, bodyGroupOf, hasTarget, setWeights, VOLUME_UNIT_IDS } from '../../../../lib/report/volume'
 import { isLowerBodyLift, NOT_LIFTS, plansThrough, REPORT_WINDOWS, STRENGTH_LOG_TYPES, topSession, windowOfFor } from '../../../../lib/report/progression'
 import { isCardio } from '../../../../lib/set-log'
+import { e1rm, liftMeasure } from '../../../../lib/report/records'
 import type { LogType } from '../../../../lib/exercise-attributes'
 import { intensityOf, maxHeartRate, moderateEquivalent } from '../../../../lib/report/cardio-intensity'
 import type { BestSet, CardioFacts, CardioIntensityFacts, CardioTrendFacts, ExerciseInfo, GoalProgress, GoalTarget, LiftFacts, LoggedSet, MuscleFacts, RecordFacts, ReportFacts, ReportInputs, ReportStatus } from './types'
@@ -20,32 +21,12 @@ export const FLAT_BAND = 0.015
 export const VOLUME_RANGE = { low: 10, high: 20 } as const
 const MAIN_LIFTS = 5
 
-/** Estimated one-rep max (Epley). */
-export const e1rm = (s: { weightKg: number; reps: number }) => s.weightKg * (1 + s.reps / 30)
+// The record rule, shared with 成就 (lib/awards.ts)
+export { e1rm }
 const round1 = (n: number) => Math.round(n * 10) / 10
 
 /** Cardio: a cardio log type, or a custom exercise in the cardio category. Its sets aren't working sets. */
 export const isCardioExercise = (e: ExerciseInfo | undefined) => !!e && (isCardio(e.logType) || e.muscleGroup === 'cardio')
-
-/**
- * The sets that count for a lift, and how they compare. An assisted lift counts only sets that
- * have their assist (one logged before the exercise had a log type has none) and is ordered by
- * less assist, then more reps at the same assist, as the app and Ronnie read it: reps/1000 can't
- * outweigh an assist step (at least 1 lb), so one number keeps that order. A bodyweight exercise
- * with added weight on some sets is ordered the same way by the added weight: its bodyweight sets
- * have no estimated 1RM, which read as 0 and made "up Infinity%". Only bodyweight sets: by reps.
- * A weighted lift by estimated 1RM, without its 0 kg sets, which have none either.
- */
-function liftMeasure(e: ExerciseInfo, allSets: LoggedSet[]) {
-    const assisted = e.logType === 'assisted'
-    const own = allSets.filter((s) => s.exerciseId === e.id && (!assisted || s.assistKg != null))
-    const bodyweight = !assisted && own.every((s) => s.weightKg === 0)
-    const added = !assisted && !bodyweight && e.logType === 'bodyweight'
-    const sets = assisted || bodyweight || added ? own : own.filter((s) => s.weightKg > 0)
-    const value = (s: BestSet | LoggedSet) =>
-        assisted ? s.reps / 1000 - (s.assistKg ?? 0) : added ? s.weightKg + s.reps / 1000 : bodyweight ? s.reps : e1rm(s)
-    return { sets, assisted, bodyweight, added, value }
-}
 
 /**
  * Progress that can't be rounding counts however small: more weight for at least as many reps,
