@@ -86,6 +86,7 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
 | Every database query costs 30–50 ms from the app's region, even for one row. The two regions are about 10 ms apart, so most of that is the database service itself. | The app was not moved next to the database: that would save about 10 ms per round and add a hop for the user. The fix was fewer rounds. |
 | The calendar on Routines waited for the profile and cycle before reading its month: a second round, and the tab went from 0.21 s to 0.43 s. | The month is read in the first round, over a range that holds it for any time zone and cycle, then cut to the calendar's. The wider read goes as two queries at once, which come back sooner than one ([#107](https://github.com/Yung-Chi-Wu/gympro/pull/107)). |
 | Today still sent about 14 requests in two rounds. Each costs Supabase's API layer 40–100 ms even for one row, and the slowest in a round decides it. | One database function, `today_page`, reads the page's rows in one request, and the app builds the page from them with the same code ([#134](https://github.com/Yung-Chi-Wu/gympro/pull/134)). The app works the day out again and reads the old way if the function's day differs, as where the database's time zone data is older. Before shipping, the two gave the same page 468 times out of 468, and the function's day matched the app's at 311,440 instants across 422 zones, apart from zones whose rules changed after the database's time zone data. On production, Today's server time went from 264 ms to 149–175 ms. |
+| Routines sent 10 requests at once beside the profile. Its calendar also read 27 days before the month's first week and dropped them, left over from when the calendar showed the cycle's rounds. | One function, `routines_page`, reads the page's rows in one request, over the month's weeks only ([#136](https://github.com/Yung-Chi-Wu/gympro/pull/136)). It does no time zone work, so the app reads the old way only when the call fails. Before shipping, the function and the old reads each gave the same page as before 4,992 times out of 4,992: every 6 hours from August to December, in 4 time zones and both languages. On production the same day, Routines' server time went from 174–200 ms to 128–133 ms. |
 
 **Result** (tap to content on production, median of 6; runs vary by about ±50 ms):
 
@@ -96,7 +97,7 @@ Every pull request runs these free checks, with no secrets ([`.github/workflows/
 | History | 0.46–0.60 s | 0.33 s |
 | Settings | 0.36–0.42 s | 0.16 s |
 
-Today's is from two runs after #134 (2026-10-30), when it had drifted to 0.39 s before the change; the others are from 2026-10-27.
+Today's is from two runs after #134 (2026-10-30), when it had drifted to 0.39 s before the change; the others are from 2026-10-27. By 2026-10-30 Routines had drifted to 0.30–0.33 s, and it was 0.24–0.25 s after #136.
 
 Opening the app on Today went from 0.8–1.1 s to about 0.5 s.
 
