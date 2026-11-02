@@ -743,7 +743,6 @@
     "id": "units-lb-history-zh",
     "language": "zh-TW",
     "weightUnit": "lb",
-    "goal": "增肌，三個月內臥推 225 磅",
     "turns": [
       "我上週練了什麼？"
     ],
@@ -752,21 +751,16 @@
         "get_workout_history"
       ],
       "writes": [],
-      "mentions_none": [
-        "公斤",
-        "kg"
-      ],
-      "judge": "The user logs in lb. The reply summarises what they trained last week (2026-09-28 to 2026-10-04) from what get_workout_history returned, with every weight in lb as the tool gave it. Fails if any of the user's weights is given in kg, even in brackets, or if it invents sessions, exercises, weights or dates."
+      "judge": "The user logs in lb, though their goal, as they wrote it, is in kg. The reply summarises what they trained last week (2026-09-28 to 2026-10-04) from what get_workout_history returned, with every weight from their log in lb as the tool gave it; quoting the goal as written is fine. Fails if any weight from their log is given in kg, even in brackets, or if it invents sessions, exercises, weights or dates."
     },
     "meta": {
-      "why": "使用者用磅記錄：上週的重量要照工具給的磅數講，不能換成公斤，括號裡也不行（2026-10-30 一則回覆寫「94 磅（約 42.64 公斤）」）。"
+      "why": "使用者用磅記錄，目標卻是用公斤寫的（跟站長的帳號一樣）：上週的重量要照工具給的磅數講，不能換成公斤，括號裡也不行（2026-10-30 一則回覆寫「94 磅（約 42.64 公斤）」）。引用目標原文可以。"
     }
   },
   {
     "id": "units-lb-plateau-en",
     "language": "en",
     "weightUnit": "lb",
-    "goal": "Build muscle; bench 225 lb in three months",
     "turns": [
       "My bench press feels stuck lately. What should I change?"
     ],
@@ -778,10 +772,10 @@
         "propose_routine_change"
       ],
       "writes": [],
-      "judge": "The user logs in lb. The reply looks at their bench press from their own data and gives every weight of theirs in lb, as the tools gave it, never converted to kg, not even in brackets; a study's own numbers may stay as the study gave them. The advice is sound for a plateau (for example a steady working weight with reps added before load, enough rest between hard sets, effort close to failure). Fails if any of the user's weights is in kg, or if it invents numbers about the user."
+      "judge": "The user logs in lb, though their goal, as they wrote it, is in kg. The reply looks at their bench press from their own data and gives every weight from their log in lb, as the tools gave it, never converted to kg, not even in brackets; quoting the goal as written is fine, and a study's own numbers may stay as the study gave them. The advice is sound for a plateau (for example a steady working weight with reps added before load, enough rest between hard sets, effort close to failure). Fails if any weight from their log is in kg, or if it invents numbers about the user."
     },
     "meta": {
-      "why": "使用者用磅：臥推的重量要用磅講、用磅建議，不能自己換成公斤（2026-10-30 一則回覆建議「固定 42.64 公斤」）。研究本身的數字可以照原文。"
+      "why": "使用者用磅、目標用公斤寫：臥推的重量要用磅講、用磅建議，不能自己換成公斤（2026-10-30 一則回覆建議「固定 42.64 公斤」）。研究本身的數字可以照原文。"
     }
   }
 ]

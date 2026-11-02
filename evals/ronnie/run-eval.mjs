@@ -177,7 +177,7 @@ async function loadCases() {
 /** Play the case's user turns through Ronnie, the way the chat widget does. */
 async function runCase(c, ctx) {
   const { runConversation, RONNIE_MODEL } = loadRonnie();
-  const out = await runConversation({ model: ctx.model ?? RONNIE_MODEL, language: c.language, turns: c.turns, sessions: c.sessions, memory: c.memory, weightUnit: c.weightUnit, goal: c.goal });
+  const out = await runConversation({ model: ctx.model ?? RONNIE_MODEL, language: c.language, turns: c.turns, sessions: c.sessions, memory: c.memory, weightUnit: c.weightUnit });
   const calls = out.turns.flatMap((t) => t.usage);
   return {
     output: out,

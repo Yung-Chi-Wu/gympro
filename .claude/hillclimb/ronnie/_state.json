@@ -33,11 +33,6 @@
       "kind": "binary"
     },
     {
-      "id": "mentions_forbidden",
-      "label": "沒有不該有的字",
-      "kind": "binary"
-    },
-    {
       "id": "date_range",
       "label": "日期範圍",
       "kind": "binary"

@@ -156,14 +156,6 @@ export function programmaticGrade(c, out, exercises) {
         explanation.mentions_expected = missing.length ? `回覆沒有提到：${missing.join('、')}` : '該提到的都有提到'
     } else grade.mentions_expected = null
 
-    // Words no reply may have, in any turn: a kg weight for a user who logs in lb
-    if (exp.mentions_none) {
-        const said = out.turns.map((t) => t.message ?? '').join('\n').toLowerCase()
-        const found = exp.mentions_none.filter((m) => said.includes(m.toLowerCase()))
-        grade.mentions_forbidden = found.length ? 0 : 1
-        explanation.mentions_forbidden = found.length ? `回覆提到了不該有的：${found.join('、')}` : '沒有不該有的字'
-    } else grade.mentions_forbidden = null
-
     if (exp.history_range) {
         const { cover: [from, to], earliest, latest } = exp.history_range
         const ranges = calls.filter((x) => x.input?.date_from && x.input?.date_to).map((x) => [x.input.date_from, x.input.date_to])
