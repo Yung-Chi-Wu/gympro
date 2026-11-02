@@ -3,13 +3,15 @@ import { latestReached, nextMark, reachedTiers, TIERS, type AwardId, type AwardT
 import type { WeightUnit } from '@/lib/weight-unit'
 
 // 紀錄's 成就 tab: how many medals the user has, then one row per award. A row shows the highest
-// medal reached, in its metal (grey before the first), and a bar to the next one with what is
-// left. Each medal is named in words, so none is told by its color alone. A medal is a hexagon
+// medal reached, in its metal (grey before the first), and a bar to the next one: how far along
+// until halfway, what is left after, where people look (Koo & Fishbach 2012). Each medal is named in words, so none is told by its color alone. A medal is a hexagon
 // badge with a faceted rim, its mark the design and its unit stamped under it, as Apple Fitness and
 // Peloton make the number the design; one not yet reached is the same badge in grey.
 
 const CARD = 'rounded-card border border-line bg-card'
 const LIFTS: AwardId[] = ['squat', 'bench', 'deadlift', 'press']
+/** The awards that count reps, lifts, days or times, each with its own word */
+type CountAward = 'pullup' | 'stronger' | 'days' | 'weeks' | 'records'
 
 /** A medal's colors once reached; the class names are written out whole for Tailwind */
 const METAL: Record<Tier, { ink: string; name: string; bar: string; face: string; edge: string }> = {
@@ -31,9 +33,9 @@ export function Awards({ tracks, language, weightUnit }: { tracks: AwardTrack[];
     const reached = tracks.flatMap(reachedTiers)
     const latest = latestReached(tracks)
     // Stamped under a medal's mark: the weight unit, or the award's own
-    const stamp = (id: AwardId) => (LIFTS.includes(id) ? weightUnit.toUpperCase() : t(`stamps.${id as 'pullup' | 'weeks' | 'records'}`))
+    const stamp = (id: AwardId) => (LIFTS.includes(id) ? weightUnit.toUpperCase() : t(`stamps.${id as CountAward}`))
     const value = (id: AwardId, n: number) =>
-        LIFTS.includes(id) ? t('values.weight', { n: number(n), unit: weightUnit }) : t(`values.${id as 'pullup' | 'weeks' | 'records'}`, { n: number(n) })
+        LIFTS.includes(id) ? t('values.weight', { n: number(n), unit: weightUnit }) : t(`values.${id as CountAward}`, { n: Math.round(n) })
     const list = (title: string, ids: AwardId[]) => (
         <section className="space-y-3">
             <h2 className="text-lg font-bold">{title}</h2>
@@ -62,8 +64,8 @@ export function Awards({ tracks, language, weightUnit }: { tracks: AwardTrack[];
                 </p>
             </section>
             <div className="grid gap-6 @3xl:grid-cols-2 @3xl:items-start">
-                {list(t('strength'), [...LIFTS, 'pullup'])}
-                {list(t('keepingAt'), ['weeks', 'records'])}
+                {list(t('strength'), [...LIFTS, 'pullup', 'stronger'])}
+                {list(t('keepingAt'), ['days', 'weeks', 'records'])}
             </div>
             <p className="px-1 text-[13px] text-muted">{t('howCounted')}</p>
         </div>
@@ -85,7 +87,9 @@ function AwardRow({ track, value, stamp }: { track: AwardTrack; value: (id: Awar
                         {t(`names.${track.id}`)}
                         {top && <span className={`ml-2 whitespace-nowrap text-[13px] ${METAL[top].name}`}>{t('medal', { tier: t(`tiers.${top}`) })}</span>}
                     </h3>
-                    <p className="shrink-0 text-[13px] text-muted tabular-nums">{track.best > 0 ? value(track.id, track.best) : t('notYet')}</p>
+                    <p className="shrink-0 text-[13px] text-muted tabular-nums">
+                        {track.best > 0 ? (track.estimated ? t('estimated', { value: value(track.id, track.best) }) : value(track.id, track.best)) : t('notYet')}
+                    </p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
@@ -94,9 +98,11 @@ function AwardRow({ track, value, stamp }: { track: AwardTrack; value: (id: Awar
                     <p className="shrink-0 text-xs text-muted tabular-nums">
                         {!next
                             ? t('allDone')
-                            : track.best > 0
-                                ? t('nextToGo', { tier: t(`tiers.${next.tier}`), left: value(track.id, next.value - track.best) })
-                                : t('nextAt', { tier: t(`tiers.${next.tier}`), value: value(track.id, next.value) })}
+                            : track.best <= 0
+                                ? t('nextAt', { tier: t(`tiers.${next.tier}`), value: value(track.id, next.value) })
+                                : next.share < 0.5
+                                    ? t('nextOf', { tier: t(`tiers.${next.tier}`), now: number(track.best), mark: value(track.id, next.value) })
+                                    : t('nextToGo', { tier: t(`tiers.${next.tier}`), left: value(track.id, next.value - track.best) })}
                     </p>
                 </div>
             </div>
