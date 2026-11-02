@@ -743,6 +743,7 @@
     "id": "units-lb-history-zh",
     "language": "zh-TW",
     "weightUnit": "lb",
+    "goal": "增肌，三個月內臥推 225 磅",
     "turns": [
       "我上週練了什麼？"
     ],
@@ -765,6 +766,7 @@
     "id": "units-lb-plateau-en",
     "language": "en",
     "weightUnit": "lb",
+    "goal": "Build muscle; bench 225 lb in three months",
     "turns": [
       "My bench press feels stuck lately. What should I change?"
     ],

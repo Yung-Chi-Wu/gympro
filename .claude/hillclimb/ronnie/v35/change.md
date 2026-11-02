@@ -1,0 +1,3 @@
+The two lb cases (branch ronnie-citations-units at 6db0e16) on claude-sonnet-5-5, 3 reps each. A case can now set the user's weight unit, and the prompt says the user's weights stay in it. The owner approved the harness.
+
+Results: units-lb-plateau-en 3/3. units-lb-history-zh 1/3, and the judge passed all 3: every weight was in lb. Both misses were mentions_forbidden, on "100 公斤" from the fixture user's goal ("三個月內臥推 100 公斤"), which the reply quoted; it was not a conversion. The check was right to look for the word but the fixture gave it one. The cases now give the lb user a goal in lb, so any "公斤" or "kg" is Ronnie's own; rerun as v36.

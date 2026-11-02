@@ -126,6 +126,7 @@ export async function runConversation({
     sessions = [turns],
     memory = [],
     weightUnit = FIXTURE_USER.weightUnit === 'lb' ? 'lb' : 'kg',
+    goal = FIXTURE_USER.goal,
     client: injectedClient,
     vectors = !injectedClient,
 }: {
@@ -138,6 +139,8 @@ export async function runConversation({
     memory?: CaseMemory[]
     /** The user's weight unit: the prompt says it and the tools give weights in it */
     weightUnit?: 'kg' | 'lb'
+    /** The user's goal as they wrote it, for a case whose user writes it in lb */
+    goal?: string
     /** For tests: a stand-in for the Claude client */
     client?: Anthropic
     /** Vector search as in production; off for offline tests, which make no AWS calls */
@@ -151,7 +154,7 @@ export async function runConversation({
     })
     const memoriesBefore = memories.map((n) => ({ ...n }))
     // As the coach route does it: each request's prompt lists the notes as they are then
-    const systemNow = () => promptFor(buildSystemPrompt(language, { ...FIXTURE_USER, weightUnit, notes: fixtureNotes(memories, language) }))
+    const systemNow = () => promptFor(buildSystemPrompt(language, { ...FIXTURE_USER, weightUnit, goal, notes: fixtureNotes(memories, language) }))
     let system = systemNow()
     const results: ConversationResult['turns'] = []
 
