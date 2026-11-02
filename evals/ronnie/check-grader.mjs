@@ -159,6 +159,14 @@ retried.writes = retried.turns.flatMap((t) => t.writes)
 const g2 = programmaticGrade(removeToday, retried, EXERCISES).grade
 check(overallPass(g2) === 1 && g2.valid_ids === 0, `rejected attempt then a correct retry should pass with valid_ids 0, got ${JSON.stringify(g2)}`)
 
+// Asking the owner for a missing exercise changes no workout, so a case that allows no
+// changes still passes, and there is no exercise id to check
+const requested = oracle(removeToday)
+requested.turns[0].writes = [...requested.turns[0].writes, { op: 'request_exercise', name: 'Hack Squat', effective: true }]
+requested.writes = requested.turns.flatMap((t) => t.writes)
+const g3 = programmaticGrade(removeToday, requested, EXERCISES).grade
+check(g3.no_wrong_change === 1 && g3.valid_ids === 1, `a request_exercise is not a wrong change or an unknown id, got ${JSON.stringify(g3)}`)
+
 // Rolling seven days is not "last week"
 const lastWeek = cases.find((c) => c.id === 'history-last-week-zh')
 const rolling = oracle(lastWeek)

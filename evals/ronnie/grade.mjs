@@ -71,7 +71,8 @@ export function programmaticGrade(c, out, exercises) {
     const calls = out.turns.flatMap((t) => t.toolCalls)
     const called = new Set(calls.map((x) => x.name))
     const finalReply = out.turns.at(-1)?.message ?? ''
-    const actualWrites = out.turns.flatMap((t, i) => t.writes.map((w) => ({ ...w, turn: i + 1 })))
+    // A request_exercise is a note to the owner, not a change to the user's workouts
+    const actualWrites = out.turns.flatMap((t, i) => t.writes.filter((w) => w.op !== 'request_exercise').map((w) => ({ ...w, turn: i + 1 })))
     const grade = {}
     const explanation = {}
 
