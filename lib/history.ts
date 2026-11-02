@@ -96,6 +96,25 @@ export const rangeOf = (periods: HistoryRange[]): HistoryRange => ({
     end: periods.reduce((max, p) => (p.end > max ? p.end : max), periods[0].end),
 })
 
+/**
+ * What the training tab opens on, on `today`: the month of the day a link asks for (one not after
+ * today), else today's month, and the range it reads: that month and the last PERIODS_PER_PAGE
+ * periods
+ */
+export function trainingView(today: string, linkedDay: string | null | undefined): { month: string; range: HistoryRange } {
+    const day = isDate(linkedDay) && linkedDay <= today ? linkedDay : null
+    const month = monthOf(day ?? today)
+    return { month, range: rangeOf([...periodsBack(today, PERIODS_PER_PAGE, today), ...periodsInMonth(month, today)]) }
+}
+
+/**
+ * A range that holds trainingView's for any time zone: so the tab's rows are read before the
+ * user's zone is in, with the profile, and cut to trainingView's once it is. Today in a zone is
+ * within a day of today in UTC.
+ */
+export const trainingReadAhead = (utcToday: string, linkedDay: string | null | undefined): HistoryRange =>
+    rangeOf([-1, 0, 1].map((n) => trainingView(addDays(utcToday, n), linkedDay).range))
+
 export function monthRange(month: string): HistoryRange {
     const [y, m] = month.split('-').map(Number)
     const last = new Date(Date.UTC(y, m, 0)).getUTCDate()

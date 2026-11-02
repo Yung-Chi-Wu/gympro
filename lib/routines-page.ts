@@ -2,16 +2,18 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, Json } from './types/database.types'
 import type { ExerciseOption } from '@/components/log-types'
-import type { HistoryRange, PeriodReportStatus } from './history'
-import { loadReportStatuses, readFirstTrainedAt, readHistoryRows, reportStatusesOf, type HistoryRows, type ReportStatusRow } from './history-data'
+import type { HistoryRange } from './history'
+import { historyFromPage, loadHistoryData, type HistoryData } from './history-page'
 import { recentExerciseIds } from './recent-exercises'
 
 // 課表's reads (app/(app)/routines/page.tsx). In one request when it can: routines_page
 // (migration 20261030210000) reads the same rows as the requests below and returns them nested
 // the same way, and the page is built from them with the same code. Each request costs
 // Supabase's API layer 40-100 ms even for one row, and the page sent 10 of them beside the
-// profile. Nothing here depends on the user's time zone: the calendar's month is read wide
-// enough for any (calendarReadAhead) and cut to the user's after, on either path.
+// profile. The calendar's month is the rows 紀錄 reads too (lib/history-page.ts), and the
+// function reads them with history_page. Nothing here depends on the user's time zone: the
+// month is read wide enough for any (calendarReadAhead) and cut to the user's after, on either
+// path.
 
 export interface RawRoutineExerciseRow {
     id: string
@@ -28,35 +30,18 @@ export interface RawRoutineRow {
     routine_exercises: RawRoutineExerciseRow[]
 }
 
-interface CycleRow {
-    id: string
-    cycle_length: number
-    start_date: string
-    cycle_days: { day_index: number; routine_id: string | null }[]
-    cycle_date_changes: { change_date: string; routine_id: string | null }[]
-}
-
 /** Everything 課表 reads, either way */
-export interface RoutinesData {
+export interface RoutinesData extends HistoryData {
     exercises: ExerciseOption[]
     recentIds: string[]
     routines: RawRoutineRow[]
-    cycle: CycleRow | null
-    history: HistoryRows
-    reports: PeriodReportStatus[]
-    firstTrainedAt: string | null
 }
 
-/** What routines_page returns: the rows, as the requests read them */
+/** What routines_page returns beside history_page's rows */
 interface RoutinesPageRows {
     exercises: ExerciseOption[]
     recent_ids: string[]
     routines: RawRoutineRow[]
-    cycle: CycleRow | null
-    workouts: HistoryRows['workouts']
-    notes: { note_date: string; note: string }[]
-    reports: ReportStatusRow[]
-    first_trained_at: string | null
 }
 
 /** 課表's rows in one request, with the calendar's month read as `range` */
@@ -68,19 +53,16 @@ export function readRoutinesPage(supabase: SupabaseClient<Database>, range: Hist
 export function routinesFromPage(rows: Json): RoutinesData {
     const page = rows as unknown as RoutinesPageRows
     return {
+        ...historyFromPage(rows),
         exercises: page.exercises,
         recentIds: page.recent_ids,
         routines: page.routines,
-        cycle: page.cycle,
-        history: { workouts: page.workouts, notes: new Map(page.notes.map((n) => [n.note_date, n.note])) },
-        reports: reportStatusesOf(page.reports),
-        firstTrainedAt: page.first_trained_at,
     }
 }
 
 /** 課表 in one round of requests, for when routines_page fails */
 export async function loadRoutinesData(supabase: SupabaseClient<Database>, userId: string, range: HistoryRange): Promise<RoutinesData> {
-    const [exercisesResult, recentIds, routinesResult, cycleResult, history, reports, firstTrainedAt] = await Promise.all([
+    const [exercisesResult, recentIds, routinesResult, month] = await Promise.all([
         supabase
             .from('exercises')
             .select('id, name, name_zh_tw, muscle_group, equipment')
@@ -97,23 +79,12 @@ export async function loadRoutinesData(supabase: SupabaseClient<Database>, userI
             `)
             .eq('user_id', userId)
             .order('created_at'),
-        supabase
-            .from('training_cycles')
-            .select('id, cycle_length, start_date, cycle_days ( day_index, routine_id ), cycle_date_changes ( change_date, routine_id )')
-            .eq('user_id', userId)
-            .order('day_index', { referencedTable: 'cycle_days' })
-            .maybeSingle(),
-        readHistoryRows(supabase, userId, range),
-        loadReportStatuses(supabase, userId, range),
-        readFirstTrainedAt(supabase, userId),
+        loadHistoryData(supabase, userId, range),
     ])
     return {
+        ...month,
         exercises: (exercisesResult.data ?? []) as ExerciseOption[],
         recentIds,
         routines: (routinesResult.data as RawRoutineRow[]) ?? [],
-        cycle: cycleResult.data,
-        history,
-        reports,
-        firstTrainedAt,
     }
 }

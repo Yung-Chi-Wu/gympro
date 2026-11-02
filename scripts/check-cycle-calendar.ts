@@ -1,15 +1,16 @@
 // Free check of 課表's calendar (lib/cycle-calendar.ts): which day of the cycle a date is, what
 // each day shows, a day given another routine or made a rest day, the month's weeks, each day's
 // round (a report's period), what the calendar reads for a month and the wider range 課表 reads it
-// in ahead, the next workout after a rest day, the sessions a round plans and the routines' colors. Also that the cycle day is worked out only in lib/periods.ts, and a date's plan
+// in ahead (and 紀錄's training tab its own), the next workout after a rest day, the sessions a
+// round plans and the routines' colors. Also that the cycle day is worked out only in lib/periods.ts, and a date's plan
 // read only through plannedRoutineId, so the calendar, Today, Ronnie, 紀錄 and the report can't
 // count it differently.
 //   npm run check:cycle-calendar
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { calendarDay, calendarRange, calendarReadAhead, isCyclesOwn, monthWeeks, nextPlanned, plannedSessions, routineColors, type CalendarCycle } from '../lib/cycle-calendar'
-import { addDays, cycleDayOf, plannedRoutineId } from '../lib/periods'
-import { monthOf } from '../lib/history'
+import { addDays, cycleDayOf, daysBetween, plannedRoutineId } from '../lib/periods'
+import { MAX_RANGE_DAYS, monthOf, trainingReadAhead, trainingView } from '../lib/history'
 import { historyDaysOf, type HistoryRows } from '../lib/history-data'
 import type { HistoryDay } from '../lib/history'
 
@@ -137,6 +138,34 @@ check("a month is read as its weeks, so each week's report comes too", same(cale
     const days = historyDaysOf(rows, { range: { start: '2026-09-28', end: '2026-11-01' }, timeZone: 'America/New_York', language: 'zh-TW' })
     check("rows read for the wider range keep only the calendar's days, each on the user's own date",
         same(days.map((d) => [d.date, d.routineNames, d.exercises.map((e) => e.name), d.note]), [['2026-10-01', ['Push Day'], ['臥推'], null], ['2026-10-05', [], [], 'tired']]), JSON.stringify(days))
+}
+
+// ---------- 紀錄's training tab, read ahead ----------
+{
+    // Every UTC day of two years, every zone's today within a day of it, and the days a link can
+    // ask for: the tab's range is inside what was read with the profile
+    const misses: string[] = []
+    let longest = 0
+    for (let i = 0; i < 730; i++) {
+        const utc = addDays('2026-01-01', i)
+        for (const linked of [undefined, 'not-a-date', utc, addDays(utc, -1), addDays(utc, 1), addDays(utc, 2), addDays(utc, -40), addDays(utc, -95)]) {
+            const ahead = trainingReadAhead(utc, linked)
+            if (linked === undefined || linked >= addDays(utc, -95)) longest = Math.max(longest, daysBetween(ahead.start, ahead.end))
+            for (const local of [addDays(utc, -1), utc, addDays(utc, 1)]) {
+                const { range } = trainingView(local, linked)
+                if (range.start < ahead.start || range.end > ahead.end) misses.push(`${utc} ${local} ${linked}: ${JSON.stringify(range)} not in ${JSON.stringify(ahead)}`)
+            }
+        }
+    }
+    check("the range read ahead holds the training tab's for any zone and link", misses.length === 0, misses.slice(0, 3).join('\n       '))
+    check(`and a link up to three months back reads it in one request (at most ${MAX_RANGE_DAYS} days)`, longest <= MAX_RANGE_DAYS, String(longest))
+    const view = trainingView('2026-10-30', undefined)
+    check("the tab opens on today's month, with it and the last four weeks", same(view, { month: '2026-10', range: { start: '2026-09-28', end: '2026-11-01' } }), JSON.stringify(view))
+    check('a link to a later day than today opens on today', trainingView('2026-10-30', '2026-10-31').month === '2026-10' && trainingView('2026-10-31', '2026-10-31').month === '2026-10')
+    check("a link to a day in August opens on August, read through today's week", same(trainingView('2026-10-30', '2026-08-15'), { month: '2026-08', range: { start: '2026-07-27', end: '2026-11-01' } }), JSON.stringify(trainingView('2026-10-30', '2026-08-15')))
+    // history_page takes the same longest range as the app's own API
+    const migration = readFileSync(join('supabase', 'migrations', '20261030230000_history_page.sql'), 'utf8')
+    check(`history_page refuses a range over MAX_RANGE_DAYS (${MAX_RANGE_DAYS}), as the app expects`, migration.includes(`p_end - p_start > ${MAX_RANGE_DAYS} then`))
 }
 
 // ---------- The next workout ----------
