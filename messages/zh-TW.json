@@ -948,19 +948,31 @@
         "estimated": "估 {value}",
         "nextOf": "{tier}牌 {now} / {mark}"
     },
+    "medals": {
+        "eyebrow": "新成就",
+        "one": "恭喜！拿到{award}{tier}牌",
+        "several": "恭喜！拿到 {n} 面新獎牌",
+        "mark": "{tier}牌 · {value}",
+        "next": "下一面：{medal}",
+        "close": "知道了",
+        "all": "看成就"
+    },
     "recap": {
         "week": "上週 · {start} – {end}",
         "trained": "練了 <num>{n}</num> 天",
         "allPlanned": "課表上的 {planned} 天全部完成",
         "moreDays": "比前一週多 {n} 天",
-        "recordsMore": "，還有 {n} 個",
-        "moreSets": "比前一週多 {n} 組",
         "cardio": "有氧",
         "minutes": "分鐘",
         "fullReport": "看完整週報",
+        "advice": "週報寫了這週的 {n} 個重點",
         "close": "知道了",
         "lastWeek": "上週",
-        "weekSets": "{date}：{n} 組",
-        "lineLabel": "最近 {n} 週的組數：{list}"
+        "recentWeeks": "最近 {n} 週",
+        "weeksTrained": "練了 {n} 週",
+        "weekDays": "{date}：{n} 天",
+        "chartLabel": "最近 {n} 週每週練的天數：{list}",
+        "moreRecords": "還有 {n} 個",
+        "trainedParts": "練到"
     }
 }

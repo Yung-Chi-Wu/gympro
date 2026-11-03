@@ -259,13 +259,14 @@ export type ReportStatus = 'progressing' | 'stalling' | 'regressing' | 'baseline
 
 export interface ReportFacts {
     period: { start: string; end: string; days: number }
-    /** previousDone: days trained in the window before; null without history, absent in reports saved before it was kept */
-    sessions: { done: number; planned: number | null; days: DayFacts[]; previousDone?: number | null }
     /**
-     * Working sets: every set but cardio. series: the working sets of each window, oldest first, the
-     * last being now; null for a window from before the user's first set. Absent in reports saved before it was kept.
+     * previousDone: days trained in the window before; null without history, absent in reports saved before it was kept.
+     * series: the days trained in each window, oldest first, the last being now; null for a window
+     * from before the user's first set. Absent in reports saved before it was kept.
      */
-    totalSets: { now: number; previous: number | null; series?: (number | null)[] }
+    sessions: { done: number; planned: number | null; days: DayFacts[]; previousDone?: number | null; series?: (number | null)[] }
+    /** Working sets: every set but cardio */
+    totalSets: { now: number; previous: number | null }
     /** The working sets by body group (lib/report/volume.ts BODY_GROUPS), each set once, so they add up to totalSets; absent in reports saved before */
     groups?: { group: BodyGroup; sets: number; previous: number | null }[]
     muscles: MuscleFacts[]
@@ -478,6 +479,13 @@ export interface ReportV3 {
     /** The day notes the text was written with; reports saved before 2026-10-10 have none */
     dayNotes?: DayNote[]
     narrative: ReportNarrative
+}
+
+/** The report's advice: one item per fired rule, each with every finding of it (one per finding in reports saved before that), and none without a finding */
+export function adviceItems({ narrative, findings }: Pick<ReportV3, 'narrative' | 'findings'>) {
+    return narrative.items
+        .map((i) => ({ ...i, findings: findings.filter((f) => (i.rule ? f.rule === i.rule : f.id === i.findingId)) }))
+        .filter((i) => i.findings.length)
 }
 
 // ---------- A week below the sets advice needs ----------

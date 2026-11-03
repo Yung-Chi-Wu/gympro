@@ -10,7 +10,12 @@ import { TodayGoal } from '@/components/TodayGoal'
 import { ReminderNotice } from '@/components/ReminderNotice'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
 import { WeeklyRecap } from '@/components/WeeklyRecap'
-import { dueOverlay } from '@/lib/today-overlay'
+import { MedalCard, MedalsChecked } from '@/components/MedalCard'
+import { dueOverlay, medalsToCheck, newMedals } from '@/lib/today-overlay'
+import { readAwardsPage } from '@/lib/awards-page'
+import { awardTracks } from '@/lib/awards'
+import { localDate } from '@/lib/periods'
+import { timeZoneOf } from '@/lib/time-zone'
 import type { WeightUnit } from '@/lib/weight-unit'
 import type { DistanceUnit } from '@/lib/distance-unit'
 import { withRecent } from '@/lib/recent-exercises'
@@ -32,9 +37,16 @@ export default async function DashboardPage() {
   // The instant the day is worked out from, on both sides
   const now = new Date()
 
-  const [{ profile }, page, t, tReport, tPeriod] = await Promise.all([
+  const [{ profile }, page, awards, t, tReport, tPeriod] = await Promise.all([
     getFrameProfile(),
     readTodayPage(supabase, now),
+    // New medals, checked once a day (lib/today-overlay.ts) beside today_page, from the profile
+    // the frame reads anyway
+    getFrameProfile().then(({ profile }) => medalsToCheck({
+      onboarded: profile?.onboarding_completed ?? false,
+      awardsSeen: profile?.awards_seen_date ?? null,
+      today: localDate(timeZoneOf(profile?.timezone), now),
+    }) ? readAwardsPage(supabase, user.id) : null),
     getTranslations('today'),
     getTranslations('report'),
     getTranslations('periodLog'),
@@ -51,6 +63,7 @@ export default async function DashboardPage() {
 
   const hasCycle = day.cycleLength !== null
   const isRestDay = hasCycle && routineIdForToday === null
+  const medals = awards && newMedals(awardTracks(awards, { timeZone: recentFrom.timeZone, weightUnit }), { awardsSeen: profile?.awards_seen_date ?? null, today: todayIso })
   // What opens over the page on this visit, at most one
   const overlay = dueOverlay({
     onboarded: onboardingCompleted,
@@ -58,6 +71,7 @@ export default async function DashboardPage() {
     lastPeriod,
     recapSeenWeek: profile?.recap_seen_week ?? null,
     loggedToday: today.exercises.some((e) => e.loggedSets.length > 0),
+    medals,
   })
 
   return (
@@ -73,6 +87,9 @@ export default async function DashboardPage() {
       {/* As on the other tabs: the top bar says 今天 on a phone. The greeting that was here gave
           its place to the goal (owner, 2026-10-28) */}
       <h1 className="text-2xl font-bold max-md:sr-only">{t('title')}</h1>
+      {overlay?.kind === 'medals' && <MedalCard medals={overlay.medals} through={overlay.through} userId={user.id} weightUnit={weightUnit} />}
+      {/* A check that found none keeps the day as checked, so the next visit today doesn't read the log again */}
+      {medals && !medals.medals.length && <MedalsChecked through={medals.through} userId={user.id} />}
       {overlay?.kind === 'recap' && <WeeklyRecap recap={overlay.recap} userId={user.id} language={language} weightUnit={weightUnit} />}
       {/* Once a device can get the daily reminder: where to turn it on, on a visit with nothing else over the page */}
       <ReminderNotice ready={onboardingCompleted && !overlay} />

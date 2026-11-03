@@ -69,11 +69,15 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
     const trainedDates = new Set(current.map((s) => s.date))
     const dayList = Array.from({ length: days }, (_, i) => addDays(periodStart, i))
     const planFor = new Map((inputs.schedule ?? []).map((d) => [d.date, d.routine]))
+    // The windows from the oldest one with a set: the ones before it are from before the user
+    // started, not windows off. (Sets before the windows are read only for this period's exercises.)
+    const oldest = inputs.sets.reduce((a, s) => Math.max(a, windowOf(s.date)), -1)
     const sessions = {
         done: trainedDates.size,
         planned: inputs.schedule ? inputs.schedule.filter((d) => d.routine).length : null,
         days: dayList.map((date) => ({ date, routine: planFor.get(date) ?? null, trained: trainedDates.has(date) })),
         previousDone: hasHistory ? new Set(inWindow(1).map((s) => s.date)).size : null,
+        series: Array.from({ length: WINDOWS }, (_, k) => (k <= oldest ? new Set(inWindow(k).map((s) => s.date)).size : null)).reverse(),
     }
 
     // Sets per volume unit, scaled to a week: 1 for a primary muscle, 0.5 for a secondary one
@@ -161,14 +165,10 @@ export function computeFacts(inputs: ReportInputs): ReportFacts {
         : 'stalling'
 
     const bodyWeight = bodyWeightFacts(inputs.weighIns, windowOf)
-    // The windows from the oldest one with a set: the ones before it are from before the user
-    // started, not windows off. (Sets before the windows are read only for this period's exercises.)
-    const oldest = inputs.sets.reduce((a, s) => Math.max(a, windowOf(s.date)), -1)
-    const setsSeries = Array.from({ length: WINDOWS }, (_, k) => (k <= oldest ? working(inWindow(k)).length : null)).reverse()
     return {
         period: { start: periodStart, end: periodEnd, days },
         sessions,
-        totalSets: { now: working(current).length, previous: hasHistory ? working(inWindow(1)).length : null, series: setsSeries },
+        totalSets: { now: working(current).length, previous: hasHistory ? working(inWindow(1)).length : null },
         groups: BODY_GROUPS.map((group) => {
             const of = (sets: LoggedSet[]) => working(sets).filter((s) => bodyGroupOf(byId.get(s.exerciseId)?.muscleGroup ?? '') === group).length
             return { group, sets: of(current), previous: hasHistory ? of(inWindow(1)) : null }

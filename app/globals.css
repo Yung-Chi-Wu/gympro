@@ -71,11 +71,48 @@
   --animate-sheet: sheet 0.2s ease-out both;
 
   /* Last week's recap (WeeklyRecap, motion-safe only): the popup opens (Sheet centered), its days
-     and points come in one after another, and its line draws from the left as its area fades in */
+     fill in one after another, its weeks' bars grow from the baseline and its lines rise */
   --animate-popup: popup 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
-  --animate-pop: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  --animate-draw: draw 0.7s ease-out both;
-  --animate-fade: fade 0.7s ease-out both;
+  --animate-fill: fill 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-grow: grow 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+
+  /* A new medal (MedalCard, motion-safe only): it lands with a turn, its glow comes up behind it and
+     a light passes over it once */
+  --animate-medal: medal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-glow: glow 0.9s ease-out both;
+  --animate-shine: shine 0.9s ease-in-out both;
+
+  @keyframes medal {
+    from {
+      opacity: 0;
+      transform: scale(0.4) rotate(-15deg);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes glow {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* From off the medal's left to off its right, so it shows nothing before or after */
+  @keyframes shine {
+    from {
+      transform: translateX(0) skewX(-15deg);
+    }
+    to {
+      transform: translateX(400%) skewX(-15deg);
+    }
+  }
 
   @keyframes popup {
     from {
@@ -88,26 +125,18 @@
     }
   }
 
-  /* A path drawn with pathLength 1 and a dash of 1 */
-  @keyframes draw {
+  @keyframes grow {
     from {
-      stroke-dashoffset: 1;
+      transform: scaleY(0);
     }
     to {
-      stroke-dashoffset: 0;
+      transform: none;
     }
   }
 
-  @keyframes fade {
+  @keyframes fill {
     from {
-      opacity: 0;
-    }
-  }
-
-  @keyframes pop {
-    from {
-      opacity: 0;
-      transform: scale(0.5);
+      transform: scale(0.7);
     }
     to {
       opacity: 1;

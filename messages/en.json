@@ -948,19 +948,31 @@
         "estimated": "Est. {value}",
         "nextOf": "{tier}: {now} of {mark}"
     },
+    "medals": {
+        "eyebrow": "New medal",
+        "one": "You earned {tier} in {award}",
+        "several": "You earned {n} new medals",
+        "mark": "{tier} · {value}",
+        "next": "Next: {medal}",
+        "close": "Got it",
+        "all": "See awards"
+    },
     "recap": {
         "week": "Last week · {start} – {end}",
         "trained": "You trained <num>{n}</num> {n, plural, one {day} other {days}}",
         "allPlanned": "{planned, plural, one {The planned day, done} other {All # planned days done}}",
         "moreDays": "{n, plural, one {# day} other {# days}} more than the week before",
-        "recordsMore": " and {n} more",
-        "moreSets": "{n} more than the week before",
         "cardio": "Cardio",
         "minutes": "min",
         "fullReport": "Full report",
+        "advice": "The report has {n, plural, one {# point} other {# points}} for this week",
         "close": "Got it",
-        "lastWeek": "Last week",
-        "weekSets": "{date}: {n, plural, one {# set} other {# sets}}",
-        "lineLabel": "Working sets, last {n} weeks: {list}"
+        "lastWeek": "Last wk",
+        "recentWeeks": "Last {n} weeks",
+        "weeksTrained": "{n, plural, one {# week} other {# weeks}} trained",
+        "weekDays": "{date}: {n, plural, one {# day} other {# days}}",
+        "chartLabel": "Days trained, last {n} weeks: {list}",
+        "moreRecords": "and {n} more",
+        "trainedParts": "Trained"
     }
 }

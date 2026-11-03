@@ -10,7 +10,7 @@ import { unitLabel } from '@/lib/report/volume'
 import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
 import { toDisplayDistance, toDisplaySpeed, type DistanceUnit } from '@/lib/distance-unit'
 import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, GOAL_EVIDENCE, MIN_EFFECTIVE_WEEKLY_SETS, PLAN_EVIDENCE, type PlanPart, type Source } from '@/lib/report/evidence'
-import { CODE_RULES, isReportStats, MINIMUM_SETS_FOR_ADVICE, type BestSet, type CardioFacts, type CardioTrendFacts, type ContextNote, type DayFacts, type Finding, type FollowUp, type LiftFacts, type ReportFacts, type ReportStats, type ReportV3, type WeekSignal } from '@/lib/report/types'
+import { adviceItems, CODE_RULES, isReportStats, MINIMUM_SETS_FOR_ADVICE, type BestSet, type CardioFacts, type CardioTrendFacts, type ContextNote, type DayFacts, type Finding, type FollowUp, type LiftFacts, type ReportFacts, type ReportStats, type ReportV3, type WeekSignal } from '@/lib/report/types'
 import { BodyMap } from './BodyMap'
 import { Sparkline } from './Sparkline'
 import { useGoalReadLabels, useGoalText } from './goal-text'
@@ -186,10 +186,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
         }
     }
 
-    // One item per fired rule, with every finding of it; reports saved before that have one per finding
-    const items = (narrative?.items ?? [])
-        .map((i) => ({ ...i, findings: findings.filter((f) => (i.rule ? f.rule === i.rule : f.id === i.findingId)) }))
-        .filter((i) => i.findings.length)
+    const items = narrative ? adviceItems({ narrative, findings }) : []
     // The summary shows the first 3, the most important (owner, 2026-10-20); the rest are in the full report
     const shownItems = summary ? items.slice(0, SUMMARY_ITEMS) : items
     // The summary leaves an item's other lines (its options, a low muscle's choices) to the full report
