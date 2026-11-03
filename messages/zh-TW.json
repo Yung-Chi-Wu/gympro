@@ -344,7 +344,8 @@
             "units": "單位與語言",
             "appearance": "外觀",
             "account": "帳號",
-            "feedback": "意見回饋"
+            "feedback": "意見回饋",
+            "news": "最近更新"
         },
         "fields": {
             "displayName": "顯示名稱",
@@ -956,6 +957,13 @@
         "next": "下一面：{medal}",
         "close": "知道了",
         "all": "看成就"
+    },
+    "whatsNew": {
+        "tag": "{date} 更新",
+        "title": "GymPro 的新功能",
+        "later": "之後在「設定 → 最近更新」都看得到。",
+        "close": "知道了",
+        "where": "位置"
     },
     "recap": {
         "week": "上週 · {start} – {end}",

@@ -1,5 +1,6 @@
-// Free check of what opens over Today (lib/today-overlay.ts): new medals the day after they are
-// reached, checked once a day, before anything else; last week's recap once its report is done and
+// Free check of what opens over Today (lib/today-overlay.ts): what a big update brought, once,
+// before anything else, and every entry of lib/releases.ts as Settings lists it; new medals the day
+// after they are reached, checked once a day; last week's recap once its report is done and
 // the week had training, once per week and never a week late; neither in the middle of today's
 // workout; that it holds a number against the week before only when it went up; that it
 // says what covers the whole week: every new best counted, every body group trained; and that it
@@ -7,6 +8,8 @@
 //   npm run check:today-overlay
 import { dueOverlay, medalsToCheck, newMedals } from '../lib/today-overlay'
 import type { AwardTrack } from '../lib/awards'
+import { addDays } from '../lib/periods'
+import { dueRelease, RELEASE_ITEMS_MAX, RELEASE_MIN_DAYS, RELEASES, type Release } from '../lib/releases'
 import type { LatestReport } from '../lib/report/latest'
 import type { RecordFacts, ReportFacts } from '../lib/report/types'
 
@@ -37,7 +40,7 @@ const report = (facts: ReportFacts | null, status: LatestReport['status'] = 'com
     ({ status, periodStart, recommendation: facts ? { version: 3, facts } : null }) as unknown as LatestReport
 
 type Input = Parameters<typeof dueOverlay>[0]
-const base: Input = { onboarded: true, latest: report(factsOf()), lastPeriod: { start: WEEK }, recapSeenWeek: null, loggedToday: false, medals: null }
+const base: Input = { onboarded: true, latest: report(factsOf()), lastPeriod: { start: WEEK }, recapSeenWeek: null, loggedToday: false, release: null, medals: null }
 const due = (over: Partial<Input> = {}) => dueOverlay({ ...base, ...over })
 /** The recap a visit opens, or null when it opens something else or nothing */
 const recapIn = (overlay: ReturnType<typeof dueOverlay>) => (overlay?.kind === 'recap' ? overlay.recap : null)
@@ -121,6 +124,26 @@ const medalsDue = { medals: found.medals, through: found.through }
 check('new medals open before the recap', due({ medals: medalsDue })?.kind === 'medals')
 check('not in the middle of a workout, nor before onboarding is done', due({ medals: medalsDue, loggedToday: true }) === null && due({ medals: medalsDue, onboarded: false }) === null)
 check('a check that found none leaves the visit to the recap', due({ medals: { medals: [], through: found.through } })?.kind === 'recap')
+
+// ---------- What a big update brought ----------
+const entries: Release[] = [{ date: '2026-11-10', items: [] }, { date: '2026-11-03', items: [] }]
+check('the newest entry opens once it has shipped', dueRelease(entries, { seen: null, joined: '2026-10-01', today: '2026-11-10' })?.date === '2026-11-10'
+    && dueRelease(entries, { seen: null, joined: '2026-10-01', today: '2026-11-09' }) === null)
+check('only the newest, never one the user has seen', dueRelease(entries, { seen: '2026-11-03', joined: '2026-10-01', today: '2026-11-12' })?.date === '2026-11-10'
+    && dueRelease(entries, { seen: '2026-11-10', joined: '2026-10-01', today: '2026-11-12' }) === null)
+check('an account made on or after its day has nothing to catch up on', dueRelease(entries, { seen: null, joined: '2026-11-10', today: '2026-11-12' }) === null)
+check('it opens before new medals and the recap, and never mid-workout', due({ release: entries[0], medals: medalsDue })?.kind === 'release'
+    && due({ release: entries[0], loggedToday: true }) === null)
+
+const days = (a: string, b: string) => (Date.parse(a) - Date.parse(b)) / 86_400_000
+RELEASES.forEach((r, i) => {
+    const words = r.items.flatMap((item) => [item.title.en, item.title.zh, item.body.en, item.body.zh, item.where.en, item.where.zh])
+    check(`release ${r.date}: a real day, ${RELEASE_ITEMS_MAX} items or fewer, each saying what and where in both languages`,
+        addDays(r.date, 0) === r.date && r.items.length >= 1 && r.items.length <= RELEASE_ITEMS_MAX && words.every((w) => w.trim().length > 0),
+        JSON.stringify(r))
+    const next = RELEASES[i + 1]
+    if (next) check(`release ${r.date}: newest first, ${RELEASE_MIN_DAYS} days or more after ${next.date}`, days(r.date, next.date) >= RELEASE_MIN_DAYS)
+})
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 process.exit(failed ? 1 : 0)

@@ -344,7 +344,8 @@
             "units": "Units & language",
             "appearance": "Appearance",
             "account": "Account",
-            "feedback": "Feedback"
+            "feedback": "Feedback",
+            "news": "What's new"
         },
         "fields": {
             "displayName": "Display name",
@@ -956,6 +957,13 @@
         "next": "Next: {medal}",
         "close": "Got it",
         "all": "See awards"
+    },
+    "whatsNew": {
+        "tag": "Update · {date}",
+        "title": "What's New in GymPro",
+        "later": "Find these again in Settings → What's new.",
+        "close": "Got it",
+        "where": "Where"
     },
     "recap": {
         "week": "Last week · {start} – {end}",
