@@ -561,6 +561,7 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          awards_seen_date: string | null
           created_at: string
           date_of_birth: string | null
           display_name: string | null
@@ -569,6 +570,7 @@ export type Database = {
           height_updated_at: string | null
           language: string
           onboarding_completed: boolean
+          recap_seen_week: string | null
           sex: string | null
           timezone: string
           training_goal: string | null
@@ -578,6 +580,7 @@ export type Database = {
           weight_unit: string
         }
         Insert: {
+          awards_seen_date?: string | null
           created_at?: string
           date_of_birth?: string | null
           display_name?: string | null
@@ -586,6 +589,7 @@ export type Database = {
           height_updated_at?: string | null
           language?: string
           onboarding_completed?: boolean
+          recap_seen_week?: string | null
           sex?: string | null
           timezone?: string
           training_goal?: string | null
@@ -595,6 +599,7 @@ export type Database = {
           weight_unit?: string
         }
         Update: {
+          awards_seen_date?: string | null
           created_at?: string
           date_of_birth?: string | null
           display_name?: string | null
@@ -603,6 +608,7 @@ export type Database = {
           height_updated_at?: string | null
           language?: string
           onboarding_completed?: boolean
+          recap_seen_week?: string | null
           sex?: string | null
           timezone?: string
           training_goal?: string | null

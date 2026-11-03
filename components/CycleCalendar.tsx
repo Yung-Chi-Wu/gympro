@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { useEffect, useId, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { RoutineWithExercises } from '@/app/(app)/routines/page'
@@ -16,6 +15,7 @@ import { SummaryLine } from './set-format'
 import { ReportTrendChip } from './ReportTrendChip'
 import { useHistoryRecords } from './use-history-records'
 import { Icon } from './Icon'
+import { Sheet } from './Sheet'
 
 // 課表's calendar: the month with what the training cycle plans for each day (lib/cycle-calendar.ts)
 // and what was trained, and the picked day under it (beside it when there is room). A day still
@@ -477,10 +477,9 @@ interface ChangeOption {
 }
 
 /**
- * What a day can become, never what it is, from the bottom on a phone and centered from md. A
- * native modal dialog: it sits over the tab bar, keeps focus inside, closes on Escape and gives
- * focus back to 換課表. It also closes on a pick, Cancel or a tap outside. It is put under body, out
- * of the panel's aria-live, so a screen reader reads it once, as the dialog
+ * What a day can become, never what it is (Sheet: from the bottom on a phone, centered from md). It
+ * closes on a pick, Cancel, Escape or a tap outside, and gives focus back to 換課表. Every button in
+ * it closes it, as the sheet's form does
  */
 function ChangeDaySheet({ title, options, onPick, onClose }: {
     title: string
@@ -489,48 +488,31 @@ function ChangeDaySheet({ title, options, onPick, onClose }: {
     onClose: () => void
 }) {
     const t = useTranslations('routines')
-    const ref = useRef<HTMLDialogElement>(null)
     const titleId = useId()
-    useEffect(() => {
-        ref.current?.showModal()
-    }, [])
-    const close = () => ref.current?.close()
 
-    return createPortal(
-        <dialog
-            ref={ref}
-            onClose={onClose}
-            onClick={(e) => { if (e.target === e.currentTarget) close() }}
-            aria-labelledby={titleId}
-            className="mx-0 mt-auto mb-0 w-full max-w-full overscroll-contain bg-transparent p-0 backdrop:bg-black/40 motion-safe:animate-sheet md:m-auto md:max-w-sm"
-        >
-            <div className="rounded-t-[18px] bg-card px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-ink md:rounded-[14px] md:p-5">
-                <h3 id={titleId} className="text-base font-bold">{title}</h3>
-                <p className="text-[13px] text-muted">{t('calendar.changeNote')}</p>
-                <ul className="mt-3 border-b border-line">
-                    {options.map((o) => (
-                        <li key={o.id ?? 'rest'} className="border-t border-line">
-                            <button
-                                type="button"
-                                onClick={() => { close(); onPick(o.id) }}
-                                className="flex min-h-12 w-full items-center gap-2.5 text-left text-base transition-colors hover:text-accent md:min-h-10 md:text-[15px]"
-                            >
-                                <span className={`size-2.5 shrink-0 rounded-full ${o.id === null ? '' : o.slot === null ? PLAIN_FILL : FILL[o.slot]}`} />
-                                <span className="min-w-0 flex-1">{o.name}</span>
-                                {o.original && <span className="shrink-0 text-[13px] text-muted">{t('calendar.originalTag')}</span>}
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-                <button
-                    type="button"
-                    onClick={close}
-                    className="mt-4 min-h-11 w-full rounded-[9px] border border-line bg-done text-[15px] font-semibold md:min-h-9 md:text-sm"
-                >
-                    {t('cancel')}
-                </button>
-            </div>
-        </dialog>,
-        document.body,
+    return (
+        <Sheet labelledBy={titleId} onClose={onClose}>
+            <h3 id={titleId} className="text-base font-bold">{title}</h3>
+            <p className="text-[13px] text-muted">{t('calendar.changeNote')}</p>
+            <ul className="mt-3 border-b border-line">
+                {options.map((o) => (
+                    <li key={o.id ?? 'rest'} className="border-t border-line">
+                        <button
+                            onClick={() => onPick(o.id)}
+                            className="flex min-h-12 w-full items-center gap-2.5 text-left text-base transition-colors hover:text-accent md:min-h-10 md:text-[15px]"
+                        >
+                            <span className={`size-2.5 shrink-0 rounded-full ${o.id === null ? '' : o.slot === null ? PLAIN_FILL : FILL[o.slot]}`} />
+                            <span className="min-w-0 flex-1">{o.name}</span>
+                            {o.original && <span className="shrink-0 text-[13px] text-muted">{t('calendar.originalTag')}</span>}
+                        </button>
+                    </li>
+                ))}
+            </ul>
+            <button
+                className="mt-4 min-h-11 w-full rounded-[9px] border border-line bg-done text-[15px] font-semibold md:min-h-9 md:text-sm"
+            >
+                {t('cancel')}
+            </button>
+        </Sheet>
     )
 }

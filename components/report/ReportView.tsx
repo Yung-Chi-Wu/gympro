@@ -10,7 +10,7 @@ import { unitLabel } from '@/lib/report/volume'
 import { toDisplayWeight, type WeightUnit } from '@/lib/weight-unit'
 import { toDisplayDistance, toDisplaySpeed, type DistanceUnit } from '@/lib/distance-unit'
 import { CARDIO_EVIDENCE, EVIDENCE, GLOSSARY_SOURCES, GOAL_EVIDENCE, MIN_EFFECTIVE_WEEKLY_SETS, PLAN_EVIDENCE, type PlanPart, type Source } from '@/lib/report/evidence'
-import { CODE_RULES, isReportStats, MINIMUM_SETS_FOR_ADVICE, type BestSet, type CardioFacts, type CardioTrendFacts, type ContextNote, type DayFacts, type Finding, type FollowUp, type LiftFacts, type ReportFacts, type ReportStats, type ReportV3, type WeekSignal } from '@/lib/report/types'
+import { adviceItems, CODE_RULES, isReportStats, MINIMUM_SETS_FOR_ADVICE, type BestSet, type CardioFacts, type CardioTrendFacts, type ContextNote, type DayFacts, type Finding, type FollowUp, type LiftFacts, type ReportFacts, type ReportStats, type ReportV3, type WeekSignal } from '@/lib/report/types'
 import { BodyMap } from './BodyMap'
 import { Sparkline } from './Sparkline'
 import { useGoalReadLabels, useGoalText } from './goal-text'
@@ -44,7 +44,20 @@ const STATUS_TONE: Record<ReportV3['facts']['status'], string> = {
     baseline: 'bg-done text-muted',
 }
 
-const shortDate = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`
+export const shortDate = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`
+
+/** A set as the report writes it, in the user's unit: weight × reps, the reps alone, weight on top of the body, or the assist */
+export function useSetWords(weightUnit: WeightUnit) {
+    const t = useTranslations('reportV3')
+    // Weights are stored in kg and shown in the user's unit
+    const weight = (kg: number) => `${toDisplayWeight(kg, weightUnit)}${weightUnit}`
+    /** Weight on top of the body, or the reps alone when there was none */
+    const addedText = (kg: number, reps: number | string) => (kg === 0 ? t('reps', { n: reps }) : `+${weight(kg)} × ${reps}`)
+    const bestText = (s: BestSet | null, kind: { bodyweight: boolean; added?: boolean }) =>
+        !s ? '—' : s.assistKg != null ? t('assisted', { n: s.reps, assist: weight(s.assistKg) }) : kind.added ? addedText(s.weightKg, s.reps)
+            : kind.bodyweight ? t('reps', { n: s.reps }) : `${weight(s.weightKg)} × ${s.reps}`
+    return { weight, addedText, bestText }
+}
 
 export function ReportView({ report, language, weightUnit, distanceUnit = 'km', variant = 'full', fullHref, showGoal = true }: {
     report: ReportV3 | ReportStats
@@ -73,10 +86,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
     const muscle = (g: string) => unitLabel(g, language, (x) => getMuscleGroupLabel(x, language))
     const muscles = (list: string) => list.split(', ').filter(Boolean).map(muscle).join(zh ? '、' : ', ')
     const liftName = (x: { name: string; nameZh: string | null } | Data) => String((zh && x.nameZh) || x.name)
-    // Weights are stored in kg and shown in the user's unit
-    const weight = (kg: number) => `${toDisplayWeight(kg, weightUnit)}${weightUnit}`
-    /** Weight on top of the body, or the reps alone when there was none */
-    const addedText = (kg: number, reps: number | string) => (kg === 0 ? t('reps', { n: reps }) : `+${weight(kg)} × ${reps}`)
+    const { weight, addedText, bestText } = useSetWords(weightUnit)
     /** A set in finding data ("82.5x8"); its flags say to read only the reps, the number as the assist, or as weight added to the body */
     const setText = (raw: unknown, d: { bodyweight?: unknown; assisted?: unknown; added?: unknown }) => {
         if (raw == null) return '—'
@@ -84,9 +94,6 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
         return Number(d.assisted) ? t('assisted', { n: r, assist: weight(Number(w)) }) : Number(d.added) ? addedText(Number(w), r)
             : Number(d.bodyweight) ? t('reps', { n: r }) : `${weight(Number(w))} × ${r}`
     }
-    const bestText = (s: BestSet | null, kind: { bodyweight: boolean; added?: boolean }) =>
-        !s ? '—' : s.assistKg != null ? t('assisted', { n: s.reps, assist: weight(s.assistKg) }) : kind.added ? addedText(s.weightKg, s.reps)
-            : kind.bodyweight ? t('reps', { n: s.reps }) : `${weight(s.weightKg)} × ${s.reps}`
     const bodyWeight = (kg: number) => toDisplayWeight(kg, weightUnit)
     const routineList = (s: unknown) => String(s ?? '').split(', ').join(zh ? '、' : ', ')
 
@@ -179,10 +186,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
         }
     }
 
-    // One item per fired rule, with every finding of it; reports saved before that have one per finding
-    const items = (narrative?.items ?? [])
-        .map((i) => ({ ...i, findings: findings.filter((f) => (i.rule ? f.rule === i.rule : f.id === i.findingId)) }))
-        .filter((i) => i.findings.length)
+    const items = narrative ? adviceItems({ narrative, findings }) : []
     // The summary shows the first 3, the most important (owner, 2026-10-20); the rest are in the full report
     const shownItems = summary ? items.slice(0, SUMMARY_ITEMS) : items
     // The summary leaves an item's other lines (its options, a low muscle's choices) to the full report
