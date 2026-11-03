@@ -11,6 +11,8 @@ import { ReminderNotice } from '@/components/ReminderNotice'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
 import { WeeklyRecap } from '@/components/WeeklyRecap'
 import { MedalCard, MedalsChecked } from '@/components/MedalCard'
+import { WhatsNew } from '@/components/WhatsNew'
+import { dueRelease, RELEASES } from '@/lib/releases'
 import { dueOverlay, medalsToCheck, newMedals } from '@/lib/today-overlay'
 import { readAwardsPage } from '@/lib/awards-page'
 import { awardTracks } from '@/lib/awards'
@@ -71,6 +73,7 @@ export default async function DashboardPage() {
     lastPeriod,
     recapSeenWeek: profile?.recap_seen_week ?? null,
     loggedToday: today.exercises.some((e) => e.loggedSets.length > 0),
+    release: dueRelease(RELEASES, { seen: profile?.release_seen ?? null, joined: profile?.created_at?.slice(0, 10) ?? null, today: todayIso }),
     medals,
   })
 
@@ -87,6 +90,7 @@ export default async function DashboardPage() {
       {/* As on the other tabs: the top bar says 今天 on a phone. The greeting that was here gave
           its place to the goal (owner, 2026-10-28) */}
       <h1 className="text-2xl font-bold max-md:sr-only">{t('title')}</h1>
+      {overlay?.kind === 'release' && <WhatsNew release={overlay.release} userId={user.id} language={language} />}
       {overlay?.kind === 'medals' && <MedalCard medals={overlay.medals} through={overlay.through} userId={user.id} weightUnit={weightUnit} />}
       {/* A check that found none keeps the day as checked, so the next visit today doesn't read the log again */}
       {medals && !medals.medals.length && <MedalsChecked through={medals.through} userId={user.id} />}

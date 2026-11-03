@@ -1,5 +1,6 @@
 import { TIERS, type AwardId, type AwardTrack, type Tier } from '@/lib/awards'
 import { addDays } from '@/lib/periods'
+import type { Release } from '@/lib/releases'
 import type { LatestReport } from '@/lib/report/latest'
 import { adviceItems, type RecordFacts, type ReportFacts, type ReportV3 } from '@/lib/report/types'
 import type { BodyGroup } from '@/lib/report/volume'
@@ -42,7 +43,7 @@ export interface MedalCheck {
 }
 
 /** What Today opens over the page on this visit */
-export type TodayOverlay = ({ kind: 'medals' } & MedalCheck) | { kind: 'recap'; recap: WeekRecap } | null
+export type TodayOverlay = { kind: 'release'; release: Release } | ({ kind: 'medals' } & MedalCheck) | { kind: 'recap'; recap: WeekRecap } | null
 
 /**
  * Whether this visit checks for new medals (lib/awards.ts works them out from the whole log, so
@@ -70,9 +71,12 @@ export function newMedals(tracks: AwardTrack[], { awardsSeen, today }: { awardsS
 
 /**
  * At most one thing opens over Today on a visit, so two never stack: onboarding first
- * (OnboardingGuard), then new medals, then last week's recap, then the daily reminder's card
- * (ReminderNotice), which waits for a visit with nothing else. Neither the medals nor the recap
- * opens once today is logged: the user is in the middle of a workout.
+ * (OnboardingGuard), then what a big update brought, then new medals, then last week's recap, then
+ * the daily reminder's card (ReminderNotice), which waits for a visit with nothing else. None of
+ * them opens once today is logged: the user is in the middle of a workout.
+ *
+ * What a big update brought (owner, 2026-11-02; lib/releases.ts dueRelease) opens once, the newest
+ * entry only; closing it keeps it as seen (release_seen), on any device.
  *
  * New medals (owner, 2026-11-03) open the day after they are reached, on the first visit, all of
  * them in one popup; closing it keeps the days up to yesterday as checked (awards_seen_date), on
@@ -83,16 +87,19 @@ export function newMedals(tracks: AwardTrack[], { awardsSeen, today }: { awardsS
  * (user_profiles.recap_seen_week). A late report's recap opens when it is ready, on any day of
  * the week, and never a week late.
  */
-export function dueOverlay({ onboarded, latest, lastPeriod, recapSeenWeek, loggedToday, medals }: {
+export function dueOverlay({ onboarded, latest, lastPeriod, recapSeenWeek, loggedToday, release, medals }: {
     onboarded: boolean
     latest: LatestReport | null
     lastPeriod: { start: string } | null
     recapSeenWeek: string | null
     loggedToday: boolean
+    /** The newest update's entry, when the user hasn't seen it (dueRelease) */
+    release: Release | null
     /** Null when this visit didn't check (medalsToCheck) */
     medals: MedalCheck | null
 }): TodayOverlay {
     if (!onboarded || loggedToday) return null
+    if (release) return { kind: 'release', release }
     if (medals?.medals.length) return { kind: 'medals', ...medals }
     if (!latest || !lastPeriod) return null
     if (latest.periodStart !== lastPeriod.start || recapSeenWeek === lastPeriod.start) return null

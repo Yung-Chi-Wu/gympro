@@ -26,9 +26,10 @@ import { getMuscleGroupLabel } from '@/lib/exercise-display'
 import { unitLabel } from '@/lib/report/volume'
 import type { GoalRead } from '@/lib/report/types'
 import { useGoalReadLabels } from '@/components/report/goal-text'
+import { ReleaseList } from './WhatsNew'
 
 // Settings. Side by side (@split): the sections on the left (個人資料, 訓練目標, 單位與語言,
-// 外觀, 意見回饋, 帳號), the chosen section's form on the right. On a phone: one grouped list with
+// 外觀, 意見回饋, 最近更新, 帳號), the chosen section's form on the right. On a phone: one grouped list with
 // each setting's current value; a setting opens as a page of its own (?item=, see
 // lib/sub-page.ts) with its own save button. Under the goal, once saved: the goal as the report
 // will read it (app/api/ai/goal), so a goal it can't track is rewritten now, not a week later.
@@ -54,9 +55,9 @@ type ReadGoal = (text: string) => void
 /** The profile plus the theme, which lives in the browser (next-themes), not the database */
 type Values = ProfileValues & { theme: string }
 type Field = keyof Values
-type Section = 'profile' | 'goal' | 'units' | 'appearance' | 'feedback' | 'account'
-/** What a phone row opens: a setting, the add-to-home-screen steps, or the feedback form */
-type Item = Field | 'install' | 'feedback'
+type Section = 'profile' | 'goal' | 'units' | 'appearance' | 'feedback' | 'news' | 'account'
+/** What a phone row opens: a setting, the add-to-home-screen steps, the feedback form, or what each update brought */
+type Item = Field | 'install' | 'feedback' | 'news'
 
 const SECTIONS: { key: Section; fields: Field[] }[] = [
     { key: 'profile', fields: ['displayName', 'heightCm', 'dateOfBirth', 'sex', 'timezone'] },
@@ -64,6 +65,7 @@ const SECTIONS: { key: Section; fields: Field[] }[] = [
     { key: 'units', fields: ['weightUnit', 'distanceUnit', 'language'] },
     { key: 'appearance', fields: ['theme'] },
     { key: 'feedback', fields: [] },
+    { key: 'news', fields: [] },
     { key: 'account', fields: [] },
 ]
 // The phone's list groups the same settings more coarsely, like a phone's own settings
@@ -74,7 +76,7 @@ const PHONE_GROUPS: { key: string; fields: Field[] }[] = [
     { key: 'account', fields: [] },
 ]
 const FIELDS = SECTIONS.flatMap((s) => s.fields)
-const isItem = (s: string | null): s is Item => s === 'install' || s === 'feedback' || FIELDS.includes(s as Field)
+const isItem = (s: string | null): s is Item => s === 'install' || s === 'feedback' || s === 'news' || FIELDS.includes(s as Field)
 
 // UTC as Etc/UTC: a choice, which TimeZoneSync leaves alone, unlike the column's default 'UTC'
 const COMMON_TIMEZONES = [
@@ -230,6 +232,12 @@ export function ProfileSettingsForm({ userId, initial, goalRead: keptRead }: {
                     <Icon name="forward" className="size-4 text-faint" />
                 </button>
             </li>
+            <li className="@split:hidden">
+                <button type="button" onClick={() => openSubPage('item', 'news')} className={ROW}>
+                    <span className="flex-1">{t('sections.news')}</span>
+                    <Icon name="forward" className="size-4 text-faint" />
+                </button>
+            </li>
             <li>
                 <LogoutButton className={`${ROW} justify-between`} />
             </li>
@@ -272,6 +280,11 @@ export function ProfileSettingsForm({ userId, initial, goalRead: keptRead }: {
                         <section className={`${CARD} space-y-3`}>
                             <h2 className="text-lg font-bold">{t('feedback.title')}</h2>
                             <FeedbackForm />
+                        </section>
+                    ) : section === 'news' ? (
+                        <section className={`${CARD} space-y-3`}>
+                            <h2 className="text-lg font-bold">{t('sections.news')}</h2>
+                            <ReleaseList zh={isZhTW} />
                         </section>
                     ) : (
                         <SettingsForm
@@ -321,6 +334,12 @@ export function ProfileSettingsForm({ userId, initial, goalRead: keptRead }: {
                                 <BackToSettings />
                                 <h2 className="text-xl font-bold">{t('feedback.title')}</h2>
                                 <FeedbackForm />
+                            </section>
+                        ) : item === 'news' ? (
+                            <section className={`${CARD} space-y-3`}>
+                                <BackToSettings />
+                                <h2 className="text-xl font-bold">{t('sections.news')}</h2>
+                                <ReleaseList zh={isZhTW} />
                             </section>
                         ) : (
                             <SettingsForm key={item} title={t(`fields.${item}`)} fields={[item]} values={values} onSave={save} isZhTW={isZhTW} goalRead={goalRead} onReadGoal={readGoal} single />
