@@ -1,5 +1,6 @@
 // Free check of what opens over Today (lib/today-overlay.ts): what a big update brought, once,
-// before anything else, and every entry of lib/releases.ts as Settings lists it; new medals the day
+// before anything else, and every entry of lib/releases.ts as Settings lists it, and the next
+// one's items as they gather; new medals the day
 // after they are reached, checked once a day; last week's recap once its report is done and
 // the week had training, once per week and never a week late; neither in the middle of today's
 // workout; that it holds a number against the week before only when it went up; that it
@@ -9,7 +10,7 @@
 import { dueOverlay, medalsToCheck, newMedals } from '../lib/today-overlay'
 import type { AwardTrack } from '../lib/awards'
 import { addDays } from '../lib/periods'
-import { dueRelease, RELEASE_ITEMS_MAX, RELEASE_MIN_DAYS, RELEASES, type Release } from '../lib/releases'
+import { dueRelease, NEXT_ITEMS, RELEASE_ITEMS_MAX, RELEASE_MIN_DAYS, RELEASES, type Release, type ReleaseItem } from '../lib/releases'
 import type { LatestReport } from '../lib/report/latest'
 import type { RecordFacts, ReportFacts } from '../lib/report/types'
 
@@ -136,14 +137,16 @@ check('it opens before new medals and the recap, and never mid-workout', due({ r
     && due({ release: entries[0], loggedToday: true }) === null)
 
 const days = (a: string, b: string) => (Date.parse(a) - Date.parse(b)) / 86_400_000
+const complete = (items: ReleaseItem[]) => items.length <= RELEASE_ITEMS_MAX
+    && items.flatMap((item) => [item.title.en, item.title.zh, item.body.en, item.body.zh, item.where.en, item.where.zh]).every((w) => w.trim().length > 0)
 RELEASES.forEach((r, i) => {
-    const words = r.items.flatMap((item) => [item.title.en, item.title.zh, item.body.en, item.body.zh, item.where.en, item.where.zh])
     check(`release ${r.date}: a real day, ${RELEASE_ITEMS_MAX} items or fewer, each saying what and where in both languages`,
-        addDays(r.date, 0) === r.date && r.items.length >= 1 && r.items.length <= RELEASE_ITEMS_MAX && words.every((w) => w.trim().length > 0),
-        JSON.stringify(r))
+        addDays(r.date, 0) === r.date && r.items.length >= 1 && complete(r.items), JSON.stringify(r))
     const next = RELEASES[i + 1]
     if (next) check(`release ${r.date}: newest first, ${RELEASE_MIN_DAYS} days or more after ${next.date}`, days(r.date, next.date) >= RELEASE_MIN_DAYS)
 })
+check(`the next entry: ${NEXT_ITEMS.length} of ${RELEASE_ITEMS_MAX} items, each saying what and where in both languages (full: give it a date in RELEASES)`,
+    complete(NEXT_ITEMS), JSON.stringify(NEXT_ITEMS))
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 process.exit(failed ? 1 : 0)

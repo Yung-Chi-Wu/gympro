@@ -1,8 +1,8 @@
 // 最近更新: what each big update brought, newest first. Today opens the newest once after it ships
 // (lib/today-overlay.ts, components/WhatsNew.tsx), and Settings lists them all. An entry is added
 // by hand, for a big update only (owner, 2026-11-02), with its words in both languages side by
-// side, and every item says where in the app it is (owner, 2026-11-03);
-// scripts/check-today-overlay.ts checks every entry.
+// side, and every item says where in the app it is (owner, 2026-11-03). Items gather in
+// NEXT_ITEMS as their features ship; scripts/check-today-overlay.ts checks every entry and them.
 
 /** The small drawing beside an item, of the feature itself (components/WhatsNew.tsx draws each) */
 export type ReleaseArt = 'medal' | 'weeks'
@@ -52,6 +52,14 @@ export const RELEASES: Release[] = [
         ],
     },
 ]
+
+/**
+ * The next entry, gathered as features ship so none is forgotten (owner, 2026-11-03): the PR that
+ * brings something users will see or use adds its item here, while it is fresh; fixes, speed and
+ * wording don't. Nothing here is shown. With 2 or 3 items, or one big one, it gets a date and
+ * moves into RELEASES; a 4th fails the check until then.
+ */
+export const NEXT_ITEMS: ReleaseItem[] = []
 
 /**
  * The newest entry, when the user hasn't seen it: shipped by today, after their account was made
