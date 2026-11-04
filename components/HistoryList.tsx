@@ -394,7 +394,7 @@ function MonthCalendar({ month, today, selected, days, language, dimmed, onSelec
                         onClick={() => onSelect(date)}
                         aria-pressed={date === selected}
                         aria-label={formatDay(date, language)}
-                        className={`grid h-8 place-items-center rounded-[8px] font-mono text-xs ${trained ? 'bg-good-soft font-bold text-good' : 'text-muted hover:bg-done'} ${ring}`}
+                        className={`grid h-8 place-items-center rounded-field font-mono text-xs ${trained ? 'bg-good-soft font-bold text-good' : 'text-muted hover:bg-done'} ${ring}`}
                     >
                         {day}
                     </button>

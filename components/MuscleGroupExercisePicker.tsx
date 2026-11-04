@@ -65,7 +65,7 @@ export function MuscleGroupExercisePicker({
             <select
                 value={muscleGroup}
                 onChange={(e) => handleMuscleGroupChange(e.target.value)}
-                className="w-24 shrink-0 rounded-md border px-3 py-2 text-sm"
+                className="w-24 shrink-0 rounded-field border border-line px-3 py-2 text-sm"
             >
                 {MUSCLE_GROUPS.map((mg) => (
                     <option key={mg} value={mg}>
@@ -80,7 +80,7 @@ export function MuscleGroupExercisePicker({
                     setBrowseGroup(null)
                     onChange(e.target.value)
                 }}
-                className="min-w-0 flex-1 rounded-md border px-3 py-2 text-sm"
+                className="min-w-0 flex-1 rounded-field border border-line px-3 py-2 text-sm"
             >
                 {exercisesInGroup.length === 0 ? (
                     <option value="">{noExercisesLabel}</option>

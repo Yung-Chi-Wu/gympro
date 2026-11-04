@@ -16,6 +16,7 @@ import { ReportTrendChip } from './ReportTrendChip'
 import { useHistoryRecords } from './use-history-records'
 import { Icon } from './Icon'
 import { Sheet } from './Sheet'
+import { BUTTON } from '@/lib/ui'
 
 // 課表's calendar: the month with what the training cycle plans for each day (lib/cycle-calendar.ts)
 // and what was trained, and the picked day under it (beside it when there is room). A day still
@@ -28,8 +29,7 @@ import { Sheet } from './Sheet'
 // there. Months load as the user moves (use-history-records.ts).
 
 // Phone sizes first (44px targets, 15px text), the denser desktop ones from md
-const CARD = 'rounded-[14px] border border-line bg-card p-4'
-const PRIMARY = 'inline-flex min-h-11 items-center justify-center gap-1 whitespace-nowrap rounded-[9px] bg-accent px-4 text-[15px] font-bold text-accent-ink transition-opacity hover:opacity-90 md:min-h-9 md:px-3 md:text-[13px]'
+const CARD = 'rounded-card border border-line bg-card p-4'
 const LINK = 'inline-flex min-h-11 items-center gap-0.5 text-[15px] font-semibold text-accent md:min-h-8 md:text-sm'
 
 // A routine's dot: its color while it has one of the first few, a plain one after
@@ -150,7 +150,7 @@ export function CycleCalendar({
                         onClick={() => setMonth(addMonths(month, -1))}
                         disabled={month <= firstMonth}
                         aria-label={th('prevMonth')}
-                        className="flex size-11 items-center justify-center rounded-[9px] text-muted hover:bg-done disabled:opacity-30 md:size-8"
+                        className="flex size-11 items-center justify-center rounded-full text-muted hover:bg-done disabled:opacity-30 md:size-8"
                     >
                         <Icon name="back" className="size-5 md:size-4" />
                     </button>
@@ -159,7 +159,7 @@ export function CycleCalendar({
                         onClick={() => setMonth(addMonths(month, 1))}
                         disabled={month >= lastMonth}
                         aria-label={th('nextMonth')}
-                        className="flex size-11 items-center justify-center rounded-[9px] text-muted hover:bg-done disabled:opacity-30 md:size-8"
+                        className="flex size-11 items-center justify-center rounded-full text-muted hover:bg-done disabled:opacity-30 md:size-8"
                     >
                         <Icon name="forward" className="size-5 md:size-4" />
                     </button>
@@ -433,7 +433,7 @@ function DayPanel({ day, slot, colors, trained, today, cycle, routineById, exerc
                 </Link>
             )}
             {day.status === 'today' && (
-                <Link href="/dashboard" onNavigate={() => markNavigation('/dashboard')} className={PRIMARY}>
+                <Link href="/dashboard" onNavigate={() => markNavigation('/dashboard')} className={BUTTON.primary}>
                     {t('calendar.startLogging')}
                 </Link>
             )}
@@ -509,7 +509,7 @@ function ChangeDaySheet({ title, options, onPick, onClose }: {
                 ))}
             </ul>
             <button
-                className="mt-4 min-h-11 w-full rounded-[9px] border border-line bg-done text-[15px] font-semibold md:min-h-9 md:text-sm"
+                className={`${BUTTON.secondary} mt-4 w-full`}
             >
                 {t('cancel')}
             </button>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { retryFailedReport, type ActionResult } from '@/app/(app)/dashboard/period-actions'
 import { serverWrite } from '@/lib/data-version'
+import { BUTTON } from '@/lib/ui'
 
 // Reports already retried automatically during this visit. The server allows one automatic
 // retry per report in all (period_reports.retries), so a lasting bug can't loop across visits
@@ -70,7 +71,7 @@ export function FailedReport({ periodStart, onRetried }: { periodStart: string; 
                     setRetryError(null)
                     serverWrite(() => retryFailedReport(periodStart)).then(finish, () => finish({ success: false }))
                 }}
-                className="rounded-md border border-ink/20 px-3 py-1.5 text-sm hover:bg-ink/5"
+                className={BUTTON.secondary}
             >
                 {t('retry')}
             </button>
