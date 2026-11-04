@@ -128,6 +128,8 @@ jobs:
         run: node lambda/ai-worker/evals/worker/check-context.mjs
       - name: The report's next session and lighter week keep the user's weight, step the right amount and read as written (offline)
         run: node lambda/ai-worker/evals/worker/check-plan.mjs
+      - name: The report's backtest scores its plans, regressions and stalls against what came after, and keeps only counts (offline)
+        run: node lambda/ai-worker/evals/backtest/check-backtest.mjs
       - name: Bundle
         run: npm run build
         working-directory: lambda/ai-worker

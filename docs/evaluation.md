@@ -13,9 +13,10 @@ Every suite, and every decision an eval made. [The README](../README.md) has the
 | Weekly report | 44 scenarios | Rule checks, a grader and the judge |
 | Report goal reader | 20 goal texts, run by hand | Code checks on each read |
 | Report period reader | 16 sets of notes and messages, run by hand | Code checks on each read |
+| [Report backtest](#report-backtest) | Every past week of every real account: 30 weeks of 4 accounts on 2026-11-04 | Code: each next-session plan against the next session, each flag against the next two weeks |
 
 **How it runs:**
-- A fixture user with fixed data stands in for the database ([`evals/ronnie/fixture.ts`](../evals/ronnie/fixture.ts)). No real user data is used.
+- A fixture user with fixed data stands in for the database ([`evals/ronnie/fixture.ts`](../evals/ronnie/fixture.ts)). No real user data is used, except by the [report backtest](#report-backtest), which keeps only counts.
 - Each case runs k times, and high-risk cases are also reported as pass^k.
 - Every run is recorded under [`.claude/hillclimb`](../.claude/hillclimb), one folder per iteration: what changed, and each case's grades and the reasons for them.
 - **Grading drift is blocked.** The runner refuses to start if the grader, cases, fixture or dependencies changed since a human last approved them. It checks this with a hash.
@@ -41,3 +42,40 @@ Every suite, and every decision an eval made. [The README](../README.md) has the
 | A common gym machine was missing, so a single-arm machine row couldn't be logged (the owner's Report a mistake) | 7 exercises added. Production search (gated Cohere v4): 5 new cases ranked first; the 46 earlier cases and the held-out set unchanged | Shipped ([#72](https://github.com/Yung-Chi-Wu/gympro/pull/72)) |
 
 When an eval fails, the fix goes into code, tool design or tool results before the prompt. Evals are also used to delete prompt rules safely.
+
+## Report backtest
+
+Every past week of every real account is replayed with today's report code, then checked against what the account did after. The demo account is left out, since its history is made up.
+
+- **Each week is read as the report read it then.** The real reader ([`fetch.ts`](../lambda/ai-worker/src/report/fetch.ts)) takes only what was logged by the week's end, and each week follows up the replay's own week before.
+- **No model is called, so it costs nothing.** The goal is the read kept with the profile, and nothing the user said in a week is read.
+- **The owner runs it:** `AWS_PROFILE=gympro-terraform npm run backtest:report -- --all`. Across accounts it keeps only counts, added up: no account, date or exercise is printed or written.
+- **CI checks the scoring** ([`check-backtest.mjs`](../lambda/ai-worker/evals/backtest/check-backtest.mjs)): made-up users with known answers, such as one who lifts every plan as written, a drop that lasts, one bad day, a small dip and a stall that breaks.
+
+| Check | Question | Outcome |
+|---|---|---|
+| Next-session plans | Each weighted main lift's plan for its next session ([`planNext`](../lib/report/progression.ts), as the report and Today give it) | Was the planned weight lifted, or a heavier or lighter one? At the planned weight, did every set reach the bottom of the range, or the top? |
+| Regressions | A lift the report read as regressed | Back to its level before the drop within two weeks, so the drop didn't last? |
+| Any drop | The plainest rule, as a baseline: any week lower than the last trained one | The same |
+| Stalls | A lift the report read as stalled | Did it beat its best within two weeks? |
+
+**First run, 2026-11-04:** 4 accounts, 30 weeks, 10 of them with the 10 sets that advice needs.
+
+| Check | Result |
+|---|---|
+| Next-session plans | 45 planned. 27 were done again: the planned weight 10 times (37%), heavier 10, lighter 7. At the planned weight, every set reached the range 8 of 10 times, and the top 0 of 10. 18 not scored: 5 in the last week, 13 lifts not done again. |
+| Regressions | 4 flagged, none scored yet: 3 within the last two weeks of logs, 1 not trained again in time |
+| Any drop | 6, none scored yet: 5 within the last two weeks, 1 not trained again |
+| Stalls | None flagged |
+
+**What it shows so far:**
+- The reps a plan names were reachable: 8 of the 10 times its weight was lifted.
+- Users lift the planned weight about a third of the time, as often heavier as lighter. The sample is too small to call the steps too big or too small.
+- 20 of 30 weeks had too few sets for advice, so they had no plan at all.
+- The flags can't be judged until two more weeks are logged. The backtest is run again as weeks add up.
+
+**Limits:**
+- The training cycle, Ronnie's notes and the goal are read as they are now. The database keeps no history of them.
+- Tiredness or pain said in a week isn't read, so the rules that need it don't fire.
+
+**Found while building it:** a lift trained in a week where it wasn't one of the five main lifts read as not trained. Later weeks are now read by the lift's own sets, as the report's follow-up reads them ([`liftFor`](../lambda/ai-worker/src/report/facts.ts)).
