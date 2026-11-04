@@ -73,3 +73,6 @@ evals/knowledge/.cache/
 
 # Drafts of eval replays from real conversations (npm run trace:to-case): reviewed, never committed as they are
 evals/ronnie/drafts/
+
+# The report backtest on real accounts (npm run backtest:report): counts, and one account's outcomes, never committed
+lambda/ai-worker/evals/backtest/results/

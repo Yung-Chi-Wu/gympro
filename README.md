@@ -99,6 +99,7 @@ flowchart LR
 - Graded by code checks and an LLM judge (Claude Opus 5.5). Each case runs k times, and high-risk cases are reported as pass^k.
 - Every run is recorded under [`.claude/hillclimb`](.claude/hillclimb). The runner refuses to start if the grader, cases or fixture changed since a human last approved them.
 - Mistakes found in evals are replayed in CI on every pull request, at no cost.
+- A backtest replays every past week of real accounts with today's report code, and checks its plans and flags against what came after. It keeps only counts ([details](docs/evaluation.md#report-backtest)).
 
 Some of what the evals decided ([all of it](docs/evaluation.md)):
 
