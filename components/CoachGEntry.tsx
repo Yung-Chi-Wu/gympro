@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { BUTTON } from '@/lib/ui'
 import { CoachGModal } from './CoachGModal'
+import { Sheet } from './Sheet'
 
 interface CoachGEntryProps {
     hasRoutines: boolean
@@ -23,6 +24,7 @@ export function CoachGEntry({ hasRoutines, routineCount, language, variant = 'bu
     const t = useTranslations('routines')
     const [showModal, setShowModal] = useState(variant === 'auto' && !hasRoutines)
     const [showWarning, setShowWarning] = useState(variant === 'auto' && hasRoutines)
+    const warningTitleId = useId()
 
     function handleOpen() {
         if (hasRoutines) {
@@ -72,8 +74,9 @@ export function CoachGEntry({ hasRoutines, routineCount, language, variant = 'bu
 
             {/* 警告 modal */}
             {showWarning && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-                    <div className="w-full max-w-sm space-y-5 rounded-sheet bg-raised p-6 shadow-float">
+                // Closing it is Cancel: nothing is deleted before Confirm
+                <Sheet labelledBy={warningTitleId} onClose={() => setShowWarning(false)} centered>
+                    <div className="space-y-5">
                         {/* Header */}
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-sm shrink-0">
@@ -89,7 +92,7 @@ export function CoachGEntry({ hasRoutines, routineCount, language, variant = 'bu
 
                         {/* 說明 */}
                         <div className="space-y-2">
-                            <p className="font-medium">
+                            <p id={warningTitleId} className="font-medium">
                                 {zh ? '重新設計課表' : 'Redesign your routine'}
                             </p>
                             <p className="text-sm text-ink/60">
@@ -116,7 +119,7 @@ export function CoachGEntry({ hasRoutines, routineCount, language, variant = 'bu
                             </button>
                         </div>
                     </div>
-                </div>
+                </Sheet>
             )}
 
             {/* Coach G Modal */}

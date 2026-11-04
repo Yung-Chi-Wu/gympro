@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useTheme } from 'next-themes'
 import type { WeightUnit } from '@/lib/weight-unit'
@@ -9,6 +9,7 @@ import { reportClientError } from '@/lib/report-client-error'
 import { MAX_DISPLAY_NAME_CHARS, MAX_TRAINING_GOAL_CHARS } from '@/lib/text-limits'
 import { GOAL_CHOICES, goalText } from '@/lib/goal-choices'
 import { InstallGuide } from './InstallGuide'
+import { Sheet } from './Sheet'
 
 interface OnboardingModalProps {
     userId: string
@@ -28,6 +29,7 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
     const { setTheme } = useTheme()
 
     const [step, setStep] = useState(0)
+    const titleId = useId()
     const [visible, setVisible] = useState(true)
     const [selectedLang, setSelectedLang] = useState(language)
     const [selectedUnit, setSelectedUnit] = useState<WeightUnit>('kg')
@@ -94,8 +96,11 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
         }`
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 px-4 pb-6 sm:items-center sm:pb-0">
-            <div className="w-full max-w-sm rounded-xl bg-white dark:bg-[#2C2923] p-6 shadow-xl space-y-5">
+        // The first time, only its own buttons close it: a tap outside would drop the choices made so
+        // far. Replayed from Settings it is only the tour, and closes like any sheet
+        <Sheet labelledBy={titleId} onClose={onClose} dismissable={!!onClose}>
+            <div className="space-y-5">
+                <h2 id={titleId} className="sr-only">{zh ? '開始使用 GymPro' : 'Getting started with GymPro'}</h2>
 
                 {/* Progress dots */}
                 <div className="flex justify-center gap-1.5">
@@ -408,6 +413,6 @@ export function OnboardingModal({ userId, language, onClose }: OnboardingModalPr
                     </button>
                 )}
             </div>
-        </div>
+        </Sheet>
     )
 }

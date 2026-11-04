@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { CoachGChat } from './CoachGChat'
 import { CoachGResult } from './CoachGResult'
+import { Sheet } from './Sheet'
 
 interface GeneratedRoutine {
     name: string
@@ -32,34 +33,33 @@ interface CoachGModalProps {
 
 export function CoachGModal({ language, onClose, onSaved }: CoachGModalProps) {
     const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null)
+    const titleId = useId()
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            {/* The app's dialog surface, as Coach G's entry dialog: bg-raised has its own night color, so
-                the buttons' tonal fill (bg-done) stands out on it in both themes */}
-            <div className="flex h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-sheet bg-raised shadow-float">
-                {generatedPlan ? (
-                    <CoachGResult
-                        routines={generatedPlan.routines}
-                        cycleLength={generatedPlan.cycleLength}
-                        language={language}
-                        // Redesign starts the questions over, and this plan is gone
-                        onBack={() => {
-                            if (confirm(language === 'zh-TW' ? '重新設計會清掉這份課表，從第一題重新開始。要重新設計嗎？' : 'Redesigning drops this plan and starts again from the first question. Redesign?')) setGeneratedPlan(null)
-                        }}
-                        onSaved={onSaved}
-                        goals={generatedPlan.goals}
-                    />
-                ) : (
-                    <CoachGChat
-                        language={language}
-                        onRoutinesGenerated={(routines, cycleLength, goals) =>
-                            setGeneratedPlan({ routines, cycleLength, goals })
-                        }
-                        onClose={onClose}
-                    />
-                )}
-            </div>
-        </div>
+        // Only its own buttons close it: a tap outside or Escape would lose the answers so far, or the plan
+        <Sheet labelledBy={titleId} tall dismissable={false}>
+            <h2 id={titleId} className="sr-only">Coach G</h2>
+            {generatedPlan ? (
+                <CoachGResult
+                    routines={generatedPlan.routines}
+                    cycleLength={generatedPlan.cycleLength}
+                    language={language}
+                    // Redesign starts the questions over, and this plan is gone
+                    onBack={() => {
+                        if (confirm(language === 'zh-TW' ? '重新設計會清掉這份課表，從第一題重新開始。要重新設計嗎？' : 'Redesigning drops this plan and starts again from the first question. Redesign?')) setGeneratedPlan(null)
+                    }}
+                    onSaved={onSaved}
+                    goals={generatedPlan.goals}
+                />
+            ) : (
+                <CoachGChat
+                    language={language}
+                    onRoutinesGenerated={(routines, cycleLength, goals) =>
+                        setGeneratedPlan({ routines, cycleLength, goals })
+                    }
+                    onClose={onClose}
+                />
+            )}
+        </Sheet>
     )
 }
