@@ -40,7 +40,7 @@ export function WeightTrendCard({ entries, language, weightUnit }: WeightTrendCa
     const latest = chartData.length > 0 ? chartData[chartData.length - 1].weight : null
 
     return (
-        <section className="space-y-3 rounded-[14px] border border-line bg-card p-4">
+        <section className="space-y-3 rounded-card border border-line bg-card p-4">
             <div className="flex items-baseline justify-between gap-3">
                 <h2 className="text-base font-bold md:text-[15px]">{t('weightTrend')}</h2>
                 {latest !== null && (

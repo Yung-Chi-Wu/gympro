@@ -103,7 +103,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
     const planSet = (d: Data) => setText(`${d.how === 'assist' ? d.assistKg : d.weightKg}x${d.low}`, planFlags(d))
     /** Where each part of a reason comes from, shown before it as a tag: the goal, the log, Ronnie's notes, what was said this period */
     const tagged = (parts: [SourceTag, string][]): React.ReactNode => parts.map(([tag, text], i) => (
-        <span key={i}>{i > 0 && ' · '}<span className="mr-1 rounded bg-ink/5 px-1 text-[11px] font-bold text-ink/60 max-md:text-xs dark:bg-white/10 dark:text-white/60">{t(`sourceTag.${tag}`, { unit })}</span>{text}</span>
+        <span key={i}>{i > 0 && ' · '}<span className="mr-1 rounded-full bg-ink/5 px-1.5 text-[11px] font-bold text-ink/60 max-md:text-xs dark:bg-white/10 dark:text-white/60">{t(`sourceTag.${tag}`, { unit })}</span>{text}</span>
     ))
     const said = (d: Data, key: 'pain' | 'tired') =>
         t('whyText.said', { date: shortDate(String(d[`${key}Date`])), source: String(d[`${key}Source`]), text: String(d[key === 'pain' ? 'painText' : 'tired']) })
@@ -265,7 +265,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
 
             {/* Below the sets advice needs, one line where the advice would be */}
             {statsOnly && (
-                <p className="rounded-xl bg-done px-3 py-2.5 text-[15px] text-muted md:text-sm">
+                <p className="rounded-field bg-done px-3 py-2.5 text-[15px] text-muted md:text-sm">
                     {t('statsOnly', { unit, n: facts.totalSets.now, min: MINIMUM_SETS_FOR_ADVICE })}
                 </p>
             )}
@@ -274,7 +274,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
             {!statsOnly && <section className="space-y-2">
                 <SectionTitle title={t('nextTitle', { unit })} count={items.length ? t('nextCount', { n: items.length }) : null} />
                 {items.length === 0 ? (
-                    <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 max-md:bg-transparent max-md:p-0 max-md:text-[15px] dark:bg-emerald-400/10 dark:text-emerald-300 max-md:dark:bg-transparent">{t('noAdvice', { unit })}</p>
+                    <p className="rounded-field bg-emerald-50 px-4 py-3 text-sm text-emerald-800 max-md:bg-transparent max-md:p-0 max-md:text-[15px] dark:bg-emerald-400/10 dark:text-emerald-300 max-md:dark:bg-transparent">{t('noAdvice', { unit })}</p>
                 ) : (
                     <ol className={summary
                         ? 'divide-y divide-ink/10 dark:divide-white/10'
@@ -282,7 +282,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                         {shownItems.map((item, i) => (
                             <li key={item.rule ?? item.findingId} className={summary
                                 ? 'py-2.5 first:pt-0 last:pb-0'
-                                : 'space-y-2 rounded-xl border border-ink/10 p-3.5 max-md:rounded-none max-md:border-0 max-md:px-0 max-md:py-3 dark:border-white/10'}>
+                                : 'space-y-2 rounded-field border border-ink/10 p-3.5 max-md:rounded-none max-md:border-0 max-md:px-0 max-md:py-3 dark:border-white/10'}>
                                 <div className="grid grid-cols-[24px_1fr] items-start gap-2.5">
                                     <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-plate text-xs font-bold text-chalk dark:bg-chalk dark:text-plate">{i + 1}</span>
                                     <p className="font-semibold leading-relaxed">{item.action}</p>
@@ -384,7 +384,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
 
             {!summary && (
                 <div className="space-y-2">
-                    <div className="divide-y divide-ink/10 rounded-xl border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
+                    <div className="divide-y divide-ink/10 rounded-field border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
                         {facts.goal.read?.model && (
                             <Row {...row('goal')} title={t('goal.detailTitle')} take={null}>
                                 <GoalDetail goal={facts.goal} unit={unit} zh={zh} weightUnit={weightUnit} muscle={muscle} />
@@ -424,7 +424,7 @@ export function ReportView({ report, language, weightUnit, distanceUnit = 'km', 
                         {basis.length > 0 && (
                             <Row {...row('basis')} title={t('section.basis')} take={String(basis.length)}>
                                 {basis.map((f) => (
-                                    <div key={f.id} className="space-y-1.5 rounded-lg border border-ink/10 p-3 text-[13px] max-md:rounded-none max-md:border-0 max-md:border-t max-md:px-0 max-md:first:border-t-0 max-md:first:pt-0 dark:border-white/10">
+                                    <div key={f.id} className="space-y-1.5 rounded-field border border-ink/10 p-3 text-[13px] max-md:rounded-none max-md:border-0 max-md:border-t max-md:px-0 max-md:first:border-t-0 max-md:first:pt-0 dark:border-white/10">
                                         <h4 className="text-sm font-semibold">{advised(f)}</h4>
                                         <dl className="grid grid-cols-[72px_1fr] gap-x-2.5 gap-y-1">
                                             <dt className="text-ink/50 dark:text-white/50">{t('basisLabels.rule')}</dt><dd className="text-ink/70 dark:text-white/70">{t(`ruleText.${f.rule}`, { unit })}{EVIDENCE[f.rule].ownThreshold && <span className="text-xs text-ink/40 max-md:text-[13px] dark:text-white/40"> · {t('ownSetting')}</span>}</dd>
@@ -646,7 +646,7 @@ function StatusChip({ status, label }: { status: ReportV3['facts']['status']; la
 /** One of the four numbers: the value, and under it how it compares with last period */
 function Stat({ label, value, note, good }: { label: string; value: React.ReactNode; note: string | null; good?: boolean }) {
     return (
-        <div className="min-w-0 rounded-xl bg-done px-3 py-2.5">
+        <div className="min-w-0 rounded-field bg-done px-3 py-2.5">
             <dt className="text-[13px] text-muted md:text-xs">{label}</dt>
             <dd className="font-mono text-[22px] font-bold leading-tight tabular-nums">{value}</dd>
             {/* Two lines at most: a record's set ("Barbell Bench Press 42.5kg × 8") is the point of the note */}
@@ -743,7 +743,7 @@ function Reason({ tag, tone, children }: { tag: string; tone: 'data' | 'study'; 
     const style = tone === 'data' ? 'bg-[#C8955A]/15 text-[#A8742F] dark:text-[#D9AA6E]' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300'
     return (
         <div className="grid grid-cols-[auto_1fr] items-baseline gap-2">
-            <dt className={`whitespace-nowrap rounded-md px-1.5 text-[11px] font-bold max-md:text-xs ${style}`}>{tag}</dt>
+            <dt className={`whitespace-nowrap rounded-full px-2 text-[11px] font-bold max-md:text-xs ${style}`}>{tag}</dt>
             <dd>{children}</dd>
         </div>
     )
@@ -834,7 +834,7 @@ function LiftTable({ lifts, name, set, prev, trendLabel, trendNote }: {
 }) {
     const color = (l: LiftFacts) => l.trend === 'up' ? 'text-emerald-700 dark:text-emerald-400' : l.trend === 'down' ? 'text-amber-700 dark:text-amber-400' : 'text-ink/60 dark:text-white/60'
     return (
-        <div className="divide-y divide-ink/10 rounded-lg border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
+        <div className="divide-y divide-ink/10 rounded-field border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
             {lifts.map((l) => (
                 <div key={l.exerciseId} className="grid grid-cols-[1fr_auto_76px] items-center gap-2.5 px-3 py-2 max-md:px-0 max-md:py-2.5">
                     <div className="min-w-0">
@@ -888,7 +888,7 @@ function CardioSection({ cardio, unit, zh, name, distanceUnit, research }: {
         <>
             <p className="text-sm max-md:text-[15px]">{summary}</p>
             {cardio.exercises.length > 0 && (
-                <ul className="divide-y divide-ink/10 rounded-lg border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
+                <ul className="divide-y divide-ink/10 rounded-field border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
                     {cardio.exercises.map((e) => (
                         <li key={e.exerciseId} className="flex items-baseline justify-between gap-2.5 px-3 py-2 text-sm max-md:px-0 max-md:py-2.5 max-md:text-[15px]">
                             <span className="min-w-0 truncate font-semibold">{name(e)}</span>
@@ -910,7 +910,7 @@ function CardioSection({ cardio, unit, zh, name, distanceUnit, research }: {
             {trends.length > 0 && (
                 <div className="space-y-1">
                     <p className="text-xs font-semibold text-ink/60 max-md:text-[13px] dark:text-white/60">{t('trendTitle')}</p>
-                    <ul className="divide-y divide-ink/10 rounded-lg border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
+                    <ul className="divide-y divide-ink/10 rounded-field border border-ink/10 max-md:rounded-none max-md:border-x-0 dark:divide-white/10 dark:border-white/10">
                         {trends.map((x) => (
                             <li key={`${x.exerciseId}-${x.speedKmh}-${x.inclinePct}-${x.level}`} className="flex flex-wrap items-baseline justify-between gap-x-2.5 px-3 py-2 text-sm max-md:px-0 max-md:py-2.5 max-md:text-[15px]">
                                 <span className="min-w-0 font-semibold">{name(x)} <span className="font-normal text-ink/60 dark:text-white/60">{settingOf(x)}</span></span>

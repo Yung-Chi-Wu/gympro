@@ -50,7 +50,7 @@ export function MoreMenu({ label, items, className = '' }: { label: string; item
                 <div
                     id={menuId}
                     role="menu"
-                    className="absolute right-0 top-full z-30 mt-1 min-w-40 overflow-hidden rounded-xl border border-line bg-card py-1 shadow-[0_8px_24px_rgb(0_0_0/0.14)]"
+                    className="absolute right-0 top-full z-30 mt-1 min-w-40 overflow-hidden rounded-field border border-line bg-raised py-1 shadow-float"
                 >
                     {items.map((item) => (
                         <button

@@ -106,7 +106,7 @@ export function RecommendationPanel({ userId, initial, language, weightUnit, dis
     }, [status, checkStatus])
 
     return (
-        <div className="space-y-4 rounded-[14px] border border-line bg-card p-4 md:p-6">
+        <div className="space-y-4 rounded-card border border-line bg-card p-4 md:p-6">
             {status === 'idle' && (
                 <p className="text-[15px] text-muted md:text-sm">{t('idle')}</p>
             )}

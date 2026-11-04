@@ -9,7 +9,7 @@ import { useRonnie } from './RonnieWidget'
 // The sidebar's items (md and up). On a tablet (md to lg) the sidebar is icons only: the
 // label stays for screen readers and shows as a tooltip.
 
-const ITEM = 'flex items-center gap-2.5 rounded-[9px] px-2.5 py-2.5 text-sm font-medium transition-colors max-lg:justify-center'
+const ITEM = 'flex items-center gap-2.5 rounded-full px-2.5 py-2.5 text-sm font-medium transition-colors max-lg:justify-center'
 
 export function SidebarLink({ href, label, icon }: NavLink) {
     // A clicked item is marked at once, while its page loads (lib/nav-target.ts)

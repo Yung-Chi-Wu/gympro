@@ -18,6 +18,7 @@ import { todayAim, type Aim } from '@/lib/report/progression'
 import { aimText } from '@/lib/report/report-text'
 import { cellText, compactSet, fieldLabel, SummaryLine } from './set-format'
 import { DayLogFields } from './DayLogFields'
+import { BUTTON } from '@/lib/ui'
 
 interface TodayWorkoutCardProps {
     userId: string
@@ -389,7 +390,7 @@ export function TodayWorkoutCard({
     }
 
     return (
-        <div className="relative space-y-4 rounded-2xl border border-line bg-card p-4 md:p-5">
+        <div className="relative space-y-4 rounded-card border border-line bg-card p-4 md:p-5">
 
             {/* Header: today's routine (the page's own title already says 今天) */}
             <button
@@ -461,7 +462,7 @@ export function TodayWorkoutCard({
                         <button
                             type="button"
                             onClick={() => setShowAddPicker(true)}
-                            className="h-11 w-full rounded-lg border border-dashed border-line text-[15px] text-muted hover:border-ink/30 hover:text-ink"
+                            className="h-11 w-full rounded-field border border-dashed border-line text-[15px] text-muted hover:border-ink/30 hover:text-ink"
                         >
                             {t('addExercise')}
                         </button>
@@ -477,7 +478,7 @@ export function TodayWorkoutCard({
 
             {toast && (
                 // Above the phone's tab bar
-                <div role="status" className="fixed bottom-[calc(var(--tab-bar-top)+1.5rem)] left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-md bg-plate px-4 py-2 text-sm text-chalk shadow-lg md:bottom-6">
+                <div role="status" className="fixed bottom-[calc(var(--tab-bar-top)+1.5rem)] left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full bg-plate px-4 py-2 text-sm text-chalk shadow-float md:bottom-6">
                     <span>{toast.message}</span>
                     {toast.undo && (
                         <button type="button" onClick={toast.undo} className="-my-2 min-h-11 px-2 font-bold text-accent md:min-h-9">
@@ -521,7 +522,7 @@ function AddExercisePanel({ exercises, language, onAdd, onCancel }: AddExerciseP
     const [adding, setAdding] = useState(false)
 
     return (
-        <div className="rounded-md border border-dashed p-3 space-y-2">
+        <div className="rounded-field border border-dashed border-line p-3 space-y-2">
             <MuscleGroupExercisePicker
                 exercises={exercises}
                 value={selectedId}
@@ -538,14 +539,14 @@ function AddExercisePanel({ exercises, language, onAdd, onCancel }: AddExerciseP
                         setAdding(true)
                         try { await onAdd(exercise) } finally { setAdding(false) }
                     }}
-                    className="flex-1 rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+                    className={`${BUTTON.primary} flex-1`}
                 >
                     {t('addToToday')}
                 </button>
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="rounded-md px-3 py-2 text-sm text-ink/40"
+                    className={BUTTON.secondary}
                 >
                     {t('cancel')}
                 </button>
@@ -661,12 +662,12 @@ function ExerciseBlock({ exercise, isOpen, onToggle, language, units, aim, perio
 
 // A finger-sized row (44px) on the phone, a mouse-sized one (36px) from md up
 const NUMBER = 'text-center font-mono text-sm font-bold text-muted'
-const CELL = 'h-11 truncate rounded-lg bg-done px-1 text-center font-mono text-base font-bold leading-[44px] md:h-9 md:leading-9'
+const CELL = 'h-11 truncate rounded-field bg-done px-1 text-center font-mono text-base font-bold leading-[44px] md:h-9 md:leading-9'
 // A logged value looks like a cell until it is tapped, then like the input it was typed in. No
 // border class: the dark theme restyles .border with !important (globals.css), so a ring marks a typo.
-const LOGGED = 'h-11 min-h-0! w-full min-w-0 truncate rounded-lg bg-done px-1 text-center font-mono text-base font-bold focus:bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-invalid:ring-2 aria-invalid:ring-inset aria-invalid:ring-miss md:h-9'
-const INPUT = 'h-11 min-h-0! w-full min-w-0 rounded-lg border border-line bg-card px-1 text-center font-mono text-base font-bold placeholder:font-medium placeholder:text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:h-9'
-const PLUS = 'h-11 w-11 rounded-lg bg-accent text-xl leading-none text-accent-ink transition-colors disabled:bg-accent-soft disabled:text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:h-9 md:w-9'
+const LOGGED = 'h-11 min-h-0! w-full min-w-0 truncate rounded-field bg-done px-1 text-center font-mono text-base font-bold focus:bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-invalid:ring-2 aria-invalid:ring-inset aria-invalid:ring-miss md:h-9'
+const INPUT = 'h-11 min-h-0! w-full min-w-0 rounded-field border border-line bg-card px-1 text-center font-mono text-base font-bold placeholder:font-medium placeholder:text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:h-9'
+const PLUS = 'h-11 w-11 rounded-field bg-accent text-xl leading-none text-accent-ink transition-colors disabled:bg-accent-soft disabled:text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:h-9 md:w-9'
 const WHOLE_NUMBERS = new Set<FieldKey>(['reps', 'seconds', 'hr'])
 // Narrower gaps on the phone, where a treadmill's four columns share about 300px
 const ROW = 'grid items-center gap-x-1.5 md:gap-x-2'
@@ -756,7 +757,7 @@ function SetTable({ exercise, units, aimed = null, onUnitChange, onDistanceUnitC
                                 onClick={switchTo}
                                 aria-label={t('switchTo', { unit: other })}
                                 title={t('switchTo', { unit: other })}
-                                className="mx-auto flex min-h-8 w-fit max-w-full items-center justify-center gap-1 rounded-md border border-line px-1.5 font-semibold text-ink hover:border-ink/30 @min-[4rem]:px-2"
+                                className="mx-auto flex min-h-8 w-fit max-w-full items-center justify-center gap-1 rounded-full border border-line px-1.5 font-semibold text-ink hover:border-ink/30 @min-[4rem]:px-2"
                             >
                                 <span className="truncate">{label}</span>
                                 <span aria-hidden="true" className="hidden text-faint @min-[4rem]:inline">⇄</span>
