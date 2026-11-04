@@ -7,3 +7,9 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    groups:
+      # CodeQL's init and analyze steps must run the same version: bumped one at a time, each
+      # pull request failed its scan (#139, #140)
+      codeql:
+        patterns:
+          - github/codeql-action*
