@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { deleteAccount } from '@/app/(app)/settings/delete-account-action'
 import { serverWrite } from '@/lib/data-version'
 import { toFriendlyError } from '@/lib/friendly-error'
+import { BUTTON } from '@/lib/ui'
+import { Sheet } from './Sheet'
 
 interface DeleteAccountButtonProps {
     isZhTW: boolean
@@ -15,6 +17,7 @@ export function DeleteAccountButton({ isZhTW, className = 'text-sm text-red-500 
     const [showConfirm, setShowConfirm] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const titleId = useId()
 
     async function handleDelete() {
         setIsDeleting(true)
@@ -49,9 +52,10 @@ export function DeleteAccountButton({ isZhTW, className = 'text-sm text-red-500 
             </button>
 
             {showConfirm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-                    <div className="w-full max-w-sm rounded-[14px] bg-card p-6 space-y-4 shadow-xl">
-                        <h3 className="text-lg font-bold text-red-600">
+                // Closing it is Cancel. Only the button that deletes is red, as in Coach G's redesign warning
+                <Sheet labelledBy={titleId} onClose={() => setShowConfirm(false)} centered>
+                    <div className="space-y-4">
+                        <h3 id={titleId} className="text-lg font-bold">
                             {isZhTW ? '確定要刪除帳號？' : 'Delete your account?'}
                         </h3>
                         <p className="text-sm text-muted">
@@ -60,14 +64,15 @@ export function DeleteAccountButton({ isZhTW, className = 'text-sm text-red-500 
                                 : 'This cannot be undone. All your workouts, routines, and AI reports will be permanently deleted.'}
                         </p>
 
-                        {error && <p className="text-sm text-red-600">{error}</p>}
+                        {error && <p className="text-sm text-miss">{error}</p>}
 
-                        <div className="flex gap-2">
+                        {/* On a phone the two are stacked full width, the delete on top; side by side from md */}
+                        <div className="flex flex-col-reverse gap-2 md:flex-row">
                             <button
                                 type="button"
                                 onClick={() => setShowConfirm(false)}
                                 disabled={isDeleting}
-                                className="flex-1 rounded-[9px] border border-line px-4 py-2 text-sm text-muted disabled:opacity-50"
+                                className={`${BUTTON.secondary} md:flex-1`}
                             >
                                 {isZhTW ? '取消' : 'Cancel'}
                             </button>
@@ -75,7 +80,7 @@ export function DeleteAccountButton({ isZhTW, className = 'text-sm text-red-500 
                                 type="button"
                                 onClick={handleDelete}
                                 disabled={isDeleting}
-                                className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                                className={`${BUTTON.dangerConfirm} md:flex-1`}
                             >
                                 {isDeleting
                                     ? (isZhTW ? '刪除中...' : 'Deleting...')
@@ -83,7 +88,7 @@ export function DeleteAccountButton({ isZhTW, className = 'text-sm text-red-500 
                             </button>
                         </div>
                     </div>
-                </div>
+                </Sheet>
             )}
         </>
     )

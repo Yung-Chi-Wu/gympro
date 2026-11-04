@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type Dispatch, type SetStateAction } from 'react'
+import { useId, useState, type Dispatch, type SetStateAction } from 'react'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { toFriendlyError } from '@/lib/friendly-error'
@@ -8,6 +8,7 @@ import { reportClientError } from '@/lib/report-client-error'
 import { addDays, cycleDayOf, MAX_CYCLE_DAYS } from '@/lib/periods'
 import { BUTTON, TEXT_BUTTON } from '@/lib/ui'
 import { MoreMenu } from './MoreMenu'
+import { Sheet } from './Sheet'
 
 // The training cycle: how many days one round lasts and which routine each day trains.
 // Side by side with the routines (@split) it is one strip of days with today outlined;
@@ -80,6 +81,7 @@ export function CycleScheduler({
     const [lengthInput, setLengthInput] = useState(String(cycle?.cycleLength ?? 7))
     const [todayDayInput, setTodayDayInput] = useState('1')
     const [pending, setPending] = useState<PendingLengthChange | null>(null)
+    const pendingTitleId = useId()
     const [error, setError] = useState<string | null>(null)
     const [isSaving, setIsSaving] = useState(false)
     const [editing, setEditing] = useState(false)
@@ -431,9 +433,10 @@ export function CycleScheduler({
             )}
 
             {pending && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
-                    <div className="w-full max-w-sm space-y-4 rounded-sheet bg-raised p-6 shadow-float">
-                        <h3 className="font-semibold">
+                // Closing it is Cancel: nothing changes until a choice is tapped
+                <Sheet labelledBy={pendingTitleId} onClose={() => setPending(null)} centered>
+                    <div className="space-y-4">
+                        <h3 id={pendingTitleId} className="font-semibold">
                             {zh ? '變更循環天數？' : 'Change cycle length?'}
                         </h3>
                         <p className="text-sm text-muted">
@@ -482,7 +485,7 @@ export function CycleScheduler({
                             </button>
                         </div>
                     </div>
-                </div>
+                </Sheet>
             )}
         </section>
     )
