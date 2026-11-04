@@ -11,7 +11,7 @@ export interface RonnieTraceRow {
     user_id: string
     created_at: string
     input: { language?: string; message?: string; system?: string; history?: unknown[]; editFrom?: number | null } | null
-    output: { reply?: string; messages?: unknown[] } | null
+    output: { reply?: string; messages?: unknown[]; sources?: { n?: number; citation?: string; journal?: string }[] } | null
 }
 
 export interface ToolCall {
@@ -36,6 +36,8 @@ export interface Turn {
     own: string
     /** What the app added: 📝 note receipts, the 📌 correction, the 📋 plan line, a card's confirmations */
     appLines: string[]
+    /** The papers the app listed under the reply, by the numbers it shows for Ronnie's keys (lib/ronnie/citations.ts) */
+    sources: string[]
 }
 
 export interface Conversation {
@@ -85,8 +87,15 @@ export function ownTextOf(messages: unknown[]): string {
     return blocksOf(last).filter((b) => b.type === 'text' && typeof b.text === 'string' && !b.text.trimStart().startsWith('📌')).map((b) => b.text!.trim()).filter(Boolean).join('\n\n')
 }
 
-/** Compared without Markdown or spacing: the app strips Markdown from Ronnie's text before showing it */
-const plain = (text: string) => text.replace(/[*_`#]/g, '').replace(/\s+/g, '')
+// A citation as Ronnie writes it ([K3], [K3, K5]) or as the app shows it ([1], [1, 2])
+const CITATION = /[[【［〔(（]\s*K?\d+(?:\s*[,，、]\s*K?\d+)*\s*[\]】］〕)）]/g
+
+/**
+ * Compared without Markdown, spacing or citations: the app strips Markdown from Ronnie's text
+ * before showing it, and shows its keys as numbers, so a cited sentence read as the app's (a trace
+ * of 2026-11-02)
+ */
+const plain = (text: string) => text.replace(CITATION, '').replace(/[*_`#]/g, '').replace(/\s+/g, '')
 
 /** The paragraphs of the reply shown that Ronnie didn't write */
 export function appLinesOf(reply: string, own: string): string[] {
@@ -113,6 +122,7 @@ export function turnOf(row: RonnieTraceRow): Turn | null {
         reply,
         own,
         appLines: appLinesOf(reply, own),
+        sources: (row.output?.sources ?? []).map((x) => `[${x.n}] ${[x.citation, x.journal].filter(Boolean).join(', ')}`),
     }
 }
 
@@ -166,7 +176,8 @@ export function renderConversation(c: Conversation): string {
         const tools = t.toolCalls.length
             ? t.toolCalls.map((x) => `[tool ${x.name}] input: ${JSON.stringify(x.input)}\nresult:\n${x.result}`).join('\n\n')
             : '[no tool calls]'
-        const app = t.appLines.length ? `\n\nShown with it, written by the app:\n${t.appLines.join('\n')}` : ''
+        const shown = [...t.appLines, ...(t.sources.length ? [`Papers listed under the reply, for its numbered citations: ${t.sources.join('; ')}`] : [])]
+        const app = shown.length ? `\n\nShown with it, written by the app:\n${shown.join('\n')}` : ''
         return `--- turn ${i + 1}, ${timeOf(t.at, c.timeZone)}${starts} ---\n${user}\n\n${tools}\n\nRonnie: ${t.own || '(nothing of its own)'}${app}`
     }).join('\n\n')
 }
