@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { reportError } from '@/lib/report-error'
 import { timed } from '@/lib/server-timing'
 
 /** Who is signed in, as the pages need it */
@@ -27,15 +28,18 @@ const PROFILE_COLUMNS = 'display_name, height_cm, date_of_birth, sex, training_g
 
 // The signed-in user and their profile, once per request. The (app) layout, next-intl's request
 // config (i18n/request.ts) and the pages all need them; React's cache makes that one check and
-// one query, not one of each per caller.
+// one query, not one of each per caller. A read that fails is reported: the pages go on with no
+// profile, in UTC and this device's language, and a Today worked out in UTC was the only sign of
+// one (2026-11-02).
 export const getFrameProfile = cache(async () => {
     const user = await getSessionUser()
     if (!user) return { user: null, profile: null }
     const supabase = await createClient()
-    const { data: profile } = await supabase
+    const { data: profile, error } = await supabase
         .from('user_profiles')
         .select(PROFILE_COLUMNS)
         .eq('user_id', user.id)
         .maybeSingle()
+    if (error) reportError('frame-profile', error, { userId: user.id })
     return { user, profile }
 })
