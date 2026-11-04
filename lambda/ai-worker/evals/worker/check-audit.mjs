@@ -86,7 +86,7 @@ function fakeClient(answer, usage = { input_tokens: 10_000, output_tokens: 1_000
 }
 
 /** A Ronnie trace as app/api/ai/coach writes it */
-function trace(id, user, at, message, { reply = '好的。', own, history = [{ role: 'user', content: 'earlier' }], tools = [], editFrom = null, system = 'RONNIE SYSTEM PROMPT' } = {}) {
+function trace(id, user, at, message, { reply = '好的。', own, history = [{ role: 'user', content: 'earlier' }], tools = [], editFrom = null, system = 'RONNIE SYSTEM PROMPT', sources } = {}) {
     const messages = [
         ...tools.flatMap((t, i) => [
             { role: 'assistant', content: [{ type: 'thinking', thinking: '...' }, { type: 'tool_use', id: `${id}-t${i}`, name: t.name, input: t.input ?? {} }] },
@@ -98,7 +98,7 @@ function trace(id, user, at, message, { reply = '好的。', own, history = [{ r
     return {
         id, user_id: user, created_at: at, feature: 'ronnie', status: reply == null ? 'error' : 'ok', audited_at: null,
         input: { language: 'zh-TW', message, editFrom, system, history },
-        output: reply == null ? { toolCalls: [] } : { reply, messages },
+        output: reply == null ? { toolCalls: [] } : { reply, messages, ...(sources ? { sources } : {}) },
     }
 }
 
@@ -142,6 +142,17 @@ const NOW = Date.parse('2026-10-21T12:15:00Z')
     check('a card\'s confirmations, which replace Ronnie\'s words, are all the app\'s', card.own === '' && card.appLines.length === 1, JSON.stringify(card))
     const stripped = w.turnOf(trace('o5', TAIPEI, '2026-10-20T05:00:00Z', 'q', { reply: '深蹲做完了', own: '**深蹲**做完了' }))
     check('Markdown the app stripped from Ronnie\'s words doesn\'t make them the app\'s', stripped.appLines.length === 0, JSON.stringify(stripped))
+    // As the trace keeps a cited reply: the model's keys in its words, numbers in the reply shown, the papers apart
+    const cited = w.turnOf(trace('o6', TAIPEI, '2026-10-20T05:00:00Z', '一週練幾組？', {
+        reply: '每週 10 組以上，肌肉長得比較多 [1, 2]。\n\n你胸一週 8 組，可以加到 10 組。', own: '每週 10 組以上，肌肉長得比較多 [K3, K5]。\n\n你胸一週 8 組，可以加到 10 組。',
+        tools: [{ name: 'search_knowledge', input: { query: '組數' }, result: 'K3 Schoenfeld et al., 2017 ...\nK5 Pelland et al., 2026 ...' }],
+        sources: [{ n: 1, citation: 'Schoenfeld et al., 2017', journal: 'Journal of Sports Sciences', doi: 'x' }, { n: 2, citation: 'Pelland et al., 2026', journal: 'Sports Medicine', doi: 'y' }],
+    }))
+    check('a cited sentence stays Ronnie\'s, though the app shows its keys as numbers', cited.appLines.length === 0, JSON.stringify(cited.appLines))
+    const citedRendered = w.renderConversation({ userId: TAIPEI, day: '2026-10-20', timeZone: 'Asia/Taipei', language: 'zh-TW', system: 'S', traceIds: ['o6'], turns: [cited] })
+    check('the reviewer reads the papers the app listed for the numbers, and the rule they follow',
+        citedRendered.includes('Ronnie: 每週 10 組以上，肌肉長得比較多 [K3, K5]。') && citedRendered.includes('[1] Schoenfeld et al., 2017, Journal of Sports Sciences; [2] Pelland et al., 2026, Sports Medicine')
+            && w.AUDIT_SYSTEM.includes('([K3])') && w.AUDIT_SYSTEM.includes('as numbers ([1])'), citedRendered)
     const rendered = w.renderConversation({ userId: TAIPEI, day: '2026-10-20', timeZone: 'Asia/Taipei', language: 'zh-TW', system: 'S', traceIds: ['o1', 'o4'], turns: [saved, card] })
     check('the reviewer reads Ronnie\'s words and the app\'s lines under separate labels', rendered.includes('Ronnie: 練三頭可以改做三頭下壓。\n\nShown with it, written by the app:\n📝 我記住了') && rendered.includes('Ronnie: (nothing of its own)'), rendered)
 }
