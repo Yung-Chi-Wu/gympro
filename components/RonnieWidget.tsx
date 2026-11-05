@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslations } from 'next-intl'
 import { MAX_MESSAGE_CHARS, withoutCitationNumbers, type DisplayItem, type PlanCard, type ProposalCard, type ProposalStatus, type RecommendationCard } from '@/lib/ronnie/conversation'
@@ -9,8 +9,10 @@ import { reportClientError, responseError } from '@/lib/report-client-error'
 import { MAX_REPORT_NOTE_CHARS, REPORT_REASON_LABELS, REPORT_REASONS, type ReportReason } from '@/lib/feedback'
 import { dataChanged, serverWrite } from '@/lib/data-version'
 import { isSubmitEnter, useKeyboardOpen, useVisibleViewport, type VisibleViewport } from '@/lib/keyboard'
+import { BUBBLE, BUTTON, CARD_BUTTON, CHAT_FIELD, CHIP } from '@/lib/ui'
 import { CoachGResult } from './CoachGResult'
 import { Icon } from './Icon'
+import { Sheet } from './Sheet'
 
 // Ronnie's chat window. The conversation lives on the server (one per day); this
 // shows it, sends one message at a time, and handles the cards' buttons:
@@ -59,11 +61,14 @@ interface RonnieWidgetProps {
 // An error line is shown here only; it isn't part of the stored conversation
 type Item = DisplayItem | { kind: 'error'; text: string }
 
-const ACCENT = '#C8955A'
 /** The character count shows from here, so the limit doesn't come as a surprise */
 const SHOW_COUNT_FROM = 1500
 /** After Stop: the server stops between steps and saves what was done; then the window reloads it */
 const RELOAD_AFTER_STOP_MS = 2000
+/** A card under a reply (a change to confirm, an exercise to add, a plan): an inner box, set apart by its line */
+const CARD = 'mt-2 rounded-field border border-line p-3 text-sm'
+/** Ronnie's R, in the accent; its size is the caller's */
+const AVATAR = 'grid shrink-0 place-items-center rounded-full bg-accent font-bold text-accent-ink'
 
 export function RonnieWidget({ language }: RonnieWidgetProps) {
     const zh = language === 'zh-TW'
@@ -96,6 +101,9 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
     const sentRef = useRef(0)
     const bottomRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
+    const removeTitleId = useId()
+    const reportTitleId = useId()
+    const planTitleId = useId()
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -344,7 +352,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         const open = openSources.has(i)
         const n = item.sources?.length ?? 0
         return (
-            <div className="mt-2 space-y-1 border-t border-ink/10 pt-1.5 text-[11px] leading-snug text-ink/60 max-md:text-xs dark:border-white/10 dark:text-white/60">
+            <div className="mt-2 space-y-1 border-t border-line pt-1.5 text-xs leading-snug text-muted">
                 {n > 0 && (
                     <>
                         <button type="button" aria-expanded={open} className="underline underline-offset-2"
@@ -385,19 +393,17 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         const removal = card.change === 'remove_exercise'
         const label = statusLabel(card.status)
         return (
-            <div key={card.id} className="mt-2 rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-3 text-xs space-y-2">
-                <p className="font-semibold">{removal ? (zh ? '⚠️ 永久修改・待確認' : '⚠️ Permanent change · needs your OK') : (zh ? '課表修改・待確認' : 'Routine change · needs your OK')}</p>
+            <div key={card.id} className={`${CARD} space-y-2`}>
+                <p className={`font-semibold ${removal ? 'text-miss' : ''}`}>{removal ? (zh ? '永久修改・待確認' : 'Permanent change · needs your OK') : (zh ? '課表修改・待確認' : 'Routine change · needs your OK')}</p>
                 <p>{describeProposal(card, zh)}</p>
                 {label ? (
-                    <p className="text-ink/50 dark:text-white/50">{label}</p>
+                    <p className="text-muted">{label}</p>
                 ) : (
-                    <div className="flex gap-2 justify-end">
-                        <button type="button" disabled={busyCard === card.id} onClick={() => resolve(card, 'cancel')}
-                            className="px-3 py-1 rounded-lg border border-ink/20 dark:border-white/20 disabled:opacity-50">
+                    <div className="flex justify-end gap-2">
+                        <button type="button" disabled={busyCard === card.id} onClick={() => resolve(card, 'cancel')} className={CARD_BUTTON.secondary}>
                             {zh ? '取消' : 'Cancel'}
                         </button>
-                        <button type="button" disabled={busyCard === card.id} onClick={() => handleConfirm(card)}
-                            className="px-3 py-1 rounded-lg text-white disabled:opacity-50" style={{ backgroundColor: ACCENT }}>
+                        <button type="button" disabled={busyCard === card.id} onClick={() => handleConfirm(card)} className={CARD_BUTTON.primary}>
                             {zh ? '確認' : 'Confirm'}
                         </button>
                     </div>
@@ -411,13 +417,12 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         const added = addedToday.has(rec.exerciseId)
         const swap = !!rec.replacesExerciseId
         return (
-            <div key={rec.exerciseId} className="mt-2 rounded-xl border border-ink/10 dark:border-white/10 p-3 text-xs flex items-center justify-between gap-2">
-                <span>{swap ? `🔄 ${rec.replacesName} → ${rec.exerciseName}` : `💡 ${rec.exerciseName}`}</span>
+            <div key={rec.exerciseId} className={`${CARD} flex flex-wrap items-center justify-between gap-2`}>
+                <span className="font-medium">{swap ? `${rec.replacesName} → ${rec.exerciseName}` : rec.exerciseName}</span>
                 {added ? (
-                    <span className="text-ink/50 dark:text-white/50">{swap ? (zh ? '已替換 ✓' : 'Swapped ✓') : (zh ? '已加入 ✓' : 'Added ✓')}</span>
+                    <span className="text-muted">{swap ? (zh ? '已替換 ✓' : 'Swapped ✓') : (zh ? '已加入 ✓' : 'Added ✓')}</span>
                 ) : (
-                    <button type="button" disabled={busyCard === rec.exerciseId} onClick={() => addRecommendation(rec)}
-                        className="px-3 py-1 rounded-lg text-white disabled:opacity-50 shrink-0" style={{ backgroundColor: ACCENT }}>
+                    <button type="button" disabled={busyCard === rec.exerciseId} onClick={() => addRecommendation(rec)} className={`${CARD_BUTTON.primary} shrink-0`}>
                         {swap ? (zh ? '替換' : 'Swap') : (zh ? '加入今天' : 'Add to today')}
                     </button>
                 )}
@@ -431,19 +436,18 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         const names = card.routines.map((r) => ((zh && r.name_zh_tw) || r.name).split(/[ （(]/)[0])
         const days = card.routines.reduce((n, r) => n + r.day_indices.length, 0)
         return (
-            <div key={card.id} className="mt-2 rounded-xl border border-ink/10 dark:border-white/10 p-3 text-xs space-y-2">
-                <p className="font-semibold">{zh ? '📋 Coach G 排好的課表' : "📋 Coach G's plan"}</p>
+            <div key={card.id} className={`${CARD} space-y-2`}>
+                <p className="font-semibold">{zh ? 'Coach G 排好的課表' : "Coach G's plan"}</p>
                 <p>{zh ? `每週 ${days} 天：${names.join('、')}` : `${days} days a week: ${names.join(', ')}`}</p>
                 {saved ? (
-                    <p className="text-ink/50 dark:text-white/50">{zh ? '已存入 ✓' : 'Saved ✓'}</p>
+                    <p className="text-muted">{zh ? '已存入 ✓' : 'Saved ✓'}</p>
                 ) : (
                     <>
-                        <p className="text-ink/50 dark:text-white/50">
+                        <p className="text-muted">
                             {zh ? '可以先修改再存。存入後會取代你目前的課表和訓練循環。' : 'You can edit it first. Saving replaces your current routines and training cycle.'}
                         </p>
                         <div className="flex justify-end">
-                            <button type="button" onClick={() => setOpenPlan(card)}
-                                className="px-3 py-1 rounded-lg text-white" style={{ backgroundColor: ACCENT }}>
+                            <button type="button" onClick={() => setOpenPlan(card)} className={CARD_BUTTON.primary}>
                                 {zh ? '看課表' : 'View plan'}
                             </button>
                         </div>
@@ -472,24 +476,19 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
         }
     }
     const renderReport = (traceId: string) => (
-        <div className="mt-0.5 flex justify-start px-1 text-[11px]">
+        <div className="mt-0.5 flex justify-start px-1 text-xs">
             {reported.has(traceId) ? (
-                <span className="text-ink/40 dark:text-white/40">{zh ? '已回報，對話將保留一年' : 'Reported; kept a year for review'}</span>
+                <span className="text-muted">{zh ? '已回報，對話將保留一年' : 'Reported; kept a year for review'}</span>
             ) : (
                 <button type="button" onClick={() => setReporting({ traceId, reasons: [], note: '', sending: false, failed: false })}
-                    className="-my-1 py-1 text-red-500/70 hover:text-red-500">
+                    className="-my-1 py-1 text-miss/80 hover:text-miss">
                     {zh ? '回報錯誤' : 'Report a mistake'}
                 </button>
             )}
         </div>
     )
 
-    const avatar = (
-        <div className="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs mr-2 mt-1 shrink-0"
-            style={{ backgroundColor: ACCENT }}>
-            R
-        </div>
-    )
+    const avatar = <div className={`${AVATAR} mt-1 mr-2 size-7 text-xs`}>R</div>
 
     return (
         <>
@@ -501,19 +500,16 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                 <aside
                     aria-label="Ronnie"
                     style={isPhone ? windowStyle(spot.side, viewport) : undefined}
-                    className="fixed z-50 flex flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-[0_12px_40px_rgb(0_0_0/0.25)] md:relative md:z-auto md:h-dvh md:w-[340px] md:shrink-0 md:rounded-none md:border-0 md:border-l md:shadow-none xl:w-[380px]"
+                    className="fixed z-50 flex flex-col overflow-hidden rounded-card bg-raised text-ink shadow-float md:relative md:z-auto md:h-dvh md:w-[340px] md:shrink-0 md:rounded-none md:border-l md:border-line md:bg-card md:shadow-none xl:w-[380px]"
                 >
 
                     {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ backgroundColor: '#26241F' }}>
+                    <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm"
-                                style={{ backgroundColor: ACCENT }}>
-                                R
-                            </div>
+                            <div className={`${AVATAR} size-9 text-sm`}>R</div>
                             <div>
-                                <p className="font-semibold text-sm text-white">Ronnie</p>
-                                <p className="text-xs text-white/50">
+                                <p className="text-[15px] font-semibold md:text-sm">Ronnie</p>
+                                <p className="text-xs text-muted">
                                     {zh ? 'AI 隨身教練' : 'AI Personal Coach'}
                                 </p>
                             </div>
@@ -522,12 +518,12 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                         <div className="flex items-center gap-6">
                             {items.length > 0 && (
                                 <button type="button" onClick={handleClear}
-                                    className="min-h-11 px-2 text-xs text-white/40 hover:text-white/70 transition-colors md:min-h-9">
+                                    className="min-h-11 px-2 text-sm text-muted transition-colors hover:text-ink md:min-h-9">
                                     {zh ? '清除' : 'Clear'}
                                 </button>
                             )}
                             <button type="button" onClick={close} aria-label={tNav('closeRonnie')}
-                                className="-m-3 p-3 text-white/50 hover:text-white transition-colors">
+                                className="-m-3 p-3 text-muted transition-colors hover:text-ink">
                                 <Icon name="close" className="size-5" />
                             </button>
                         </div>
@@ -536,20 +532,20 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                     {/* Messages */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                         {!loaded && (
-                            <p className="pt-4 text-center text-xs text-ink/50 dark:text-white/50">
+                            <p className="pt-4 text-center text-sm text-muted">
                                 {zh ? '載入對話中…' : 'Loading the conversation…'}
                             </p>
                         )}
                         {loaded && items.length === 0 && (
-                            <div className="text-center space-y-3 pt-4">
-                                <div className="text-4xl">💪</div>
-                                <p className="text-sm font-medium">{"Ain't nothin' but a peanut!"}</p>
-                                <p className="text-xs text-ink/40 dark:text-white/40">
+                            <div className="space-y-3 pt-4 text-center">
+                                <div className={`${AVATAR} mx-auto size-14 text-xl`}>R</div>
+                                <p className="text-[15px] font-semibold md:text-sm">{"Ain't nothin' but a peanut!"}</p>
+                                <p className="text-sm text-muted">
                                     {zh
                                         ? '問我任何健身問題，或讓我幫你調整今天的課表'
                                         : "Ask me anything about training, or let me help with today's workout"}
                                 </p>
-                                <div className="space-y-2 pt-2">
+                                <div className="flex flex-col gap-2 pt-2">
                                     {(zh ? [
                                         '今天我做了什麼？',
                                         '深蹲有什麼替代動作？',
@@ -559,8 +555,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                         "Squat alternatives?",
                                         "How do I use GymPro?",
                                     ]).map((q) => (
-                                        <button key={q} type="button" onClick={() => handleSend(q)}
-                                            className="block w-full text-left rounded-xl border border-ink/10 dark:border-white/10 px-3 py-2 text-xs hover:bg-ink/5 dark:hover:bg-white/5 transition-colors">
+                                        <button key={q} type="button" onClick={() => handleSend(q)} className={`${CHIP} w-full`}>
                                             {q}
                                         </button>
                                     ))}
@@ -571,7 +566,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                         {items.map((item, i) => {
                             if (item.kind === 'event' || item.kind === 'error') {
                                 return (
-                                    <p key={i} className={`whitespace-pre-line text-center text-xs ${item.kind === 'error' ? 'text-red-500' : 'text-ink/50 dark:text-white/50'}`}>
+                                    <p key={i} className={`whitespace-pre-line text-center text-xs ${item.kind === 'error' ? 'text-miss' : 'text-muted'}`}>
                                         {item.text}
                                     </p>
                                 )
@@ -581,7 +576,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                     <div key={i} className="flex justify-start">
                                         {avatar}
                                         <div className="max-w-[80%]">
-                                            <div className="rounded-2xl rounded-tl-sm px-3 py-2 text-sm leading-relaxed bg-ink/5 dark:bg-white/8">
+                                            <div className={BUBBLE.coach}>
                                                 {renderContent(item.sources?.length ? withoutCitationNumbers(item.text) : item.text)}
                                                 {renderSources(item, i)}
                                             </div>
@@ -610,30 +605,28 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                                         }
                                                         if (e.key === 'Escape') setEditingIndex(null)
                                                     }}
-                                                    className="w-full rounded-2xl px-3 py-2 text-sm bg-plate dark:bg-white text-chalk dark:text-[#1A1814] resize-none"
+                                                    className="w-full resize-none rounded-field border border-line bg-card px-3 py-2 text-[15px] text-ink md:text-sm"
                                                     rows={2}
                                                 />
-                                                <div className="flex gap-1 justify-end">
-                                                    <button type="button" onClick={() => setEditingIndex(null)}
-                                                        className="text-xs text-ink/40 px-2 py-0.5">
+                                                <div className="flex justify-end gap-2">
+                                                    <button type="button" onClick={() => setEditingIndex(null)} className={CARD_BUTTON.secondary}>
                                                         {zh ? '取消' : 'Cancel'}
                                                     </button>
-                                                    <button type="button" onClick={() => handleEditSubmit(i)}
-                                                        className="text-xs bg-plate dark:bg-white text-chalk dark:text-[#1A1814] px-2 py-0.5 rounded-md">
+                                                    <button type="button" onClick={() => handleEditSubmit(i)} className={CARD_BUTTON.primary}>
                                                         {zh ? '重新送出' : 'Resend'}
                                                     </button>
                                                 </div>
                                             </div>
                                         ) : (
                                             <>
-                                                <div className="rounded-2xl rounded-tr-sm px-3 py-2 text-sm leading-relaxed bg-plate dark:bg-white text-chalk dark:text-[#1A1814]">
+                                                <div className={BUBBLE.user}>
                                                     {renderContent(item.text)}
                                                 </div>
                                                 {!isLoading && (
                                                     <button
                                                         type="button"
                                                         onClick={() => { setEditingIndex(i); setEditingText(item.text) }}
-                                                        className="absolute -left-6 top-1 opacity-0 group-hover:opacity-100 transition-opacity text-ink/30 hover:text-ink/60 text-xs"
+                                                        className="absolute top-1 -left-6 text-xs text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:text-muted"
                                                     >
                                                         ✎
                                                     </button>
@@ -646,19 +639,16 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                         })}
 
                         {isLoading && (
-                            <div className="flex justify-start items-center gap-2">
-                                <div className="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0"
-                                    style={{ backgroundColor: ACCENT }}>
-                                    R
-                                </div>
-                                <div className="bg-ink/5 dark:bg-white/8 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-3">
+                            <div className="flex items-center justify-start gap-2">
+                                <div className={`${AVATAR} size-7 text-xs`}>R</div>
+                                <div className="flex items-center gap-3 rounded-card rounded-tl-md bg-done px-4 py-2">
                                     <div className="flex gap-1">
-                                        <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: ACCENT, animationDelay: '0ms' }} />
-                                        <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: ACCENT, animationDelay: '150ms' }} />
-                                        <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: ACCENT, animationDelay: '300ms' }} />
+                                        {[0, 150, 300].map((delay) => (
+                                            <div key={delay} className="size-1.5 animate-bounce rounded-full bg-accent" style={{ animationDelay: `${delay}ms` }} />
+                                        ))}
                                     </div>
                                     <button type="button" onClick={handleStop}
-                                        className="text-xs text-ink/40 hover:text-red-500 transition-colors">
+                                        className="min-h-9 text-sm text-muted transition-colors hover:text-miss">
                                         {zh ? '停止' : 'Stop'}
                                     </button>
                                 </div>
@@ -669,7 +659,7 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                     </div>
 
                     {/* Input */}
-                    <div className="p-3 border-t border-ink/10 dark:border-white/10 shrink-0">
+                    <div className="shrink-0 border-t border-line p-3">
                         <div className="flex gap-2">
                             <input
                                 ref={inputRef}
@@ -681,59 +671,54 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                     if (isSubmitEnter(e) && !isLoading) handleSend()
                                 }}
                                 placeholder={zh ? '問 Ronnie...' : 'Ask Ronnie...'}
-                                className="flex-1 rounded-xl border border-ink/20 dark:border-white/20 px-3 py-2 text-sm bg-transparent"
+                                className={CHAT_FIELD}
                             />
                             <button type="button" onClick={() => handleSend()}
-                                disabled={!input.trim() || isLoading || !loaded}
-                                className="rounded-xl px-3 py-2 text-sm font-medium text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-                                style={{ backgroundColor: ACCENT }}>
+                                disabled={!input.trim() || isLoading || !loaded} className={BUTTON.primary}>
                                 {zh ? '發送' : 'Send'}
                             </button>
                         </div>
                         {input.length >= SHOW_COUNT_FROM && (
-                            <p className={`mt-1 text-right text-xs tabular-nums ${input.length >= MAX_MESSAGE_CHARS ? 'text-red-500' : 'text-ink/40 dark:text-white/40'}`}>
+                            <p className={`mt-1 text-right text-xs tabular-nums ${input.length >= MAX_MESSAGE_CHARS ? 'text-miss' : 'text-muted'}`}>
                                 {input.length} / {MAX_MESSAGE_CHARS}
                             </p>
                         )}
                     </div>
 
-                    {/* Second confirmation for a removal */}
+                    {/* Second confirmation for a removal. Closing it is Back; only the button that removes is red */}
                     {confirming && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-6" role="dialog" aria-modal="true">
-                            <div className="w-full rounded-2xl bg-white dark:bg-[#2C2923] p-4 space-y-3 shadow-xl">
-                                <p className="font-semibold text-sm">{zh ? '確定要永久移除嗎？' : 'Remove it for good?'}</p>
-                                <p className="text-xs text-ink/70 dark:text-white/70">
+                        <Sheet labelledBy={removeTitleId} onClose={() => setConfirming(null)} centered>
+                            <div className="space-y-4">
+                                <h3 id={removeTitleId} className="text-lg font-bold">{zh ? '確定要永久移除嗎？' : 'Remove it for good?'}</h3>
+                                <p className="text-sm text-muted">
                                     {zh
                                         ? `「${confirming.exerciseName}」會從${confirming.routineNames.map((n) => `「${n}」`).join('、')}移除，之後不會再排這個動作。`
                                         : `"${confirming.exerciseName}" will be removed from ${confirming.routineNames.join(', ')} and won't be scheduled again.`}
                                 </p>
-                                <div className="flex gap-2 justify-end">
-                                    <button type="button" onClick={() => setConfirming(null)}
-                                        className="px-3 py-1.5 rounded-lg border border-ink/20 dark:border-white/20 text-xs">
+                                {/* On a phone the two are stacked full width, the removal on top; side by side from md */}
+                                <div className="flex flex-col-reverse gap-2 md:flex-row">
+                                    <button type="button" onClick={() => setConfirming(null)} className={`${BUTTON.secondary} md:flex-1`}>
                                         {zh ? '返回' : 'Back'}
                                     </button>
-                                    <button type="button" onClick={() => resolve(confirming, 'confirm')}
-                                        className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs">
+                                    <button type="button" onClick={() => resolve(confirming, 'confirm')} className={`${BUTTON.dangerConfirm} md:flex-1`}>
                                         {zh ? '確定移除' : 'Remove'}
                                     </button>
                                 </div>
                             </div>
-                        </div>
+                        </Sheet>
                     )}
 
-                    {/* Report a mistake: what was wrong with the reply */}
+                    {/* Report a mistake: what was wrong with the reply. Closing it is Cancel */}
                     {reporting && (
-                        <div className="absolute inset-0 flex items-end bg-black/40 p-3" role="dialog" aria-modal="true" aria-labelledby="report-title"
-                            onKeyDown={(e) => { if (e.key === 'Escape') setReporting(null) }}>
-                            <div className="w-full space-y-3 rounded-2xl bg-white p-4 shadow-xl dark:bg-[#2C2923]">
-                                <p id="report-title" className="text-sm font-semibold">{zh ? '這則回覆哪裡有問題？' : 'What was wrong with this reply?'}</p>
+                        <Sheet labelledBy={reportTitleId} onClose={() => setReporting(null)}>
+                            <div className="space-y-4">
+                                <h3 id={reportTitleId} className="text-lg font-bold">{zh ? '這則回覆哪裡有問題？' : 'What was wrong with this reply?'}</h3>
                                 <div className="flex flex-wrap gap-2">
                                     {REPORT_REASONS.map((reason) => {
                                         const picked = reporting.reasons.includes(reason)
                                         return (
-                                            <button key={reason} type="button" aria-pressed={picked}
-                                                onClick={() => setReporting({ ...reporting, reasons: picked ? reporting.reasons.filter((r) => r !== reason) : [...reporting.reasons, reason] })}
-                                                className={`min-h-9 rounded-full border px-3 text-xs ${picked ? 'border-transparent bg-ink text-card dark:bg-white dark:text-[#2C2923]' : 'border-ink/20 dark:border-white/20'}`}>
+                                            <button key={reason} type="button" aria-pressed={picked} className={CHIP}
+                                                onClick={() => setReporting({ ...reporting, reasons: picked ? reporting.reasons.filter((r) => r !== reason) : [...reporting.reasons, reason] })}>
                                                 {REPORT_REASON_LABELS[zh ? 'zh-TW' : 'en'][reason]}
                                             </button>
                                         )
@@ -746,45 +731,44 @@ export function RonnieWidget({ language }: RonnieWidgetProps) {
                                     rows={3}
                                     aria-label={zh ? '補充說明' : 'Details'}
                                     placeholder={zh ? '想補充什麼？（選填）' : 'Anything to add? (optional)'}
-                                    className="w-full rounded-xl border border-ink/20 bg-transparent px-3 py-2 text-sm dark:border-white/20"
+                                    className="w-full rounded-field border border-line bg-card px-3 py-2 text-[15px] text-ink placeholder:text-muted md:text-sm"
                                 />
-                                <p className="text-[11px] text-ink/50 dark:text-white/50">
+                                <p className="text-xs text-muted">
                                     {zh ? '送出後，這段對話會保留一年，讓我們檢查哪裡出錯。' : "This conversation is kept for a year, so we can check what went wrong."}
                                 </p>
                                 {reporting.failed && (
-                                    <p role="alert" className="text-xs text-red-500">{zh ? '沒有送出，請再試一次。' : "It wasn't sent. Try again."}</p>
+                                    <p role="alert" className="text-sm text-miss">{zh ? '沒有送出，請再試一次。' : "It wasn't sent. Try again."}</p>
                                 )}
-                                <div className="flex justify-end gap-2">
-                                    <button type="button" onClick={() => setReporting(null)}
-                                        className="min-h-9 rounded-lg border border-ink/20 px-3 text-xs dark:border-white/20">
+                                <div className="flex flex-col-reverse gap-2 md:flex-row">
+                                    <button type="button" onClick={() => setReporting(null)} className={`${BUTTON.secondary} md:flex-1`}>
                                         {zh ? '取消' : 'Cancel'}
                                     </button>
                                     <button type="button" onClick={sendReport}
                                         disabled={reporting.sending || (!reporting.reasons.length && !reporting.note.trim())}
-                                        className="min-h-9 rounded-lg px-3 text-xs font-medium text-white disabled:opacity-50" style={{ backgroundColor: ACCENT }}>
+                                        className={`${BUTTON.primary} md:flex-1`}>
                                         {reporting.sending ? (zh ? '送出中…' : 'Sending…') : (zh ? '送出' : 'Send')}
                                     </button>
                                 </div>
                             </div>
-                        </div>
+                        </Sheet>
                     )}
                 </aside>
             )}
 
-            {/* A plan card's routines in Coach G's editor, over the page as Coach G's own opens */}
+            {/* A plan card's routines in Coach G's editor, over the page as Coach G's own opens. Only its
+                own buttons close it, as Coach G's own: a tap outside would lose the edits */}
             {openPlan && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
-                    <div className="w-full max-w-lg h-[85vh] rounded-xl bg-white dark:bg-[#2C2923] shadow-xl flex flex-col overflow-hidden">
-                        <CoachGResult
-                            routines={openPlan.routines}
-                            cycleLength={openPlan.cycleLength}
-                            language={language}
-                            onBack={() => setOpenPlan(null)}
-                            onSaved={() => void planSaved(openPlan)}
-                            backLabel={zh ? '關閉' : 'Close'}
-                        />
-                    </div>
-                </div>
+                <Sheet labelledBy={planTitleId} tall dismissable={false}>
+                    <h2 id={planTitleId} className="sr-only">Coach G</h2>
+                    <CoachGResult
+                        routines={openPlan.routines}
+                        cycleLength={openPlan.cycleLength}
+                        language={language}
+                        onBack={() => setOpenPlan(null)}
+                        onSaved={() => void planSaved(openPlan)}
+                        backLabel={zh ? '關閉' : 'Close'}
+                    />
+                </Sheet>
             )}
         </>
     )
