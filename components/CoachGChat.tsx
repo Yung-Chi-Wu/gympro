@@ -4,6 +4,11 @@ import { useState, useRef, useEffect } from 'react'
 import { isSubmitEnter } from '@/lib/keyboard'
 import { MAX_ANSWER_CHARS } from '@/lib/coach-g'
 import { reportClientError, responseError } from '@/lib/report-client-error'
+import { BUBBLE, BUTTON, CHAT_FIELD, CHIP } from '@/lib/ui'
+import { Icon } from './Icon'
+
+/** Coach G's G, in ink; its size is the caller's */
+const AVATAR = 'grid shrink-0 place-items-center rounded-full bg-ink font-bold text-card'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -193,12 +198,12 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
     return (
         <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-ink/10">
+            <div className="flex items-center justify-between border-b border-line px-4 py-3">
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-sm">G</div>
+                    <div className={`${AVATAR} size-9 text-sm`}>G</div>
                     <div>
-                        <p className="font-semibold text-sm">Coach G</p>
-                        <p className="text-xs text-ink/40">{zh ? 'AI 課表設計師' : 'AI Routine Designer'}</p>
+                        <p className="text-[15px] font-semibold md:text-sm">Coach G</p>
+                        <p className="text-xs text-muted">{zh ? 'AI 課表設計師' : 'AI Routine Designer'}</p>
                     </div>
                 </div>
                 <button
@@ -209,23 +214,20 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
                         onClose()
                     }}
                     aria-label={zh ? '關閉 Coach G' : 'Close Coach G'}
-                    className="-m-3 p-3 text-ink/40 hover:text-ink transition-colors text-lg"
+                    className="-m-3 p-3 text-muted transition-colors hover:text-ink"
                 >
-                    ✕
+                    <Icon name="close" className="size-5" />
                 </button>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 space-y-3 overflow-y-auto p-4">
                 {messages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         {msg.role === 'assistant' && (
-                            <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 mt-1 shrink-0">G</div>
+                            <div className={`${AVATAR} mt-1 mr-2 size-7 text-xs`}>G</div>
                         )}
-                        <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === 'user'
-                            ? 'bg-plate dark:bg-white text-chalk dark:text-[#1A1814] rounded-tr-sm'
-                            : 'bg-ink/5 dark:bg-white/8 rounded-tl-sm'
-                            }`}>
+                        <div className={`max-w-[80%] ${msg.role === 'user' ? BUBBLE.user : BUBBLE.coach}`}>
                             {msg.content}
                         </div>
                     </div>
@@ -236,15 +238,11 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
                 {/* 生成中 */}
                 {isGenerating && (
                     <div className="flex justify-start">
-                        <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 shrink-0">G</div>
-                        <div className="bg-ink/5 dark:bg-white/8 rounded-xl rounded-tl-sm px-4 py-3 space-y-1">
-                            <p className="text-sm font-medium">{zh ? '✨ 課表設計中...' : '✨ Designing your routine...'}</p>
-                            <p className="text-xs text-ink/40">{zh ? '根據你的需求分析最適合的訓練計畫' : 'Analyzing the best plan for your goals'}</p>
-                            <div className="flex gap-1 mt-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-[#C8955A] animate-bounce" style={{ animationDelay: '0ms' }} />
-                                <div className="w-1.5 h-1.5 rounded-full bg-[#C8955A] animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <div className="w-1.5 h-1.5 rounded-full bg-[#C8955A] animate-bounce" style={{ animationDelay: '300ms' }} />
-                            </div>
+                        <div className={`${AVATAR} mr-2 size-7 text-xs`}>G</div>
+                        <div className="space-y-1 rounded-card rounded-tl-md bg-done px-4 py-3">
+                            <p className="text-[15px] font-semibold md:text-sm">{zh ? '課表設計中…' : 'Designing your routine…'}</p>
+                            <p className="text-xs text-muted">{zh ? '根據你的需求分析最適合的訓練計畫' : 'Analyzing the best plan for your goals'}</p>
+                            <Dots />
                         </div>
                     </div>
                 )}
@@ -252,13 +250,9 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
                 {/* 一般 loading */}
                 {isLoading && !isGenerating && (
                     <div className="flex justify-start">
-                        <div className="w-7 h-7 rounded-full bg-plate dark:bg-white flex items-center justify-center text-chalk dark:text-[#1A1814] font-bold text-xs mr-2 shrink-0">G</div>
-                        <div className="bg-ink/5 dark:bg-white/8 rounded-xl rounded-tl-sm px-4 py-3">
-                            <div className="flex gap-1">
-                                <div className="w-2 h-2 rounded-full bg-ink/30 animate-bounce" style={{ animationDelay: '0ms' }} />
-                                <div className="w-2 h-2 rounded-full bg-ink/30 animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <div className="w-2 h-2 rounded-full bg-ink/30 animate-bounce" style={{ animationDelay: '300ms' }} />
-                            </div>
+                        <div className={`${AVATAR} mr-2 size-7 text-xs`}>G</div>
+                        <div className="rounded-card rounded-tl-md bg-done px-4 py-3">
+                            <Dots />
                         </div>
                     </div>
                 )}
@@ -270,7 +264,7 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
             {(options.length > 0 || isSkippable) && !isLoading && !isGenerating && (
                 <div className="px-4 pb-2 space-y-2">
                     {isMultiSelect && (
-                        <p className="text-xs text-ink/40">
+                        <p className="text-xs text-muted">
                             {zh ? '可以多選，選完按確認' : 'Select multiple, then confirm'}
                         </p>
                     )}
@@ -279,7 +273,9 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
                             {options.map((opt, i) => {
                                 const isSelected = selectedOptions.includes(opt)
                                 return (
-                                    <button key={i} type="button"
+                                    <button key={i} type="button" className={CHIP}
+                                        // A pick of several is pressed until Confirm; one of one is the answer at once
+                                        aria-pressed={isMultiSelect ? isSelected : undefined}
                                         onClick={() => {
                                             if (isMultiSelect) {
                                                 setSelectedOptions((prev) =>
@@ -288,11 +284,7 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
                                             } else {
                                                 handleAnswer(opt)
                                             }
-                                        }}
-                                        className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${isMultiSelect && isSelected
-                                                ? 'bg-plate dark:bg-white border-plate dark:border-white text-chalk dark:text-[#1A1814]'
-                                                : 'border-ink/20 dark:border-white/20 hover:border-ink/40 dark:hover:border-white/40'
-                                            }`}>
+                                        }}>
                                         {isMultiSelect && isSelected ? '✓ ' : ''}{opt}
                                     </button>
                                 )
@@ -302,15 +294,13 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
                     <div className="flex gap-2">
                         {isMultiSelect && selectedOptions.length > 0 && (
                             <button type="button"
-                                onClick={() => handleAnswer(selectedOptions.join(', '))}
-                                className="rounded-lg bg-plate dark:bg-white px-4 py-1.5 text-xs font-semibold text-chalk dark:text-[#1A1814] hover:opacity-90 transition-opacity">
+                                onClick={() => handleAnswer(selectedOptions.join(', '))} className={BUTTON.primary}>
                                 {zh ? `確認（${selectedOptions.length}）` : `Confirm (${selectedOptions.length})`}
                             </button>
                         )}
                         {isSkippable && (
                             <button type="button"
-                                onClick={() => handleAnswer(zh ? '跳過' : 'Skip')}
-                                className="rounded-lg border border-ink/20 dark:border-white/20 px-4 py-1.5 text-xs text-ink/50 dark:text-white/50 hover:text-ink dark:hover:text-white transition-colors">
+                                onClick={() => handleAnswer(zh ? '跳過' : 'Skip')} className={BUTTON.secondary}>
                                 {zh ? '跳過' : 'Skip'}
                             </button>
                         )}
@@ -320,35 +310,44 @@ export function CoachGChat({ language, onRoutinesGenerated, onClose }: CoachGCha
 
             {failedAnswers && !isGenerating && (
                 <div className="px-4 pb-2">
-                    <button type="button" onClick={() => generate(failedAnswers)}
-                        className="rounded-lg bg-plate dark:bg-white px-4 py-1.5 text-xs font-semibold text-chalk dark:text-[#1A1814] hover:opacity-90 transition-opacity">
+                    <button type="button" onClick={() => generate(failedAnswers)} className={BUTTON.primary}>
                         {zh ? '再試一次' : 'Try again'}
                     </button>
                 </div>
             )}
 
             {/* Input */}
-            <div className="p-4 border-t border-ink/10">
+            <div className="border-t border-line p-3">
                 <div className="flex gap-2">
                     <input type="text" value={input} maxLength={MAX_ANSWER_CHARS}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => { if (isSubmitEnter(e) && input.trim()) handleAnswer(input.trim()) }}
                         placeholder={
                             isGenerating
-                                ? (zh ? '課表設計中...' : 'Designing routine...')
-                                : (zh ? '或直接打字回答...' : 'Or type your answer...')
+                                ? (zh ? '課表設計中…' : 'Designing routine…')
+                                : (zh ? '或直接打字回答…' : 'Or type your answer…')
                         }
                         disabled={isLoading || isGenerating}
-                        className="flex-1 rounded-xl border border-ink/20 dark:border-white/20 px-3 py-2 text-sm bg-transparent disabled:opacity-50"
+                        className={CHAT_FIELD}
                     />
                     <button type="button"
                         onClick={() => { if (input.trim()) handleAnswer(input.trim()) }}
-                        disabled={!input.trim() || isLoading || isGenerating}
-                        className="rounded-xl bg-plate dark:bg-white px-4 py-2 text-sm font-medium text-chalk dark:text-[#1A1814] disabled:opacity-50 hover:opacity-90 transition-opacity">
+                        disabled={!input.trim() || isLoading || isGenerating} className={BUTTON.primary}>
                         {zh ? '送出' : 'Send'}
                     </button>
                 </div>
             </div>
+        </div>
+    )
+}
+
+/** Coach G at work: three dots, one after another */
+function Dots() {
+    return (
+        <div className="flex gap-1 py-1">
+            {[0, 150, 300].map((delay) => (
+                <div key={delay} className="size-1.5 animate-bounce rounded-full bg-accent" style={{ animationDelay: `${delay}ms` }} />
+            ))}
         </div>
     )
 }
